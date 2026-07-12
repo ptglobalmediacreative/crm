@@ -9,15 +9,24 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u475225363_crmget');
 define('DB_USER', 'u475225363_crmget');
-define('DB_PASS', 'Gandaelang123'); // Isi password Anda
+define('DB_PASS', ''); // Isi password Anda
 
 // ============================================
 // APLIKASI
 // ============================================
 define('APP_URL', 'https://' . $_SERVER['HTTP_HOST']);
 define('APP_NAME', 'GET CRM - PT Ganda Elang Tangguh');
-define('APP_COMPANY', 'PT Ganda Elang Tangguh');
-define('APP_YEAR', date('Y'));
+define('APP_EMAIL', 'noreply@crmget.com'); // Email pengirim
+
+// ============================================
+// EMAIL CONFIGURATION (SMTP)
+// ============================================
+define('SMTP_HOST', 'smtp.gmail.com'); // Ganti dengan SMTP Anda
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'your-email@gmail.com'); // Ganti dengan email Anda
+define('SMTP_PASS', 'your-app-password'); // Ganti dengan password/App Password
+define('SMTP_FROM', 'noreply@crmget.com');
+define('SMTP_FROM_NAME', 'PT Ganda Elang Tangguh');
 
 // ============================================
 // KONEKSI DATABASE
@@ -90,5 +99,27 @@ function getRole() {
 
 function isAdmin() {
     return getRole() === 'admin';
+}
+
+// ============================================
+// FUNCTION KIRIM EMAIL
+// ============================================
+function sendEmail($to, $subject, $message, $from = null, $fromName = null) {
+    $from = $from ?? SMTP_FROM;
+    $fromName = $fromName ?? SMTP_FROM_NAME;
+    
+    // Header email
+    $headers = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-type: text/html; charset=utf-8\r\n";
+    $headers .= "From: " . $fromName . " <" . $from . ">\r\n";
+    $headers .= "Reply-To: " . $from . "\r\n";
+    
+    // Kirim email
+    return mail($to, $subject, $message, $headers);
+}
+
+// Fungsi generate token
+function generateToken() {
+    return bin2hex(random_bytes(32));
 }
 ?>
