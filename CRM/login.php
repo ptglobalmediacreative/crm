@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         body {
-            background: linear-gradient(135deg, #0f1f33 0%, #1a3a5c 40%, #2a5f8f 80%, #1a3a5c 100%);
+            background: linear-gradient(135deg, #8B6914 0%, #DAA520 30%, #FFD700 60%, #F0C000 80%, #8B6914 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             overflow-x: hidden;
         }
         
-        /* Background Pattern */
+        /* Background Pattern - Emas */
         body::before {
             content: '';
             position: absolute;
@@ -100,37 +100,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 50%, rgba(42, 95, 143, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(139, 105, 20, 0.2) 0%, transparent 40%);
             z-index: 0;
         }
         
-        /* Animated Background Orbs */
+        /* Animated Background Orbs - Emas */
         .orb {
             position: absolute;
             border-radius: 50%;
             filter: blur(80px);
-            opacity: 0.3;
+            opacity: 0.4;
             z-index: 0;
             animation: float 20s ease-in-out infinite;
         }
         
         .orb-1 {
-            width: 400px;
-            height: 400px;
-            background: rgba(255, 215, 0, 0.1);
-            top: -100px;
-            right: -100px;
+            width: 500px;
+            height: 500px;
+            background: rgba(255, 215, 0, 0.3);
+            top: -150px;
+            right: -150px;
             animation-delay: 0s;
         }
         
         .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(218, 165, 32, 0.25);
+            bottom: -100px;
+            left: -100px;
+            animation-delay: -7s;
+        }
+        
+        .orb-3 {
             width: 300px;
             height: 300px;
-            background: rgba(42, 95, 143, 0.15);
-            bottom: -50px;
-            left: -50px;
-            animation-delay: -7s;
+            background: rgba(255, 215, 0, 0.15);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -14s;
         }
         
         @keyframes float {
@@ -142,6 +153,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             66% {
                 transform: translate(-20px, 20px) scale(0.9);
+            }
+        }
+        
+        /* Sparkle Effect */
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #FFD700;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FFD700, 0 0 20px #FFD700;
+            animation: sparkle 3s ease-in-out infinite;
+            z-index: 0;
+        }
+        
+        .sparkle:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+        .sparkle:nth-child(2) { top: 20%; right: 15%; animation-delay: 1s; }
+        .sparkle:nth-child(3) { bottom: 30%; left: 5%; animation-delay: 2s; }
+        .sparkle:nth-child(4) { bottom: 20%; right: 10%; animation-delay: 0.5s; }
+        .sparkle:nth-child(5) { top: 50%; left: 5%; animation-delay: 1.5s; }
+        .sparkle:nth-child(6) { top: 40%; right: 5%; animation-delay: 2.5s; }
+        
+        @keyframes sparkle {
+            0%, 100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1);
             }
         }
         
@@ -157,19 +198,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .card {
             border: none;
             border-radius: 24px;
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                0 30px 80px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 215, 0, 0.2),
+                0 0 60px rgba(255, 215, 0, 0.1);
             overflow: hidden;
             backdrop-filter: blur(10px);
             background: rgba(255, 255, 255, 0.98);
         }
         
         .card-header {
-            background: linear-gradient(135deg, #0f1f33 0%, #1a3a5c 50%, #2a5f8f 100%);
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #4a4a4a 70%, #2d2d2d 100%);
             padding: 35px 30px 30px;
             text-align: center;
             border: none;
             position: relative;
             overflow: hidden;
+        }
+        
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
+            animation: rotateGlow 20s linear infinite;
+        }
+        
+        @keyframes rotateGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
         .card-header::after {
@@ -179,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, transparent, #ffd700, #ffed4a, #ffd700, transparent);
+            background: linear-gradient(90deg, transparent, #FFD700, #FFA500, #FFD700, transparent);
             background-size: 200% 100%;
             animation: shimmer 3s ease-in-out infinite;
         }
@@ -196,6 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .logo-container {
             margin-bottom: 12px;
             position: relative;
+            z-index: 1;
         }
         
         .logo-wrapper {
@@ -203,20 +264,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             height: 100px;
             margin: 0 auto;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
-            border: 3px solid rgba(255, 215, 0, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            border: 3px solid rgba(255, 215, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 12px;
             transition: all 0.3s ease;
             position: relative;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.05);
         }
         
         .logo-wrapper:hover {
-            transform: scale(1.05);
-            border-color: rgba(255, 215, 0, 0.5);
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.1);
+            transform: scale(1.05) rotate(-5deg);
+            border-color: rgba(255, 215, 0, 0.8);
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.2);
         }
         
         .logo-wrapper img {
@@ -228,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .logo-wrapper .logo-placeholder {
             font-size: 52px;
-            color: #ffd700;
+            color: #FFD700;
         }
         
         .company-name {
@@ -237,21 +299,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 800;
             letter-spacing: 1.5px;
             margin-bottom: 4px;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            text-shadow: 0 2px 20px rgba(255, 215, 0, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .company-name span {
+            color: #FFD700;
         }
         
         .company-sub {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 14px;
+            color: rgba(255, 215, 0, 0.7);
+            font-size: 13px;
             font-weight: 400;
             letter-spacing: 3px;
             text-transform: uppercase;
+            position: relative;
+            z-index: 1;
         }
         
         .company-sub i {
             margin: 0 5px;
-            color: #ffd700;
-            font-size: 10px;
+            color: #FFD700;
+            font-size: 8px;
+            opacity: 0.5;
         }
         
         .card-body {
@@ -262,12 +333,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-label {
             font-weight: 600;
             font-size: 14px;
-            color: #1a3a5c;
+            color: #1a1a1a;
             margin-bottom: 8px;
         }
         
         .form-label i {
-            color: #2a5f8f;
+            color: #DAA520;
             width: 20px;
         }
         
@@ -281,8 +352,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .form-control:focus {
-            border-color: #2a5f8f;
-            box-shadow: 0 0 0 4px rgba(42, 95, 143, 0.1);
+            border-color: #DAA520;
+            box-shadow: 0 0 0 4px rgba(218, 165, 32, 0.1);
         }
         
         .form-control-lg {
@@ -305,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .input-group .form-control:focus + .input-group-text {
-            border-color: #2a5f8f;
+            border-color: #DAA520;
         }
         
         .btn-toggle-password {
@@ -320,7 +391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .btn-toggle-password:hover {
             background: #e9ecef;
-            color: #1a3a5c;
+            color: #DAA520;
         }
         
         .btn-toggle-password:focus {
@@ -328,7 +399,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .btn-login {
-            background: linear-gradient(135deg, #1a3a5c 0%, #2a5f8f 100%);
+            background: linear-gradient(135deg, #8B6914 0%, #DAA520 40%, #FFD700 70%, #F0C000 100%);
             border: none;
             border-radius: 12px;
             padding: 16px;
@@ -338,6 +409,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            color: #1a1a1a;
+            text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
         }
         
         .btn-login::before {
@@ -347,8 +420,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.5s ease;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
         }
         
         .btn-login:hover::before {
@@ -357,7 +430,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(42, 95, 143, 0.4);
+            box-shadow: 0 10px 40px rgba(218, 165, 32, 0.5);
+            background: linear-gradient(135deg, #DAA520 0%, #FFD700 40%, #FFE44D 70%, #DAA520 100%);
         }
         
         .btn-login:active {
@@ -374,12 +448,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .form-check-input:checked {
-            background-color: #2a5f8f;
-            border-color: #2a5f8f;
+            background-color: #DAA520;
+            border-color: #DAA520;
         }
         
         .form-check-input:focus {
-            box-shadow: 0 0 0 3px rgba(42, 95, 143, 0.15);
+            box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.15);
         }
         
         .form-check-label {
@@ -390,13 +464,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .forgot-link {
-            color: #2a5f8f;
+            color: #DAA520;
             font-weight: 500;
             transition: all 0.2s ease;
         }
         
         .forgot-link:hover {
-            color: #1a3a5c;
+            color: #8B6914;
             text-decoration: underline !important;
         }
         
@@ -436,9 +510,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             align-items: center;
             margin: 25px 0 20px;
-            color: #adb5bd;
+            color: #DAA520;
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
             letter-spacing: 1px;
         }
         
@@ -446,7 +520,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .divider::after {
             content: "";
             flex: 1;
-            border-bottom: 2px solid #e8edf2;
+            border-bottom: 2px solid #f0e6d3;
         }
         
         .divider::before {
@@ -458,22 +532,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .footer-text {
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.7);
             font-size: 12px;
             text-align: center;
             margin-top: 25px;
             font-weight: 300;
             letter-spacing: 0.5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
         
         .footer-text a {
-            color: rgba(255, 255, 255, 0.8);
+            color: #FFD700;
             text-decoration: none;
             transition: color 0.2s ease;
+            font-weight: 500;
         }
         
         .footer-text a:hover {
-            color: #ffd700;
+            color: #FFA500;
+            text-decoration: underline;
         }
         
         /* Loading animation for button */
@@ -486,14 +563,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(0, 0, 0, 0.1);
             border-radius: 50%;
-            border-top-color: #fff;
+            border-top-color: #1a1a1a;
             animation: spin 0.8s ease-in-out infinite;
         }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        
+        /* Gold accent text */
+        .text-gold {
+            color: #DAA520;
         }
         
         @media (max-width: 480px) {
@@ -553,9 +635,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+    <!-- Sparkle Effects -->
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    
     <!-- Animated Orbs -->
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
     
     <div class="container">
         <div class="login-container">
@@ -571,7 +662,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="company-name">PT GANDA ELANG TANGGUH</div>
+                    <div class="company-name">PT GANDA <span>ELANG</span> TANGGUH</div>
                     <div class="company-sub">
                         <i class="fas fa-circle"></i>
                         DEALER ALAT BERAT
@@ -640,7 +731,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     id="rememberMe"
                                 >
                                 <label class="form-check-label" for="rememberMe">
-                                    <i class="fas fa-check-circle me-1" style="color: #2a5f8f; opacity: 0.6;"></i>
+                                    <i class="fas fa-check-circle me-1" style="color: #DAA520; opacity: 0.6;"></i>
                                     Ingat saya
                                 </label>
                             </div>
@@ -656,17 +747,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </button>
                         
                         <!-- Divider -->
-                        <div class="divider">DEALER ALAT BERAT TERPERCAYA</div>
+                        <div class="divider">
+                            <i class="fas fa-star me-2" style="color: #DAA520;"></i>
+                            DEALER ALAT BERAT TERPERCAYA
+                            <i class="fas fa-star ms-2" style="color: #DAA520;"></i>
+                        </div>
                         
                         <!-- Info Tambahan -->
                         <div class="text-center">
                             <small class="text-muted" style="font-size: 12px;">
-                                <i class="fas fa-shield-alt me-1 text-success"></i>
+                                <i class="fas fa-shield-alt me-1" style="color: #DAA520;"></i>
                                 Sistem Manajemen CRM &bull; v1.0
                             </small>
                             <br>
                             <small class="text-muted" style="font-size: 11px;">
-                                <i class="fas fa-building me-1"></i>
+                                <i class="fas fa-building me-1" style="color: #DAA520;"></i>
                                 PT Ganda Elang Tangguh &copy; <?= date('Y') ?>
                             </small>
                         </div>
