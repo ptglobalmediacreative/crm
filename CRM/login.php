@@ -31,6 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Cek path logo
+$logoPath = 'crm/images/logo.webp';
+$logoExists = file_exists($logoPath);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -86,8 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .logo-wrapper {
-            width: 90px;
-            height: 90px;
+            width: 100px;
+            height: 100px;
             margin: 0 auto 12px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.05);
@@ -95,13 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
+            padding: 8px;
             transition: all 0.3s ease;
+            overflow: hidden;
         }
         
         .logo-wrapper:hover {
             transform: scale(1.05);
             border-color: #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
         }
         
         .logo-wrapper img {
@@ -111,9 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 50%;
         }
         
-        .logo-wrapper i {
-            font-size: 48px;
-            color: #ffd700;
+        /* Hanya tampilkan jika logo tidak ada */
+        .logo-wrapper .no-logo {
+            display: none;
         }
         
         .company-name {
@@ -280,8 +286,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             .logo-wrapper {
-                width: 75px;
-                height: 75px;
+                width: 80px;
+                height: 80px;
             }
             
             .company-name {
@@ -297,11 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Header -->
                 <div class="card-header">
                     <div class="logo-wrapper">
-                        <?php if (file_exists('crm/images/logo.webp')): ?>
-                            <img src="crm/images/logo.webp" alt="PT Ganda Elang Tangguh">
-                        <?php else: ?>
-                            <i class="fas fa-hard-hat"></i>
-                        <?php endif; ?>
+                        <img src="crm/images/logo.webp" alt="PT Ganda Elang Tangguh" onerror="this.style.display='none'">
                     </div>
                     <div class="company-name">PT GANDA <span>ELANG</span> TANGGUH</div>
                     <div class="company-sub">Dealer Alat Berat</div>
