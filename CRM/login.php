@@ -31,10 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
-// Cek path logo
-$logoPath = 'images/logo.webp';
-$logoExists = file_exists($logoPath);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -90,36 +86,24 @@ $logoExists = file_exists($logoPath);
         }
         
         .logo-wrapper {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             margin: 0 auto 12px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 3px solid rgba(255, 215, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px;
+            padding: 0;
             transition: all 0.3s ease;
-            overflow: hidden;
         }
         
         .logo-wrapper:hover {
             transform: scale(1.05);
-            border-color: #ffd700;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
         }
         
         .logo-wrapper img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            border-radius: 50%;
-        }
-        
-        /* Hanya tampilkan jika logo tidak ada */
-        .logo-wrapper .no-logo {
-            display: none;
         }
         
         .company-name {
@@ -286,8 +270,8 @@ $logoExists = file_exists($logoPath);
             }
             
             .logo-wrapper {
-                width: 80px;
-                height: 80px;
+                width: 90px;
+                height: 90px;
             }
             
             .company-name {
@@ -303,10 +287,10 @@ $logoExists = file_exists($logoPath);
                 <!-- Header -->
                 <div class="card-header">
                     <div class="logo-wrapper">
-                        <img src="images/logo.webp" alt="PT Ganda Elang Tangguh" onerror="this.style.display='none'">
+                        <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
                     </div>
                     <div class="company-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                    <div class="company-sub">Dealer Alat Berat</div>
+                    <div class="company-sub">Dealer Management System</div>
                 </div>
                 
                 <!-- Body -->
@@ -383,7 +367,7 @@ $logoExists = file_exists($logoPath);
             
             <div class="footer-text">
                 <i class="fas fa-cogs me-1"></i>
-                Powered by <a href="#">GET CRM</a>
+                Powered by <a href="#">Global Media Creative</a>
             </div>
         </div>
     </div>
