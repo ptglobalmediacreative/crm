@@ -63,91 +63,230 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - PT Ganda Elang Tangguh</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/webp" href="crm/images/favicon.webp">
+    <link rel="shortcut icon" type="image/webp" href="crm/images/favicon.webp">
+    
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            background: linear-gradient(135deg, #1a3a5c 0%, #2a5f8f 50%, #1a3a5c 100%);
+            background: linear-gradient(135deg, #0f1f33 0%, #1a3a5c 40%, #2a5f8f 80%, #1a3a5c 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Background Pattern */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(42, 95, 143, 0.1) 0%, transparent 50%);
+            z-index: 0;
+        }
+        
+        /* Animated Background Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            z-index: 0;
+            animation: float 20s ease-in-out infinite;
+        }
+        
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 215, 0, 0.1);
+            top: -100px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+        
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: rgba(42, 95, 143, 0.15);
+            bottom: -50px;
+            left: -50px;
+            animation-delay: -7s;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(30px, -30px) scale(1.1);
+            }
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
         }
         
         .login-container {
-            max-width: 420px;
+            max-width: 440px;
             margin: 0 auto;
             width: 100%;
+            position: relative;
+            z-index: 1;
+            padding: 20px;
         }
         
         .card {
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 24px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
             overflow: hidden;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.98);
         }
         
         .card-header {
-            background: linear-gradient(135deg, #1a3a5c 0%, #2a5f8f 100%);
-            padding: 30px 25px 25px;
+            background: linear-gradient(135deg, #0f1f33 0%, #1a3a5c 50%, #2a5f8f 100%);
+            padding: 35px 30px 30px;
             text-align: center;
             border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ffd700, #ffed4a, #ffd700, transparent);
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% {
+                background-position: -200% 0;
+            }
+            50% {
+                background-position: 200% 0;
+            }
         }
         
         .logo-container {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            position: relative;
         }
         
-        .logo-icon {
-            font-size: 48px;
-            color: #ffd700;
-            background: rgba(255,255,255,0.1);
-            width: 80px;
-            height: 80px;
-            line-height: 80px;
+        .logo-wrapper {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
             border-radius: 50%;
-            display: inline-block;
-            border: 2px solid rgba(255,215,0,0.3);
+            background: rgba(255, 255, 255, 0.08);
+            border: 3px solid rgba(255, 215, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .logo-wrapper:hover {
+            transform: scale(1.05);
+            border-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.1);
+        }
+        
+        .logo-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 50%;
+        }
+        
+        .logo-wrapper .logo-placeholder {
+            font-size: 52px;
+            color: #ffd700;
         }
         
         .company-name {
             color: #ffffff;
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
         
         .company-sub {
-            color: rgba(255,255,255,0.8);
-            font-size: 13px;
-            font-weight: 300;
-            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .company-sub i {
+            margin: 0 5px;
+            color: #ffd700;
+            font-size: 10px;
         }
         
         .card-body {
-            padding: 30px 25px;
+            padding: 35px 30px 30px;
             background: #ffffff;
         }
         
-        .form-control {
-            border-radius: 10px;
-            padding: 12px 15px;
-            border: 2px solid #e8edf2;
-            transition: all 0.3s;
+        .form-label {
+            font-weight: 600;
             font-size: 14px;
+            color: #1a3a5c;
+            margin-bottom: 8px;
+        }
+        
+        .form-label i {
+            color: #2a5f8f;
+            width: 20px;
+        }
+        
+        .form-control {
+            border-radius: 12px;
+            padding: 13px 16px;
+            border: 2px solid #e8edf2;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
         }
         
         .form-control:focus {
             border-color: #2a5f8f;
-            box-shadow: 0 0 0 0.2rem rgba(42, 95, 143, 0.15);
+            box-shadow: 0 0 0 4px rgba(42, 95, 143, 0.1);
         }
         
         .form-control-lg {
-            padding: 14px 18px;
+            padding: 15px 18px;
             font-size: 15px;
         }
         
@@ -155,33 +294,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #f8f9fa;
             border: 2px solid #e8edf2;
             border-right: none;
-            border-radius: 10px 0 0 10px;
+            border-radius: 12px 0 0 12px;
             color: #6c757d;
+            padding: 0 16px;
         }
         
         .input-group .form-control {
-            border-radius: 0 10px 10px 0;
+            border-radius: 0 12px 12px 0;
             border-left: none;
+        }
+        
+        .input-group .form-control:focus + .input-group-text {
+            border-color: #2a5f8f;
+        }
+        
+        .btn-toggle-password {
+            border: 2px solid #e8edf2;
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+            background: #f8f9fa;
+            color: #6c757d;
+            padding: 0 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-toggle-password:hover {
+            background: #e9ecef;
+            color: #1a3a5c;
+        }
+        
+        .btn-toggle-password:focus {
+            box-shadow: none;
         }
         
         .btn-login {
             background: linear-gradient(135deg, #1a3a5c 0%, #2a5f8f 100%);
             border: none;
-            border-radius: 10px;
-            padding: 14px;
-            font-weight: 600;
+            border-radius: 12px;
+            padding: 16px;
+            font-weight: 700;
             font-size: 16px;
             letter-spacing: 1px;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn-login:hover::before {
+            left: 100%;
         }
         
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(42, 95, 143, 0.4);
+            box-shadow: 0 10px 30px rgba(42, 95, 143, 0.4);
         }
         
         .btn-login:active {
             transform: translateY(0);
+        }
+        
+        .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            border: 2px solid #d1d5db;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
         
         .form-check-input:checked {
@@ -189,68 +378,205 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-color: #2a5f8f;
         }
         
+        .form-check-input:focus {
+            box-shadow: 0 0 0 3px rgba(42, 95, 143, 0.15);
+        }
+        
+        .form-check-label {
+            font-size: 14px;
+            color: #4a5568;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .forgot-link {
+            color: #2a5f8f;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .forgot-link:hover {
+            color: #1a3a5c;
+            text-decoration: underline !important;
+        }
+        
         .alert {
-            border-radius: 10px;
+            border-radius: 12px;
             border: none;
+            padding: 14px 18px;
+            font-size: 14px;
+            font-weight: 500;
         }
         
-        .footer-text {
-            color: #6c757d;
-            font-size: 12px;
-            text-align: center;
-            margin-top: 20px;
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
         }
         
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
-            color: #adb5bd;
-            font-size: 12px;
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
         }
         
-        .divider::before,
-        .divider::after {
-            content: "";
-            flex: 1;
-            border-bottom: 1px solid #dee2e6;
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
         }
         
-        .divider::before {
-            margin-right: 15px;
-        }
-        
-        .divider::after {
-            margin-left: 15px;
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
         }
         
         .alert-icon {
             margin-right: 10px;
         }
         
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0 20px;
+            color: #adb5bd;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 2px solid #e8edf2;
+        }
+        
+        .divider::before {
+            margin-right: 20px;
+        }
+        
+        .divider::after {
+            margin-left: 20px;
+        }
+        
+        .footer-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            text-align: center;
+            margin-top: 25px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+        
+        .footer-text a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .footer-text a:hover {
+            color: #ffd700;
+        }
+        
+        /* Loading animation for button */
+        .btn-login.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 480px) {
-            .card-body {
-                padding: 20px 15px;
+            .login-container {
+                padding: 10px;
             }
+            
+            .card-body {
+                padding: 25px 20px 25px;
+            }
+            
+            .card-header {
+                padding: 25px 20px 20px;
+            }
+            
+            .logo-wrapper {
+                width: 80px;
+                height: 80px;
+                padding: 10px;
+            }
+            
             .company-name {
-                font-size: 17px;
+                font-size: 18px;
+            }
+            
+            .company-sub {
+                font-size: 11px;
+                letter-spacing: 2px;
+            }
+            
+            .form-control-lg {
+                padding: 12px 14px;
+                font-size: 14px;
+            }
+            
+            .btn-login {
+                padding: 14px;
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .logo-wrapper {
+                width: 65px;
+                height: 65px;
+                padding: 8px;
+            }
+            
+            .company-name {
+                font-size: 16px;
+            }
+            
+            .card-body {
+                padding: 20px 15px 20px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Animated Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    
     <div class="container">
         <div class="login-container">
             <div class="card">
                 <!-- Header dengan Logo -->
                 <div class="card-header">
                     <div class="logo-container">
-                        <div class="logo-icon">
-                            <i class="fas fa-hard-hat"></i>
+                        <div class="logo-wrapper">
+                            <?php if (file_exists('crm/images/logo.webp')): ?>
+                                <img src="crm/images/logo.webp" alt="PT Ganda Elang Tangguh" loading="lazy">
+                            <?php else: ?>
+                                <i class="fas fa-hard-hat logo-placeholder"></i>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="company-name">PT GANDA ELANG TANGGUH</div>
-                    <div class="company-sub">DEALER ALAT BERAT</div>
+                    <div class="company-sub">
+                        <i class="fas fa-circle"></i>
+                        DEALER ALAT BERAT
+                        <i class="fas fa-circle"></i>
+                    </div>
                 </div>
                 
                 <!-- Body Form Login -->
@@ -259,11 +585,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?= showFlash() ?>
                     
                     <!-- Form Login -->
-                    <form method="POST" action="">
+                    <form method="POST" action="" id="loginForm">
                         <!-- Email -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-envelope me-2 text-primary"></i>Email Address
+                            <label class="form-label">
+                                <i class="fas fa-envelope"></i> Email Address
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text">
@@ -275,6 +601,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     class="form-control form-control-lg" 
                                     placeholder="masukkan@email.com" 
                                     required
+                                    autocomplete="email"
                                     value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>"
                                 >
                             </div>
@@ -282,8 +609,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Password -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-lock me-2 text-primary"></i>Password
+                            <label class="form-label">
+                                <i class="fas fa-lock"></i> Password
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text">
@@ -295,8 +622,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     class="form-control form-control-lg" 
                                     placeholder="••••••••" 
                                     required
+                                    autocomplete="current-password"
                                 >
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <button class="btn btn-toggle-password" type="button" id="togglePassword" aria-label="Toggle password visibility">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -312,17 +640,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     id="rememberMe"
                                 >
                                 <label class="form-check-label" for="rememberMe">
-                                    <small>Ingat saya</small>
+                                    <i class="fas fa-check-circle me-1" style="color: #2a5f8f; opacity: 0.6;"></i>
+                                    Ingat saya
                                 </label>
                             </div>
-                            <a href="#" class="text-decoration-none small" style="color: #2a5f8f;">
+                            <a href="#" class="forgot-link text-decoration-none small">
                                 <i class="fas fa-key me-1"></i>Lupa password?
                             </a>
                         </div>
                         
                         <!-- Tombol Login -->
-                        <button type="submit" class="btn btn-primary btn-login w-100">
-                            <i class="fas fa-sign-in-alt me-2"></i>MASUK
+                        <button type="submit" class="btn btn-primary btn-login w-100" id="loginBtn">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            <span id="btnText">MASUK</span>
                         </button>
                         
                         <!-- Divider -->
@@ -330,12 +660,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Info Tambahan -->
                         <div class="text-center">
-                            <small class="text-muted">
+                            <small class="text-muted" style="font-size: 12px;">
                                 <i class="fas fa-shield-alt me-1 text-success"></i>
-                                Sistem Manajemen CRM
+                                Sistem Manajemen CRM &bull; v1.0
                             </small>
                             <br>
-                            <small class="text-muted">
+                            <small class="text-muted" style="font-size: 11px;">
                                 <i class="fas fa-building me-1"></i>
                                 PT Ganda Elang Tangguh &copy; <?= date('Y') ?>
                             </small>
@@ -347,7 +677,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Footer -->
             <div class="footer-text">
                 <i class="fas fa-cogs me-1"></i>
-                Powered by GET CRM System v1.0
+                Powered by <a href="#">GET CRM System</a>
                 <br>
                 <small>
                     <i class="fas fa-map-marker-alt me-1"></i>
@@ -369,10 +699,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 passwordInput.type = 'text';
                 icon.classList.remove('fa-eye');
                 icon.classList.add('fa-eye-slash');
+                this.setAttribute('aria-label', 'Sembunyikan password');
             } else {
                 passwordInput.type = 'password';
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
+                this.setAttribute('aria-label', 'Tampilkan password');
+            }
+        });
+        
+        // Form Submit Loading State
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            
+            // Cek jika form valid
+            if (this.checkValidity()) {
+                btn.classList.add('loading');
+                btnText.innerHTML = '<span class="spinner"></span> Memproses...';
+                btn.disabled = true;
             }
         });
         
@@ -381,7 +726,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(function(alert) {
                 if (alert) {
-                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.transition = 'opacity 0.5s ease';
                     alert.style.opacity = '0';
                     setTimeout(function() {
                         alert.remove();
@@ -389,6 +734,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             });
         }, 5000);
+        
+        // Keyboard shortcut: Enter to submit
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT') {
+                const form = document.getElementById('loginForm');
+                if (form) {
+                    form.submit();
+                }
+            }
+        });
     </script>
 </body>
 </html>
