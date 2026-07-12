@@ -108,38 +108,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
         
         .card-header {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
-            padding: 25px 20px;
+            padding: 30px 20px 25px;
             text-align: center;
             border: none;
-        }
-        
-        .card-header .icon-wrapper {
-            width: 70px;
-            height: 70px;
-            margin: 0 auto 10px;
-            border-radius: 50%;
-            background: rgba(255, 215, 0, 0.1);
-            border: 2px solid rgba(255, 215, 0, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .card-header .icon-wrapper i {
-            font-size: 32px;
-            color: #ffd700;
         }
         
         .card-header h4 {
             color: #ffffff;
             margin: 0;
             font-weight: 700;
+            font-size: 22px;
         }
         
         .card-header p {
             color: rgba(255, 255, 255, 0.6);
-            font-size: 13px;
-            margin: 5px 0 0;
+            font-size: 14px;
+            margin: 8px 0 0;
         }
         
         .card-body {
@@ -148,14 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
         
         .form-label {
             font-weight: 600;
-            font-size: 13px;
+            font-size: 14px;
             color: #333;
             margin-bottom: 6px;
-        }
-        
-        .form-label i {
-            color: #16213e;
-            width: 18px;
         }
         
         .form-control {
@@ -169,34 +148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
         .form-control:focus {
             border-color: #ffd700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
-        }
-        
-        .input-group-text {
-            background: #f8f9fa;
-            border: 2px solid #e8edf2;
-            border-right: none;
-            border-radius: 10px 0 0 10px;
-            color: #888;
-        }
-        
-        .input-group .form-control {
-            border-radius: 0 10px 10px 0;
-            border-left: none;
-        }
-        
-        .btn-toggle-password {
-            border: 2px solid #e8edf2;
-            border-left: none;
-            border-radius: 0 10px 10px 0;
-            background: #f8f9fa;
-            color: #888;
-            padding: 0 15px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-toggle-password:hover {
-            background: #e9ecef;
-            color: #16213e;
         }
         
         .btn-reset {
@@ -226,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
         .btn-back {
             color: #16213e;
             text-decoration: none;
-            font-size: 13px;
+            font-size: 14px;
             transition: color 0.2s ease;
         }
         
@@ -281,10 +232,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
             margin-top: 5px;
         }
         
-        .password-requirements i {
-            margin-right: 5px;
-        }
-        
         .password-requirements .valid {
             color: #28a745;
         }
@@ -299,6 +246,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
             margin-top: 5px;
         }
         
+        .btn-minta-link {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            color: #fff;
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .btn-minta-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(22, 33, 62, 0.4);
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            color: #fff;
+        }
+        
         @media (max-width: 480px) {
             .reset-container {
                 padding: 10px;
@@ -306,15 +274,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
             
             .card-body {
                 padding: 20px 15px;
-            }
-            
-            .card-header .icon-wrapper {
-                width: 60px;
-                height: 60px;
-            }
-            
-            .card-header .icon-wrapper i {
-                font-size: 26px;
             }
             
             .card-header h4 {
@@ -329,9 +288,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
             <div class="card">
                 <!-- Header -->
                 <div class="card-header">
-                    <div class="icon-wrapper">
-                        <i class="fas fa-lock"></i>
-                    </div>
                     <h4>Reset Password</h4>
                     <p>Buat password baru untuk akun Anda</p>
                 </div>
@@ -343,9 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
                     <?php if ($valid): ?>
                         <!-- Informasi Email -->
                         <div class="info-box">
-                            <div class="email-label">
-                                <i class="fas fa-envelope me-1"></i> EMAIL AKUN
-                            </div>
+                            <div class="email-label">EMAIL AKUN</div>
                             <div class="email-value">
                                 <?= htmlspecialchars($email) ?>
                             </div>
@@ -354,83 +308,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
                         <!-- Form Reset Password -->
                         <form method="POST" id="resetForm">
                             <div class="mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-lock"></i> Password Baru
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-key"></i>
-                                    </span>
-                                    <input 
-                                        type="password" 
-                                        name="password" 
-                                        id="password"
-                                        class="form-control" 
-                                        placeholder="Minimal 6 karakter" 
-                                        required
-                                        minlength="6"
-                                    >
-                                    <button class="btn btn-toggle-password" type="button" id="togglePassword1">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
+                                <label class="form-label">Password Baru</label>
+                                <input 
+                                    type="password" 
+                                    name="password" 
+                                    id="password"
+                                    class="form-control" 
+                                    placeholder="Minimal 6 karakter" 
+                                    required
+                                    minlength="6"
+                                >
                                 <div class="password-requirements">
-                                    <i class="fas fa-circle" id="reqLength" style="color: #dc3545; font-size: 8px;"></i>
                                     <span id="reqLengthText">Minimal 6 karakter</span>
                                 </div>
                             </div>
                             
                             <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-check"></i> Konfirmasi Password
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-check"></i>
-                                    </span>
-                                    <input 
-                                        type="password" 
-                                        name="confirm_password" 
-                                        id="confirmPassword"
-                                        class="form-control" 
-                                        placeholder="Ulangi password" 
-                                        required
-                                    >
-                                    <button class="btn btn-toggle-password" type="button" id="togglePassword2">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
+                                <label class="form-label">Konfirmasi Password</label>
+                                <input 
+                                    type="password" 
+                                    name="confirm_password" 
+                                    id="confirmPassword"
+                                    class="form-control" 
+                                    placeholder="Ulangi password" 
+                                    required
+                                >
                                 <div id="confirmFeedback" class="invalid-feedback" style="display: none;">
-                                    <i class="fas fa-times me-1"></i> Password tidak sama!
+                                    Password tidak sama!
                                 </div>
                             </div>
                             
                             <button type="submit" class="btn-reset" id="resetBtn">
-                                <i class="fas fa-save me-2"></i> RESET PASSWORD
+                                RESET PASSWORD
                             </button>
                         </form>
                         
                         <div class="text-center mt-3">
                             <a href="login.php" class="btn-back">
-                                <i class="fas fa-arrow-left me-1"></i> Kembali ke Login
+                                Kembali ke Login
                             </a>
                         </div>
                         
                     <?php else: ?>
                         <!-- Link Tidak Valid -->
                         <div class="text-center py-4">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 60px; color: #d63031;"></i>
-                            <h5 class="mt-3">Link Tidak Valid</h5>
+                            <h5 style="color: #d63031;">Link Tidak Valid</h5>
                             <p class="text-muted" style="font-size: 14px;">
                                 Link reset password tidak valid atau sudah kadaluarsa.
                                 <br>Silakan minta link baru.
                             </p>
-                            <a href="forgot_password.php" class="btn-reset mt-3" style="display: inline-block; text-align: center; text-decoration: none; padding: 12px 30px;">
-                                <i class="fas fa-key me-2"></i> Minta Link Baru
+                            <a href="forgot_password.php" class="btn-minta-link">
+                                Minta Link Baru
                             </a>
                             <br>
                             <a href="login.php" class="btn-back mt-3" style="display: inline-block;">
-                                <i class="fas fa-arrow-left me-1"></i> Kembali ke Login
+                                Kembali ke Login
                             </a>
                         </div>
                     <?php endif; ?>
@@ -441,54 +373,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle Password Visibility
-        document.getElementById('togglePassword1').addEventListener('click', function() {
-            const input = document.getElementById('password');
-            const icon = this.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
-        
-        document.getElementById('togglePassword2').addEventListener('click', function() {
-            const input = document.getElementById('confirmPassword');
-            const icon = this.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
-        
         // Validasi Password
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirmPassword');
         const confirmFeedback = document.getElementById('confirmFeedback');
-        const reqLength = document.getElementById('reqLength');
         const reqLengthText = document.getElementById('reqLengthText');
         
         // Cek panjang password
         password.addEventListener('input', function() {
             if (this.value.length >= 6) {
-                reqLength.style.color = '#28a745';
-                reqLength.className = 'fas fa-check-circle valid';
                 reqLengthText.style.color = '#28a745';
+                reqLengthText.innerHTML = '✓ Minimal 6 karakter';
             } else {
-                reqLength.style.color = '#dc3545';
-                reqLength.className = 'fas fa-circle invalid';
                 reqLengthText.style.color = '#888';
+                reqLengthText.innerHTML = 'Minimal 6 karakter';
             }
             
             // Cek konfirmasi jika sudah diisi
@@ -516,7 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
         document.getElementById('resetForm').addEventListener('submit', function(e) {
             if (!checkConfirm()) {
                 e.preventDefault();
-                setFlash('Password tidak sama!', 'danger');
+                alert('Password tidak sama!');
             }
         });
     </script>
