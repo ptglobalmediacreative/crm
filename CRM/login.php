@@ -186,16 +186,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: translateY(0);
         }
         
-        .form-check-input:checked {
+        /* ===== CHECKBOX STYLE ===== */
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #333;
+            user-select: none;
+        }
+        
+        .custom-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            min-height: 18px;
+            cursor: pointer;
+            accent-color: #16213e;
+            border: 2px solid #16213e;
+            border-radius: 4px;
+            background-color: #fff;
+            transition: all 0.2s ease;
+        }
+        
+        .custom-checkbox input[type="checkbox"]:checked {
             background-color: #16213e;
             border-color: #16213e;
         }
+        
+        .custom-checkbox input[type="checkbox"]:focus {
+            box-shadow: 0 0 0 3px rgba(22, 33, 62, 0.2);
+            outline: none;
+        }
+        
+        .custom-checkbox input[type="checkbox"]:hover {
+            border-color: #ffd700;
+        }
+        
+        .custom-checkbox .checkmark {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .custom-checkbox .label-text {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .custom-checkbox .label-text i {
+            color: #ffd700;
+            margin-right: 4px;
+        }
+        /* ===== END CHECKBOX ===== */
         
         .forgot-link {
             color: #16213e;
             font-size: 13px;
             text-decoration: none;
             transition: color 0.2s ease;
+            font-weight: 500;
         }
         
         .forgot-link:hover {
@@ -277,6 +328,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .company-name {
                 font-size: 17px;
             }
+            
+            .custom-checkbox {
+                font-size: 12px;
+            }
+            
+            .custom-checkbox input[type="checkbox"] {
+                width: 16px;
+                height: 16px;
+                min-width: 16px;
+                min-height: 16px;
+            }
         }
     </style>
 </head>
@@ -336,12 +398,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div class="form-check">
-                                <input type="checkbox" name="remember" class="form-check-input" id="remember">
-                                <label class="form-check-label" for="remember" style="font-size: 13px;">
-                                    Ingat saya
-                                </label>
-                            </div>
+                            <!-- Checkbox "Ingat saya" -->
+                            <label class="custom-checkbox">
+                                <input type="checkbox" name="remember" id="remember">
+                                <span class="label-text">
+                                    <i class="fas fa-check-circle"></i> Ingat saya
+                                </span>
+                            </label>
+                            
                             <a href="forgot_password.php" class="forgot-link">
                                 <i class="fas fa-key me-1"></i>Lupa password?
                             </a>
