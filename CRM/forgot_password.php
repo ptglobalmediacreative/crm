@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$email, $token, $expires]);
             
             // Buat link reset
-            $resetLink = APP_URL . '/crm/reset_password.php?token=' . $token . '&email=' . urlencode($email);
+            $resetLink = APP_URL . '/CRM/reset_password.php?token=' . $token . '&email=' . urlencode($email);
             
             // Template email
             $subject = "Reset Password - PT Ganda Elang Tangguh";

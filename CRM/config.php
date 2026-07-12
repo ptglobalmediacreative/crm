@@ -16,16 +16,16 @@ define('DB_PASS', 'Gandaelang123'); // Isi password Anda
 // ============================================
 define('APP_URL', 'https://' . $_SERVER['HTTP_HOST']);
 define('APP_NAME', 'GET CRM - PT Ganda Elang Tangguh');
-define('APP_EMAIL', 'noreply@crmget.com'); // Email pengirim
+define('APP_EMAIL', 'itsupport@gandaelang.co.id'); // Email pengirim
 
 // ============================================
 // EMAIL CONFIGURATION (SMTP)
 // ============================================
 define('SMTP_HOST', 'smtp.gmail.com'); // Ganti dengan SMTP Anda
 define('SMTP_PORT', 587);
-define('SMTP_USER', 'your-email@gmail.com'); // Ganti dengan email Anda
-define('SMTP_PASS', 'your-app-password'); // Ganti dengan password/App Password
-define('SMTP_FROM', 'noreply@crmget.com');
+define('SMTP_USER', 'itsupport@gandaelang.co.id'); // Ganti dengan email Anda
+define('SMTP_PASS', 'Natanael110405@'); // Ganti dengan password/App Password
+define('SMTP_FROM', 'itsupport@gandaelang.co.id');
 define('SMTP_FROM_NAME', 'PT Ganda Elang Tangguh');
 
 // ============================================
