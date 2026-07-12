@@ -236,7 +236,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .custom-checkbox .label-text i {
-            color: #ffd700;
             margin-right: 4px;
         }
         /* ===== END CHECKBOX ===== */
