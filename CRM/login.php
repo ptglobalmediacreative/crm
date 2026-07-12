@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Cek path logo
-$logoPath = 'crm/images/logo.webp';
+$logoPath = 'images/logo.webp';
 $logoExists = file_exists($logoPath);
 ?>
 <!DOCTYPE html>
@@ -44,8 +44,8 @@ $logoExists = file_exists($logoPath);
     <title>Login - PT Ganda Elang Tangguh</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/webp" href="crm/images/favicon.webp">
-    <link rel="shortcut icon" type="image/webp" href="crm/images/favicon.webp">
+    <link rel="icon" type="image/webp" href="images/favicon.webp">
+    <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -303,7 +303,7 @@ $logoExists = file_exists($logoPath);
                 <!-- Header -->
                 <div class="card-header">
                     <div class="logo-wrapper">
-                        <img src="crm/images/logo.webp" alt="PT Ganda Elang Tangguh" onerror="this.style.display='none'">
+                        <img src="images/logo.webp" alt="PT Ganda Elang Tangguh" onerror="this.style.display='none'">
                     </div>
                     <div class="company-name">PT GANDA <span>ELANG</span> TANGGUH</div>
                     <div class="company-sub">Dealer Alat Berat</div>
