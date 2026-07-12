@@ -9,7 +9,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u475225363_crmget');
 define('DB_USER', 'u475225363_crmget');
-define('DB_PASS', ''); // Isi password Anda
+define('DB_PASS', 'Gandaelang123'); // Isi password Anda
 
 // ============================================
 // APLIKASI
