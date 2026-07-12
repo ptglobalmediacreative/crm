@@ -1,9 +1,11 @@
 <?php
 require_once 'config.php';
 
-// Jika sudah login, redirect ke dashboard
+// Jika sudah login, logout dulu agar bisa reset password
 if (isLoggedIn()) {
-    redirect('dashboard.php');
+    // Redirect ke logout dulu
+    redirect('logout.php');
+    exit();
 }
 
 $token = $_GET['token'] ?? '';
@@ -296,7 +298,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
                 <div class="card-body">
                     <?= showFlash() ?>
                     
-                    <?php if ($valid): ?>                        
+                    <?php if ($valid): ?>
+                        <!-- Informasi Email -->
+                        <div class="info-box">
+                            <div class="email-label">EMAIL AKUN</div>
+                            <div class="email-value">
+                                <?= htmlspecialchars($email) ?>
+                            </div>
+                        </div>
+                        
                         <!-- Form Reset Password -->
                         <form method="POST" id="resetForm">
                             <div class="mb-3">
