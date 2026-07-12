@@ -342,7 +342,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     Ingat saya
                                 </label>
                             </div>
-                            <a href="#" class="forgot-link">Lupa password?</a>
+                            <a href="forgot_password.php" class="forgot-link">
+                                <i class="fas fa-key me-1"></i>Lupa password?
+                            </a>
                         </div>
                         
                         <button type="submit" class="btn-login">

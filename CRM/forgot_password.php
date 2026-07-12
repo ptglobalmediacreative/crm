@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class='footer'>
                         <p>&copy; " . date('Y') . " PT Ganda Elang Tangguh</p>
-                        <p>Jl. Raya Industri No. 123, Jakarta</p>
+                        <p>Jl. Pluit Karang Manis VI No.1E, RT.6/RW.8, Kecamatan Penjaringan Utara, Kecamatan Penjaringan, Jkt Utara, Daerah Khusus Ibukota Jakarta 14450</p>
                     </div>
                 </div>
             </body>
