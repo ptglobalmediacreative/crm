@@ -369,12 +369,12 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           MY ACTIVITY
+           MY ACTIVITY - BAGUS DAN MINIMALIS
            ============================================ */
         .my-activity {
             background: #fff;
             border-radius: 12px;
-            padding: 14px 20px;
+            padding: 18px 24px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
             display: flex;
@@ -391,32 +391,20 @@ $bannerExists = file_exists($bannerPath);
         .my-activity .activity-left {
             display: flex;
             align-items: center;
-            gap: 12px;
-        }
-        
-        .my-activity .activity-left .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: rgba(255, 215, 0, 0.12);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 17px;
-            color: #ffd700;
+            gap: 16px;
         }
         
         .my-activity .activity-left .activity-info .activity-title {
             font-weight: 600;
-            font-size: 13px;
+            font-size: 15px;
             color: #1a1a2e;
             margin: 0;
         }
         
         .my-activity .activity-left .activity-info .activity-desc {
-            font-size: 11px;
+            font-size: 13px;
             color: #888;
-            margin: 2px 0 0;
+            margin: 4px 0 0;
         }
         
         .my-activity .activity-left .activity-info .activity-desc span {
@@ -429,7 +417,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .my-activity .activity-right .activity-date {
-            font-size: 11px;
+            font-size: 13px;
             color: #888;
         }
         
@@ -438,7 +426,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .my-activity .activity-right .activity-status {
-            font-size: 11px;
+            font-size: 12px;
             color: #2ed573;
             font-weight: 600;
         }
@@ -766,7 +754,7 @@ $bannerExists = file_exists($bannerPath);
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
-                padding: 12px 16px;
+                padding: 14px 18px;
             }
             
             .my-activity .activity-right {
@@ -834,20 +822,18 @@ $bannerExists = file_exists($bannerPath);
                 height: 28px;
             }
             
-            .my-activity .activity-left .activity-icon {
-                width: 34px;
-                height: 34px;
-                font-size: 14px;
-            }
-            
             .my-activity .activity-left .activity-info .activity-title {
-                font-size: 12px;
+                font-size: 13px;
             }
             
             .my-activity .activity-left .activity-info .activity-desc {
-                font-size: 10px;
+                font-size: 11px;
             }
-                        
+            
+            .my-activity .activity-right .activity-date {
+                font-size: 11px;
+            }
+            
             .promo-banner .banner-placeholder {
                 padding: 12px 16px;
                 min-height: 60px;
@@ -1047,18 +1033,15 @@ $bannerExists = file_exists($bannerPath);
         </div>
 
         <!-- ============================================
-        MY ACTIVITY
+        MY ACTIVITY - BAGUS & MINIMALIS
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>Aktivitas Saya</h5>
-            <span style="font-size:11px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $salesActivity ?></strong></span>
+            <span style="font-size:12px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $salesActivity ?></strong></span>
         </div>
 
         <div class="my-activity">
             <div class="activity-left">
-                <div class="activity-icon">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
                 <div class="activity-info">
                     <div class="activity-title">Aktivitas Saya</div>
                     <div class="activity-desc">
