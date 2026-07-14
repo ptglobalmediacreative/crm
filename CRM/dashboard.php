@@ -993,7 +993,7 @@ $username = $_SESSION['username'] ?? '';
         <div class="my-activity">
             <div class="activity-left">
                 <div class="activity-icon">
-                    <i class="fas fa-bolt"></i>
+                    <i class="fas fa-chart-bar"></i>
                 </div>
                 <div class="activity-info">
                     <div class="activity-title">Aktivitas Saya</div>
