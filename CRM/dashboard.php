@@ -1002,7 +1002,6 @@ $bannerExists = file_exists($bannerPath);
                 <div class="greeting">Selamat Datang,</div>
                 <h3><?= htmlspecialchars($fullName) ?></h3>
             </div>
-            <i class="fas fa-hard-hat welcome-icon"></i>
         </div>
 
         <!-- ============================================
