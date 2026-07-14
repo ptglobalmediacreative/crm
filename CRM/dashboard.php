@@ -9,8 +9,6 @@ if (!isLoggedIn()) {
 
 // Ambil data untuk badge
 $totalUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-
-// Hitung aktivitas (contoh: total user aktif)
 $totalActive = $db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
 
 $fullName = $_SESSION['full_name'] ?? 'User';
@@ -224,7 +222,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MENU GRID - SEPERTI GAMBAR
+           MENU GRID
            ============================================ */
         .menu-grid {
             display: grid;
@@ -328,7 +326,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MY ACTIVITY - SEPERTI GAMBAR
+           MY ACTIVITY
            ============================================ */
         .my-activity {
             background: #fff;
@@ -407,7 +405,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           BOTTOM NAVIGATION - SEPERTI GAMBAR
+           BOTTOM NAVIGATION
            ============================================ */
         .bottom-nav {
             position: fixed;
@@ -895,56 +893,49 @@ $username = $_SESSION['username'] ?? '';
 
         <!-- MENU GRID -->
         <div class="menu-grid">
+            <!-- Account Management -->
             <a href="#" class="menu-card">
-                <div class="menu-icon orange"><i class="fas fa-box"></i></div>
-                <div class="menu-title">Product</div>
+                <div class="menu-icon orange"><i class="fas fa-building"></i></div>
+                <div class="menu-title">Account Management</div>
+                <div class="menu-sub">Kelola akun</div>
+                <span class="menu-badge">8</span>
+            </a>
+            
+            <!-- Sales Activity -->
+            <a href="#" class="menu-card">
+                <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
+                <div class="menu-title">Sales Activity</div>
+                <div class="menu-sub">Aktivitas sales</div>
+                <span class="menu-badge">24</span>
+            </a>
+            
+            <!-- Produk -->
+            <a href="#" class="menu-card">
+                <div class="menu-icon green"><i class="fas fa-box"></i></div>
+                <div class="menu-title">Produk</div>
                 <div class="menu-sub">Kelola produk</div>
                 <span class="menu-badge"><?= $totalUsers ?></span>
             </a>
+            
+            <!-- Delivery Order -->
             <a href="#" class="menu-card">
-                <div class="menu-icon blue"><i class="fas fa-users"></i></div>
-                <div class="menu-title">Lead</div>
-                <div class="menu-sub">Data lead</div>
+                <div class="menu-icon gold"><i class="fas fa-truck"></i></div>
+                <div class="menu-title">Delivery Order</div>
+                <div class="menu-sub">Pengiriman</div>
                 <span class="menu-badge">12</span>
             </a>
+            
+            <!-- Data User -->
             <a href="#" class="menu-card">
-                <div class="menu-icon green"><i class="fas fa-building"></i></div>
-                <div class="menu-title">Account</div>
-                <div class="menu-sub">Management</div>
-                <span class="menu-badge">8</span>
-            </a>
-            <a href="#" class="menu-card">
-                <div class="menu-icon gold"><i class="fas fa-chart-line"></i></div>
-                <div class="menu-title">Activity</div>
-                <div class="menu-sub">Aktivitas</div>
-                <span class="menu-badge">24</span>
-            </a>
-            <a href="#" class="menu-card">
-                <div class="menu-icon purple"><i class="fas fa-file-invoice"></i></div>
-                <div class="menu-title">Report</div>
-                <div class="menu-sub">Laporan</div>
-                <span class="menu-badge">5</span>
-            </a>
-            <a href="#" class="menu-card">
-                <div class="menu-icon teal"><i class="fas fa-cog"></i></div>
-                <div class="menu-title">Settings</div>
-                <div class="menu-sub">Pengaturan</div>
-            </a>
-            <a href="#" class="menu-card">
-                <div class="menu-icon pink"><i class="fas fa-envelope"></i></div>
-                <div class="menu-title">Inbox</div>
-                <div class="menu-sub">Pesan masuk</div>
-                <span class="menu-badge">3</span>
-            </a>
-            <a href="logout.php" class="menu-card">
-                <div class="menu-icon red"><i class="fas fa-sign-out-alt"></i></div>
-                <div class="menu-title">Logout</div>
-                <div class="menu-sub">Keluar</div>
+                <div class="menu-icon purple"><i class="fas fa-users"></i></div>
+                <div class="menu-title">Data User</div>
+                <div class="menu-sub">Kelola user</div>
+                <span class="menu-badge"><?= $totalUsers ?></span>
             </a>
         </div>
 
         <!-- ============================================
-        MY ACTIVITY - SEPERTI GAMBAR
+        MY ACTIVITY
         ============================================ -->
         <div class="section-title" style="margin-top: 10px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
@@ -989,22 +980,22 @@ $username = $_SESSION['username'] ?? '';
             <span class="nav-label">Home</span>
         </a>
         <a href="#" class="nav-item">
-            <i class="fas fa-box nav-icon"></i>
-            <span class="nav-label">Product</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fas fa-users nav-icon"></i>
-            <span class="nav-label">Lead</span>
-            <span class="badge-nav">12</span>
-        </a>
-        <a href="#" class="nav-item">
             <i class="fas fa-building nav-icon"></i>
             <span class="nav-label">Account</span>
         </a>
         <a href="#" class="nav-item">
-            <i class="fas fa-chart-line nav-icon"></i>
-            <span class="nav-label">Activity</span>
-            <span class="badge-nav">3</span>
+            <i class="fas fa-chart-bar nav-icon"></i>
+            <span class="nav-label">Sales</span>
+            <span class="badge-nav">24</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-box nav-icon"></i>
+            <span class="nav-label">Produk</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-truck nav-icon"></i>
+            <span class="nav-label">DO</span>
+            <span class="badge-nav">12</span>
         </a>
         <a href="logout.php" class="nav-item">
             <i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i>
