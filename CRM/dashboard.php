@@ -76,9 +76,6 @@ $bannerExists = file_exists($bannerPath);
         .top-header .header-left .logo-wrapper {
             width: 36px;
             height: 36px;
-            border-radius: 50%;
-            background: rgba(255, 215, 0, 0.1);
-            border: 2px solid rgba(255, 215, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -90,7 +87,6 @@ $bannerExists = file_exists($bannerPath);
             width: 100%;
             height: 100%;
             object-fit: contain;
-            border-radius: 50%;
         }
         
         .top-header .header-left .brand-text .brand-name {
