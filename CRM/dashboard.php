@@ -54,7 +54,7 @@ $username = $_SESSION['username'] ?? '';
            ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 8px 14px;
+            padding: 10px 20px;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -66,12 +66,12 @@ $username = $_SESSION['username'] ?? '';
         .top-header .header-left {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
         
         .top-header .header-left .logo-wrapper {
-            width: 30px;
-            height: 30px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.1);
             border: 2px solid rgba(255, 215, 0, 0.3);
@@ -90,7 +90,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .top-header .header-left .brand-text .brand-name {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
             color: #fff;
             line-height: 1.2;
@@ -101,7 +101,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .top-header .header-left .brand-text .brand-sub {
-            font-size: 7px;
+            font-size: 8px;
             color: rgba(255, 255, 255, 0.4);
             letter-spacing: 0.5px;
             text-transform: uppercase;
@@ -110,13 +110,13 @@ $username = $_SESSION['username'] ?? '';
         .top-header .header-right {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         
         .top-header .header-right .notif-icon {
             position: relative;
             color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
+            font-size: 16px;
             cursor: pointer;
         }
         
@@ -126,16 +126,16 @@ $username = $_SESSION['username'] ?? '';
             right: -6px;
             background: #d63031;
             color: #fff;
-            font-size: 7px;
-            padding: 1px 4px;
+            font-size: 8px;
+            padding: 1px 5px;
             border-radius: 50%;
-            min-width: 14px;
+            min-width: 16px;
             text-align: center;
         }
         
         .top-header .header-right .user-avatar {
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.2);
             display: flex;
@@ -143,7 +143,7 @@ $username = $_SESSION['username'] ?? '';
             justify-content: center;
             color: #ffd700;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 13px;
             text-decoration: none;
             border: 2px solid rgba(255, 215, 0, 0.2);
             transition: border-color 0.3s ease;
@@ -159,23 +159,23 @@ $username = $_SESSION['username'] ?? '';
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border-radius: 10px;
-            padding: 12px 18px;
+            padding: 16px 24px;
             color: #fff;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             position: relative;
             overflow: hidden;
         }
         
         .welcome-banner .welcome-text .greeting {
-            font-size: 10px;
+            font-size: 12px;
             color: rgba(255, 255, 255, 0.4);
             font-weight: 400;
         }
         
         .welcome-banner .welcome-text h3 {
             font-weight: 700;
-            font-size: 15px;
-            margin: 1px 0 0;
+            font-size: 18px;
+            margin: 2px 0 0;
         }
         
         .welcome-banner .welcome-text h3 span {
@@ -183,39 +183,41 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .welcome-banner .welcome-icon {
-            font-size: 28px;
+            font-size: 32px;
             color: rgba(255, 215, 0, 0.05);
             position: absolute;
-            right: 12px;
-            bottom: 8px;
+            right: 15px;
+            bottom: 10px;
         }
         
         /* ============================================
-           BANNER PROMO - FULL TAMPAK TIDAK KEPOTONG
+           BANNER PROMO
            ============================================ */
         .promo-banner {
             border-radius: 10px;
             overflow: hidden;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            background: #fff;
         }
         
         .promo-banner img {
             width: 100%;
             height: auto;
-            max-height: 120px;
+            max-height: 130px;
             object-fit: contain;
             display: block;
-            background: #f0f2f5;
+            background: #f8f9fa;
+            padding: 4px 0;
         }
         
         .promo-banner .banner-placeholder {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border-radius: 10px;
-            padding: 18px 20px;
+            padding: 20px 24px;
             text-align: center;
             color: #fff;
-            min-height: 80px;
+            min-height: 90px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -224,7 +226,7 @@ $username = $_SESSION['username'] ?? '';
         
         .promo-banner .banner-placeholder h4 {
             font-weight: 700;
-            font-size: 16px;
+            font-size: 18px;
             margin-bottom: 3px;
         }
         
@@ -234,7 +236,7 @@ $username = $_SESSION['username'] ?? '';
         
         .promo-banner .banner-placeholder p {
             color: rgba(255, 255, 255, 0.5);
-            font-size: 11px;
+            font-size: 12px;
             margin: 0;
         }
         
@@ -245,24 +247,24 @@ $username = $_SESSION['username'] ?? '';
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         
         .section-title h5 {
             font-weight: 700;
             color: #1a1a2e;
-            font-size: 13px;
+            font-size: 15px;
             margin: 0;
         }
         
         .section-title h5 i {
             color: #ffd700;
-            margin-right: 6px;
-            font-size: 12px;
+            margin-right: 8px;
+            font-size: 14px;
         }
         
         .section-title .see-all {
-            font-size: 11px;
+            font-size: 12px;
             color: #888;
             text-decoration: none;
             font-weight: 500;
@@ -275,13 +277,13 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MENU GRID
+           MENU GRID - FULL WIDTH
            ============================================ */
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 14px;
+            gap: 14px;
+            margin-bottom: 16px;
         }
         
         .menu-grid.show-all {
@@ -291,7 +293,7 @@ $username = $_SESSION['username'] ?? '';
         .menu-card {
             background: #fff;
             border-radius: 10px;
-            padding: 14px 8px;
+            padding: 16px 12px;
             text-align: center;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
@@ -309,14 +311,14 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .menu-card .menu-icon {
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 17px;
-            margin-bottom: 6px;
+            font-size: 20px;
+            margin-bottom: 8px;
         }
         
         .menu-card .menu-icon.orange {
@@ -344,11 +346,6 @@ $username = $_SESSION['username'] ?? '';
             color: #8e44ad;
         }
         
-        .menu-card .menu-icon.red {
-            background: rgba(214, 48, 49, 0.1);
-            color: #d63031;
-        }
-        
         .menu-card .menu-icon.teal {
             background: rgba(0, 206, 209, 0.12);
             color: #16a085;
@@ -356,25 +353,25 @@ $username = $_SESSION['username'] ?? '';
         
         .menu-card .menu-title {
             font-weight: 600;
-            font-size: 11px;
+            font-size: 13px;
             color: #1a1a2e;
             margin: 0;
         }
         
         .menu-card .menu-sub {
-            font-size: 9px;
+            font-size: 10px;
             color: #999;
-            margin: 1px 0 0;
+            margin: 2px 0 0;
         }
         
         .menu-card .menu-badge {
-            font-size: 9px;
+            font-size: 10px;
             background: #ffd700;
             color: #1a1a2e;
-            padding: 1px 8px;
+            padding: 1px 10px;
             border-radius: 20px;
             font-weight: 600;
-            margin-top: 4px;
+            margin-top: 5px;
         }
         
         /* Menu tambahan (hidden) */
@@ -392,13 +389,13 @@ $username = $_SESSION['username'] ?? '';
         .my-activity {
             background: #fff;
             border-radius: 10px;
-            padding: 12px 16px;
+            padding: 14px 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 14px;
+            margin-top: 16px;
             transition: all 0.3s ease;
         }
         
@@ -409,32 +406,32 @@ $username = $_SESSION['username'] ?? '';
         .my-activity .activity-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         
         .my-activity .activity-left .activity-icon {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
             background: rgba(255, 215, 0, 0.12);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 15px;
+            font-size: 17px;
             color: #ffd700;
         }
         
         .my-activity .activity-left .activity-info .activity-title {
             font-weight: 600;
-            font-size: 12px;
+            font-size: 13px;
             color: #1a1a2e;
             margin: 0;
         }
         
         .my-activity .activity-left .activity-info .activity-desc {
-            font-size: 10px;
+            font-size: 11px;
             color: #888;
-            margin: 1px 0 0;
+            margin: 2px 0 0;
         }
         
         .my-activity .activity-left .activity-info .activity-desc span {
@@ -447,7 +444,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .my-activity .activity-right .activity-date {
-            font-size: 10px;
+            font-size: 11px;
             color: #888;
         }
         
@@ -456,14 +453,14 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .my-activity .activity-right .activity-status {
-            font-size: 10px;
+            font-size: 11px;
             color: #2ed573;
             font-weight: 600;
         }
         
         .my-activity .activity-right .activity-status i {
-            margin-right: 3px;
-            font-size: 6px;
+            margin-right: 4px;
+            font-size: 7px;
         }
         
         /* ============================================
@@ -476,7 +473,7 @@ $username = $_SESSION['username'] ?? '';
             right: 0;
             background: #ffffff;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 4px 0 env(safe-area-inset-bottom);
+            padding: 5px 0 env(safe-area-inset-bottom);
             z-index: 999;
             display: flex;
             justify-content: space-around;
@@ -489,24 +486,24 @@ $username = $_SESSION['username'] ?? '';
             flex-direction: column;
             align-items: center;
             text-decoration: none;
-            padding: 3px 6px;
+            padding: 3px 8px;
             border-radius: 8px;
             transition: all 0.3s ease;
             position: relative;
-            min-width: 40px;
+            min-width: 45px;
         }
         
         .bottom-nav .nav-item .nav-icon {
-            font-size: 15px;
+            font-size: 17px;
             color: #999;
             transition: all 0.3s ease;
         }
         
         .bottom-nav .nav-item .nav-label {
-            font-size: 7px;
+            font-size: 8px;
             color: #999;
             font-weight: 500;
-            margin-top: 1px;
+            margin-top: 2px;
             transition: all 0.3s ease;
         }
         
@@ -525,7 +522,7 @@ $username = $_SESSION['username'] ?? '';
             top: -2px;
             left: 50%;
             transform: translateX(-50%);
-            width: 16px;
+            width: 18px;
             height: 2px;
             background: #ffd700;
             border-radius: 0 0 2px 2px;
@@ -538,9 +535,9 @@ $username = $_SESSION['username'] ?? '';
             background: #d63031;
             color: #fff;
             font-size: 7px;
-            padding: 1px 4px;
+            padding: 1px 5px;
             border-radius: 50%;
-            min-width: 14px;
+            min-width: 15px;
             text-align: center;
         }
         
@@ -553,7 +550,7 @@ $username = $_SESSION['username'] ?? '';
            ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 0 24px;
+            padding: 0 30px;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -565,13 +562,13 @@ $username = $_SESSION['username'] ?? '';
         .desktop-nav-wrapper .brand-section {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 0;
+            gap: 12px;
+            padding: 10px 0;
         }
         
         .desktop-nav-wrapper .brand-section .logo-wrapper {
-            width: 34px;
-            height: 34px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.1);
             border: 2px solid rgba(255, 215, 0, 0.3);
@@ -590,7 +587,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .desktop-nav-wrapper .brand-section .brand-text .brand-name {
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 700;
             color: #fff;
             line-height: 1.2;
@@ -601,7 +598,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .desktop-nav-wrapper .brand-section .brand-text .brand-sub {
-            font-size: 7px;
+            font-size: 8px;
             color: rgba(255, 255, 255, 0.4);
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -610,19 +607,19 @@ $username = $_SESSION['username'] ?? '';
         .desktop-nav-wrapper .desktop-menu {
             display: flex;
             align-items: center;
-            gap: 2px;
+            gap: 4px;
         }
         
         .desktop-nav-wrapper .desktop-menu .nav-link {
             color: rgba(255, 255, 255, 0.6);
-            padding: 6px 12px;
+            padding: 8px 16px;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
             text-decoration: none;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
-            border-radius: 6px;
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
         
@@ -637,19 +634,19 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .desktop-nav-wrapper .desktop-menu .nav-link i {
-            font-size: 12px;
+            font-size: 14px;
         }
         
         .desktop-nav-wrapper .nav-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
         
         .desktop-nav-wrapper .nav-right .notif-icon {
             position: relative;
             color: rgba(255, 255, 255, 0.6);
-            font-size: 15px;
+            font-size: 17px;
             cursor: pointer;
         }
         
@@ -659,10 +656,10 @@ $username = $_SESSION['username'] ?? '';
             right: -6px;
             background: #d63031;
             color: #fff;
-            font-size: 7px;
-            padding: 1px 4px;
+            font-size: 8px;
+            padding: 1px 5px;
             border-radius: 50%;
-            min-width: 14px;
+            min-width: 16px;
             text-align: center;
         }
         
@@ -673,18 +670,18 @@ $username = $_SESSION['username'] ?? '';
         
         .desktop-nav-wrapper .nav-right .user-info .name {
             font-weight: 600;
-            font-size: 12px;
+            font-size: 13px;
             line-height: 1.2;
         }
         
         .desktop-nav-wrapper .nav-right .user-info .role {
-            font-size: 9px;
+            font-size: 10px;
             color: rgba(255, 255, 255, 0.4);
         }
         
         .desktop-nav-wrapper .nav-right .user-avatar {
-            width: 30px;
-            height: 30px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.2);
             display: flex;
@@ -692,7 +689,7 @@ $username = $_SESSION['username'] ?? '';
             justify-content: center;
             color: #ffd700;
             font-weight: 700;
-            font-size: 12px;
+            font-size: 14px;
             text-decoration: none;
             border: 2px solid rgba(255, 215, 0, 0.2);
             transition: border-color 0.3s ease;
@@ -704,10 +701,10 @@ $username = $_SESSION['username'] ?? '';
         
         .desktop-nav-wrapper .nav-right .logout-btn {
             color: rgba(255, 255, 255, 0.5);
-            padding: 4px 12px;
+            padding: 5px 14px;
             border-radius: 6px;
             text-decoration: none;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -736,18 +733,18 @@ $username = $_SESSION['username'] ?? '';
             }
         }
         
-        /* Mobile */
+        /* Tablet & Mobile */
         @media (max-width: 768px) {
             .desktop-nav-wrapper {
                 display: none !important;
             }
             body {
-                padding-bottom: 60px;
+                padding-bottom: 65px;
             }
             
             .menu-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
+                gap: 10px;
             }
             
             .menu-grid.show-all {
@@ -755,25 +752,25 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .menu-card {
-                padding: 12px 6px;
+                padding: 14px 10px;
             }
             
             .menu-card .menu-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 15px;
+                width: 42px;
+                height: 42px;
+                font-size: 18px;
             }
             
             .menu-card .menu-title {
-                font-size: 10px;
+                font-size: 12px;
             }
             
             .welcome-banner {
-                padding: 10px 14px;
+                padding: 14px 18px;
             }
             
             .welcome-banner .welcome-text h3 {
-                font-size: 14px;
+                font-size: 16px;
             }
             
             .welcome-banner .welcome-icon {
@@ -781,14 +778,14 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .section-title h5 {
-                font-size: 12px;
+                font-size: 14px;
             }
             
             .my-activity {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 8px;
-                padding: 10px 14px;
+                gap: 10px;
+                padding: 12px 16px;
             }
             
             .my-activity .activity-right {
@@ -801,78 +798,78 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .promo-banner .banner-placeholder {
-                min-height: 60px;
-                padding: 12px 16px;
+                min-height: 70px;
+                padding: 14px 16px;
             }
             
             .promo-banner .banner-placeholder h4 {
-                font-size: 14px;
+                font-size: 15px;
             }
             
             .promo-banner .banner-placeholder p {
-                font-size: 10px;
+                font-size: 11px;
             }
         }
         
         @media (max-width: 480px) {
             .menu-grid {
-                gap: 6px;
+                gap: 8px;
             }
             
             .menu-card {
-                padding: 10px 4px;
+                padding: 12px 6px;
                 border-radius: 8px;
             }
             
             .menu-card .menu-icon {
-                width: 32px;
-                height: 32px;
-                font-size: 13px;
+                width: 36px;
+                height: 36px;
+                font-size: 15px;
                 border-radius: 8px;
             }
             
             .menu-card .menu-title {
-                font-size: 9px;
-            }
-            
-            .menu-card .menu-sub {
-                font-size: 8px;
-            }
-            
-            .menu-card .menu-badge {
-                font-size: 8px;
-                padding: 1px 6px;
-            }
-            
-            .bottom-nav .nav-item .nav-label {
-                font-size: 6px;
-            }
-            
-            .bottom-nav .nav-item .nav-icon {
-                font-size: 13px;
-            }
-            
-            .top-header .header-left .brand-text .brand-name {
-                font-size: 10px;
-            }
-            
-            .top-header .header-left .logo-wrapper {
-                width: 26px;
-                height: 26px;
-            }
-            
-            .my-activity .activity-left .activity-icon {
-                width: 30px;
-                height: 30px;
-                font-size: 13px;
-            }
-            
-            .my-activity .activity-left .activity-info .activity-title {
                 font-size: 11px;
             }
             
-            .my-activity .activity-left .activity-info .activity-desc {
+            .menu-card .menu-sub {
                 font-size: 9px;
+            }
+            
+            .menu-card .menu-badge {
+                font-size: 9px;
+                padding: 1px 8px;
+            }
+            
+            .bottom-nav .nav-item .nav-label {
+                font-size: 7px;
+            }
+            
+            .bottom-nav .nav-item .nav-icon {
+                font-size: 15px;
+            }
+            
+            .top-header .header-left .brand-text .brand-name {
+                font-size: 11px;
+            }
+            
+            .top-header .header-left .logo-wrapper {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .my-activity .activity-left .activity-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 14px;
+            }
+            
+            .my-activity .activity-left .activity-info .activity-title {
+                font-size: 12px;
+            }
+            
+            .my-activity .activity-left .activity-info .activity-desc {
+                font-size: 10px;
             }
             
             .promo-banner img {
@@ -880,16 +877,16 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .promo-banner .banner-placeholder {
-                min-height: 50px;
+                min-height: 55px;
                 padding: 10px 12px;
             }
             
             .promo-banner .banner-placeholder h4 {
-                font-size: 12px;
+                font-size: 13px;
             }
             
             .promo-banner .banner-placeholder p {
-                font-size: 9px;
+                font-size: 10px;
             }
         }
         
@@ -907,9 +904,9 @@ $username = $_SESSION['username'] ?? '';
            ============================================ */
         .footer-text {
             text-align: center;
-            padding: 14px 0 6px;
+            padding: 16px 0 8px;
             color: #999;
-            font-size: 10px;
+            font-size: 11px;
         }
         
         .footer-text a {
@@ -1000,9 +997,9 @@ $username = $_SESSION['username'] ?? '';
     </header>
 
     <!-- ============================================
-    MAIN CONTENT
+    MAIN CONTENT - FULL WIDTH
     ============================================ -->
-    <main style="padding: 12px 14px 0; max-width: 1200px; margin: 0 auto;">
+    <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
 
         <!-- WELCOME BANNER -->
         <div class="welcome-banner">
@@ -1013,9 +1010,7 @@ $username = $_SESSION['username'] ?? '';
             <i class="fas fa-hard-hat welcome-icon"></i>
         </div>
 
-        <!-- ============================================
-        BANNER - FULL TAMPAK TIDAK KEPOTONG
-        ============================================ -->
+        <!-- BANNER -->
         <div class="promo-banner">
             <?php if (file_exists('images/banner.png')): ?>
                 <img src="images/banner.png" alt="Banner Promo" loading="lazy">
@@ -1030,7 +1025,7 @@ $username = $_SESSION['username'] ?? '';
         <!-- SECTION: MENU UTAMA -->
         <div class="section-title">
             <h5><i class="fas fa-th-large"></i>Menu Utama</h5>
-            <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:9px;"></i></a>
+            <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i></a>
         </div>
 
         <!-- MENU GRID -->
@@ -1085,11 +1080,11 @@ $username = $_SESSION['username'] ?? '';
         </div>
 
         <!-- ============================================
-        MY ACTIVITY - Data dari Sales Activity
+        MY ACTIVITY
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>Aktivitas Saya</h5>
-            <span style="font-size:10px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $salesActivity ?></strong></span>
+            <span style="font-size:11px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $salesActivity ?></strong></span>
         </div>
 
         <div class="my-activity">
@@ -1100,7 +1095,7 @@ $username = $_SESSION['username'] ?? '';
                 <div class="activity-info">
                     <div class="activity-title">Aktivitas Saya</div>
                     <div class="activity-desc">
-                        Anda memiliki <span><?= $salesActivity ?></span> aktivitas sales
+                        Anda memiliki <span><?= $salesActivity ?></span> aktivitas sales yang sedang berlangsung
                     </div>
                 </div>
             </div>
@@ -1169,10 +1164,10 @@ $username = $_SESSION['username'] ?? '';
             
             if (isMenuOpen) {
                 menuGrid.classList.add('show-all');
-                toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:9px;"></i>';
+                toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:10px;"></i>';
             } else {
                 menuGrid.classList.remove('show-all');
-                toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:9px;"></i>';
+                toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i>';
             }
         });
 
