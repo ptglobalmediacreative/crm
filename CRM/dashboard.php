@@ -1139,17 +1139,6 @@ $dayName = $hari[date('l')];
             <!-- Divider Line -->
             <hr class="activity-divider">
 
-            <!-- Row 2: Active + Date -->
-            <div class="activity-bottom">
-                <div class="activity-active">
-                    <strong>Active: <?= $salesActivity ?> Activities</strong>
-                </div>
-                <div class="activity-date">
-                    <strong><?= $dayName ?>, <?= date('d M Y') ?></strong>
-                </div>
-            </div>
-        </div>
-
         <!-- FOOTER -->
         <div class="footer-text">
             &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - DMS v1.0
