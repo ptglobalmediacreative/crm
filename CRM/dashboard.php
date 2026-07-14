@@ -958,7 +958,7 @@ $username = $_SESSION['username'] ?? '';
             </div>
             <div class="brand-text">
                 <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                <div class="brand-sub">Dealer Management System</div>
+                <div class="brand-sub">Customer Relationship Management System</div>
             </div>
         </div>
         
@@ -1008,7 +1008,7 @@ $username = $_SESSION['username'] ?? '';
             </div>
             <div class="brand-text">
                 <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                <div class="brand-sub">Dealer Management</div>
+                <div class="brand-sub">Customer Relationship Management System</div>
             </div>
         </div>
         <div class="header-right">
@@ -1049,7 +1049,7 @@ $username = $_SESSION['username'] ?? '';
                     <i class="fas fa-hard-hat"></i>
                 </div>
                 <div class="banner-badge">
-                    <i class="fas fa-certificate"></i> INAPROC
+                    <i class="fas fa-certificate"></i> CRM
                 </div>
             </div>
         </div>
