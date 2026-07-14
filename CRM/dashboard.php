@@ -34,7 +34,7 @@ $username = $_SESSION['username'] ?? '';
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
         * {
@@ -191,53 +191,67 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           BANNER PROMO
+           BANNER PROMO - RAPI SEPERTI GAMBAR
            ============================================ */
         .promo-banner {
             border-radius: 10px;
             overflow: hidden;
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            background: #fff;
-        }
-        
-        .promo-banner img {
-            width: 100%;
-            height: auto;
-            max-height: 130px;
-            object-fit: contain;
-            display: block;
-            background: #f8f9fa;
-            padding: 4px 0;
-        }
-        
-        .promo-banner .banner-placeholder {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-radius: 10px;
-            padding: 20px 24px;
-            text-align: center;
-            color: #fff;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             min-height: 90px;
+        }
+        
+        .promo-banner .banner-left {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
         }
         
-        .promo-banner .banner-placeholder h4 {
-            font-weight: 700;
-            font-size: 18px;
-            margin-bottom: 3px;
+        .promo-banner .banner-left .banner-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 1px;
         }
         
-        .promo-banner .banner-placeholder h4 span {
+        .promo-banner .banner-left .banner-title span {
             color: #ffd700;
         }
         
-        .promo-banner .banner-placeholder p {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 12px;
-            margin: 0;
+        .promo-banner .banner-left .banner-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 2px;
+        }
+        
+        .promo-banner .banner-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .promo-banner .banner-right .banner-icon {
+            font-size: 36px;
+            color: rgba(255, 215, 0, 0.15);
+        }
+        
+        .promo-banner .banner-right .banner-badge {
+            background: rgba(255, 215, 0, 0.12);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 8px;
+            padding: 6px 16px;
+            color: #ffd700;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        .promo-banner .banner-right .banner-badge i {
+            margin-right: 6px;
         }
         
         /* ============================================
@@ -277,7 +291,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MENU GRID - FULL WIDTH
+           MENU GRID
            ============================================ */
         .menu-grid {
             display: grid;
@@ -793,21 +807,32 @@ $username = $_SESSION['username'] ?? '';
                 width: 100%;
             }
             
-            .promo-banner img {
-                max-height: 80px;
-            }
-            
-            .promo-banner .banner-placeholder {
+            .promo-banner {
+                flex-direction: column;
+                text-align: center;
+                padding: 16px 18px;
                 min-height: 70px;
-                padding: 14px 16px;
             }
             
-            .promo-banner .banner-placeholder h4 {
-                font-size: 15px;
+            .promo-banner .banner-left .banner-title {
+                font-size: 16px;
             }
             
-            .promo-banner .banner-placeholder p {
+            .promo-banner .banner-left .banner-desc {
                 font-size: 11px;
+            }
+            
+            .promo-banner .banner-right {
+                margin-top: 8px;
+            }
+            
+            .promo-banner .banner-right .banner-icon {
+                display: none;
+            }
+            
+            .promo-banner .banner-right .banner-badge {
+                font-size: 10px;
+                padding: 4px 12px;
             }
         }
         
@@ -872,21 +897,22 @@ $username = $_SESSION['username'] ?? '';
                 font-size: 10px;
             }
             
-            .promo-banner img {
-                max-height: 60px;
+            .promo-banner {
+                padding: 12px 14px;
+                min-height: 60px;
             }
             
-            .promo-banner .banner-placeholder {
-                min-height: 55px;
-                padding: 10px 12px;
+            .promo-banner .banner-left .banner-title {
+                font-size: 14px;
             }
             
-            .promo-banner .banner-placeholder h4 {
-                font-size: 13px;
-            }
-            
-            .promo-banner .banner-placeholder p {
+            .promo-banner .banner-left .banner-desc {
                 font-size: 10px;
+            }
+            
+            .promo-banner .banner-right .banner-badge {
+                font-size: 9px;
+                padding: 3px 10px;
             }
         }
         
@@ -997,7 +1023,7 @@ $username = $_SESSION['username'] ?? '';
     </header>
 
     <!-- ============================================
-    MAIN CONTENT - FULL WIDTH
+    MAIN CONTENT
     ============================================ -->
     <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
 
@@ -1010,16 +1036,22 @@ $username = $_SESSION['username'] ?? '';
             <i class="fas fa-hard-hat welcome-icon"></i>
         </div>
 
-        <!-- BANNER -->
+        <!-- ============================================
+        BANNER - RAPI SEPERTI GAMBAR
+        ============================================ -->
         <div class="promo-banner">
-            <?php if (file_exists('images/banner.png')): ?>
-                <img src="images/banner.png" alt="Banner Promo" loading="lazy">
-            <?php else: ?>
-                <div class="banner-placeholder">
-                    <h4>PT GANDA <span>ELANG</span> TANGGUH</h4>
-                    <p>Dealer Alat Berat Terpercaya</p>
+            <div class="banner-left">
+                <div class="banner-title">BUILT FOR <span>EVERY PROJECT</span></div>
+                <div class="banner-desc">Complete Heavy Equipment Solutions</div>
+            </div>
+            <div class="banner-right">
+                <div class="banner-icon">
+                    <i class="fas fa-hard-hat"></i>
                 </div>
-            <?php endif; ?>
+                <div class="banner-badge">
+                    <i class="fas fa-certificate"></i> INAPROC
+                </div>
+            </div>
         </div>
 
         <!-- SECTION: MENU UTAMA -->
