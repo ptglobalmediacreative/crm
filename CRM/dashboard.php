@@ -369,7 +369,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           MY ACTIVITY
+           MY ACTIVITY - KONSISTEN DESKTOP & MOBILE
            ============================================ */
         .my-activity {
             background: #fff;
@@ -424,6 +424,7 @@ $bannerExists = file_exists($bannerPath);
             display: flex;
             align-items: center;
             gap: 16px;
+            flex-shrink: 0;
         }
         
         .my-activity .activity-right .btn-add {
@@ -764,13 +765,6 @@ $bannerExists = file_exists($bannerPath);
             
             .my-activity {
                 padding: 14px 18px;
-                flex-direction: column;
-                align-items: stretch;
-                gap: 12px;
-            }
-            
-            .my-activity .activity-right {
-                justify-content: flex-end;
             }
             
             .promo-banner img {
@@ -1056,7 +1050,7 @@ $bannerExists = file_exists($bannerPath);
         </div>
 
         <!-- ============================================
-        MY ACTIVITY
+        MY ACTIVITY - KONSISTEN
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
