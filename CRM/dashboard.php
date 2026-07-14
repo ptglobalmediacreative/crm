@@ -46,15 +46,15 @@ $username = $_SESSION['username'] ?? '';
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f0f2f5;
-            padding-bottom: 80px;
+            padding-bottom: 70px;
         }
         
         /* ============================================
-           TOP HEADER
+           TOP HEADER - UKURAN KECIL
            ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 12px 16px;
+            padding: 8px 14px;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -66,12 +66,12 @@ $username = $_SESSION['username'] ?? '';
         .top-header .header-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .top-header .header-left .logo-wrapper {
-            width: 36px;
-            height: 36px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.1);
             border: 2px solid rgba(255, 215, 0, 0.3);
@@ -90,7 +90,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .top-header .header-left .brand-text .brand-name {
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
             color: #fff;
             line-height: 1.2;
@@ -101,41 +101,41 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .top-header .header-left .brand-text .brand-sub {
-            font-size: 8px;
+            font-size: 7px;
             color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
         }
         
         .top-header .header-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
         
         .top-header .header-right .notif-icon {
             position: relative;
             color: rgba(255, 255, 255, 0.6);
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
         }
         
         .top-header .header-right .notif-icon .badge-notif {
             position: absolute;
-            top: -6px;
-            right: -8px;
+            top: -5px;
+            right: -6px;
             background: #d63031;
             color: #fff;
-            font-size: 8px;
-            padding: 1px 5px;
+            font-size: 7px;
+            padding: 1px 4px;
             border-radius: 50%;
-            min-width: 16px;
+            min-width: 14px;
             text-align: center;
         }
         
         .top-header .header-right .user-avatar {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.2);
             display: flex;
@@ -143,7 +143,7 @@ $username = $_SESSION['username'] ?? '';
             justify-content: center;
             color: #ffd700;
             font-weight: 700;
-            font-size: 13px;
+            font-size: 11px;
             text-decoration: none;
             border: 2px solid rgba(255, 215, 0, 0.2);
             transition: border-color 0.3s ease;
@@ -154,28 +154,28 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           WELCOME BANNER
+           WELCOME BANNER - UKURAN KECIL
            ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-radius: 12px;
-            padding: 18px 22px;
+            border-radius: 10px;
+            padding: 12px 18px;
             color: #fff;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             position: relative;
             overflow: hidden;
         }
         
         .welcome-banner .welcome-text .greeting {
-            font-size: 12px;
+            font-size: 10px;
             color: rgba(255, 255, 255, 0.4);
             font-weight: 400;
         }
         
         .welcome-banner .welcome-text h3 {
             font-weight: 700;
-            font-size: 18px;
-            margin: 2px 0 0;
+            font-size: 15px;
+            margin: 1px 0 0;
         }
         
         .welcome-banner .welcome-text h3 span {
@@ -183,21 +183,21 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .welcome-banner .welcome-icon {
-            font-size: 36px;
+            font-size: 28px;
             color: rgba(255, 215, 0, 0.05);
             position: absolute;
-            right: 15px;
-            bottom: 10px;
+            right: 12px;
+            bottom: 8px;
         }
         
         /* ============================================
-           BANNER PROMO / IKLAN
+           BANNER PROMO - UKURAN KECIL
            ============================================ */
         .promo-banner {
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
-            margin-bottom: 18px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
         .promo-banner img {
@@ -209,11 +209,11 @@ $username = $_SESSION['username'] ?? '';
         
         .promo-banner .banner-placeholder {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-radius: 12px;
-            padding: 30px 24px;
+            border-radius: 10px;
+            padding: 18px 20px;
             text-align: center;
             color: #fff;
-            min-height: 120px;
+            min-height: 80px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -222,7 +222,8 @@ $username = $_SESSION['username'] ?? '';
         
         .promo-banner .banner-placeholder h4 {
             font-weight: 700;
-            margin-bottom: 5px;
+            font-size: 16px;
+            margin-bottom: 3px;
         }
         
         .promo-banner .banner-placeholder h4 span {
@@ -231,34 +232,35 @@ $username = $_SESSION['username'] ?? '';
         
         .promo-banner .banner-placeholder p {
             color: rgba(255, 255, 255, 0.5);
-            font-size: 13px;
+            font-size: 11px;
             margin: 0;
         }
         
         /* ============================================
-           SECTION TITLE
+           SECTION TITLE - UKURAN KECIL
            ============================================ */
         .section-title {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         
         .section-title h5 {
             font-weight: 700;
             color: #1a1a2e;
-            font-size: 15px;
+            font-size: 13px;
             margin: 0;
         }
         
         .section-title h5 i {
             color: #ffd700;
-            margin-right: 8px;
+            margin-right: 6px;
+            font-size: 12px;
         }
         
         .section-title .see-all {
-            font-size: 12px;
+            font-size: 11px;
             color: #888;
             text-decoration: none;
             font-weight: 500;
@@ -271,13 +273,13 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MENU GRID
+           MENU GRID - UKURAN KECIL
            ============================================ */
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 18px;
+            gap: 10px;
+            margin-bottom: 14px;
         }
         
         .menu-grid.show-all {
@@ -286,10 +288,10 @@ $username = $_SESSION['username'] ?? '';
         
         .menu-card {
             background: #fff;
-            border-radius: 12px;
-            padding: 18px 10px;
+            border-radius: 10px;
+            padding: 14px 8px;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
             text-decoration: none;
             transition: all 0.3s ease;
@@ -299,20 +301,20 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .menu-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             border-color: #ffd700;
         }
         
         .menu-card .menu-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            margin-bottom: 8px;
+            font-size: 17px;
+            margin-bottom: 6px;
         }
         
         .menu-card .menu-icon.orange {
@@ -352,25 +354,25 @@ $username = $_SESSION['username'] ?? '';
         
         .menu-card .menu-title {
             font-weight: 600;
-            font-size: 13px;
+            font-size: 11px;
             color: #1a1a2e;
             margin: 0;
         }
         
         .menu-card .menu-sub {
-            font-size: 10px;
+            font-size: 9px;
             color: #999;
-            margin: 2px 0 0;
+            margin: 1px 0 0;
         }
         
         .menu-card .menu-badge {
-            font-size: 10px;
+            font-size: 9px;
             background: #ffd700;
             color: #1a1a2e;
-            padding: 1px 10px;
+            padding: 1px 8px;
             border-radius: 20px;
             font-weight: 600;
-            margin-top: 5px;
+            margin-top: 4px;
         }
         
         /* Menu tambahan (hidden) */
@@ -383,54 +385,54 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MY ACTIVITY
+           MY ACTIVITY - UKURAN KECIL
            ============================================ */
         .my-activity {
             background: #fff;
-            border-radius: 12px;
-            padding: 16px 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            padding: 12px 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 18px;
+            margin-top: 14px;
             transition: all 0.3s ease;
         }
         
         .my-activity:hover {
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
         
         .my-activity .activity-left {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 10px;
         }
         
         .my-activity .activity-left .activity-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             background: rgba(255, 215, 0, 0.12);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 15px;
             color: #ffd700;
         }
         
         .my-activity .activity-left .activity-info .activity-title {
             font-weight: 600;
-            font-size: 14px;
+            font-size: 12px;
             color: #1a1a2e;
             margin: 0;
         }
         
         .my-activity .activity-left .activity-info .activity-desc {
-            font-size: 12px;
+            font-size: 10px;
             color: #888;
-            margin: 2px 0 0;
+            margin: 1px 0 0;
         }
         
         .my-activity .activity-left .activity-info .activity-desc span {
@@ -443,7 +445,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .my-activity .activity-right .activity-date {
-            font-size: 12px;
+            font-size: 10px;
             color: #888;
         }
         
@@ -452,18 +454,18 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .my-activity .activity-right .activity-status {
-            font-size: 11px;
+            font-size: 10px;
             color: #2ed573;
             font-weight: 600;
         }
         
         .my-activity .activity-right .activity-status i {
-            margin-right: 4px;
-            font-size: 7px;
+            margin-right: 3px;
+            font-size: 6px;
         }
         
         /* ============================================
-           BOTTOM NAVIGATION
+           BOTTOM NAVIGATION - UKURAN KECIL
            ============================================ */
         .bottom-nav {
             position: fixed;
@@ -472,7 +474,7 @@ $username = $_SESSION['username'] ?? '';
             right: 0;
             background: #ffffff;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 6px 0 env(safe-area-inset-bottom);
+            padding: 4px 0 env(safe-area-inset-bottom);
             z-index: 999;
             display: flex;
             justify-content: space-around;
@@ -485,24 +487,24 @@ $username = $_SESSION['username'] ?? '';
             flex-direction: column;
             align-items: center;
             text-decoration: none;
-            padding: 4px 8px;
-            border-radius: 10px;
+            padding: 3px 6px;
+            border-radius: 8px;
             transition: all 0.3s ease;
             position: relative;
-            min-width: 45px;
+            min-width: 40px;
         }
         
         .bottom-nav .nav-item .nav-icon {
-            font-size: 17px;
+            font-size: 15px;
             color: #999;
             transition: all 0.3s ease;
         }
         
         .bottom-nav .nav-item .nav-label {
-            font-size: 8px;
+            font-size: 7px;
             color: #999;
             font-weight: 500;
-            margin-top: 2px;
+            margin-top: 1px;
             transition: all 0.3s ease;
         }
         
@@ -521,22 +523,22 @@ $username = $_SESSION['username'] ?? '';
             top: -2px;
             left: 50%;
             transform: translateX(-50%);
-            width: 20px;
-            height: 3px;
+            width: 16px;
+            height: 2px;
             background: #ffd700;
-            border-radius: 0 0 3px 3px;
+            border-radius: 0 0 2px 2px;
         }
         
         .bottom-nav .nav-item .badge-nav {
             position: absolute;
             top: -2px;
-            right: 0px;
+            right: -2px;
             background: #d63031;
             color: #fff;
-            font-size: 8px;
-            padding: 1px 5px;
+            font-size: 7px;
+            padding: 1px 4px;
             border-radius: 50%;
-            min-width: 15px;
+            min-width: 14px;
             text-align: center;
         }
         
@@ -545,11 +547,11 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           DESKTOP NAVBAR
+           DESKTOP NAVBAR - UKURAN KECIL
            ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 0 30px;
+            padding: 0 24px;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -561,13 +563,13 @@ $username = $_SESSION['username'] ?? '';
         .desktop-nav-wrapper .brand-section {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 0;
+            gap: 10px;
+            padding: 8px 0;
         }
         
         .desktop-nav-wrapper .brand-section .logo-wrapper {
-            width: 40px;
-            height: 40px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.1);
             border: 2px solid rgba(255, 215, 0, 0.3);
@@ -586,7 +588,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .desktop-nav-wrapper .brand-section .brand-text .brand-name {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
             color: #fff;
             line-height: 1.2;
@@ -597,9 +599,9 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .desktop-nav-wrapper .brand-section .brand-text .brand-sub {
-            font-size: 8px;
+            font-size: 7px;
             color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             text-transform: uppercase;
         }
         
@@ -611,14 +613,14 @@ $username = $_SESSION['username'] ?? '';
         
         .desktop-nav-wrapper .desktop-menu .nav-link {
             color: rgba(255, 255, 255, 0.6);
-            padding: 8px 14px;
+            padding: 6px 12px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
-            border-radius: 8px;
+            border-radius: 6px;
             transition: all 0.3s ease;
         }
         
@@ -633,32 +635,32 @@ $username = $_SESSION['username'] ?? '';
         }
         
         .desktop-nav-wrapper .desktop-menu .nav-link i {
-            font-size: 14px;
+            font-size: 12px;
         }
         
         .desktop-nav-wrapper .nav-right {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
         }
         
         .desktop-nav-wrapper .nav-right .notif-icon {
             position: relative;
             color: rgba(255, 255, 255, 0.6);
-            font-size: 17px;
+            font-size: 15px;
             cursor: pointer;
         }
         
         .desktop-nav-wrapper .nav-right .notif-icon .badge-notif {
             position: absolute;
-            top: -6px;
-            right: -8px;
+            top: -5px;
+            right: -6px;
             background: #d63031;
             color: #fff;
-            font-size: 8px;
-            padding: 1px 5px;
+            font-size: 7px;
+            padding: 1px 4px;
             border-radius: 50%;
-            min-width: 16px;
+            min-width: 14px;
             text-align: center;
         }
         
@@ -669,18 +671,18 @@ $username = $_SESSION['username'] ?? '';
         
         .desktop-nav-wrapper .nav-right .user-info .name {
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.2;
         }
         
         .desktop-nav-wrapper .nav-right .user-info .role {
-            font-size: 10px;
+            font-size: 9px;
             color: rgba(255, 255, 255, 0.4);
         }
         
         .desktop-nav-wrapper .nav-right .user-avatar {
-            width: 36px;
-            height: 36px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.2);
             display: flex;
@@ -688,7 +690,7 @@ $username = $_SESSION['username'] ?? '';
             justify-content: center;
             color: #ffd700;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 12px;
             text-decoration: none;
             border: 2px solid rgba(255, 215, 0, 0.2);
             transition: border-color 0.3s ease;
@@ -700,10 +702,10 @@ $username = $_SESSION['username'] ?? '';
         
         .desktop-nav-wrapper .nav-right .logout-btn {
             color: rgba(255, 255, 255, 0.5);
-            padding: 6px 14px;
-            border-radius: 8px;
+            padding: 4px 12px;
+            border-radius: 6px;
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -738,12 +740,12 @@ $username = $_SESSION['username'] ?? '';
                 display: none !important;
             }
             body {
-                padding-bottom: 65px;
+                padding-bottom: 60px;
             }
             
             .menu-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
+                gap: 8px;
             }
             
             .menu-grid.show-all {
@@ -751,25 +753,25 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .menu-card {
-                padding: 14px 8px;
+                padding: 12px 6px;
             }
             
             .menu-card .menu-icon {
-                width: 44px;
-                height: 44px;
-                font-size: 18px;
+                width: 36px;
+                height: 36px;
+                font-size: 15px;
             }
             
             .menu-card .menu-title {
-                font-size: 12px;
+                font-size: 10px;
             }
             
             .welcome-banner {
-                padding: 14px 16px;
+                padding: 10px 14px;
             }
             
             .welcome-banner .welcome-text h3 {
-                font-size: 16px;
+                font-size: 14px;
             }
             
             .welcome-banner .welcome-icon {
@@ -777,14 +779,14 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .section-title h5 {
-                font-size: 13px;
+                font-size: 12px;
             }
             
             .my-activity {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 10px;
-                padding: 14px 16px;
+                gap: 8px;
+                padding: 10px 14px;
             }
             
             .my-activity .activity-right {
@@ -793,77 +795,7 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .promo-banner .banner-placeholder {
-                padding: 20px 16px;
-                min-height: 80px;
-            }
-            
-            .promo-banner .banner-placeholder h4 {
-                font-size: 16px;
-            }
-            
-            .promo-banner .banner-placeholder p {
-                font-size: 12px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .menu-grid {
-                gap: 8px;
-            }
-            
-            .menu-card {
-                padding: 12px 6px;
-                border-radius: 10px;
-            }
-            
-            .menu-card .menu-icon {
-                width: 38px;
-                height: 38px;
-                font-size: 16px;
-                border-radius: 10px;
-            }
-            
-            .menu-card .menu-title {
-                font-size: 11px;
-            }
-            
-            .menu-card .menu-sub {
-                font-size: 9px;
-            }
-            
-            .bottom-nav .nav-item .nav-label {
-                font-size: 7px;
-            }
-            
-            .bottom-nav .nav-item .nav-icon {
-                font-size: 15px;
-            }
-            
-            .top-header .header-left .brand-text .brand-name {
-                font-size: 11px;
-            }
-            
-            .top-header .header-left .logo-wrapper {
-                width: 30px;
-                height: 30px;
-            }
-            
-            .my-activity .activity-left .activity-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 15px;
-            }
-            
-            .my-activity .activity-left .activity-info .activity-title {
-                font-size: 12px;
-            }
-            
-            .my-activity .activity-left .activity-info .activity-desc {
-                font-size: 11px;
-            }
-            
-            .promo-banner .banner-placeholder {
-                padding: 16px 12px;
+                padding: 14px 16px;
                 min-height: 60px;
             }
             
@@ -872,7 +804,82 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .promo-banner .banner-placeholder p {
+                font-size: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .menu-grid {
+                gap: 6px;
+            }
+            
+            .menu-card {
+                padding: 10px 4px;
+                border-radius: 8px;
+            }
+            
+            .menu-card .menu-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 13px;
+                border-radius: 8px;
+            }
+            
+            .menu-card .menu-title {
+                font-size: 9px;
+            }
+            
+            .menu-card .menu-sub {
+                font-size: 8px;
+            }
+            
+            .menu-card .menu-badge {
+                font-size: 8px;
+                padding: 1px 6px;
+            }
+            
+            .bottom-nav .nav-item .nav-label {
+                font-size: 6px;
+            }
+            
+            .bottom-nav .nav-item .nav-icon {
+                font-size: 13px;
+            }
+            
+            .top-header .header-left .brand-text .brand-name {
+                font-size: 10px;
+            }
+            
+            .top-header .header-left .logo-wrapper {
+                width: 26px;
+                height: 26px;
+            }
+            
+            .my-activity .activity-left .activity-icon {
+                width: 30px;
+                height: 30px;
+                font-size: 13px;
+            }
+            
+            .my-activity .activity-left .activity-info .activity-title {
                 font-size: 11px;
+            }
+            
+            .my-activity .activity-left .activity-info .activity-desc {
+                font-size: 9px;
+            }
+            
+            .promo-banner .banner-placeholder {
+                padding: 12px 12px;
+                min-height: 50px;
+            }
+            
+            .promo-banner .banner-placeholder h4 {
+                font-size: 12px;
+            }
+            
+            .promo-banner .banner-placeholder p {
+                font-size: 9px;
             }
         }
         
@@ -886,13 +893,13 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           FOOTER
+           FOOTER - UKURAN KECIL
            ============================================ */
         .footer-text {
             text-align: center;
-            padding: 18px 0 8px;
+            padding: 14px 0 6px;
             color: #999;
-            font-size: 11px;
+            font-size: 10px;
         }
         
         .footer-text a {
@@ -985,7 +992,7 @@ $username = $_SESSION['username'] ?? '';
     <!-- ============================================
     MAIN CONTENT
     ============================================ -->
-    <main style="padding: 16px 16px 0; max-width: 1200px; margin: 0 auto;">
+    <main style="padding: 12px 14px 0; max-width: 1200px; margin: 0 auto;">
 
         <!-- WELCOME BANNER -->
         <div class="welcome-banner">
@@ -1013,7 +1020,7 @@ $username = $_SESSION['username'] ?? '';
         <!-- SECTION: MENU UTAMA -->
         <div class="section-title">
             <h5><i class="fas fa-th-large"></i>Menu Utama</h5>
-            <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i></a>
+            <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:9px;"></i></a>
         </div>
 
         <!-- MENU GRID -->
@@ -1072,7 +1079,7 @@ $username = $_SESSION['username'] ?? '';
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>Aktivitas Saya</h5>
-            <span style="font-size:12px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $salesActivity ?></strong></span>
+            <span style="font-size:10px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $salesActivity ?></strong></span>
         </div>
 
         <div class="my-activity">
@@ -1083,13 +1090,13 @@ $username = $_SESSION['username'] ?? '';
                 <div class="activity-info">
                     <div class="activity-title">Aktivitas Saya</div>
                     <div class="activity-desc">
-                        Anda memiliki <span><?= $salesActivity ?></span> aktivitas sales yang sedang berlangsung
+                        Anda memiliki <span><?= $salesActivity ?></span> aktivitas sales
                     </div>
                 </div>
             </div>
             <div class="activity-right">
                 <div class="activity-date">
-                    <strong><?= date('l, d M Y') ?></strong>
+                    <strong><?= date('d M Y') ?></strong>
                 </div>
                 <div class="activity-status">
                     <i class="fas fa-circle"></i> Aktif
@@ -1152,10 +1159,10 @@ $username = $_SESSION['username'] ?? '';
             
             if (isMenuOpen) {
                 menuGrid.classList.add('show-all');
-                toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:10px;"></i>';
+                toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:9px;"></i>';
             } else {
                 menuGrid.classList.remove('show-all');
-                toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i>';
+                toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:9px;"></i>';
             }
         });
 
