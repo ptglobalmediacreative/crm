@@ -12,7 +12,7 @@ $totalUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $totalActive = $db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
 
 // Ambil data Sales Activity (contoh: total user aktif sebagai aktivitas sales)
-$salesActivity = $totalActive; // Bisa diganti dengan query lain
+$salesActivity = $totalActive;
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
@@ -188,6 +188,51 @@ $username = $_SESSION['username'] ?? '';
             position: absolute;
             right: 15px;
             bottom: 10px;
+        }
+        
+        /* ============================================
+           BANNER PROMO / IKLAN
+           ============================================ */
+        .promo-banner {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .promo-banner img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+        
+        .promo-banner .banner-placeholder {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 12px;
+            padding: 30px 24px;
+            text-align: center;
+            color: #fff;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .promo-banner .banner-placeholder h4 {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .promo-banner .banner-placeholder h4 span {
+            color: #ffd700;
+        }
+        
+        .promo-banner .banner-placeholder p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            margin: 0;
         }
         
         /* ============================================
@@ -746,6 +791,19 @@ $username = $_SESSION['username'] ?? '';
                 text-align: left;
                 width: 100%;
             }
+            
+            .promo-banner .banner-placeholder {
+                padding: 20px 16px;
+                min-height: 80px;
+            }
+            
+            .promo-banner .banner-placeholder h4 {
+                font-size: 16px;
+            }
+            
+            .promo-banner .banner-placeholder p {
+                font-size: 12px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -801,6 +859,19 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .my-activity .activity-left .activity-info .activity-desc {
+                font-size: 11px;
+            }
+            
+            .promo-banner .banner-placeholder {
+                padding: 16px 12px;
+                min-height: 60px;
+            }
+            
+            .promo-banner .banner-placeholder h4 {
+                font-size: 14px;
+            }
+            
+            .promo-banner .banner-placeholder p {
                 font-size: 11px;
             }
         }
@@ -923,6 +994,20 @@ $username = $_SESSION['username'] ?? '';
                 <h3><?= htmlspecialchars($fullName) ?></h3>
             </div>
             <i class="fas fa-hard-hat welcome-icon"></i>
+        </div>
+
+        <!-- ============================================
+        BANNER - crm/images/banner.png
+        ============================================ -->
+        <div class="promo-banner">
+            <?php if (file_exists('crm/images/banner.png')): ?>
+                <img src="crm/images/banner.png" alt="Banner Promo" loading="lazy">
+            <?php else: ?>
+                <div class="banner-placeholder">
+                    <h4>PT GANDA <span>ELANG</span> TANGGUH</h4>
+                    <p>Dealer Alat Berat Terpercaya</p>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- SECTION: MENU UTAMA -->
