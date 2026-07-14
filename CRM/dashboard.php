@@ -997,11 +997,11 @@ $username = $_SESSION['username'] ?? '';
         </div>
 
         <!-- ============================================
-        BANNER - crm/images/banner.png
+        BANNER - images/banner.png
         ============================================ -->
         <div class="promo-banner">
-            <?php if (file_exists('crm/images/banner.png')): ?>
-                <img src="crm/images/banner.png" alt="Banner Promo" loading="lazy">
+            <?php if (file_exists('images/banner.png')): ?>
+                <img src="images/banner.png" alt="Banner Promo" loading="lazy">
             <?php else: ?>
                 <div class="banner-placeholder">
                     <h4>PT GANDA <span>ELANG</span> TANGGUH</h4>
