@@ -381,23 +381,26 @@ $dayName = $hari[date('l')];
         }
         
         /* ============================================
-           MY ACTIVITY - KONSISTEN MOBILE & DESKTOP
+           MY ACTIVITY - PERSIS GAMBAR
            ============================================ */
         .my-activity {
             background: #fff;
             border-radius: 12px;
-            padding: 18px 24px;
+            padding: 16px 24px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-top: 16px;
             transition: all 0.3s ease;
         }
         
         .my-activity:hover {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .my-activity .activity-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .my-activity .activity-left {
@@ -407,52 +410,87 @@ $dayName = $hari[date('l')];
         }
         
         .my-activity .activity-left .activity-icon {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
-            background: rgba(255, 215, 0, 0.1);
+            background: rgba(255, 215, 0, 0.12);
             display: flex;
             align-items: center;
             justify-content: center;
             color: #ffd700;
-            font-size: 18px;
+            font-size: 17px;
             flex-shrink: 0;
         }
         
         .my-activity .activity-left .activity-info .activity-title {
             font-weight: 600;
-            font-size: 15px;
+            font-size: 14px;
             color: #1a1a2e;
             margin: 0;
         }
         
         .my-activity .activity-left .activity-info .activity-desc {
-            font-size: 13px;
+            font-size: 12px;
             color: #888;
             margin: 2px 0 0;
         }
         
         .my-activity .activity-right {
-            text-align: right;
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
         
-        .my-activity .activity-right .activity-active {
+        .my-activity .activity-right .btn-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 300;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .my-activity .activity-right .btn-add:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
+        }
+        
+        .my-activity .activity-divider {
+            border: none;
+            border-top: 1px solid #f0f0f0;
+            margin: 12px 0 10px 0;
+        }
+        
+        .my-activity .activity-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .my-activity .activity-bottom .activity-active {
             font-size: 13px;
             color: #888;
         }
         
-        .my-activity .activity-right .activity-active strong {
+        .my-activity .activity-bottom .activity-active strong {
             color: #1a1a2e;
             font-weight: 700;
         }
         
-        .my-activity .activity-right .activity-date {
+        .my-activity .activity-bottom .activity-date {
             font-size: 13px;
             color: #888;
-            margin-top: 2px;
         }
         
-        .my-activity .activity-right .activity-date strong {
+        .my-activity .activity-bottom .activity-date strong {
             color: #1a1a2e;
             font-weight: 600;
         }
@@ -772,14 +810,13 @@ $dayName = $hari[date('l')];
             }
             
             .my-activity {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
                 padding: 14px 18px;
             }
             
-            .my-activity .activity-right {
-                text-align: left;
+            .my-activity .activity-bottom {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
             }
             
             .promo-banner img {
@@ -849,7 +886,7 @@ $dayName = $hari[date('l')];
             .my-activity .activity-left .activity-icon {
                 width: 34px;
                 height: 34px;
-                font-size: 15px;
+                font-size: 14px;
             }
             
             .my-activity .activity-left .activity-info .activity-title {
@@ -860,11 +897,17 @@ $dayName = $hari[date('l')];
                 font-size: 11px;
             }
             
-            .my-activity .activity-right .activity-active {
+            .my-activity .activity-right .btn-add {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+            }
+            
+            .my-activity .activity-bottom .activity-active {
                 font-size: 12px;
             }
             
-            .my-activity .activity-right .activity-date {
+            .my-activity .activity-bottom .activity-date {
                 font-size: 12px;
             }
             
@@ -1067,7 +1110,7 @@ $dayName = $hari[date('l')];
         </div>
 
         <!-- ============================================
-        MY ACTIVITY - KONSISTEN
+        MY ACTIVITY - PERSIS GAMBAR
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
@@ -1075,21 +1118,34 @@ $dayName = $hari[date('l')];
         </div>
 
         <div class="my-activity">
-            <div class="activity-left">
-                <div class="activity-icon">
-                    <i class="fas fa-list"></i>
+            <!-- Row 1: Title + Icon + Button Add -->
+            <div class="activity-row">
+                <div class="activity-left">
+                    <div class="activity-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="activity-info">
+                        <div class="activity-title">My Activity</div>
+                        <div class="activity-desc">Akses quick link aktivitas dan pengingat Anda</div>
+                    </div>
                 </div>
-                <div class="activity-info">
-                    <div class="activity-title">My Activity</div>
-                    <div class="activity-desc">Akses quick link aktivitas dan pengingat Anda</div>
+                <div class="activity-right">
+                    <a href="sales_activity.php" class="btn-add">
+                        <i class="fas fa-plus"></i>
+                    </a>
                 </div>
             </div>
-            <div class="activity-right">
+
+            <!-- Divider Line -->
+            <hr class="activity-divider">
+
+            <!-- Row 2: Active + Date -->
+            <div class="activity-bottom">
                 <div class="activity-active">
-                    <strong><?= $dayName ?>, <?= date('d M Y') ?></strong>
+                    <strong>Active: <?= $salesActivity ?> Activities</strong>
                 </div>
                 <div class="activity-date">
-                    <strong>Active: <?= $salesActivity ?> Activities</strong>
+                    <strong><?= $dayName ?>, <?= date('d M Y') ?></strong>
                 </div>
             </div>
         </div>
