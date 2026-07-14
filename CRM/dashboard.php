@@ -369,7 +369,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           MY ACTIVITY - KONSISTEN DESKTOP & MOBILE
+           MY ACTIVITY - SIMPLE SEPERTI GAMBAR
            ============================================ */
         .my-activity {
             background: #fff;
@@ -424,7 +424,6 @@ $bannerExists = file_exists($bannerPath);
             display: flex;
             align-items: center;
             gap: 16px;
-            flex-shrink: 0;
         }
         
         .my-activity .activity-right .btn-add {
@@ -1050,7 +1049,7 @@ $bannerExists = file_exists($bannerPath);
         </div>
 
         <!-- ============================================
-        MY ACTIVITY - KONSISTEN
+        MY ACTIVITY - SIMPLE SEPERTI GAMBAR
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
