@@ -369,7 +369,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           MY ACTIVITY - DENGAN ICON & TOMBOL TAMBAH
+           MY ACTIVITY - TANGGAL RAPI
            ============================================ */
         .my-activity {
             background: #fff;
@@ -430,31 +430,30 @@ $bannerExists = file_exists($bannerPath);
             color: #1a1a2e;
         }
         
-        .my-activity .activity-center {
+        .my-activity .activity-right {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
         }
         
-        .my-activity .activity-center .activity-date {
-            font-size: 12px;
-            color: #888;
-            text-align: center;
+        .my-activity .activity-right .activity-date {
+            text-align: right;
             line-height: 1.3;
         }
         
-        .my-activity .activity-center .activity-date .day {
+        .my-activity .activity-right .activity-date .day {
             font-weight: 700;
             color: #1a1a2e;
-            font-size: 14px;
+            font-size: 15px;
+            display: block;
         }
         
-        .my-activity .activity-center .activity-date .month {
+        .my-activity .activity-right .activity-date .month {
             color: #999;
             font-size: 11px;
         }
         
-        .my-activity .activity-center .activity-status {
+        .my-activity .activity-right .activity-status {
             font-size: 11px;
             color: #2ed573;
             font-weight: 600;
@@ -463,14 +462,8 @@ $bannerExists = file_exists($bannerPath);
             gap: 4px;
         }
         
-        .my-activity .activity-center .activity-status i {
+        .my-activity .activity-right .activity-status i {
             font-size: 7px;
-        }
-        
-        .my-activity .activity-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
         
         .my-activity .activity-right .btn-add {
@@ -487,6 +480,7 @@ $bannerExists = file_exists($bannerPath);
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
+            white-space: nowrap;
         }
         
         .my-activity .activity-right .btn-add:hover {
@@ -823,14 +817,9 @@ $bannerExists = file_exists($bannerPath);
                 gap: 12px;
             }
             
-            .my-activity .activity-center {
-                justify-content: space-between;
-                padding-left: 54px;
-            }
-            
             .my-activity .activity-right {
-                justify-content: flex-end;
-                padding-left: 54px;
+                justify-content: space-between;
+                width: 100%;
             }
             
             .promo-banner img {
@@ -907,14 +896,9 @@ $bannerExists = file_exists($bannerPath);
                 font-size: 11px;
             }
             
-            .my-activity .activity-center {
-                padding-left: 46px;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-            
             .my-activity .activity-right {
-                padding-left: 46px;
+                flex-wrap: wrap;
+                gap: 10px;
             }
             
             .my-activity .activity-right .btn-add {
@@ -1125,7 +1109,7 @@ $bannerExists = file_exists($bannerPath);
         </div>
 
         <!-- ============================================
-        MY ACTIVITY - DENGAN ICON LIST & TOMBOL TAMBAH
+        MY ACTIVITY - TANGGAL RAPI
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>Aktivitas Saya</h5>
@@ -1144,16 +1128,14 @@ $bannerExists = file_exists($bannerPath);
                     </div>
                 </div>
             </div>
-            <div class="activity-center">
+            <div class="activity-right">
                 <div class="activity-date">
-                    <div class="day"><?= date('d') ?></div>
-                    <div class="month"><?= date('M Y') ?></div>
+                    <span class="day"><?= date('d') ?></span>
+                    <span class="month"><?= date('M Y') ?></span>
                 </div>
                 <div class="activity-status">
                     <i class="fas fa-circle"></i> Aktif
                 </div>
-            </div>
-            <div class="activity-right">
                 <a href="sales_activity.php" class="btn-add">
                     <i class="fas fa-plus"></i> Tambah
                 </a>
