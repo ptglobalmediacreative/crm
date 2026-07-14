@@ -11,6 +11,9 @@ if (!isLoggedIn()) {
 $totalUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $totalActive = $db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
 
+// Ambil data Sales Activity (contoh: total user aktif sebagai aktivitas sales)
+$salesActivity = $totalActive; // Bisa diganti dengan query lain
+
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 $username = $_SESSION['username'] ?? '';
@@ -215,6 +218,7 @@ $username = $_SESSION['username'] ?? '';
             text-decoration: none;
             font-weight: 500;
             transition: color 0.3s ease;
+            cursor: pointer;
         }
         
         .section-title .see-all:hover {
@@ -226,9 +230,13 @@ $username = $_SESSION['username'] ?? '';
            ============================================ */
         .menu-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
             margin-bottom: 18px;
+        }
+        
+        .menu-grid.show-all {
+            grid-template-columns: repeat(4, 1fr);
         }
         
         .menu-card {
@@ -292,6 +300,11 @@ $username = $_SESSION['username'] ?? '';
             color: #d63031;
         }
         
+        .menu-card .menu-icon.teal {
+            background: rgba(0, 206, 209, 0.12);
+            color: #16a085;
+        }
+        
         .menu-card .menu-title {
             font-weight: 600;
             font-size: 13px;
@@ -313,6 +326,15 @@ $username = $_SESSION['username'] ?? '';
             border-radius: 20px;
             font-weight: 600;
             margin-top: 5px;
+        }
+        
+        /* Menu tambahan (hidden) */
+        .menu-card.hidden-menu {
+            display: none;
+        }
+        
+        .menu-grid.show-all .menu-card.hidden-menu {
+            display: flex;
         }
         
         /* ============================================
@@ -679,6 +701,10 @@ $username = $_SESSION['username'] ?? '';
                 gap: 10px;
             }
             
+            .menu-grid.show-all {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
             .menu-card {
                 padding: 14px 8px;
             }
@@ -781,6 +807,9 @@ $username = $_SESSION['username'] ?? '';
         
         @media (min-width: 769px) and (max-width: 992px) {
             .menu-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .menu-grid.show-all {
                 grid-template-columns: repeat(3, 1fr);
             }
         }
@@ -899,11 +928,11 @@ $username = $_SESSION['username'] ?? '';
         <!-- SECTION: MENU UTAMA -->
         <div class="section-title">
             <h5><i class="fas fa-th-large"></i>Menu Utama</h5>
-            <a href="#" class="see-all">Lainnya <i class="fas fa-chevron-right" style="font-size:10px;"></i></a>
+            <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i></a>
         </div>
 
         <!-- MENU GRID -->
-        <div class="menu-grid">
+        <div class="menu-grid" id="menuGrid">
             <!-- Account Management -->
             <a href="#" class="menu-card">
                 <div class="menu-icon orange"><i class="fas fa-building"></i></div>
@@ -917,7 +946,7 @@ $username = $_SESSION['username'] ?? '';
                 <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
                 <div class="menu-title">Sales Activity</div>
                 <div class="menu-sub">Aktivitas sales</div>
-                <span class="menu-badge">24</span>
+                <span class="menu-badge"><?= $salesActivity ?></span>
             </a>
             
             <!-- Produk -->
@@ -936,21 +965,29 @@ $username = $_SESSION['username'] ?? '';
                 <span class="menu-badge">12</span>
             </a>
             
-            <!-- Data User -->
-            <a href="#" class="menu-card">
+            <!-- Data User (Hidden) -->
+            <a href="#" class="menu-card hidden-menu">
                 <div class="menu-icon purple"><i class="fas fa-users"></i></div>
                 <div class="menu-title">Data User</div>
                 <div class="menu-sub">Kelola user</div>
                 <span class="menu-badge"><?= $totalUsers ?></span>
             </a>
+            
+            <!-- Data Sales (Hidden) -->
+            <a href="#" class="menu-card hidden-menu">
+                <div class="menu-icon teal"><i class="fas fa-user-tie"></i></div>
+                <div class="menu-title">Data Sales</div>
+                <div class="menu-sub">Kelola sales</div>
+                <span class="menu-badge"><?= $salesActivity ?></span>
+            </a>
         </div>
 
         <!-- ============================================
-        MY ACTIVITY
+        MY ACTIVITY - Data dari Sales Activity
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>Aktivitas Saya</h5>
-            <span style="font-size:12px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $totalActive ?></strong></span>
+            <span style="font-size:12px; color:#888;">Aktif: <strong style="color:#1a1a2e;"><?= $salesActivity ?></strong></span>
         </div>
 
         <div class="my-activity">
@@ -961,7 +998,7 @@ $username = $_SESSION['username'] ?? '';
                 <div class="activity-info">
                     <div class="activity-title">Aktivitas Saya</div>
                     <div class="activity-desc">
-                        Anda memiliki <span><?= $totalActive ?></span> aktivitas yang sedang berlangsung
+                        Anda memiliki <span><?= $salesActivity ?></span> aktivitas sales yang sedang berlangsung
                     </div>
                 </div>
             </div>
@@ -997,7 +1034,7 @@ $username = $_SESSION['username'] ?? '';
         <a href="#" class="nav-item">
             <i class="fas fa-chart-bar nav-icon"></i>
             <span class="nav-label">Sales</span>
-            <span class="badge-nav">24</span>
+            <span class="badge-nav"><?= $salesActivity ?></span>
         </a>
         <a href="#" class="nav-item">
             <i class="fas fa-box nav-icon"></i>
@@ -1019,6 +1056,24 @@ $username = $_SESSION['username'] ?? '';
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Toggle Menu - Show/Hide hidden menus
+        const toggleMenu = document.getElementById('toggleMenu');
+        const menuGrid = document.getElementById('menuGrid');
+        let isMenuOpen = false;
+
+        toggleMenu.addEventListener('click', function(e) {
+            e.preventDefault();
+            isMenuOpen = !isMenuOpen;
+            
+            if (isMenuOpen) {
+                menuGrid.classList.add('show-all');
+                toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:10px;"></i>';
+            } else {
+                menuGrid.classList.remove('show-all');
+                toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i>';
+            }
+        });
+
         // Active state untuk bottom nav
         document.querySelectorAll('.bottom-nav .nav-item').forEach(function(item) {
             item.addEventListener('click', function(e) {
