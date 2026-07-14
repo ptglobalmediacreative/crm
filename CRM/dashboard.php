@@ -7,8 +7,11 @@ if (!isLoggedIn()) {
     redirect('login.php');
 }
 
-// Ambil data untuk badge (opsional)
+// Ambil data untuk badge
 $totalUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+
+// Hitung aktivitas (contoh: total user aktif)
+$totalActive = $db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
@@ -325,6 +328,85 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
+           MY ACTIVITY - SEPERTI GAMBAR
+           ============================================ */
+        .my-activity {
+            background: #fff;
+            border-radius: 14px;
+            padding: 18px 22px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .my-activity:hover {
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+        }
+        
+        .my-activity .activity-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .my-activity .activity-left .activity-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 215, 0, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #ffd700;
+        }
+        
+        .my-activity .activity-left .activity-info .activity-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1a1a2e;
+            margin: 0;
+        }
+        
+        .my-activity .activity-left .activity-info .activity-desc {
+            font-size: 13px;
+            color: #888;
+            margin: 2px 0 0;
+        }
+        
+        .my-activity .activity-left .activity-info .activity-desc span {
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        
+        .my-activity .activity-right {
+            text-align: right;
+        }
+        
+        .my-activity .activity-right .activity-date {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .my-activity .activity-right .activity-date strong {
+            color: #1a1a2e;
+        }
+        
+        .my-activity .activity-right .activity-status {
+            font-size: 11px;
+            color: #2ed573;
+            font-weight: 600;
+        }
+        
+        .my-activity .activity-right .activity-status i {
+            margin-right: 4px;
+        }
+        
+        /* ============================================
            BOTTOM NAVIGATION - SEPERTI GAMBAR
            ============================================ */
         .bottom-nav {
@@ -620,6 +702,18 @@ $username = $_SESSION['username'] ?? '';
             .section-title h5 {
                 font-size: 14px;
             }
+            
+            .my-activity {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px 18px;
+            }
+            
+            .my-activity .activity-right {
+                text-align: left;
+                width: 100%;
+            }
         }
         
         @media (max-width: 480px) {
@@ -662,6 +756,20 @@ $username = $_SESSION['username'] ?? '';
             .top-header .header-left .logo-wrapper {
                 width: 32px;
                 height: 32px;
+            }
+            
+            .my-activity .activity-left .activity-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 17px;
+            }
+            
+            .my-activity .activity-left .activity-info .activity-title {
+                font-size: 13px;
+            }
+            
+            .my-activity .activity-left .activity-info .activity-desc {
+                font-size: 12px;
             }
         }
         
@@ -833,6 +941,36 @@ $username = $_SESSION['username'] ?? '';
                 <div class="menu-title">Logout</div>
                 <div class="menu-sub">Keluar</div>
             </a>
+        </div>
+
+        <!-- ============================================
+        MY ACTIVITY - SEPERTI GAMBAR
+        ============================================ -->
+        <div class="section-title" style="margin-top: 10px;">
+            <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
+            <span style="font-size:12px; color:#888;">Active: <strong style="color:#1a1a2e;"><?= $totalActive ?> Activities</strong></span>
+        </div>
+
+        <div class="my-activity">
+            <div class="activity-left">
+                <div class="activity-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="activity-info">
+                    <div class="activity-title">My Activity</div>
+                    <div class="activity-desc">
+                        Anda memiliki <span><?= $totalActive ?></span> aktivitas yang sedang berlangsung
+                    </div>
+                </div>
+            </div>
+            <div class="activity-right">
+                <div class="activity-date">
+                    <strong><?= date('l, d M Y') ?></strong>
+                </div>
+                <div class="activity-status">
+                    <i class="fas fa-circle" style="font-size:8px;"></i> Active
+                </div>
+            </div>
         </div>
 
         <!-- FOOTER -->
