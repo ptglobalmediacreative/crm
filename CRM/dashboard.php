@@ -50,7 +50,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           TOP HEADER - UKURAN KECIL
+           TOP HEADER
            ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -154,7 +154,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           WELCOME BANNER - UKURAN KECIL
+           WELCOME BANNER
            ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -191,21 +191,22 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           BANNER PROMO - KECIL & PANJANG (HORIZONTAL)
+           BANNER PROMO - FULL TAMPAK TIDAK KEPOTONG
            ============================================ */
         .promo-banner {
             border-radius: 10px;
             overflow: hidden;
             margin-bottom: 14px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            max-height: 100px;
         }
         
         .promo-banner img {
             width: 100%;
-            height: 100px;
-            object-fit: cover;
+            height: auto;
+            max-height: 120px;
+            object-fit: contain;
             display: block;
+            background: #f0f2f5;
         }
         
         .promo-banner .banner-placeholder {
@@ -214,7 +215,7 @@ $username = $_SESSION['username'] ?? '';
             padding: 18px 20px;
             text-align: center;
             color: #fff;
-            height: 100px;
+            min-height: 80px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -238,7 +239,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           SECTION TITLE - UKURAN KECIL
+           SECTION TITLE
            ============================================ */
         .section-title {
             display: flex;
@@ -274,7 +275,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MENU GRID - UKURAN KECIL
+           MENU GRID
            ============================================ */
         .menu-grid {
             display: grid;
@@ -386,7 +387,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           MY ACTIVITY - UKURAN KECIL
+           MY ACTIVITY
            ============================================ */
         .my-activity {
             background: #fff;
@@ -466,7 +467,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           BOTTOM NAVIGATION - UKURAN KECIL
+           BOTTOM NAVIGATION
            ============================================ */
         .bottom-nav {
             position: fixed;
@@ -548,7 +549,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           DESKTOP NAVBAR - UKURAN KECIL
+           DESKTOP NAVBAR
            ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -796,11 +797,11 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .promo-banner img {
-                height: 70px;
+                max-height: 80px;
             }
             
             .promo-banner .banner-placeholder {
-                height: 70px;
+                min-height: 60px;
                 padding: 12px 16px;
             }
             
@@ -875,11 +876,11 @@ $username = $_SESSION['username'] ?? '';
             }
             
             .promo-banner img {
-                height: 55px;
+                max-height: 60px;
             }
             
             .promo-banner .banner-placeholder {
-                height: 55px;
+                min-height: 50px;
                 padding: 10px 12px;
             }
             
@@ -902,7 +903,7 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           FOOTER - UKURAN KECIL
+           FOOTER
            ============================================ */
         .footer-text {
             text-align: center;
@@ -1013,7 +1014,7 @@ $username = $_SESSION['username'] ?? '';
         </div>
 
         <!-- ============================================
-        BANNER - KECIL & PANJANG
+        BANNER - FULL TAMPAK TIDAK KEPOTONG
         ============================================ -->
         <div class="promo-banner">
             <?php if (file_exists('images/banner.png')): ?>
