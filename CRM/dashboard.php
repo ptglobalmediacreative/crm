@@ -381,7 +381,7 @@ $dayName = $hari[date('l')];
         }
         
         /* ============================================
-           MY ACTIVITY - SEPERTI GAMBAR PERSIS
+           MY ACTIVITY - KONSISTEN MOBILE & DESKTOP
            ============================================ */
         .my-activity {
             background: #fff;
@@ -1067,7 +1067,7 @@ $dayName = $hari[date('l')];
         </div>
 
         <!-- ============================================
-        MY ACTIVITY - SEPERTI GAMBAR
+        MY ACTIVITY - KONSISTEN
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
