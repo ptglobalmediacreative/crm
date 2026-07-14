@@ -871,11 +871,7 @@ $bannerExists = file_exists($bannerPath);
             .my-activity .activity-left .activity-info .activity-desc {
                 font-size: 10px;
             }
-            
-            .promo-banner img {
-                max-height: 80px;
-            }
-            
+                        
             .promo-banner .banner-placeholder {
                 padding: 12px 16px;
                 min-height: 60px;
