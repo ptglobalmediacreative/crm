@@ -1041,7 +1041,7 @@ $username = $_SESSION['username'] ?? '';
         ============================================ -->
         <div class="promo-banner">
             <div class="banner-left">
-                <div class="banner-title">BUILT FOR <span>EVERY PROJECT</span></div>
+                <div class="banner-title">PT GANDA <span>ELANG TANGGUH</span></div>
                 <div class="banner-desc">Complete Heavy Equipment Solutions</div>
             </div>
             <div class="banner-right">
