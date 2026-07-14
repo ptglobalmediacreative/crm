@@ -17,6 +17,10 @@ $salesActivity = $totalActive;
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 $username = $_SESSION['username'] ?? '';
+
+// Cek banner
+$bannerPath = 'crm/images/banner.png';
+$bannerExists = file_exists($bannerPath);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -158,7 +162,7 @@ $username = $_SESSION['username'] ?? '';
            ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 16px 24px;
             color: #fff;
             margin-bottom: 16px;
@@ -191,67 +195,49 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           BANNER PROMO - RAPI SEPERTI GAMBAR
+           BANNER PROMO - DARI FILE
            ============================================ */
         .promo-banner {
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
-            padding: 20px 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 90px;
+            background: #fff;
         }
         
-        .promo-banner .banner-left {
+        .promo-banner img {
+            width: 100%;
+            height: auto;
+            max-height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .promo-banner .banner-placeholder {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 24px 30px;
+            text-align: center;
+            color: #fff;
+            min-height: 100px;
             display: flex;
             flex-direction: column;
-        }
-        
-        .promo-banner .banner-left .banner-title {
-            font-size: 20px;
-            font-weight: 800;
-            color: #fff;
-            letter-spacing: 1px;
-        }
-        
-        .promo-banner .banner-left .banner-title span {
-            color: #ffd700;
-        }
-        
-        .promo-banner .banner-left .banner-desc {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-top: 2px;
-        }
-        
-        .promo-banner .banner-right {
-            display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 15px;
         }
         
-        .promo-banner .banner-right .banner-icon {
-            font-size: 36px;
-            color: rgba(255, 215, 0, 0.15);
+        .promo-banner .banner-placeholder .banner-title {
+            font-size: 22px;
+            font-weight: 800;
         }
         
-        .promo-banner .banner-right .banner-badge {
-            background: rgba(255, 215, 0, 0.12);
-            border: 1px solid rgba(255, 215, 0, 0.15);
-            border-radius: 8px;
-            padding: 6px 16px;
+        .promo-banner .banner-placeholder .banner-title span {
             color: #ffd700;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1px;
         }
         
-        .promo-banner .banner-right .banner-badge i {
-            margin-right: 6px;
+        .promo-banner .banner-placeholder .banner-desc {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
         }
         
         /* ============================================
@@ -306,7 +292,7 @@ $username = $_SESSION['username'] ?? '';
         
         .menu-card {
             background: #fff;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 16px 12px;
             text-align: center;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -327,7 +313,7 @@ $username = $_SESSION['username'] ?? '';
         .menu-card .menu-icon {
             width: 48px;
             height: 48px;
-            border-radius: 10px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -402,7 +388,7 @@ $username = $_SESSION['username'] ?? '';
            ============================================ */
         .my-activity {
             background: #fff;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 14px 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
@@ -426,7 +412,7 @@ $username = $_SESSION['username'] ?? '';
         .my-activity .activity-left .activity-icon {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: 12px;
             background: rgba(255, 215, 0, 0.12);
             display: flex;
             align-items: center;
@@ -807,32 +793,21 @@ $username = $_SESSION['username'] ?? '';
                 width: 100%;
             }
             
-            .promo-banner {
-                flex-direction: column;
-                text-align: center;
-                padding: 16px 18px;
-                min-height: 70px;
+            .promo-banner img {
+                max-height: 120px;
             }
             
-            .promo-banner .banner-left .banner-title {
-                font-size: 16px;
+            .promo-banner .banner-placeholder {
+                padding: 16px 20px;
+                min-height: 80px;
             }
             
-            .promo-banner .banner-left .banner-desc {
-                font-size: 11px;
+            .promo-banner .banner-placeholder .banner-title {
+                font-size: 18px;
             }
             
-            .promo-banner .banner-right {
-                margin-top: 8px;
-            }
-            
-            .promo-banner .banner-right .banner-icon {
-                display: none;
-            }
-            
-            .promo-banner .banner-right .banner-badge {
-                font-size: 10px;
-                padding: 4px 12px;
+            .promo-banner .banner-placeholder .banner-desc {
+                font-size: 12px;
             }
         }
         
@@ -897,22 +872,21 @@ $username = $_SESSION['username'] ?? '';
                 font-size: 10px;
             }
             
-            .promo-banner {
-                padding: 12px 14px;
+            .promo-banner img {
+                max-height: 80px;
+            }
+            
+            .promo-banner .banner-placeholder {
+                padding: 12px 16px;
                 min-height: 60px;
             }
             
-            .promo-banner .banner-left .banner-title {
-                font-size: 14px;
+            .promo-banner .banner-placeholder .banner-title {
+                font-size: 15px;
             }
             
-            .promo-banner .banner-left .banner-desc {
-                font-size: 10px;
-            }
-            
-            .promo-banner .banner-right .banner-badge {
-                font-size: 9px;
-                padding: 3px 10px;
+            .promo-banner .banner-placeholder .banner-desc {
+                font-size: 11px;
             }
         }
         
@@ -1008,7 +982,7 @@ $username = $_SESSION['username'] ?? '';
             </div>
             <div class="brand-text">
                 <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                <div class="brand-sub">Customer Relationship Management System</div>
+                <div class="brand-sub">Customer Relationship Management</div>
             </div>
         </div>
         <div class="header-right">
@@ -1037,21 +1011,17 @@ $username = $_SESSION['username'] ?? '';
         </div>
 
         <!-- ============================================
-        BANNER - RAPI SEPERTI GAMBAR
+        BANNER - DARI FILE crm/images/banner.png
         ============================================ -->
         <div class="promo-banner">
-            <div class="banner-left">
-                <div class="banner-title">PT GANDA <span>ELANG TANGGUH</span></div>
-                <div class="banner-desc">Complete Heavy Equipment Solutions</div>
-            </div>
-            <div class="banner-right">
-                <div class="banner-icon">
-                    <i class="fas fa-hard-hat"></i>
+            <?php if ($bannerExists): ?>
+                <img src="crm/images/banner.png" alt="Banner PT Ganda Elang Tangguh" loading="lazy">
+            <?php else: ?>
+                <div class="banner-placeholder">
+                    <div class="banner-title">PT GANDA <span>ELANG TANGGUH</span></div>
+                    <div class="banner-desc">Complete Heavy Equipment Solutions</div>
                 </div>
-                <div class="banner-badge">
-                    <i class="fas fa-certificate"></i> CRM
-                </div>
-            </div>
+            <?php endif; ?>
         </div>
 
         <!-- SECTION: MENU UTAMA -->
