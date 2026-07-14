@@ -363,16 +363,6 @@ $bannerExists = file_exists($bannerPath);
             margin: 2px 0 0;
         }
         
-        .menu-card .menu-badge {
-            font-size: 10px;
-            background: #ffd700;
-            color: #1a1a2e;
-            padding: 1px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            margin-top: 5px;
-        }
-        
         /* Menu tambahan (hidden) */
         .menu-card.hidden-menu {
             display: none;
@@ -835,11 +825,6 @@ $bannerExists = file_exists($bannerPath);
                 font-size: 9px;
             }
             
-            .menu-card .menu-badge {
-                font-size: 9px;
-                padding: 1px 8px;
-            }
-            
             .bottom-nav .nav-item .nav-label {
                 font-size: 7px;
             }
@@ -1031,7 +1016,6 @@ $bannerExists = file_exists($bannerPath);
                 <div class="menu-icon orange"><i class="fas fa-building"></i></div>
                 <div class="menu-title">Account Management</div>
                 <div class="menu-sub">Kelola akun</div>
-                <span class="menu-badge">8</span>
             </a>
             
             <!-- Sales Activity -->
@@ -1039,7 +1023,6 @@ $bannerExists = file_exists($bannerPath);
                 <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
                 <div class="menu-title">Sales Activity</div>
                 <div class="menu-sub">Aktivitas sales</div>
-                <span class="menu-badge"><?= $salesActivity ?></span>
             </a>
             
             <!-- Produk -->
@@ -1047,7 +1030,6 @@ $bannerExists = file_exists($bannerPath);
                 <div class="menu-icon green"><i class="fas fa-box"></i></div>
                 <div class="menu-title">Produk</div>
                 <div class="menu-sub">Kelola produk</div>
-                <span class="menu-badge"><?= $totalUsers ?></span>
             </a>
             
             <!-- Delivery Order -->
@@ -1055,7 +1037,6 @@ $bannerExists = file_exists($bannerPath);
                 <div class="menu-icon gold"><i class="fas fa-truck"></i></div>
                 <div class="menu-title">Delivery Order</div>
                 <div class="menu-sub">Pengiriman</div>
-                <span class="menu-badge">12</span>
             </a>
             
             <!-- Data User (Hidden) -->
@@ -1063,7 +1044,6 @@ $bannerExists = file_exists($bannerPath);
                 <div class="menu-icon purple"><i class="fas fa-users"></i></div>
                 <div class="menu-title">Data User</div>
                 <div class="menu-sub">Kelola user</div>
-                <span class="menu-badge"><?= $totalUsers ?></span>
             </a>
             
             <!-- Data Sales (Hidden) -->
@@ -1071,7 +1051,6 @@ $bannerExists = file_exists($bannerPath);
                 <div class="menu-icon teal"><i class="fas fa-user-tie"></i></div>
                 <div class="menu-title">Data Sales</div>
                 <div class="menu-sub">Kelola sales</div>
-                <span class="menu-badge"><?= $salesActivity ?></span>
             </a>
         </div>
 
