@@ -19,7 +19,7 @@ $role = $_SESSION['role'] ?? 'user';
 $username = $_SESSION['username'] ?? '';
 
 // Cek banner
-$bannerPath = 'crm/images/banner.png';
+$bannerPath = 'images/banner.png';
 $bannerExists = file_exists($bannerPath);
 ?>
 <!DOCTYPE html>
@@ -1011,11 +1011,11 @@ $bannerExists = file_exists($bannerPath);
         </div>
 
         <!-- ============================================
-        BANNER - DARI FILE crm/images/banner.png
+        BANNER - DARI FILE images/banner.png
         ============================================ -->
         <div class="promo-banner">
             <?php if ($bannerExists): ?>
-                <img src="crm/images/banner.png" alt="Banner PT Ganda Elang Tangguh" loading="lazy">
+                <img src="images/banner.png" alt="Banner PT Ganda Elang Tangguh" loading="lazy">
             <?php else: ?>
                 <div class="banner-placeholder">
                     <div class="banner-title">PT GANDA <span>ELANG TANGGUH</span></div>
