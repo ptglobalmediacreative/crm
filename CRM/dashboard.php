@@ -54,7 +54,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           TOP HEADER
+           TOP HEADER - MOBILE
            ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -531,7 +531,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           DESKTOP NAVBAR
+           DESKTOP NAVBAR - LOGO TANPA LINGKARAN
            ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -554,9 +554,6 @@ $bannerExists = file_exists($bannerPath);
         .desktop-nav-wrapper .brand-section .logo-wrapper {
             width: 38px;
             height: 38px;
-            border-radius: 50%;
-            background: rgba(255, 215, 0, 0.1);
-            border: 2px solid rgba(255, 215, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -568,7 +565,6 @@ $bannerExists = file_exists($bannerPath);
             width: 100%;
             height: 100%;
             object-fit: contain;
-            border-radius: 50%;
         }
         
         .desktop-nav-wrapper .brand-section .brand-text .brand-name {
