@@ -21,18 +21,6 @@ $username = $_SESSION['username'] ?? '';
 // Cek banner
 $bannerPath = 'images/banner.png';
 $bannerExists = file_exists($bannerPath);
-
-// Nama hari dalam bahasa Indonesia
-$hari = [
-    'Monday' => 'Senin',
-    'Tuesday' => 'Selasa',
-    'Wednesday' => 'Rabu',
-    'Thursday' => 'Kamis',
-    'Friday' => 'Jumat',
-    'Saturday' => 'Sabtu',
-    'Sunday' => 'Minggu'
-];
-$dayName = $hari[date('l')];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -381,7 +369,7 @@ $dayName = $hari[date('l')];
         }
         
         /* ============================================
-           MY ACTIVITY - PERSIS GAMBAR
+           MY ACTIVITY
            ============================================ */
         .my-activity {
             background: #fff;
@@ -391,16 +379,13 @@ $dayName = $hari[date('l')];
             border: 1px solid rgba(0, 0, 0, 0.03);
             margin-top: 16px;
             transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .my-activity:hover {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-        
-        .my-activity .activity-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         
         .my-activity .activity-left {
@@ -461,38 +446,6 @@ $dayName = $hari[date('l')];
         .my-activity .activity-right .btn-add:hover {
             transform: scale(1.1);
             box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
-        }
-        
-        .my-activity .activity-divider {
-            border: none;
-            border-top: 1px solid #f0f0f0;
-            margin: 12px 0 10px 0;
-        }
-        
-        .my-activity .activity-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .my-activity .activity-bottom .activity-active {
-            font-size: 13px;
-            color: #888;
-        }
-        
-        .my-activity .activity-bottom .activity-active strong {
-            color: #1a1a2e;
-            font-weight: 700;
-        }
-        
-        .my-activity .activity-bottom .activity-date {
-            font-size: 13px;
-            color: #888;
-        }
-        
-        .my-activity .activity-bottom .activity-date strong {
-            color: #1a1a2e;
-            font-weight: 600;
         }
         
         /* ============================================
@@ -578,7 +531,7 @@ $dayName = $hari[date('l')];
         }
         
         /* ============================================
-           DESKTOP NAVBAR - LOGO TANPA LINGKARAN
+           DESKTOP NAVBAR
            ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -811,12 +764,13 @@ $dayName = $hari[date('l')];
             
             .my-activity {
                 padding: 14px 18px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
             }
             
-            .my-activity .activity-bottom {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 4px;
+            .my-activity .activity-right {
+                justify-content: flex-end;
             }
             
             .promo-banner img {
@@ -903,14 +857,6 @@ $dayName = $hari[date('l')];
                 font-size: 14px;
             }
             
-            .my-activity .activity-bottom .activity-active {
-                font-size: 12px;
-            }
-            
-            .my-activity .activity-bottom .activity-date {
-                font-size: 12px;
-            }
-            
             .promo-banner .banner-placeholder {
                 padding: 12px 16px;
                 min-height: 60px;
@@ -976,16 +922,16 @@ $dayName = $hari[date('l')];
                 <i class="fas fa-th-large"></i> Dashboard
             </a>
             <a href="#" class="nav-link">
-                <i class="fas fa-users"></i> Users
+                <i class="fas fa-building"></i> Account
+            </a>
+            <a href="#" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Sales
             </a>
             <a href="#" class="nav-link">
                 <i class="fas fa-box"></i> Produk
             </a>
             <a href="#" class="nav-link">
-                <i class="fas fa-truck"></i> Supplier
-            </a>
-            <a href="#" class="nav-link">
-                <i class="fas fa-shopping-cart"></i> Transaksi
+                <i class="fas fa-truck"></i> Delivery
             </a>
         </div>
         
@@ -1110,7 +1056,7 @@ $dayName = $hari[date('l')];
         </div>
 
         <!-- ============================================
-        MY ACTIVITY - PERSIS GAMBAR
+        MY ACTIVITY
         ============================================ -->
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
@@ -1118,26 +1064,21 @@ $dayName = $hari[date('l')];
         </div>
 
         <div class="my-activity">
-            <!-- Row 1: Title + Icon + Button Add -->
-            <div class="activity-row">
-                <div class="activity-left">
-                    <div class="activity-icon">
-                        <i class="fas fa-list"></i>
-                    </div>
-                    <div class="activity-info">
-                        <div class="activity-title">My Activity</div>
-                        <div class="activity-desc">Akses quick link aktivitas dan pengingat Anda</div>
-                    </div>
+            <div class="activity-left">
+                <div class="activity-icon">
+                    <i class="fas fa-list"></i>
                 </div>
-                <div class="activity-right">
-                    <a href="sales_activity.php" class="btn-add">
-                        <i class="fas fa-plus"></i>
-                    </a>
+                <div class="activity-info">
+                    <div class="activity-title">My Activity</div>
+                    <div class="activity-desc">Akses quick link aktivitas dan pengingat Anda</div>
                 </div>
             </div>
-
-            <!-- Divider Line -->
-            <hr class="activity-divider">
+            <div class="activity-right">
+                <a href="sales_activity.php" class="btn-add">
+                    <i class="fas fa-plus"></i>
+                </a>
+            </div>
+        </div>
 
         <!-- FOOTER -->
         <div class="footer-text">
