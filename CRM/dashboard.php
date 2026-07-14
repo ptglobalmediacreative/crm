@@ -1141,7 +1141,7 @@ $dayName = $hari[date('l')];
 
         <!-- FOOTER -->
         <div class="footer-text">
-            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - DMS v1.0
+            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
         </div>
 
     </main>
