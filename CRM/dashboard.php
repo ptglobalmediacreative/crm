@@ -381,7 +381,7 @@ $dayName = $hari[date('l')];
         }
         
         /* ============================================
-           MY ACTIVITY - SEPERTI GAMBAR
+           MY ACTIVITY - SEPERTI GAMBAR PERSIS
            ============================================ */
         .my-activity {
             background: #fff;
