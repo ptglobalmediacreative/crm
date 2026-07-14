@@ -191,20 +191,21 @@ $username = $_SESSION['username'] ?? '';
         }
         
         /* ============================================
-           BANNER PROMO - UKURAN KECIL
+           BANNER PROMO - KECIL & PANJANG (HORIZONTAL)
            ============================================ */
         .promo-banner {
             border-radius: 10px;
             overflow: hidden;
             margin-bottom: 14px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            max-height: 100px;
         }
         
         .promo-banner img {
             width: 100%;
-            height: auto;
-            display: block;
+            height: 100px;
             object-fit: cover;
+            display: block;
         }
         
         .promo-banner .banner-placeholder {
@@ -213,7 +214,7 @@ $username = $_SESSION['username'] ?? '';
             padding: 18px 20px;
             text-align: center;
             color: #fff;
-            min-height: 80px;
+            height: 100px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -794,9 +795,13 @@ $username = $_SESSION['username'] ?? '';
                 width: 100%;
             }
             
+            .promo-banner img {
+                height: 70px;
+            }
+            
             .promo-banner .banner-placeholder {
-                padding: 14px 16px;
-                min-height: 60px;
+                height: 70px;
+                padding: 12px 16px;
             }
             
             .promo-banner .banner-placeholder h4 {
@@ -869,9 +874,13 @@ $username = $_SESSION['username'] ?? '';
                 font-size: 9px;
             }
             
+            .promo-banner img {
+                height: 55px;
+            }
+            
             .promo-banner .banner-placeholder {
-                padding: 12px 12px;
-                min-height: 50px;
+                height: 55px;
+                padding: 10px 12px;
             }
             
             .promo-banner .banner-placeholder h4 {
@@ -1004,7 +1013,7 @@ $username = $_SESSION['username'] ?? '';
         </div>
 
         <!-- ============================================
-        BANNER - images/banner.png
+        BANNER - KECIL & PANJANG
         ============================================ -->
         <div class="promo-banner">
             <?php if (file_exists('images/banner.png')): ?>
