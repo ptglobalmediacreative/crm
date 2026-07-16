@@ -1,5 +1,5 @@
 <?php
-require_once 'config.php';
+require_once '../config.php';
 
 header('Content-Type: application/json');
 
@@ -25,7 +25,7 @@ if (!$user) {
 
 $roleName = $user['role'];
 
-// Hapus permission lama
+// Hapus permission lama untuk role ini
 $stmt = $db->prepare("DELETE FROM permissions WHERE role_name = ?");
 $stmt->execute([$roleName]);
 
@@ -54,17 +54,17 @@ foreach ($permissions as $perm) {
             $stmt = $db->prepare($sql);
             $stmt->execute([$value, $moduleId, $roleName]);
         } else {
-            // Insert
-            $sql = "INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) VALUES (?, ?, ?, ?, ?, ?)";
+            // Insert dengan semua permission 0 dulu
+            $sql = "INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) VALUES (?, ?, 0, 0, 0, 0)";
             $stmt = $db->prepare($sql);
-            $canView = ($permType === 'view') ? $value : 0;
-            $canAdd = ($permType === 'add') ? $value : 0;
-            $canEdit = ($permType === 'edit') ? $value : 0;
-            $canDelete = ($permType === 'delete') ? $value : 0;
-            $stmt->execute([$moduleId, $roleName, $canView, $canAdd, $canEdit, $canDelete]);
+            $stmt->execute([$moduleId, $roleName]);
+            
+            // Update permission yang dipilih
+            $sql = "UPDATE permissions SET can_$permType = ? WHERE module_id = ? AND role_name = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$value, $moduleId, $roleName]);
         }
     }
 }
 
 echo json_encode(['success' => true]);
-?>
