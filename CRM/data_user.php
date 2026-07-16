@@ -13,33 +13,6 @@ if ($_SESSION['role'] !== 'admin') {
     redirect('dashboard.php');
 }
 
-// ============================================
-// FUNGSI SET PERMISSION SALES
-// ============================================
-function setSalesPermission() {
-    global $db;
-    
-    // Cek apakah permission untuk role sales sudah ada
-    $stmt = $db->prepare("SELECT COUNT(*) FROM permissions WHERE role_name = 'sales'");
-    $stmt->execute();
-    $count = $stmt->fetchColumn();
-    
-    if ($count == 0) {
-        // Jika belum ada, buat permission default untuk sales
-        // Sales hanya bisa akses Dashboard dan Sales Activity (View Only)
-        $modules = ['dashboard', 'sales_activity'];
-        foreach ($modules as $module) {
-            $stmt = $db->prepare("SELECT id FROM modules WHERE module_name = ?");
-            $stmt->execute([$module]);
-            $moduleData = $stmt->fetch();
-            if ($moduleData) {
-                $stmt = $db->prepare("INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) VALUES (?, 'sales', 1, 0, 0, 0)");
-                $stmt->execute([$moduleData['id']]);
-            }
-        }
-    }
-}
-
 // Pagination
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -69,12 +42,6 @@ $sql = "SELECT id, username, email, full_name, phone, role, access_level, is_act
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $users = $stmt->fetchAll();
-
-// Ambil semua modules untuk permission
-$modules = $db->query("SELECT * FROM modules ORDER BY module_order")->fetchAll();
-
-// Ambil semua roles yang tersedia
-$roles = $db->query("SELECT DISTINCT role_name FROM permissions ORDER BY role_name")->fetchAll(PDO::FETCH_COLUMN);
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
@@ -111,16 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $hash = hashPassword($password);
             $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, full_name, phone, role, access_level, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$username, $email, $hash, $full_name, $phone, $role_name, $role_name, $is_active]);
-            $userId = $db->lastInsertId();
-            
-            // Set permissions berdasarkan role
-            $stmt = $db->prepare("INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) SELECT module_id, ?, can_view, can_add, can_edit, can_delete FROM permissions WHERE role_name = ?");
-            $stmt->execute([$role_name, $role_name]);
-            
-            // Jika role sales, pastikan permission sales ada
-            if ($role_name === 'sales') {
-                setSalesPermission();
-            }
             
             setFlash('User berhasil ditambahkan!', 'success');
             redirect('data_user.php');
@@ -163,11 +120,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([$username, $email, $full_name, $phone, $role_name, $role_name, $is_active, $id]);
             }
             
-            // Jika role sales, pastikan permission sales ada
-            if ($role_name === 'sales') {
-                setSalesPermission();
-            }
-            
             setFlash('User berhasil diupdate!', 'success');
             redirect('data_user.php');
         } else {
@@ -198,12 +150,13 @@ if (isset($_GET['edit'])) {
     $editData = $stmt->fetch();
 }
 
-// Ambil permissions untuk role tertentu
-function getPermissions($roleName) {
-    global $db;
-    $stmt = $db->prepare("SELECT m.module_name, p.can_view, p.can_add, p.can_edit, p.can_delete FROM permissions p JOIN modules m ON p.module_id = m.id WHERE p.role_name = ?");
-    $stmt->execute([$roleName]);
-    return $stmt->fetchAll();
+// Ambil data untuk permission
+$permissionData = null;
+if (isset($_GET['permission'])) {
+    $id = (int)$_GET['permission'];
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$id]);
+    $permissionData = $stmt->fetch();
 }
 ?>
 <!DOCTYPE html>
@@ -541,6 +494,10 @@ function getPermissions($roleName) {
             color: #fff;
         }
         
+        .btn-primary-custom i {
+            margin-right: 6px;
+        }
+        
         .btn-secondary-custom {
             background: #f0f2f5;
             border: none;
@@ -612,33 +569,15 @@ function getPermissions($roleName) {
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
         
+        .form-control-file {
+            padding: 8px 0;
+        }
+        
         .alert {
             border-radius: 10px;
             border: none;
             padding: 12px 16px;
             font-size: 14px;
-        }
-        
-        .permission-checkbox {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .permission-checkbox .form-check {
-            margin-right: 12px;
-        }
-        
-        .permission-checkbox .form-check-input {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-        }
-        
-        .permission-checkbox .form-check-label {
-            font-size: 12px;
-            font-weight: 500;
         }
         
         .bottom-nav {
@@ -682,8 +621,14 @@ function getPermissions($roleName) {
             transition: all 0.3s ease;
         }
         
-        .bottom-nav .nav-item.active .nav-icon { color: #ffd700; }
-        .bottom-nav .nav-item.active .nav-label { color: #1a1a2e; font-weight: 600; }
+        .bottom-nav .nav-item.active .nav-icon {
+            color: #ffd700;
+        }
+        
+        .bottom-nav .nav-item.active .nav-label {
+            color: #1a1a2e;
+            font-weight: 600;
+        }
         
         .bottom-nav .nav-item.active::before {
             content: '';
@@ -708,6 +653,10 @@ function getPermissions($roleName) {
             border-radius: 50%;
             min-width: 15px;
             text-align: center;
+        }
+        
+        .bottom-nav .nav-item:hover .nav-icon {
+            color: #1a1a2e;
         }
         
         .desktop-nav-wrapper {
@@ -853,6 +802,10 @@ function getPermissions($roleName) {
             transition: border-color 0.3s ease;
         }
         
+        .desktop-nav-wrapper .nav-right .user-avatar:hover {
+            border-color: #ffd700;
+        }
+        
         .desktop-nav-wrapper .nav-right .logout-btn {
             color: rgba(255, 255, 255, 0.5);
             padding: 5px 14px;
@@ -871,29 +824,90 @@ function getPermissions($roleName) {
         }
         
         @media (min-width: 769px) {
-            .bottom-nav { display: none !important; }
-            body { padding-bottom: 0; }
-            .top-header { display: none !important; }
+            .bottom-nav {
+                display: none !important;
+            }
+            body {
+                padding-bottom: 0;
+            }
+            .top-header {
+                display: none !important;
+            }
         }
         
         @media (max-width: 768px) {
-            .desktop-nav-wrapper { display: none !important; }
-            body { padding-bottom: 65px; }
-            .stat-card .stat-number { font-size: 20px; }
-            .welcome-banner { padding: 14px 18px; }
-            .welcome-banner .welcome-text h3 { font-size: 16px; }
-            .welcome-banner .welcome-icon { display: none; }
-            .table-custom { font-size: 12px; }
-            .table-custom th, .table-custom td { padding: 8px 10px; }
+            .desktop-nav-wrapper {
+                display: none !important;
+            }
+            body {
+                padding-bottom: 65px;
+            }
+            
+            .stat-card .stat-number {
+                font-size: 20px;
+            }
+            
+            .welcome-banner {
+                padding: 14px 18px;
+            }
+            
+            .welcome-banner .welcome-text h3 {
+                font-size: 16px;
+            }
+            
+            .welcome-banner .welcome-icon {
+                display: none;
+            }
+            
+            .section-title h5 {
+                font-size: 14px;
+            }
+            
+            .table-custom {
+                font-size: 12px;
+            }
+            
+            .table-custom th,
+            .table-custom td {
+                padding: 8px 10px;
+            }
+            
+            .card-custom .card-header-custom {
+                padding: 12px 16px;
+            }
         }
         
         @media (max-width: 480px) {
-            .stat-card .stat-number { font-size: 17px; }
-            .stat-card { padding: 12px 14px; }
-            .table-custom { font-size: 11px; }
-            .table-custom th, .table-custom td { padding: 6px 8px; }
-            .btn-action { width: 26px; height: 26px; font-size: 11px; }
-            .modal-body { padding: 14px 16px; }
+            .stat-card .stat-number {
+                font-size: 17px;
+            }
+            
+            .stat-card {
+                padding: 12px 14px;
+            }
+            
+            .modal-body {
+                padding: 14px 16px;
+            }
+            
+            .modal-header {
+                padding: 14px 16px;
+            }
+            
+            .table-custom {
+                font-size: 11px;
+            }
+            
+            .table-custom th,
+            .table-custom td {
+                padding: 6px 8px;
+            }
+            
+            .btn-action {
+                width: 26px;
+                height: 26px;
+                font-size: 11px;
+            }
         }
         
         .footer-text {
@@ -1271,7 +1285,6 @@ function getPermissions($roleName) {
             document.getElementById('role_name').value = data.role;
             document.getElementById('is_active').checked = data.is_active == 1;
             
-            // Password tidak wajib di edit
             document.getElementById('password').required = false;
             document.getElementById('password').placeholder = 'Kosongkan jika tidak diubah';
             document.getElementById('passwordHint').textContent = 'Kosongkan jika tidak ingin mengubah password';
@@ -1280,7 +1293,6 @@ function getPermissions($roleName) {
             modal.show();
         }
         
-        // Reset form
         document.getElementById('modalUser').addEventListener('hidden.bs.modal', function() {
             document.getElementById('formUser').reset();
             document.getElementById('formAction').value = 'add';
@@ -1291,20 +1303,24 @@ function getPermissions($roleName) {
             document.getElementById('passwordHint').textContent = 'Minimal 6 karakter';
         });
         
-        // Delete User
         function deleteUser(id) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
         }
         
-        // Show Permission
         function showPermission(data) {
             currentUserId = data.id;
             var modal = new bootstrap.Modal(document.getElementById('modalPermission'));
             modal.show();
             
-            // Load permission data
+            document.getElementById('permissionBody').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Memuat data...</p>
+                </div>
+            `;
+            
             fetch('api/get_permission.php?user_id=' + data.id)
                 .then(response => response.json())
                 .then(data => {
@@ -1335,7 +1351,6 @@ function getPermissions($roleName) {
                 });
         }
         
-        // Save Permission
         function savePermission() {
             var permissions = [];
             document.querySelectorAll('.perm-check').forEach(function(checkbox) {
