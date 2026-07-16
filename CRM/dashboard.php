@@ -914,7 +914,7 @@ $bannerExists = file_exists($bannerPath);
             <a href="dashboard.php" class="nav-link active">
                 <i class="fas fa-th-large"></i> Dashboard
             </a>
-            <a href="#" class="nav-link">
+            <a href="account_management.php" class="nav-link">
                 <i class="fas fa-building"></i> Account
             </a>
             <a href="#" class="nav-link">
@@ -1006,7 +1006,7 @@ $bannerExists = file_exists($bannerPath);
         <!-- MENU GRID -->
         <div class="menu-grid" id="menuGrid">
             <!-- Account Management -->
-            <a href="#" class="menu-card">
+            <a href="account_management.php" class="menu-card">
                 <div class="menu-icon orange"><i class="fas fa-building"></i></div>
                 <div class="menu-title">Account Management</div>
                 <div class="menu-sub">Kelola akun</div>
@@ -1088,7 +1088,7 @@ $bannerExists = file_exists($bannerPath);
             <i class="fas fa-th-large nav-icon"></i>
             <span class="nav-label">Home</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="account_management.php" class="nav-item">
             <i class="fas fa-building nav-icon"></i>
             <span class="nav-label">Account</span>
         </a>
