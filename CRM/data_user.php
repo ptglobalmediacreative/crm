@@ -1168,12 +1168,12 @@ if (isset($_GET['permission'])) {
                                 <label class="form-label">Akses User <span class="text-danger">*</span></label>
                                 <select name="role_name" id="role_name" class="form-select" required>
                                     <option value="">Pilih Akses</option>
-                                    <option value="it_support">IT Support (Full Access)</option>
-                                    <option value="admin">Admin (Manajemen User)</option>
-                                    <option value="direktur_sales">Direktur Sales (View All)</option>
-                                    <option value="direktur_utama">Direktur Utama (View All)</option>
-                                    <option value="sales_manager">Sales Manager (Kelola Sales)</option>
-                                    <option value="sales">Sales (Input Data)</option>
+                                    <option value="it_support">IT Support</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="direktur_sales">Direktur Sales</option>
+                                    <option value="direktur_utama">Direktur Utama</option>
+                                    <option value="sales_manager">Sales Manager</option>
+                                    <option value="sales">Sales</option>
                                 </select>
                             </div>
                         </div>
