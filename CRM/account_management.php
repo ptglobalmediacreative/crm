@@ -17,7 +17,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     header('Cache-Control: max-age=0');
     
     // Ambil semua data tanpa pagination
-    $sql = "SELECT * FROM accounts ORDER BY created_at DESC";
+    $sql = "SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id ORDER BY a.created_at DESC";
     $stmt = $db->prepare($sql);
     $stmt->execute();
     $allAccounts = $stmt->fetchAll();
@@ -40,6 +40,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<th>No Handphone PIC</th>';
     echo '<th>Email PIC</th>';
     echo '<th>Lead Source</th>';
+    echo '<th>Sales</th>';
     echo '<th>Tanggal Dibuat</th>';
     echo '</tr>';
     echo '</thead>';
@@ -57,6 +58,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         echo '<td>' . htmlspecialchars($account['no_hp_pic']) . '</td>';
         echo '<td>' . htmlspecialchars($account['email_pic']) . '</td>';
         echo '<td>' . htmlspecialchars($account['lead_source']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['sales_name'] ?? '-') . '</td>';
         echo '<td>' . date('d-m-Y H:i', strtotime($account['created_at'])) . '</td>';
         echo '</tr>';
     }
@@ -67,6 +69,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '</body>';
     echo '</html>';
     exit;
+}
+
+// ============================================
+// TAMBAHKAN KOLOM sales_id KE TABEL accounts
+// ============================================
+try {
+    $db->exec("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS sales_id INT NULL");
+    $db->exec("ALTER TABLE accounts ADD INDEX idx_sales_id (sales_id)");
+} catch(PDOException $e) {
+    // Kolom sudah ada atau error lainnya
 }
 
 // Pagination
@@ -82,19 +94,19 @@ $where = "WHERE 1=1";
 $params = [];
 
 if (!empty($search)) {
-    $where .= " AND (nama_pt LIKE ? OR alamat LIKE ? OR nama_pic LIKE ? OR email_pic LIKE ?)";
-    $params = ["%$search%", "%$search%", "%$search%", "%$search%"];
+    $where .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ?)";
+    $params = ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"];
 }
 
 // Get total data
-$countSql = "SELECT COUNT(*) FROM accounts $where";
+$countSql = "SELECT COUNT(*) FROM accounts a LEFT JOIN users u ON a.sales_id = u.id $where";
 $stmt = $db->prepare($countSql);
 $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
 // Get data
-$sql = "SELECT * FROM accounts $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+$sql = "SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id $where ORDER BY a.created_at DESC LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $accounts = $stmt->fetchAll();
@@ -104,6 +116,12 @@ $totalAccounts = $db->query("SELECT COUNT(*) FROM accounts")->fetchColumn();
 
 // Ambil data lead source
 $leadStats = $db->query("SELECT lead_source, COUNT(*) as total FROM accounts GROUP BY lead_source")->fetchAll();
+
+// Ambil data sales dari tabel users (role = 'sales')
+$salesUsers = $db->query("SELECT id, username, full_name, email FROM users WHERE role = 'sales' ORDER BY full_name")->fetchAll();
+
+// Cek apakah ada sales
+$hasSales = count($salesUsers) > 0;
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
@@ -121,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $email_pic = bersihkan($_POST['email_pic']);
         $lead_source = bersihkan($_POST['lead_source']);
         $bidang_usaha = bersihkan($_POST['bidang_usaha']);
+        $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
         $npwp_file = '';
         
         // Validasi
@@ -152,8 +171,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO accounts (nama_pt, alamat, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$nama_pt, $alamat, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha]);
+            $stmt = $db->prepare("INSERT INTO accounts (nama_pt, alamat, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha, sales_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$nama_pt, $alamat, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id]);
             setFlash('Data account berhasil ditambahkan!', 'success');
             redirect('account_management.php');
         } else {
@@ -171,6 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $email_pic = bersihkan($_POST['email_pic']);
         $lead_source = bersihkan($_POST['lead_source']);
         $bidang_usaha = bersihkan($_POST['bidang_usaha']);
+        $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
         
         $errors = [];
         if (empty($nama_pt)) $errors[] = 'Nama PT wajib diisi!';
@@ -202,11 +222,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (empty($errors)) {
             if (!empty($npwp_file)) {
-                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ? WHERE id = ?");
-                $stmt->execute([$nama_pt, $alamat, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                $stmt->execute([$nama_pt, $alamat, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
             } else {
-                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ? WHERE id = ?");
-                $stmt->execute([$nama_pt, $alamat, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                $stmt->execute([$nama_pt, $alamat, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
             }
             setFlash('Data account berhasil diupdate!', 'success');
             redirect('account_management.php');
@@ -228,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $detailData = null;
 if (isset($_GET['detail'])) {
     $id = (int)$_GET['detail'];
-    $stmt = $db->prepare("SELECT * FROM accounts WHERE id = ?");
+    $stmt = $db->prepare("SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id WHERE a.id = ?");
     $stmt->execute([$id]);
     $detailData = $stmt->fetch();
 }
@@ -552,6 +572,15 @@ if (isset($_GET['detail'])) {
         .badge-lead.canvasing { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
         .badge-lead.referensi { background: rgba(26, 188, 156, 0.12); color: #16a085; }
         .badge-lead.website { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
+        
+        .badge-sales {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(241, 196, 15, 0.12);
+            color: #d4a017;
+        }
         
         .btn-action {
             width: 30px;
@@ -1307,6 +1336,7 @@ if (isset($_GET['detail'])) {
                                 <th>No HP</th>
                                 <th>Email</th>
                                 <th>Lead Source</th>
+                                <th>Sales</th>
                                 <th>NPWP</th>
                                 <th>Aksi</th>
                             </tr>
@@ -1325,6 +1355,15 @@ if (isset($_GET['detail'])) {
                                             <span class="badge-lead <?= strtolower($account['lead_source']) ?>">
                                                 <?= htmlspecialchars($account['lead_source']) ?>
                                             </span>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($account['sales_name'])): ?>
+                                                <span class="badge-sales">
+                                                    <i class="fas fa-user-tie"></i> <?= htmlspecialchars($account['sales_name']) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if (!empty($account['npwp_file'])): ?>
@@ -1352,7 +1391,7 @@ if (isset($_GET['detail'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
+                                    <td colspan="9" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data account
                                     </td>
                                 </tr>
@@ -1461,6 +1500,27 @@ if (isset($_GET['detail'])) {
                                 </select>
                             </div>
                         </div>
+                        
+                        <!-- INPUT SALES -->
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Input Sales <span class="optional">(Optional)</span></label>
+                                <select name="sales_id" id="sales_id" class="form-select">
+                                    <option value="">-- Pilih Sales --</option>
+                                    <?php foreach ($salesUsers as $sales): ?>
+                                        <option value="<?= $sales['id'] ?>">
+                                            <?= htmlspecialchars($sales['full_name']) ?> (<?= htmlspecialchars($sales['username']) ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php if (!$hasSales): ?>
+                                    <small class="text-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> Belum ada data Sales. 
+                                        <a href="data_user.php" target="_blank">Tambah Sales di Data User</a>
+                                    </small>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
@@ -1556,6 +1616,7 @@ if (isset($_GET['detail'])) {
     <script>
         // Detail Account
         function detailAccount(data) {
+            var salesName = data.sales_name || '-';
             var html = `
                 <div class="detail-item">
                     <div class="detail-label">Nama PT</div>
@@ -1598,6 +1659,10 @@ if (isset($_GET['detail'])) {
                     </div>
                 </div>
                 <div class="detail-item">
+                    <div class="detail-label">Sales</div>
+                    <div class="detail-value">${salesName}</div>
+                </div>
+                <div class="detail-item">
                     <div class="detail-label">Tanggal Dibuat</div>
                     <div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
@@ -1624,6 +1689,7 @@ if (isset($_GET['detail'])) {
             document.getElementById('email_pic').value = data.email_pic;
             document.getElementById('lead_source').value = data.lead_source;
             document.getElementById('bidang_usaha').value = data.bidang_usaha;
+            document.getElementById('sales_id').value = data.sales_id || '';
             
             // Hapus required pada file upload
             document.getElementById('npwp_file').required = false;
