@@ -7,8 +7,8 @@ if (!isLoggedIn()) {
     redirect('login.php');
 }
 
-// Cek akses user (hanya admin yang bisa akses)
-if ($_SESSION['role'] !== 'admin') {
+// Cek akses user (hanya IT Support & Admin yang bisa akses)
+if (!in_array($_SESSION['role'], ['it_support', 'admin'])) {
     setFlash('Anda tidak memiliki akses ke halaman ini!', 'danger');
     redirect('dashboard.php');
 }
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
     if ($action === 'delete') {
         $id = (int)$_POST['id'];
-        // Cek jangan hapus admin utama
+        // Cek jangan hapus user utama
         if ($id == 1) {
             setFlash('Tidak dapat menghapus user utama!', 'danger');
             redirect('data_user.php');
@@ -428,18 +428,24 @@ if (isset($_GET['permission'])) {
             border-bottom: none;
         }
         
+        /* BADGE ROLE BARU */
         .badge-role {
             padding: 3px 10px;
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            white-space: nowrap;
         }
         
-        .badge-role.admin { background: rgba(214, 48, 49, 0.12); color: #d63031; }
+        .badge-role.it_support { background: rgba(155, 89, 182, 0.15); color: #8e44ad; }
+        .badge-role.admin { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-role.direktur_sales { background: rgba(26, 188, 156, 0.12); color: #16a085; }
+        .badge-role.direktur_utama { background: rgba(241, 196, 15, 0.15); color: #b7950b; }
+        .badge-role.sales_manager { background: rgba(52, 73, 94, 0.12); color: #2c3e50; }
+        .badge-role.sales { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-role.manager { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-role.staff { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-role.user { background: rgba(26, 26, 46, 0.08); color: #1a1a2e; }
-        .badge-role.sales { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
         
         .badge-status {
             padding: 3px 10px;
@@ -824,90 +830,29 @@ if (isset($_GET['permission'])) {
         }
         
         @media (min-width: 769px) {
-            .bottom-nav {
-                display: none !important;
-            }
-            body {
-                padding-bottom: 0;
-            }
-            .top-header {
-                display: none !important;
-            }
+            .bottom-nav { display: none !important; }
+            body { padding-bottom: 0; }
+            .top-header { display: none !important; }
         }
         
         @media (max-width: 768px) {
-            .desktop-nav-wrapper {
-                display: none !important;
-            }
-            body {
-                padding-bottom: 65px;
-            }
-            
-            .stat-card .stat-number {
-                font-size: 20px;
-            }
-            
-            .welcome-banner {
-                padding: 14px 18px;
-            }
-            
-            .welcome-banner .welcome-text h3 {
-                font-size: 16px;
-            }
-            
-            .welcome-banner .welcome-icon {
-                display: none;
-            }
-            
-            .section-title h5 {
-                font-size: 14px;
-            }
-            
-            .table-custom {
-                font-size: 12px;
-            }
-            
-            .table-custom th,
-            .table-custom td {
-                padding: 8px 10px;
-            }
-            
-            .card-custom .card-header-custom {
-                padding: 12px 16px;
-            }
+            .desktop-nav-wrapper { display: none !important; }
+            body { padding-bottom: 65px; }
+            .stat-card .stat-number { font-size: 20px; }
+            .welcome-banner { padding: 14px 18px; }
+            .welcome-banner .welcome-text h3 { font-size: 16px; }
+            .welcome-banner .welcome-icon { display: none; }
+            .table-custom { font-size: 12px; }
+            .table-custom th, .table-custom td { padding: 8px 10px; }
         }
         
         @media (max-width: 480px) {
-            .stat-card .stat-number {
-                font-size: 17px;
-            }
-            
-            .stat-card {
-                padding: 12px 14px;
-            }
-            
-            .modal-body {
-                padding: 14px 16px;
-            }
-            
-            .modal-header {
-                padding: 14px 16px;
-            }
-            
-            .table-custom {
-                font-size: 11px;
-            }
-            
-            .table-custom th,
-            .table-custom td {
-                padding: 6px 8px;
-            }
-            
-            .btn-action {
-                width: 26px;
-                height: 26px;
-                font-size: 11px;
-            }
+            .stat-card .stat-number { font-size: 17px; }
+            .stat-card { padding: 12px 14px; }
+            .table-custom { font-size: 11px; }
+            .table-custom th, .table-custom td { padding: 6px 8px; }
+            .btn-action { width: 26px; height: 26px; font-size: 11px; }
+            .modal-body { padding: 14px 16px; }
         }
         
         .footer-text {
@@ -1011,10 +956,10 @@ if (isset($_GET['permission'])) {
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn()) ?></div>
-                        <div class="stat-label">Admin</div>
+                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM users WHERE role = 'it_support'")->fetchColumn()) ?></div>
+                        <div class="stat-label">IT Support</div>
                     </div>
-                    <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
+                    <div class="stat-icon"><i class="fas fa-user-cog"></i></div>
                 </div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6">
@@ -1073,7 +1018,17 @@ if (isset($_GET['permission'])) {
                                         <td><?= htmlspecialchars($user['phone'] ?? '-') ?></td>
                                         <td>
                                             <span class="badge-role <?= htmlspecialchars($user['role']) ?>">
-                                                <?= ucfirst(htmlspecialchars($user['role'])) ?>
+                                                <?php 
+                                                    $roleLabels = [
+                                                        'it_support' => 'IT Support',
+                                                        'admin' => 'Admin',
+                                                        'direktur_sales' => 'Dir. Sales',
+                                                        'direktur_utama' => 'Dir. Utama',
+                                                        'sales_manager' => 'Sales Manager',
+                                                        'sales' => 'Sales'
+                                                    ];
+                                                    echo $roleLabels[$user['role']] ?? ucfirst($user['role']);
+                                                ?>
                                             </span>
                                         </td>
                                         <td>
@@ -1183,11 +1138,12 @@ if (isset($_GET['permission'])) {
                                 <label class="form-label">Akses User <span class="text-danger">*</span></label>
                                 <select name="role_name" id="role_name" class="form-select" required>
                                     <option value="">Pilih Akses</option>
-                                    <option value="admin">Admin (Full Access)</option>
-                                    <option value="manager">Manager (View & Edit)</option>
-                                    <option value="staff">Staff (View & Add)</option>
-                                    <option value="user">User (View Only)</option>
-                                    <option value="sales">Sales (Dashboard & Sales Activity)</option>
+                                    <option value="it_support">IT Support (Full Access)</option>
+                                    <option value="admin">Admin (Manajemen User)</option>
+                                    <option value="direktur_sales">Direktur Sales (View All)</option>
+                                    <option value="direktur_utama">Direktur Utama (View All)</option>
+                                    <option value="sales_manager">Sales Manager (Kelola Sales)</option>
+                                    <option value="sales">Sales (Input Data)</option>
                                 </select>
                             </div>
                         </div>
