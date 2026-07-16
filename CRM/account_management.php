@@ -7,6 +7,68 @@ if (!isLoggedIn()) {
     redirect('login.php');
 }
 
+// ============================================
+// EXPORT TO EXCEL
+// ============================================
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    // Set header untuk download file Excel
+    header('Content-Type: application/vnd.ms-excel');
+    header('Content-Disposition: attachment; filename="Data_Account_' . date('Y-m-d') . '.xls"');
+    header('Cache-Control: max-age=0');
+    
+    // Ambil semua data tanpa pagination
+    $sql = "SELECT * FROM accounts ORDER BY created_at DESC";
+    $stmt = $db->prepare($sql);
+    $stmt->execute();
+    $allAccounts = $stmt->fetchAll();
+    
+    // Buat tabel HTML untuk Excel
+    echo '<html>';
+    echo '<head><meta charset="UTF-8"></head>';
+    echo '<body>';
+    echo '<h2>Data Account - PT Ganda Elang Tangguh</h2>';
+    echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . '</p>';
+    echo '<table border="1" cellpadding="5" cellspacing="0">';
+    echo '<thead>';
+    echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
+    echo '<th>No</th>';
+    echo '<th>Nama PT</th>';
+    echo '<th>Bidang Usaha</th>';
+    echo '<th>Alamat</th>';
+    echo '<th>NPWP</th>';
+    echo '<th>Nama PIC</th>';
+    echo '<th>No Handphone PIC</th>';
+    echo '<th>Email PIC</th>';
+    echo '<th>Lead Source</th>';
+    echo '<th>Tanggal Dibuat</th>';
+    echo '</tr>';
+    echo '</thead>';
+    echo '<tbody>';
+    
+    $no = 1;
+    foreach ($allAccounts as $account) {
+        echo '<tr>';
+        echo '<td>' . $no++ . '</td>';
+        echo '<td>' . htmlspecialchars($account['nama_pt']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['bidang_usaha']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['alamat']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['npwp'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($account['nama_pic']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['no_hp_pic']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['email_pic']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['lead_source']) . '</td>';
+        echo '<td>' . date('d-m-Y H:i', strtotime($account['created_at'])) . '</td>';
+        echo '</tr>';
+    }
+    
+    echo '</tbody>';
+    echo '</table>';
+    echo '<p style="margin-top: 20px; font-size: 12px; color: #999;">* Data di export pada ' . date('d-m-Y H:i:s') . '</p>';
+    echo '</body>';
+    echo '</html>';
+    exit;
+}
+
 // Pagination
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -162,13 +224,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Ambil data untuk edit
-$editData = null;
-if (isset($_GET['edit'])) {
-    $id = (int)$_GET['edit'];
+// Ambil data untuk detail
+$detailData = null;
+if (isset($_GET['detail'])) {
+    $id = (int)$_GET['detail'];
     $stmt = $db->prepare("SELECT * FROM accounts WHERE id = ?");
     $stmt->execute([$id]);
-    $editData = $stmt->fetch();
+    $detailData = $stmt->fetch();
 }
 ?>
 <!DOCTYPE html>
@@ -501,10 +563,20 @@ if (isset($_GET['edit'])) {
             border: none;
             transition: all 0.3s ease;
             font-size: 13px;
+            cursor: pointer;
         }
         
         .btn-action:hover {
             transform: scale(1.1);
+        }
+        
+        .btn-action.detail {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+        }
+        
+        .btn-action.detail:hover {
+            background: rgba(46, 204, 113, 0.2);
         }
         
         .btn-action.edit {
@@ -523,15 +595,6 @@ if (isset($_GET['edit'])) {
         
         .btn-action.delete:hover {
             background: rgba(231, 76, 60, 0.2);
-        }
-        
-        .btn-action.view {
-            background: rgba(46, 204, 113, 0.1);
-            color: #27ae60;
-        }
-        
-        .btn-action.view:hover {
-            background: rgba(46, 204, 113, 0.2);
         }
         
         /* ============================================
@@ -633,11 +696,72 @@ if (isset($_GET['edit'])) {
             color: #333;
         }
         
+        .btn-success-custom {
+            background: #27ae60;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            color: #fff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-success-custom:hover {
+            background: #219a52;
+            color: #fff;
+        }
+        
         .alert {
             border-radius: 10px;
             border: none;
             padding: 12px 16px;
             font-size: 14px;
+        }
+        
+        /* ============================================
+           DETAIL MODAL
+           ============================================ */
+        .detail-item {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-item .detail-label {
+            font-weight: 600;
+            color: #555;
+            width: 140px;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        
+        .detail-item .detail-value {
+            color: #1a1a2e;
+            font-size: 13px;
+            word-break: break-word;
+        }
+        
+        .detail-item .detail-value .badge-lead {
+            font-size: 11px;
+            padding: 4px 12px;
+        }
+        
+        .detail-item .detail-value a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        
+        .detail-item .detail-value a:hover {
+            text-decoration: underline;
         }
         
         /* ============================================
@@ -864,6 +988,10 @@ if (isset($_GET['edit'])) {
             transition: border-color 0.3s ease;
         }
         
+        .desktop-nav-wrapper .nav-right .user-avatar:hover {
+            border-color: #ffd700;
+        }
+        
         .desktop-nav-wrapper .nav-right .logout-btn {
             color: rgba(255, 255, 255, 0.5);
             padding: 5px 14px;
@@ -936,6 +1064,15 @@ if (isset($_GET['edit'])) {
             .card-custom .card-header-custom {
                 padding: 12px 16px;
             }
+            
+            .detail-item .detail-label {
+                width: 100px;
+                font-size: 12px;
+            }
+            
+            .detail-item .detail-value {
+                font-size: 12px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -968,6 +1105,22 @@ if (isset($_GET['edit'])) {
                 width: 26px;
                 height: 26px;
                 font-size: 11px;
+            }
+            
+            .detail-item {
+                flex-direction: column;
+                padding: 8px 0;
+            }
+            
+            .detail-item .detail-label {
+                width: 100%;
+                font-size: 11px;
+                color: #999;
+                margin-bottom: 2px;
+            }
+            
+            .detail-item .detail-value {
+                font-size: 12px;
             }
         }
         
@@ -1134,6 +1287,9 @@ if (isset($_GET['edit'])) {
                             <a href="account_management.php" class="btn btn-sm btn-secondary-custom"><i class="fas fa-times"></i></a>
                         <?php endif; ?>
                     </form>
+                    <a href="account_management.php?export=excel" class="btn btn-sm btn-success-custom">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </a>
                     <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
@@ -1172,7 +1328,7 @@ if (isset($_GET['edit'])) {
                                         </td>
                                         <td>
                                             <?php if (!empty($account['npwp_file'])): ?>
-                                                <a href="<?= htmlspecialchars($account['npwp_file']) ?>" target="_blank" class="btn-action view">
+                                                <a href="<?= htmlspecialchars($account['npwp_file']) ?>" target="_blank" class="btn-action detail">
                                                     <i class="fas fa-file"></i>
                                                 </a>
                                             <?php else: ?>
@@ -1181,6 +1337,9 @@ if (isset($_GET['edit'])) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
+                                                <button class="btn-action detail" onclick="detailAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
                                                 <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
@@ -1313,6 +1472,26 @@ if (isset($_GET['edit'])) {
     </div>
 
     <!-- ============================================
+    MODAL DETAIL
+    ============================================ -->
+    <div class="modal fade" id="modalDetail" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-building" style="color:#ffd700;"></i> Detail Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailBody">
+                    <!-- Detail akan diisi oleh JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
     MODAL DELETE
     ============================================ -->
     <div class="modal fade" id="modalDelete" tabindex="-1">
@@ -1375,6 +1554,63 @@ if (isset($_GET['edit'])) {
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Detail Account
+        function detailAccount(data) {
+            var html = `
+                <div class="detail-item">
+                    <div class="detail-label">Nama PT</div>
+                    <div class="detail-value"><strong>${data.nama_pt}</strong></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Bidang Usaha</div>
+                    <div class="detail-value">${data.bidang_usaha}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Alamat</div>
+                    <div class="detail-value">${data.alamat}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">NPWP</div>
+                    <div class="detail-value">${data.npwp || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">File NPWP</div>
+                    <div class="detail-value">
+                        ${data.npwp_file ? `<a href="${data.npwp_file}" target="_blank"><i class="fas fa-file"></i> Lihat File</a>` : '-'}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Nama PIC</div>
+                    <div class="detail-value">${data.nama_pic}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">No Handphone PIC</div>
+                    <div class="detail-value">${data.no_hp_pic}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Email PIC</div>
+                    <div class="detail-value">${data.email_pic}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Lead Source</div>
+                    <div class="detail-value">
+                        <span class="badge-lead ${data.lead_source.toLowerCase()}">${data.lead_source}</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Tanggal Dibuat</div>
+                    <div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Terakhir Update</div>
+                    <div class="detail-value">${new Date(data.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+            `;
+            document.getElementById('detailBody').innerHTML = html;
+            var modal = new bootstrap.Modal(document.getElementById('modalDetail'));
+            modal.show();
+        }
+        
         // Edit Account
         function editAccount(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Account';
