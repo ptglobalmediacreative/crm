@@ -7,6 +7,12 @@ if (!isLoggedIn()) {
     redirect('login.php');
 }
 
+// ============================================
+// AMBIL MENU YANG BOLEH DIAKSES USER
+// ============================================
+$userMenus = getUserMenus();
+$menuNames = array_column($userMenus, 'module_name');
+
 // Ambil data untuk badge
 $totalUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $totalActive = $db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
@@ -914,18 +920,41 @@ $bannerExists = file_exists($bannerPath);
             <a href="dashboard.php" class="nav-link active">
                 <i class="fas fa-th-large"></i> Dashboard
             </a>
-            <a href="account_management.php" class="nav-link">
-                <i class="fas fa-building"></i> Account
-            </a>
-            <a href="#" class="nav-link">
-                <i class="fas fa-chart-bar"></i> Sales
-            </a>
-            <a href="#" class="nav-link">
-                <i class="fas fa-box"></i> Produk
-            </a>
-            <a href="#" class="nav-link">
-                <i class="fas fa-truck"></i> Delivery
-            </a>
+            
+            <!-- Account Management - hanya tampil jika user punya akses -->
+            <?php if (in_array('account_management', $menuNames)): ?>
+                <a href="account_management.php" class="nav-link">
+                    <i class="fas fa-building"></i> Account
+                </a>
+            <?php endif; ?>
+            
+            <!-- Sales Activity - hanya tampil jika user punya akses -->
+            <?php if (in_array('sales_activity', $menuNames)): ?>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-chart-bar"></i> Sales
+                </a>
+            <?php endif; ?>
+            
+            <!-- Produk - hanya tampil jika user punya akses -->
+            <?php if (in_array('produk', $menuNames)): ?>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-box"></i> Produk
+                </a>
+            <?php endif; ?>
+            
+            <!-- Delivery Order - hanya tampil jika user punya akses -->
+            <?php if (in_array('delivery_order', $menuNames)): ?>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-truck"></i> Delivery
+                </a>
+            <?php endif; ?>
+            
+            <!-- Data User - hanya tampil jika user punya akses -->
+            <?php if (in_array('data_user', $menuNames)): ?>
+                <a href="data_user.php" class="nav-link">
+                    <i class="fas fa-users"></i> Data User
+                </a>
+            <?php endif; ?>
         </div>
         
         <div class="nav-right">
@@ -1000,57 +1029,78 @@ $bannerExists = file_exists($bannerPath);
         <!-- SECTION: MENU UTAMA -->
         <div class="section-title">
             <h5><i class="fas fa-th-large"></i>Menu Utama</h5>
-            <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i></a>
+            
+            <?php 
+            // Cek apakah ada menu yang di-hide (untuk toggle "Lainnya")
+            $hiddenMenus = array_diff(['data_user', 'data_sales'], $menuNames);
+            $hasHidden = count($hiddenMenus) > 0;
+            ?>
+            <?php if ($hasHidden): ?>
+                <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i></a>
+            <?php endif; ?>
         </div>
 
         <!-- MENU GRID -->
         <div class="menu-grid" id="menuGrid">
-            <!-- Account Management -->
-            <a href="account_management.php" class="menu-card">
-                <div class="menu-icon orange"><i class="fas fa-building"></i></div>
-                <div class="menu-title">Account Management</div>
-                <div class="menu-sub">Kelola akun</div>
-            </a>
+            <!-- Account Management - hanya tampil jika user punya akses -->
+            <?php if (in_array('account_management', $menuNames)): ?>
+                <a href="account_management.php" class="menu-card">
+                    <div class="menu-icon orange"><i class="fas fa-building"></i></div>
+                    <div class="menu-title">Account Management</div>
+                    <div class="menu-sub">Kelola akun</div>
+                </a>
+            <?php endif; ?>
             
-            <!-- Sales Activity -->
-            <a href="#" class="menu-card">
-                <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
-                <div class="menu-title">Sales Activity</div>
-                <div class="menu-sub">Aktivitas sales</div>
-            </a>
+            <!-- Sales Activity - hanya tampil jika user punya akses -->
+            <?php if (in_array('sales_activity', $menuNames)): ?>
+                <a href="#" class="menu-card">
+                    <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
+                    <div class="menu-title">Sales Activity</div>
+                    <div class="menu-sub">Aktivitas sales</div>
+                </a>
+            <?php endif; ?>
             
-            <!-- Produk -->
-            <a href="#" class="menu-card">
-                <div class="menu-icon green"><i class="fas fa-box"></i></div>
-                <div class="menu-title">Produk</div>
-                <div class="menu-sub">Kelola produk</div>
-            </a>
+            <!-- Produk - hanya tampil jika user punya akses -->
+            <?php if (in_array('produk', $menuNames)): ?>
+                <a href="#" class="menu-card">
+                    <div class="menu-icon green"><i class="fas fa-box"></i></div>
+                    <div class="menu-title">Produk</div>
+                    <div class="menu-sub">Kelola produk</div>
+                </a>
+            <?php endif; ?>
             
-            <!-- Delivery Order -->
-            <a href="#" class="menu-card">
-                <div class="menu-icon gold"><i class="fas fa-truck"></i></div>
-                <div class="menu-title">Delivery Order</div>
-                <div class="menu-sub">Pengiriman</div>
-            </a>
+            <!-- Delivery Order - hanya tampil jika user punya akses -->
+            <?php if (in_array('delivery_order', $menuNames)): ?>
+                <a href="#" class="menu-card">
+                    <div class="menu-icon gold"><i class="fas fa-truck"></i></div>
+                    <div class="menu-title">Delivery Order</div>
+                    <div class="menu-sub">Pengiriman</div>
+                </a>
+            <?php endif; ?>
             
-            <!-- Data User (Hidden) -->
-            <a href="data_user.php" class="menu-card hidden-menu">
-                <div class="menu-icon purple"><i class="fas fa-users"></i></div>
-                <div class="menu-title">Data User</div>
-                <div class="menu-sub">Kelola user</div>
-            </a>
+            <!-- Data User (Hidden) - hanya tampil jika user punya akses -->
+            <?php if (in_array('data_user', $menuNames)): ?>
+                <a href="data_user.php" class="menu-card hidden-menu">
+                    <div class="menu-icon purple"><i class="fas fa-users"></i></div>
+                    <div class="menu-title">Data User</div>
+                    <div class="menu-sub">Kelola user</div>
+                </a>
+            <?php endif; ?>
             
-            <!-- Data Sales (Hidden) -->
-            <a href="#" class="menu-card hidden-menu">
-                <div class="menu-icon teal"><i class="fas fa-user-tie"></i></div>
-                <div class="menu-title">Data Sales</div>
-                <div class="menu-sub">Kelola sales</div>
-            </a>
+            <!-- Data Sales (Hidden) - hanya tampil jika user punya akses -->
+            <?php if (in_array('data_sales', $menuNames)): ?>
+                <a href="#" class="menu-card hidden-menu">
+                    <div class="menu-icon teal"><i class="fas fa-user-tie"></i></div>
+                    <div class="menu-title">Data Sales</div>
+                    <div class="menu-sub">Kelola sales</div>
+                </a>
+            <?php endif; ?>
         </div>
 
         <!-- ============================================
         MY ACTIVITY - SIMPLE SEPERTI GAMBAR
         ============================================ -->
+        <?php if (in_array('sales_activity', $menuNames)): ?>
         <div class="section-title" style="margin-top: 0px;">
             <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
             <span style="font-size:12px; color:#888;">Active: <strong style="color:#1a1a2e;"><?= $salesActivity ?> Activities</strong></span>
@@ -1072,6 +1122,7 @@ $bannerExists = file_exists($bannerPath);
                 </a>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- FOOTER -->
         <div class="footer-text">
@@ -1088,24 +1139,44 @@ $bannerExists = file_exists($bannerPath);
             <i class="fas fa-th-large nav-icon"></i>
             <span class="nav-label">Home</span>
         </a>
-        <a href="account_management.php" class="nav-item">
-            <i class="fas fa-building nav-icon"></i>
-            <span class="nav-label">Account</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fas fa-chart-bar nav-icon"></i>
-            <span class="nav-label">Sales</span>
-            <span class="badge-nav"><?= $salesActivity ?></span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fas fa-box nav-icon"></i>
-            <span class="nav-label">Produk</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fas fa-truck nav-icon"></i>
-            <span class="nav-label">DO</span>
-            <span class="badge-nav">12</span>
-        </a>
+        
+        <?php if (in_array('account_management', $menuNames)): ?>
+            <a href="account_management.php" class="nav-item">
+                <i class="fas fa-building nav-icon"></i>
+                <span class="nav-label">Account</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('sales_activity', $menuNames)): ?>
+            <a href="#" class="nav-item">
+                <i class="fas fa-chart-bar nav-icon"></i>
+                <span class="nav-label">Sales</span>
+                <span class="badge-nav"><?= $salesActivity ?></span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('produk', $menuNames)): ?>
+            <a href="#" class="nav-item">
+                <i class="fas fa-box nav-icon"></i>
+                <span class="nav-label">Produk</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('delivery_order', $menuNames)): ?>
+            <a href="#" class="nav-item">
+                <i class="fas fa-truck nav-icon"></i>
+                <span class="nav-label">DO</span>
+                <span class="badge-nav">12</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('data_user', $menuNames)): ?>
+            <a href="data_user.php" class="nav-item">
+                <i class="fas fa-users nav-icon"></i>
+                <span class="nav-label">User</span>
+            </a>
+        <?php endif; ?>
+        
         <a href="logout.php" class="nav-item">
             <i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i>
             <span class="nav-label" style="color:#d63031;">Logout</span>
@@ -1122,18 +1193,20 @@ $bannerExists = file_exists($bannerPath);
         const menuGrid = document.getElementById('menuGrid');
         let isMenuOpen = false;
 
-        toggleMenu.addEventListener('click', function(e) {
-            e.preventDefault();
-            isMenuOpen = !isMenuOpen;
-            
-            if (isMenuOpen) {
-                menuGrid.classList.add('show-all');
-                toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:10px;"></i>';
-            } else {
-                menuGrid.classList.remove('show-all');
-                toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i>';
-            }
-        });
+        if (toggleMenu) {
+            toggleMenu.addEventListener('click', function(e) {
+                e.preventDefault();
+                isMenuOpen = !isMenuOpen;
+                
+                if (isMenuOpen) {
+                    menuGrid.classList.add('show-all');
+                    toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:10px;"></i>';
+                } else {
+                    menuGrid.classList.remove('show-all');
+                    toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i>';
+                }
+            });
+        }
 
         // Active state untuk bottom nav
         document.querySelectorAll('.bottom-nav .nav-item').forEach(function(item) {

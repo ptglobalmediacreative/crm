@@ -9,22 +9,22 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u475225363_crmget');
 define('DB_USER', 'u475225363_crmget');
-define('DB_PASS', 'Gandaelang123'); // Isi password Anda
+define('DB_PASS', 'Gandaelang123');
 
 // ============================================
 // APLIKASI
 // ============================================
 define('APP_URL', 'https://' . $_SERVER['HTTP_HOST']);
 define('APP_NAME', 'GET CRM - PT Ganda Elang Tangguh');
-define('APP_EMAIL', 'itsupport@gandaelang.co.id'); // Email pengirim
+define('APP_EMAIL', 'itsupport@gandaelang.co.id');
 
 // ============================================
 // EMAIL CONFIGURATION (SMTP)
 // ============================================
-define('SMTP_HOST', 'smtp.gmail.com'); // Ganti dengan SMTP Anda
+define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
-define('SMTP_USER', 'itsupport@gandaelang.co.id'); // Ganti dengan email Anda
-define('SMTP_PASS', 'Natanael110405@'); // Ganti dengan password/App Password
+define('SMTP_USER', 'itsupport@gandaelang.co.id');
+define('SMTP_PASS', 'Natanael110405@');
 define('SMTP_FROM', 'itsupport@gandaelang.co.id');
 define('SMTP_FROM_NAME', 'PT Ganda Elang Tangguh');
 
@@ -97,8 +97,8 @@ function getRole() {
     return $_SESSION['role'] ?? null;
 }
 
-function isAdmin() {
-    return getRole() === 'admin';
+function generateToken() {
+    return bin2hex(random_bytes(32));
 }
 
 // ============================================
@@ -108,34 +108,35 @@ function sendEmail($to, $subject, $message, $from = null, $fromName = null) {
     $from = $from ?? SMTP_FROM;
     $fromName = $fromName ?? SMTP_FROM_NAME;
     
-    // Header email
     $headers = "MIME-Version: 1.0\r\n";
     $headers .= "Content-type: text/html; charset=utf-8\r\n";
     $headers .= "From: " . $fromName . " <" . $from . ">\r\n";
     $headers .= "Reply-To: " . $from . "\r\n";
     
-    // Kirim email
     return mail($to, $subject, $message, $headers);
 }
 
-// Fungsi generate token
-function generateToken() {
-    return bin2hex(random_bytes(32));
-}
+// ============================================
+// FUNGSI PERMISSION - LENGKAP
+// ============================================
 
-// ============================================
-// FUNGSI CEK PERMISSION
-// ============================================
-function hasPermission($module, $action) {
+/**
+ * Cek apakah user memiliki akses ke module tertentu
+ * @param string $module - Nama module (contoh: 'account_management')
+ * @param string $action - Aksi (view, add, edit, delete)
+ * @return bool
+ */
+function hasPermission($module, $action = 'view') {
     global $db;
     
     if (!isLoggedIn()) return false;
     
     $role = $_SESSION['role'] ?? 'user';
     
-    // Admin punya akses penuh
-    if ($role === 'admin') return true;
+    // IT Support punya akses penuh
+    if ($role === 'it_support') return true;
     
+    // Jika role tidak ada di database, return false
     $stmt = $db->prepare("
         SELECT p.* FROM permissions p
         JOIN modules m ON m.id = p.module_id
@@ -155,8 +156,167 @@ function hasPermission($module, $action) {
     }
 }
 
-// Fungsi untuk menyembunyikan tombol berdasarkan permission
-function showButton($module, $action) {
+/**
+ * Cek apakah user bisa mengakses menu (untuk hiding menu)
+ */
+function canAccessMenu($module) {
+    return hasPermission($module, 'view');
+}
+
+/**
+ * Cek apakah user bisa menambah data
+ */
+function canAdd($module) {
+    return hasPermission($module, 'add');
+}
+
+/**
+ * Cek apakah user bisa mengedit data
+ */
+function canEdit($module) {
+    return hasPermission($module, 'edit');
+}
+
+/**
+ * Cek apakah user bisa menghapus data
+ */
+function canDelete($module) {
+    return hasPermission($module, 'delete');
+}
+
+/**
+ * Cek apakah user memiliki salah satu role dari daftar
+ */
+function hasRole($roles) {
+    if (!isLoggedIn()) return false;
+    if (is_array($roles)) {
+        return in_array($_SESSION['role'], $roles);
+    }
+    return $_SESSION['role'] === $roles;
+}
+
+/**
+ * Cek apakah user punya akses penuh (IT Support)
+ */
+function isFullAccess() {
+    return hasRole('it_support');
+}
+
+/**
+ * Cek apakah user bisa mengelola user (IT Support atau Admin)
+ */
+function canManageUser() {
+    return hasRole(['it_support', 'admin']);
+}
+
+// ============================================
+// AMBIL MENU YANG BOLEH DIAKSES USER
+// ============================================
+function getUserMenus() {
+    global $db;
+    
+    if (!isLoggedIn()) return [];
+    
+    $role = $_SESSION['role'] ?? 'user';
+    
+    // IT Support bisa lihat semua menu
+    if ($role === 'it_support') {
+        $stmt = $db->query("SELECT * FROM modules WHERE is_active = 1 ORDER BY module_order");
+        return $stmt->fetchAll();
+    }
+    
+    $stmt = $db->prepare("
+        SELECT m.* FROM modules m
+        JOIN permissions p ON p.module_id = m.id
+        WHERE p.role_name = ? AND p.can_view = 1 AND m.is_active = 1
+        ORDER BY m.module_order
+    ");
+    $stmt->execute([$role]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Ambil daftar menu names yang boleh diakses user
+ */
+function getUserMenuNames() {
+    $menus = getUserMenus();
+    return array_column($menus, 'module_name');
+}
+
+/**
+ * Cek apakah user bisa akses halaman tertentu
+ * Untuk digunakan di awal halaman
+ */
+function requirePermission($module, $action = 'view') {
+    if (!isLoggedIn()) {
+        setFlash('Silakan login dulu!', 'warning');
+        redirect('login.php');
+    }
+    
+    if (!hasPermission($module, $action)) {
+        setFlash('Anda tidak memiliki akses ke halaman ini!', 'danger');
+        redirect('dashboard.php');
+    }
+}
+
+// ============================================
+// FUNGSI UNTUK VIEW (MENYEMBUNYIKAN ELEMEN)
+// ============================================
+
+/**
+ * Tampilkan elemen jika user punya permission
+ * Digunakan untuk tombol/aksi di halaman
+ */
+function showIf($module, $action = 'view') {
     return hasPermission($module, $action);
+}
+
+/**
+ * Tampilkan tombol tambah jika user punya akses
+ */
+function showAddButton($module) {
+    return hasPermission($module, 'add');
+}
+
+/**
+ * Tampilkan tombol edit jika user punya akses
+ */
+function showEditButton($module) {
+    return hasPermission($module, 'edit');
+}
+
+/**
+ * Tampilkan tombol hapus jika user punya akses
+ */
+function showDeleteButton($module) {
+    return hasPermission($module, 'delete');
+}
+
+// ============================================
+// FUNGSI CUSTOMER (Tambahan)
+// ============================================
+
+/**
+ * Format tanggal Indonesia
+ */
+function formatTanggal($date) {
+    return date('d/m/Y H:i', strtotime($date));
+}
+
+/**
+ * Format rupiah
+ */
+function formatRupiah($number) {
+    return 'Rp ' . number_format($number, 0, ',', '.');
+}
+
+/**
+ * Generate slug
+ */
+function createSlug($string) {
+    $string = strtolower($string);
+    $string = preg_replace('/[^a-z0-9-]/', '-', $string);
+    $string = preg_replace('/-+/', '-', $string);
+    return trim($string, '-');
 }
 ?>

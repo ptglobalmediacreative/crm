@@ -7,11 +7,10 @@ if (!isLoggedIn()) {
     redirect('login.php');
 }
 
-// Cek akses user (hanya IT Support & Admin yang bisa akses)
-if (!in_array($_SESSION['role'], ['it_support', 'admin'])) {
-    setFlash('Anda tidak memiliki akses ke halaman ini!', 'danger');
-    redirect('dashboard.php');
-}
+// ============================================
+// CEK AKSES HALAMAN
+// ============================================
+requirePermission('data_user', 'view');
 
 // Pagination
 $limit = 10;
@@ -51,6 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
+        // Cek permission tambah
+        if (!canAdd('data_user')) {
+            setFlash('Anda tidak memiliki akses untuk menambah user!', 'danger');
+            redirect('data_user.php');
+        }
+        
         $username = bersihkan($_POST['username']);
         $email = bersihkan($_POST['email']);
         $full_name = bersihkan($_POST['full_name']);
@@ -87,6 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
+        // Cek permission edit
+        if (!canEdit('data_user')) {
+            setFlash('Anda tidak memiliki akses untuk mengedit user!', 'danger');
+            redirect('data_user.php');
+        }
+        
         $id = (int)$_POST['id'];
         $username = bersihkan($_POST['username']);
         $email = bersihkan($_POST['email']);
@@ -128,6 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
+        // Cek permission delete
+        if (!canDelete('data_user')) {
+            setFlash('Anda tidak memiliki akses untuk menghapus user!', 'danger');
+            redirect('data_user.php');
+        }
+        
         $id = (int)$_POST['id'];
         // Cek jangan hapus user utama
         if ($id == 1) {
@@ -985,9 +1002,13 @@ if (isset($_GET['permission'])) {
                             <a href="data_user.php" class="btn btn-sm btn-secondary-custom"><i class="fas fa-times"></i></a>
                         <?php endif; ?>
                     </form>
-                    <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalUser">
-                        <i class="fas fa-plus"></i> Tambah User
-                    </button>
+                    
+                    <!-- Tombol Tambah - hanya muncul jika user punya akses add -->
+                    <?php if (canAdd('data_user')): ?>
+                        <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalUser">
+                            <i class="fas fa-plus"></i> Tambah User
+                        </button>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="card-body-custom">
@@ -1038,13 +1059,22 @@ if (isset($_GET['permission'])) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <button class="btn-action edit" onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn-action permission" onclick="showPermission(<?= htmlspecialchars(json_encode($user)) ?>)">
-                                                    <i class="fas fa-lock"></i>
-                                                </button>
-                                                <?php if ($user['id'] != 1): ?>
+                                                <!-- Tombol Edit - hanya muncul jika user punya akses edit -->
+                                                <?php if (canEdit('data_user')): ?>
+                                                    <button class="btn-action edit" onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                
+                                                <!-- Tombol Permission - hanya untuk IT Support & Admin -->
+                                                <?php if (canManageUser()): ?>
+                                                    <button class="btn-action permission" onclick="showPermission(<?= htmlspecialchars(json_encode($user)) ?>)">
+                                                        <i class="fas fa-lock"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                
+                                                <!-- Tombol Delete - hanya muncul jika user punya akses delete dan bukan user utama -->
+                                                <?php if (canDelete('data_user') && $user['id'] != 1): ?>
                                                     <button class="btn-action delete" onclick="deleteUser(<?= $user['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
