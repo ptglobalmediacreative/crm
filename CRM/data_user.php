@@ -950,46 +950,6 @@ if (isset($_GET['permission'])) {
             <i class="fas fa-users welcome-icon"></i>
         </div>
 
-        <!-- STATISTIK -->
-        <div class="row g-3 mb-4">
-            <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM users")->fetchColumn()) ?></div>
-                        <div class="stat-label">Total User</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-users"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn()) ?></div>
-                        <div class="stat-label">Aktif</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-user-check"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM users WHERE role = 'it_support'")->fetchColumn()) ?></div>
-                        <div class="stat-label">IT Support</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-user-cog"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM users WHERE role = 'sales'")->fetchColumn()) ?></div>
-                        <div class="stat-label">Sales</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
-                </div>
-            </div>
-        </div>
-
         <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
@@ -1043,8 +1003,9 @@ if (isset($_GET['permission'])) {
                                                     $roleLabels = [
                                                         'it_support' => 'IT Support',
                                                         'admin' => 'Admin',
-                                                        'direktur_sales' => 'Dir. Sales',
                                                         'direktur_utama' => 'Dir. Utama',
+                                                        'direktur_operasional' => 'Dir. Operasional',
+                                                        'direktur_sales' => 'Dir. Sales',
                                                         'sales_manager' => 'Sales Manager',
                                                         'sales' => 'Sales'
                                                     ];
@@ -1170,8 +1131,9 @@ if (isset($_GET['permission'])) {
                                     <option value="">Pilih Akses</option>
                                     <option value="it_support">IT Support</option>
                                     <option value="admin">Admin</option>
-                                    <option value="direktur_sales">Direktur Sales</option>
                                     <option value="direktur_utama">Direktur Utama</option>
+                                    <option value="direktur_sales">Direktur Sales</option>
+                                    <option value="direktur_operasional">Direktur Operasional</option>
                                     <option value="sales_manager">Sales Manager</option>
                                     <option value="sales">Sales</option>
                                 </select>
