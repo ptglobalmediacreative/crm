@@ -458,11 +458,10 @@ if (isset($_GET['permission'])) {
         .badge-role.admin { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-role.direktur_sales { background: rgba(26, 188, 156, 0.12); color: #16a085; }
         .badge-role.direktur_utama { background: rgba(241, 196, 15, 0.15); color: #b7950b; }
+        .badge-role.direktur_operasional { background: rgba(155, 89, 182, 0.15); color: #8e44ad; }
+        .badge-role.business { background: rgba(52, 73, 94, 0.12); color: #2c3e50; }
         .badge-role.sales_manager { background: rgba(52, 73, 94, 0.12); color: #2c3e50; }
         .badge-role.sales { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-role.manager { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-role.staff { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-role.user { background: rgba(26, 26, 46, 0.08); color: #1a1a2e; }
         
         .badge-status {
             padding: 3px 10px;
@@ -1006,6 +1005,7 @@ if (isset($_GET['permission'])) {
                                                         'direktur_utama' => 'Dir. Utama',
                                                         'direktur_operasional' => 'Dir. Operasional',
                                                         'direktur_sales' => 'Dir. Sales',
+                                                        'business' => 'Business',
                                                         'sales_manager' => 'Sales Manager',
                                                         'sales' => 'Sales'
                                                     ];
@@ -1131,6 +1131,7 @@ if (isset($_GET['permission'])) {
                                     <option value="">Pilih Akses</option>
                                     <option value="it_support">IT Support</option>
                                     <option value="admin">Admin</option>
+                                    <option value="business">Business</option>
                                     <option value="direktur_utama">Direktur Utama</option>
                                     <option value="direktur_sales">Direktur Sales</option>
                                     <option value="direktur_operasional">Direktur Operasional</option>
