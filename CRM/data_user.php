@@ -13,6 +13,33 @@ if ($_SESSION['role'] !== 'admin') {
     redirect('dashboard.php');
 }
 
+// ============================================
+// FUNGSI SET PERMISSION SALES
+// ============================================
+function setSalesPermission() {
+    global $db;
+    
+    // Cek apakah permission untuk role sales sudah ada
+    $stmt = $db->prepare("SELECT COUNT(*) FROM permissions WHERE role_name = 'sales'");
+    $stmt->execute();
+    $count = $stmt->fetchColumn();
+    
+    if ($count == 0) {
+        // Jika belum ada, buat permission default untuk sales
+        // Sales hanya bisa akses Dashboard dan Sales Activity (View Only)
+        $modules = ['dashboard', 'sales_activity'];
+        foreach ($modules as $module) {
+            $stmt = $db->prepare("SELECT id FROM modules WHERE module_name = ?");
+            $stmt->execute([$module]);
+            $moduleData = $stmt->fetch();
+            if ($moduleData) {
+                $stmt = $db->prepare("INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) VALUES (?, 'sales', 1, 0, 0, 0)");
+                $stmt->execute([$moduleData['id']]);
+            }
+        }
+    }
+}
+
 // Pagination
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -90,6 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $db->prepare("INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) SELECT module_id, ?, can_view, can_add, can_edit, can_delete FROM permissions WHERE role_name = ?");
             $stmt->execute([$role_name, $role_name]);
             
+            // Jika role sales, pastikan permission sales ada
+            if ($role_name === 'sales') {
+                setSalesPermission();
+            }
+            
             setFlash('User berhasil ditambahkan!', 'success');
             redirect('data_user.php');
         } else {
@@ -121,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
+            // Update user
             if (!empty($password)) {
                 $hash = hashPassword($password);
                 $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, full_name = ?, phone = ?, role = ?, access_level = ?, is_active = ? WHERE id = ?");
@@ -129,6 +162,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, role = ?, access_level = ?, is_active = ? WHERE id = ?");
                 $stmt->execute([$username, $email, $full_name, $phone, $role_name, $role_name, $is_active, $id]);
             }
+            
+            // Jika role sales, pastikan permission sales ada
+            if ($role_name === 'sales') {
+                setSalesPermission();
+            }
+            
             setFlash('User berhasil diupdate!', 'success');
             redirect('data_user.php');
         } else {
@@ -289,6 +328,10 @@ function getPermissions($roleName) {
             text-decoration: none;
             border: 2px solid rgba(255, 215, 0, 0.2);
             transition: border-color 0.3s ease;
+        }
+        
+        .top-header .header-right .user-avatar:hover {
+            border-color: #ffd700;
         }
         
         .welcome-banner {
@@ -1302,7 +1345,7 @@ function getPermissions($roleName) {
                 permissions.push({module: module, perm: perm, value: checked});
             });
             
-            fetch('save_permission.php', {
+            fetch('api/save_permission.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({user_id: currentUserId, permissions: permissions})
