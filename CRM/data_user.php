@@ -1262,7 +1262,7 @@ function getPermissions($roleName) {
             modal.show();
             
             // Load permission data
-            fetch('get_permission.php?user_id=' + data.id)
+            fetch('api/get_permission.php?user_id=' + data.id)
                 .then(response => response.json())
                 .then(data => {
                     var html = '';

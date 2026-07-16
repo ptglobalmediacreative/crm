@@ -122,4 +122,41 @@ function sendEmail($to, $subject, $message, $from = null, $fromName = null) {
 function generateToken() {
     return bin2hex(random_bytes(32));
 }
+
+// ============================================
+// FUNGSI CEK PERMISSION
+// ============================================
+function hasPermission($module, $action) {
+    global $db;
+    
+    if (!isLoggedIn()) return false;
+    
+    $role = $_SESSION['role'] ?? 'user';
+    
+    // Admin punya akses penuh
+    if ($role === 'admin') return true;
+    
+    $stmt = $db->prepare("
+        SELECT p.* FROM permissions p
+        JOIN modules m ON m.id = p.module_id
+        WHERE m.module_name = ? AND p.role_name = ?
+    ");
+    $stmt->execute([$module, $role]);
+    $perm = $stmt->fetch();
+    
+    if (!$perm) return false;
+    
+    switch ($action) {
+        case 'view': return $perm['can_view'] == 1;
+        case 'add': return $perm['can_add'] == 1;
+        case 'edit': return $perm['can_edit'] == 1;
+        case 'delete': return $perm['can_delete'] == 1;
+        default: return false;
+    }
+}
+
+// Fungsi untuk menyembunyikan tombol berdasarkan permission
+function showButton($module, $action) {
+    return hasPermission($module, $action);
+}
 ?>
