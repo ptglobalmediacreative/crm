@@ -1034,7 +1034,7 @@ $bannerExists = file_exists($bannerPath);
             </a>
             
             <!-- Data User (Hidden) -->
-            <a href="#" class="menu-card hidden-menu">
+            <a href="data_user.php" class="menu-card hidden-menu">
                 <div class="menu-icon purple"><i class="fas fa-users"></i></div>
                 <div class="menu-title">Data User</div>
                 <div class="menu-sub">Kelola user</div>
