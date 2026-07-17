@@ -447,6 +447,7 @@ if (isset($_GET['edit'])) {
         
         .badge-role.it_support { background: rgba(155, 89, 182, 0.15); color: #8e44ad; }
         .badge-role.admin { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-role.finance { background: rgba(0, 206, 209, 0.15); color: #0d7a7a; }
         .badge-role.direktur_sales { background: rgba(26, 188, 156, 0.12); color: #16a085; }
         .badge-role.direktur_utama { background: rgba(241, 196, 15, 0.15); color: #b7950b; }
         .badge-role.direktur_operasional { background: rgba(155, 89, 182, 0.15); color: #8e44ad; }
@@ -992,6 +993,7 @@ if (isset($_GET['edit'])) {
                                                     $roleLabels = [
                                                         'it_support' => 'IT Support',
                                                         'admin' => 'Admin',
+                                                        'finance' => 'Finance',
                                                         'direktur_utama' => 'Dir. Utama',
                                                         'direktur_operasional' => 'Dir. Operasional',
                                                         'direktur_sales' => 'Dir. Sales',
@@ -1118,6 +1120,7 @@ if (isset($_GET['edit'])) {
                                     <option value="">Pilih Divisi</option>
                                     <option value="it_support">IT Support</option>
                                     <option value="admin">Admin</option>
+                                    <option value="finance">Finance</option>
                                     <option value="business">Business</option>
                                     <option value="direktur_utama">Direktur Utama</option>
                                     <option value="direktur_sales">Direktur Sales</option>
