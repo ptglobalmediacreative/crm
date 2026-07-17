@@ -20,6 +20,24 @@ $direkturRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional'];
 $isDirektur = in_array($userRole, $direkturRoles);
 
 // ============================================
+// FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
+// ============================================
+function getRoleLabel($role) {
+    $roleLabels = [
+        'it_support' => 'IT Support',
+        'admin' => 'Admin',
+        'finance' => 'Finance',
+        'direktur_utama' => 'Direktur Utama',
+        'direktur_operasional' => 'Direktur Operasional',
+        'direktur_sales' => 'Direktur Sales',
+        'business' => 'Business',
+        'sales_manager' => 'Sales Manager',
+        'sales' => 'Sales'
+    ];
+    return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+}
+
+// ============================================
 // EXPORT TO EXCEL
 // ============================================
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
@@ -1228,7 +1246,7 @@ if (isset($_GET['detail'])) {
             </div>
             <div class="user-info">
                 <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= ucfirst($role) ?></div>
+                <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
             <a href="logout.php" class="user-avatar">
                 <?= strtoupper(substr($fullName, 0, 1)) ?>
