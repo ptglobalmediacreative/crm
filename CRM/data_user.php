@@ -12,6 +12,24 @@ if (!isLoggedIn()) {
 // ============================================
 requirePermission('data_user', 'view');
 
+// ============================================
+// FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
+// ============================================
+function getRoleLabel($role) {
+    $roleLabels = [
+        'it_support' => 'IT Support',
+        'admin' => 'Admin',
+        'finance' => 'Finance',
+        'direktur_utama' => 'Direktur Utama',
+        'direktur_operasional' => 'Direktur Operasional',
+        'direktur_sales' => 'Direktur Sales',
+        'business' => 'Business',
+        'sales_manager' => 'Sales Manager',
+        'sales' => 'Sales'
+    ];
+    return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+}
+
 // Pagination
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -883,7 +901,7 @@ if (isset($_GET['edit'])) {
 </head>
 <body>
 
-    <!-- DESKTOP NAVBAR -->
+    <!-- DESKTOP NAVBAR - DIPERBAIKI -->
     <div class="desktop-nav-wrapper">
         <div class="brand-section">
             <div class="logo-wrapper">
@@ -897,18 +915,38 @@ if (isset($_GET['edit'])) {
         
         <div class="desktop-menu">
             <a href="dashboard.php" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a>
-            <a href="account_management.php" class="nav-link"><i class="fas fa-building"></i> Account</a>
-            <a href="#" class="nav-link"><i class="fas fa-chart-bar"></i> Sales</a>
-            <a href="#" class="nav-link"><i class="fas fa-box"></i> Produk</a>
-            <a href="#" class="nav-link"><i class="fas fa-truck"></i> Delivery</a>
-            <a href="data_user.php" class="nav-link active"><i class="fas fa-users"></i> Data User</a>
+            
+            <!-- Account Management - hanya tampil jika user punya akses -->
+            <?php if (canAccessMenu('account_management')): ?>
+                <a href="account_management.php" class="nav-link"><i class="fas fa-building"></i> Account</a>
+            <?php endif; ?>
+            
+            <!-- Sales Activity - hanya tampil jika user punya akses -->
+            <?php if (canAccessMenu('sales_activity')): ?>
+                <a href="#" class="nav-link"><i class="fas fa-chart-bar"></i> Sales</a>
+            <?php endif; ?>
+            
+            <!-- Produk - hanya tampil jika user punya akses -->
+            <?php if (canAccessMenu('produk')): ?>
+                <a href="#" class="nav-link"><i class="fas fa-box"></i> Produk</a>
+            <?php endif; ?>
+            
+            <!-- Delivery Order - hanya tampil jika user punya akses -->
+            <?php if (canAccessMenu('delivery_order')): ?>
+                <a href="#" class="nav-link"><i class="fas fa-truck"></i> Delivery</a>
+            <?php endif; ?>
+            
+            <!-- Data User - hanya tampil jika user punya akses -->
+            <?php if (canAccessMenu('data_user')): ?>
+                <a href="data_user.php" class="nav-link active"><i class="fas fa-users"></i> Data User</a>
+            <?php endif; ?>
         </div>
         
         <div class="nav-right">
             <div class="notif-icon"><i class="fas fa-bell"></i><span class="badge-notif">3</span></div>
             <div class="user-info">
                 <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= ucfirst($role) ?></div>
+                <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
             <a href="logout.php" class="user-avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></a>
             <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
