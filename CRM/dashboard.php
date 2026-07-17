@@ -967,12 +967,6 @@ $bannerExists = file_exists($bannerPath);
                 </a>
             <?php endif; ?>
             
-            <!-- Data User - hanya tampil jika user punya akses -->
-            <?php if (in_array('data_user', $menuNames)): ?>
-                <a href="data_user.php" class="nav-link">
-                    <i class="fas fa-users"></i> Data User
-                </a>
-            <?php endif; ?>
         </div>
         
         <div class="nav-right">

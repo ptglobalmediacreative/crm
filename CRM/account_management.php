@@ -1231,12 +1231,6 @@ if (isset($_GET['detail'])) {
                 </a>
             <?php endif; ?>
             
-            <!-- Data User - hanya tampil jika user punya akses -->
-            <?php if (canAccessMenu('data_user')): ?>
-                <a href="data_user.php" class="nav-link">
-                    <i class="fas fa-users"></i> Data User
-                </a>
-            <?php endif; ?>
         </div>
         
         <div class="nav-right">

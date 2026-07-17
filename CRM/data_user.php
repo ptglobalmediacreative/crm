@@ -936,10 +936,6 @@ if (isset($_GET['edit'])) {
                 <a href="#" class="nav-link"><i class="fas fa-truck"></i> Delivery</a>
             <?php endif; ?>
             
-            <!-- Data User - hanya tampil jika user punya akses -->
-            <?php if (canAccessMenu('data_user')): ?>
-                <a href="data_user.php" class="nav-link active"><i class="fas fa-users"></i> Data User</a>
-            <?php endif; ?>
         </div>
         
         <div class="nav-right">
