@@ -1471,7 +1471,6 @@ if (isset($_GET['detail'])) {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Upload NPWP <span class="optional">(Optional)</span></label>
                                 <input type="file" name="npwp_file" id="npwp_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
-                                <small class="text-muted">Format: JPG, PNG, PDF (Max 5MB)</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Lead Source <span class="text-danger">*</span></label>
@@ -1504,12 +1503,11 @@ if (isset($_GET['detail'])) {
                                 <input type="email" name="email_pic" id="email_pic" class="form-control" placeholder="pic@email.com" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Input Sales <span class="optional">(Optional)</span></label>
+                                <label class="form-label">Input Sales</label>
                                 <?php if ($userRole === 'sales'): ?>
                                     <!-- Sales otomatis ditetapkan -->
                                     <input type="hidden" name="sales_id" value="<?= $userId ?>">
                                     <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" disabled>
-                                    <small class="text-muted">Sales otomatis sesuai akun Anda</small>
                                 <?php else: ?>
                                     <select name="sales_id" id="sales_id" class="form-select">
                                         <option value="">-- Pilih Sales --</option>
