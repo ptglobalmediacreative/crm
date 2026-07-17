@@ -3,6 +3,12 @@ require_once '../config.php';
 
 header('Content-Type: application/json');
 
+// Cek login
+if (!isLoggedIn()) {
+    echo json_encode(['error' => 'Unauthorized', 'modules' => []]);
+    exit;
+}
+
 $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
 
 if (!$userId) {
@@ -20,7 +26,7 @@ if (!$user) {
     exit;
 }
 
-// Ambil semua modules dengan permission user
+// Ambil semua modules dengan permission berdasarkan ROLE user
 $sql = "SELECT 
             m.id, 
             m.module_name, 
@@ -42,4 +48,3 @@ echo json_encode([
     'role' => $user['role'],
     'modules' => $modules
 ]);
-?>

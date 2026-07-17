@@ -166,15 +166,6 @@ if (isset($_GET['edit'])) {
     $stmt->execute([$id]);
     $editData = $stmt->fetch();
 }
-
-// Ambil data untuk permission
-$permissionData = null;
-if (isset($_GET['permission'])) {
-    $id = (int)$_GET['permission'];
-    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$id]);
-    $permissionData = $stmt->fetch();
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -195,6 +186,7 @@ if (isset($_GET['permission'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* ===== SEMUA STYLE SAMA SEPERTI SEBELUMNYA ===== */
         * {
             margin: 0;
             padding: 0;
@@ -445,7 +437,6 @@ if (isset($_GET['permission'])) {
             border-bottom: none;
         }
         
-        /* BADGE ROLE BARU */
         .badge-role {
             padding: 3px 10px;
             border-radius: 20px;
@@ -962,7 +953,6 @@ if (isset($_GET['permission'])) {
                         <?php endif; ?>
                     </form>
                     
-                    <!-- Tombol Tambah - hanya muncul jika user punya akses add -->
                     <?php if (canAdd('data_user')): ?>
                         <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalUser">
                             <i class="fas fa-plus"></i> Tambah User
@@ -1020,21 +1010,18 @@ if (isset($_GET['permission'])) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <!-- Tombol Edit - hanya muncul jika user punya akses edit -->
                                                 <?php if (canEdit('data_user')): ?>
                                                     <button class="btn-action edit" onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 <?php endif; ?>
                                                 
-                                                <!-- Tombol Permission - hanya untuk IT Support & Admin -->
                                                 <?php if (canManageUser()): ?>
                                                     <button class="btn-action permission" onclick="showPermission(<?= htmlspecialchars(json_encode($user)) ?>)">
                                                         <i class="fas fa-lock"></i>
                                                     </button>
                                                 <?php endif; ?>
                                                 
-                                                <!-- Tombol Delete - hanya muncul jika user punya akses delete dan bukan user utama -->
                                                 <?php if (canDelete('data_user') && $user['id'] != 1): ?>
                                                     <button class="btn-action delete" onclick="deleteUser(<?= $user['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -1158,7 +1145,7 @@ if (isset($_GET['permission'])) {
     </div>
 
     <!-- ============================================
-    MODAL PERMISSION
+    MODAL PERMISSION - DIPERBAIKI
     ============================================ -->
     <div class="modal fade" id="modalPermission" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1221,6 +1208,7 @@ if (isset($_GET['permission'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentUserId = null;
+        let currentUserRole = null;
         
         // Edit User
         function editUser(data) {
@@ -1260,6 +1248,8 @@ if (isset($_GET['permission'])) {
         
         function showPermission(data) {
             currentUserId = data.id;
+            currentUserRole = data.role;
+            
             var modal = new bootstrap.Modal(document.getElementById('modalPermission'));
             modal.show();
             
@@ -1275,7 +1265,8 @@ if (isset($_GET['permission'])) {
                 .then(data => {
                     var html = '';
                     if (data.modules && data.modules.length > 0) {
-                        html = '<p class="text-muted mb-3">Atur akses untuk user <strong>' + data.username + '</strong></p>';
+                        html = '<p class="text-muted mb-3">Atur akses untuk role <strong>' + data.role + '</strong></p>';
+                        html += '<p class="text-warning small"><i class="fas fa-info-circle"></i> Perubahan akan berlaku untuk SEMUA user dengan role yang sama</p>';
                         html += '<div class="table-responsive">';
                         html += '<table class="table table-bordered table-sm">';
                         html += '<thead><tr><th>Menu</th><th>Lihat</th><th>Tambah</th><th>Edit</th><th>Hapus</th></tr></thead>';
@@ -1309,10 +1300,14 @@ if (isset($_GET['permission'])) {
                 permissions.push({module: module, perm: perm, value: checked});
             });
             
+            // Kirim role_name, bukan user_id
             fetch('api/save_permission.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({user_id: currentUserId, permissions: permissions})
+                body: JSON.stringify({
+                    role_name: currentUserRole,
+                    permissions: permissions
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -1321,7 +1316,7 @@ if (isset($_GET['permission'])) {
                     var modal = bootstrap.Modal.getInstance(document.getElementById('modalPermission'));
                     modal.hide();
                 } else {
-                    alert('Gagal menyimpan permission!');
+                    alert('Gagal menyimpan permission: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {

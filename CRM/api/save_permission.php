@@ -3,68 +3,56 @@ require_once '../config.php';
 
 header('Content-Type: application/json');
 
-$input = json_decode(file_get_contents('php://input'), true);
-
-$userId = $input['user_id'] ?? 0;
-$permissions = $input['permissions'] ?? [];
-
-if (!$userId || empty($permissions)) {
-    echo json_encode(['success' => false, 'message' => 'Data tidak lengkap']);
+// Cek method
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
     exit;
 }
 
-// Ambil role user
-$stmt = $db->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
-
-if (!$user) {
-    echo json_encode(['success' => false, 'message' => 'User tidak ditemukan']);
+// Cek login & permission
+if (!isLoggedIn() || !canManageUser()) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
-$roleName = $user['role'];
+$data = json_decode(file_get_contents('php://input'), true);
+$roleName = $data['role_name'] ?? '';
+$permissions = $data['permissions'] ?? [];
 
-// Hapus permission lama untuk role ini
-$stmt = $db->prepare("DELETE FROM permissions WHERE role_name = ?");
-$stmt->execute([$roleName]);
+if (empty($roleName) || empty($permissions)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid data']);
+    exit;
+}
 
-// Insert permission baru
-foreach ($permissions as $perm) {
-    $moduleName = $perm['module'];
-    $permType = $perm['perm'];
-    $value = $perm['value'];
+try {
+    $db->beginTransaction();
     
-    // Cek module_id
-    $stmt = $db->prepare("SELECT id FROM modules WHERE module_name = ?");
-    $stmt->execute([$moduleName]);
-    $module = $stmt->fetch();
-    
-    if ($module) {
-        $moduleId = $module['id'];
+    foreach ($permissions as $perm) {
+        $module = $perm['module'];
+        $action = $perm['perm'];
+        $value = $perm['value'];
         
-        // Cek apakah permission sudah ada
-        $stmt = $db->prepare("SELECT id FROM permissions WHERE module_id = ? AND role_name = ?");
-        $stmt->execute([$moduleId, $roleName]);
-        $existing = $stmt->fetch();
+        // Cari module_id
+        $stmt = $db->prepare("SELECT id FROM modules WHERE module_name = ?");
+        $stmt->execute([$module]);
+        $moduleId = $stmt->fetchColumn();
         
-        if ($existing) {
-            // Update
-            $sql = "UPDATE permissions SET can_$permType = ? WHERE module_id = ? AND role_name = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$value, $moduleId, $roleName]);
-        } else {
-            // Insert dengan semua permission 0 dulu
-            $sql = "INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) VALUES (?, ?, 0, 0, 0, 0)";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$moduleId, $roleName]);
-            
-            // Update permission yang dipilih
-            $sql = "UPDATE permissions SET can_$permType = ? WHERE module_id = ? AND role_name = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$value, $moduleId, $roleName]);
-        }
+        if (!$moduleId) continue;
+        
+        // Update permission berdasarkan role_name
+        $field = 'can_' . $action;
+        $stmt = $db->prepare("
+            UPDATE permissions 
+            SET $field = ? 
+            WHERE module_id = ? AND role_name = ?
+        ");
+        $stmt->execute([$value, $moduleId, $roleName]);
     }
+    
+    $db->commit();
+    echo json_encode(['success' => true, 'message' => 'Permission berhasil disimpan!']);
+    
+} catch (Exception $e) {
+    $db->rollBack();
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-
-echo json_encode(['success' => true]);

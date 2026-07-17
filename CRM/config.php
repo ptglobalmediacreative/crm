@@ -217,6 +217,7 @@ function getUserMenus() {
     
     if (!isLoggedIn()) return [];
     
+    $userId = $_SESSION['user_id'] ?? 0;
     $role = $_SESSION['role'] ?? 'user';
     
     // IT Support bisa lihat semua menu
@@ -225,6 +226,8 @@ function getUserMenus() {
         return $stmt->fetchAll();
     }
     
+    // Ambil permission berdasarkan role user
+    // Permission disimpan per role di tabel permissions
     $stmt = $db->prepare("
         SELECT m.* FROM modules m
         JOIN permissions p ON p.module_id = m.id
@@ -319,4 +322,3 @@ function createSlug($string) {
     $string = preg_replace('/-+/', '-', $string);
     return trim($string, '-');
 }
-?>
