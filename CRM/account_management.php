@@ -8,6 +8,11 @@ if (!isLoggedIn()) {
 }
 
 // ============================================
+// CEK AKSES HALAMAN
+// ============================================
+requirePermission('account_management', 'view');
+
+// ============================================
 // EXPORT TO EXCEL
 // ============================================
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
@@ -35,6 +40,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<th>Nama PT</th>';
     echo '<th>Bidang Usaha</th>';
     echo '<th>Alamat</th>';
+    echo '<th>Area</th>';
     echo '<th>NPWP</th>';
     echo '<th>Nama PIC</th>';
     echo '<th>No Handphone PIC</th>';
@@ -53,6 +59,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         echo '<td>' . htmlspecialchars($account['nama_pt']) . '</td>';
         echo '<td>' . htmlspecialchars($account['bidang_usaha']) . '</td>';
         echo '<td>' . htmlspecialchars($account['alamat']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['area'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($account['npwp'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($account['nama_pic']) . '</td>';
         echo '<td>' . htmlspecialchars($account['no_hp_pic']) . '</td>';
@@ -72,7 +79,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 }
 
 // ============================================
-// TAMBAHKAN KOLOM sales_id KE TABEL accounts
+// TAMBAHKAN KOLOM sales_id KE TABEL accounts (jika belum ada)
 // ============================================
 try {
     $db->exec("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS sales_id INT NULL");
@@ -80,6 +87,21 @@ try {
 } catch(PDOException $e) {
     // Kolom sudah ada atau error lainnya
 }
+
+// ============================================
+// TAMBAHKAN KOLOM area KE TABEL accounts (jika belum ada)
+// ============================================
+try {
+    $db->exec("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS area VARCHAR(100) NULL");
+} catch(PDOException $e) {
+    // Kolom sudah ada atau error lainnya
+}
+
+// ============================================
+// FILTER BERDASARKAN SALES (Hanya sales yang bersangkutan bisa melihat datanya)
+// ============================================
+$userId = $_SESSION['user_id'] ?? 0;
+$userRole = $_SESSION['role'] ?? 'user';
 
 // Pagination
 $limit = 10;
@@ -89,13 +111,21 @@ $offset = ($page - 1) * $limit;
 // Search
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 
-// Build query
+// Build query with filter
 $where = "WHERE 1=1";
 $params = [];
 
+// Filter berdasarkan role
+// - IT Support & Admin bisa melihat semua data
+// - Sales hanya bisa melihat data miliknya sendiri
+if ($userRole !== 'it_support' && $userRole !== 'admin') {
+    $where .= " AND a.sales_id = ?";
+    $params[] = $userId;
+}
+
 if (!empty($search)) {
     $where .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ?)";
-    $params = ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"];
+    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
 }
 
 // Get total data
@@ -131,8 +161,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
+        // Cek permission tambah
+        if (!canAdd('account_management')) {
+            setFlash('Anda tidak memiliki akses untuk menambah account!', 'danger');
+            redirect('account_management.php');
+        }
+        
         $nama_pt = bersihkan($_POST['nama_pt']);
         $alamat = bersihkan($_POST['alamat']);
+        $area = bersihkan($_POST['area']);
         $npwp = bersihkan($_POST['npwp']);
         $nama_pic = bersihkan($_POST['nama_pic']);
         $no_hp_pic = bersihkan($_POST['no_hp_pic']);
@@ -146,11 +183,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $errors = [];
         if (empty($nama_pt)) $errors[] = 'Nama PT wajib diisi!';
         if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
+        if (empty($area)) $errors[] = 'Area wajib diisi!';
         if (empty($nama_pic)) $errors[] = 'Nama PIC wajib diisi!';
         if (empty($no_hp_pic)) $errors[] = 'No Handphone PIC wajib diisi!';
         if (empty($email_pic)) $errors[] = 'Email PIC wajib diisi!';
         if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
-        if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib diisi!';
+        if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
         
         // Upload file NPWP
         if (!empty($_FILES['npwp_file']['name'])) {
@@ -171,8 +209,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO accounts (nama_pt, alamat, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha, sales_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$nama_pt, $alamat, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id]);
+            $stmt = $db->prepare("INSERT INTO accounts (nama_pt, alamat, area, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha, sales_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id]);
             setFlash('Data account berhasil ditambahkan!', 'success');
             redirect('account_management.php');
         } else {
@@ -181,9 +219,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
+        // Cek permission edit
+        if (!canEdit('account_management')) {
+            setFlash('Anda tidak memiliki akses untuk mengedit account!', 'danger');
+            redirect('account_management.php');
+        }
+        
         $id = (int)$_POST['id'];
         $nama_pt = bersihkan($_POST['nama_pt']);
         $alamat = bersihkan($_POST['alamat']);
+        $area = bersihkan($_POST['area']);
         $npwp = bersihkan($_POST['npwp']);
         $nama_pic = bersihkan($_POST['nama_pic']);
         $no_hp_pic = bersihkan($_POST['no_hp_pic']);
@@ -195,11 +240,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $errors = [];
         if (empty($nama_pt)) $errors[] = 'Nama PT wajib diisi!';
         if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
+        if (empty($area)) $errors[] = 'Area wajib diisi!';
         if (empty($nama_pic)) $errors[] = 'Nama PIC wajib diisi!';
         if (empty($no_hp_pic)) $errors[] = 'No Handphone PIC wajib diisi!';
         if (empty($email_pic)) $errors[] = 'Email PIC wajib diisi!';
         if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
-        if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib diisi!';
+        if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
         
         // Upload file NPWP
         $npwp_file = '';
@@ -222,11 +268,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (empty($errors)) {
             if (!empty($npwp_file)) {
-                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                $stmt->execute([$nama_pt, $alamat, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, area = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                $stmt->execute([$nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
             } else {
-                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                $stmt->execute([$nama_pt, $alamat, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, area = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                $stmt->execute([$nama_pt, $alamat, $area, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
             }
             setFlash('Data account berhasil diupdate!', 'success');
             redirect('account_management.php');
@@ -236,6 +282,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
+        // Cek permission delete
+        if (!canDelete('account_management')) {
+            setFlash('Anda tidak memiliki akses untuk menghapus account!', 'danger');
+            redirect('account_management.php');
+        }
+        
         $id = (int)$_POST['id'];
         $stmt = $db->prepare("DELETE FROM accounts WHERE id = ?");
         $stmt->execute([$id]);
@@ -272,6 +324,7 @@ if (isset($_GET['detail'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* ===== SEMUA STYLE SAMA DENGAN SEBELUMNYA ===== */
         * {
             margin: 0;
             padding: 0;
@@ -284,9 +337,6 @@ if (isset($_GET['detail'])) {
             padding-bottom: 70px;
         }
         
-        /* ============================================
-           TOP HEADER - MOBILE
-           ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 10px 20px;
@@ -384,9 +434,6 @@ if (isset($_GET['detail'])) {
             border-color: #ffd700;
         }
         
-        /* ============================================
-           WELCOME BANNER
-           ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border-radius: 12px;
@@ -421,9 +468,6 @@ if (isset($_GET['detail'])) {
             bottom: 10px;
         }
         
-        /* ============================================
-           SECTION TITLE
-           ============================================ */
         .section-title {
             display: flex;
             justify-content: space-between;
@@ -457,9 +501,6 @@ if (isset($_GET['detail'])) {
             color: #ffd700;
         }
         
-        /* ============================================
-           STATISTIK
-           ============================================ */
         .stat-card {
             background: #fff;
             border-radius: 12px;
@@ -491,9 +532,6 @@ if (isset($_GET['detail'])) {
             opacity: 0.15;
         }
         
-        /* ============================================
-           TABLE
-           ============================================ */
         .card-custom {
             background: #fff;
             border-radius: 12px;
@@ -626,9 +664,6 @@ if (isset($_GET['detail'])) {
             background: rgba(231, 76, 60, 0.2);
         }
         
-        /* ============================================
-           MODAL
-           ============================================ */
         .modal-content {
             border: none;
             border-radius: 12px;
@@ -752,9 +787,6 @@ if (isset($_GET['detail'])) {
             font-size: 14px;
         }
         
-        /* ============================================
-           DETAIL MODAL
-           ============================================ */
         .detail-item {
             display: flex;
             padding: 10px 0;
@@ -793,9 +825,6 @@ if (isset($_GET['detail'])) {
             text-decoration: underline;
         }
         
-        /* ============================================
-           BOTTOM NAVIGATION
-           ============================================ */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -871,9 +900,6 @@ if (isset($_GET['detail'])) {
             text-align: center;
         }
         
-        /* ============================================
-           DESKTOP NAVBAR
-           ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 0 30px;
@@ -1038,124 +1064,40 @@ if (isset($_GET['detail'])) {
             border-color: rgba(214, 48, 49, 0.3);
         }
         
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
         @media (min-width: 769px) {
-            .bottom-nav {
-                display: none !important;
-            }
-            body {
-                padding-bottom: 0;
-            }
-            .top-header {
-                display: none !important;
-            }
+            .bottom-nav { display: none !important; }
+            body { padding-bottom: 0; }
+            .top-header { display: none !important; }
         }
         
         @media (max-width: 768px) {
-            .desktop-nav-wrapper {
-                display: none !important;
-            }
-            body {
-                padding-bottom: 65px;
-            }
-            
-            .stat-card .stat-number {
-                font-size: 20px;
-            }
-            
-            .welcome-banner {
-                padding: 14px 18px;
-            }
-            
-            .welcome-banner .welcome-text h3 {
-                font-size: 16px;
-            }
-            
-            .welcome-banner .welcome-icon {
-                display: none;
-            }
-            
-            .section-title h5 {
-                font-size: 14px;
-            }
-            
-            .table-custom {
-                font-size: 12px;
-            }
-            
-            .table-custom th,
-            .table-custom td {
-                padding: 8px 10px;
-            }
-            
-            .card-custom .card-header-custom {
-                padding: 12px 16px;
-            }
-            
-            .detail-item .detail-label {
-                width: 100px;
-                font-size: 12px;
-            }
-            
-            .detail-item .detail-value {
-                font-size: 12px;
-            }
+            .desktop-nav-wrapper { display: none !important; }
+            body { padding-bottom: 65px; }
+            .stat-card .stat-number { font-size: 20px; }
+            .welcome-banner { padding: 14px 18px; }
+            .welcome-banner .welcome-text h3 { font-size: 16px; }
+            .welcome-banner .welcome-icon { display: none; }
+            .section-title h5 { font-size: 14px; }
+            .table-custom { font-size: 12px; }
+            .table-custom th, .table-custom td { padding: 8px 10px; }
+            .card-custom .card-header-custom { padding: 12px 16px; }
+            .detail-item .detail-label { width: 100px; font-size: 12px; }
+            .detail-item .detail-value { font-size: 12px; }
         }
         
         @media (max-width: 480px) {
-            .stat-card .stat-number {
-                font-size: 17px;
-            }
-            
-            .stat-card {
-                padding: 12px 14px;
-            }
-            
-            .modal-body {
-                padding: 14px 16px;
-            }
-            
-            .modal-header {
-                padding: 14px 16px;
-            }
-            
-            .table-custom {
-                font-size: 11px;
-            }
-            
-            .table-custom th,
-            .table-custom td {
-                padding: 6px 8px;
-            }
-            
-            .btn-action {
-                width: 26px;
-                height: 26px;
-                font-size: 11px;
-            }
-            
-            .detail-item {
-                flex-direction: column;
-                padding: 8px 0;
-            }
-            
-            .detail-item .detail-label {
-                width: 100%;
-                font-size: 11px;
-                color: #999;
-                margin-bottom: 2px;
-            }
-            
-            .detail-item .detail-value {
-                font-size: 12px;
-            }
+            .stat-card .stat-number { font-size: 17px; }
+            .stat-card { padding: 12px 14px; }
+            .modal-body { padding: 14px 16px; }
+            .modal-header { padding: 14px 16px; }
+            .table-custom { font-size: 11px; }
+            .table-custom th, .table-custom td { padding: 6px 8px; }
+            .btn-action { width: 26px; height: 26px; font-size: 11px; }
+            .detail-item { flex-direction: column; padding: 8px 0; }
+            .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
+            .detail-item .detail-value { font-size: 12px; }
         }
         
-        /* ============================================
-           FOOTER
-           ============================================ */
         .footer-text {
             text-align: center;
             padding: 16px 0 8px;
@@ -1319,9 +1261,11 @@ if (isset($_GET['detail'])) {
                     <a href="account_management.php?export=excel" class="btn btn-sm btn-success-custom">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </a>
-                    <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
-                        <i class="fas fa-plus"></i> Tambah
-                    </button>
+                    <?php if (canAdd('account_management')): ?>
+                        <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="card-body-custom">
@@ -1337,6 +1281,7 @@ if (isset($_GET['detail'])) {
                                 <th>Email</th>
                                 <th>Lead Source</th>
                                 <th>Sales</th>
+                                <th>Area</th>
                                 <th>NPWP</th>
                                 <th>Aksi</th>
                             </tr>
@@ -1365,6 +1310,7 @@ if (isset($_GET['detail'])) {
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
+                                        <td><?= htmlspecialchars($account['area'] ?? '-') ?></td>
                                         <td>
                                             <?php if (!empty($account['npwp_file'])): ?>
                                                 <a href="<?= htmlspecialchars($account['npwp_file']) ?>" target="_blank" class="btn-action detail">
@@ -1379,19 +1325,23 @@ if (isset($_GET['detail'])) {
                                                 <button class="btn-action detail" onclick="detailAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <?php if (canEdit('account_management')): ?>
+                                                    <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                <?php if (canDelete('account_management')): ?>
+                                                    <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
+                                    <td colspan="10" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data account
                                     </td>
                                 </tr>
@@ -1450,7 +1400,15 @@ if (isset($_GET['detail'])) {
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Bidang Usaha <span class="text-danger">*</span></label>
-                                <input type="text" name="bidang_usaha" id="bidang_usaha" class="form-control" placeholder="Masukkan bidang usaha" required>
+                                <select name="bidang_usaha" id="bidang_usaha" class="form-select" required>
+                                    <option value="">Pilih Bidang Usaha</option>
+                                    <option value="Mining">Mining</option>
+                                    <option value="Construction">Construction</option>
+                                    <option value="Agriculture">Agriculture</option>
+                                    <option value="Forestry">Forestry</option>
+                                    <option value="Oil & Gas">Oil & Gas</option>
+                                    <option value="Industrial">Industrial</option>
+                                </select>
                             </div>
                         </div>
                         
@@ -1461,13 +1419,32 @@ if (isset($_GET['detail'])) {
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label class="form-label">Area <span class="text-danger">*</span></label>
+                                <input type="text" name="area" id="area" class="form-control" placeholder="Contoh: Jakarta, Surabaya, Kalimantan" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">NPWP <span class="optional">(Optional)</span></label>
                                 <input type="text" name="npwp" id="npwp" class="form-control" placeholder="Contoh: 12.345.678.9-012.000">
                             </div>
+                        </div>
+                        
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Upload NPWP <span class="optional">(Optional)</span></label>
                                 <input type="file" name="npwp_file" id="npwp_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
                                 <small class="text-muted">Format: JPG, PNG, PDF (Max 5MB)</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Source <span class="text-danger">*</span></label>
+                                <select name="lead_source" id="lead_source" class="form-select" required>
+                                    <option value="">Pilih Lead Source</option>
+                                    <option value="Call">Call</option>
+                                    <option value="Chat">Chat</option>
+                                    <option value="Meeting">Meeting</option>
+                                    <option value="Canvasing">Canvasing</option>
+                                    <option value="Referensi">Referensi</option>
+                                    <option value="Website">Website</option>
+                                </select>
                             </div>
                         </div>
                         
@@ -1488,22 +1465,6 @@ if (isset($_GET['detail'])) {
                                 <input type="email" name="email_pic" id="email_pic" class="form-control" placeholder="pic@email.com" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Lead Source <span class="text-danger">*</span></label>
-                                <select name="lead_source" id="lead_source" class="form-select" required>
-                                    <option value="">Pilih Lead Source</option>
-                                    <option value="Call">Call</option>
-                                    <option value="Chat">Chat</option>
-                                    <option value="Meeting">Meeting</option>
-                                    <option value="Canvasing">Canvasing</option>
-                                    <option value="Referensi">Referensi</option>
-                                    <option value="Website">Website</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <!-- INPUT SALES -->
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
                                 <label class="form-label">Input Sales <span class="optional">(Optional)</span></label>
                                 <select name="sales_id" id="sales_id" class="form-select">
                                     <option value="">-- Pilih Sales --</option>
@@ -1631,6 +1592,10 @@ if (isset($_GET['detail'])) {
                     <div class="detail-value">${data.alamat}</div>
                 </div>
                 <div class="detail-item">
+                    <div class="detail-label">Area</div>
+                    <div class="detail-value">${data.area || '-'}</div>
+                </div>
+                <div class="detail-item">
                     <div class="detail-label">NPWP</div>
                     <div class="detail-value">${data.npwp || '-'}</div>
                 </div>
@@ -1683,6 +1648,7 @@ if (isset($_GET['detail'])) {
             document.getElementById('formId').value = data.id;
             document.getElementById('nama_pt').value = data.nama_pt;
             document.getElementById('alamat').value = data.alamat;
+            document.getElementById('area').value = data.area || '';
             document.getElementById('npwp').value = data.npwp || '';
             document.getElementById('nama_pic').value = data.nama_pic;
             document.getElementById('no_hp_pic').value = data.no_hp_pic;
