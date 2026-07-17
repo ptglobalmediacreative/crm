@@ -187,8 +187,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
-        // Cek permission tambah
-        if (!canAdd('account_management')) {
+        // Cek permission tambah - SALES DIZINKAN TAMBAH
+        if ($userRole !== 'sales' && !canAdd('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menambah account!', 'danger');
             redirect('account_management.php');
         }
@@ -1294,7 +1294,8 @@ if (isset($_GET['detail'])) {
                     <a href="account_management.php?export=excel" class="btn btn-sm btn-success-custom">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </a>
-                    <?php if (canAdd('account_management')): ?>
+                    <!-- Tombol Tambah - Sales dan yang punya permission bisa -->
+                    <?php if ($userRole === 'sales' || canAdd('account_management')): ?>
                         <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
                             <i class="fas fa-plus"></i> Tambah
                         </button>
