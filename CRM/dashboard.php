@@ -1032,8 +1032,8 @@ $bannerExists = file_exists($bannerPath);
             
             <?php 
             // Cek apakah ada menu yang di-hide (untuk toggle "Lainnya")
-            $hiddenMenus = array_diff(['data_user', 'data_sales'], $menuNames);
-            $hasHidden = count($hiddenMenus) > 0;
+            $hiddenMenus = ['data_user', 'data_sales'];
+            $hasHidden = count(array_intersect($hiddenMenus, $menuNames)) > 0;
             ?>
             <?php if ($hasHidden): ?>
                 <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i></a>
