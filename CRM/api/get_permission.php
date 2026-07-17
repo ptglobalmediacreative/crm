@@ -26,7 +26,8 @@ if (!$user) {
     exit;
 }
 
-// Ambil HANYA menu utama (is_main_menu = 1)
+// Ambil SEMUA menu utama (is_main_menu = 1) 
+// LEFT JOIN dengan permissions, jika tidak ada data maka can_view = 0
 $sql = "SELECT 
             m.id, 
             m.module_name, 

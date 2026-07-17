@@ -38,13 +38,27 @@ try {
         
         if (!$moduleId) continue;
         
-        // Update permission (hanya can_view)
-        $stmt = $db->prepare("
-            UPDATE permissions 
-            SET can_view = ? 
-            WHERE module_id = ? AND role_name = ?
-        ");
-        $stmt->execute([$value, $moduleId, $roleName]);
+        // Cek apakah sudah ada entry di permissions
+        $stmt = $db->prepare("SELECT COUNT(*) FROM permissions WHERE module_id = ? AND role_name = ?");
+        $stmt->execute([$moduleId, $roleName]);
+        $exists = $stmt->fetchColumn();
+        
+        if ($exists > 0) {
+            // Update existing
+            $stmt = $db->prepare("
+                UPDATE permissions 
+                SET can_view = ? 
+                WHERE module_id = ? AND role_name = ?
+            ");
+            $stmt->execute([$value, $moduleId, $roleName]);
+        } else {
+            // Insert new
+            $stmt = $db->prepare("
+                INSERT INTO permissions (module_id, role_name, can_view, can_add, can_edit, can_delete) 
+                VALUES (?, ?, ?, 0, 0, 0)
+            ");
+            $stmt->execute([$moduleId, $roleName, $value]);
+        }
     }
     
     $db->commit();

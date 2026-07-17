@@ -1272,10 +1272,11 @@ if (isset($_GET['edit'])) {
                         html += '<thead><tr><th>Menu Utama</th><th>Tampil di Dashboard</th></tr></thead>';
                         html += '<tbody>';
                         data.modules.forEach(function(module) {
+                            var checked = module.can_view == 1 ? 'checked' : '';
                             html += '<tr>';
                             html += '<td><strong>' + module.module_label + '</strong></td>';
                             html += '<td>';
-                            html += '<input type="checkbox" class="perm-check form-check-input" data-module="' + module.module_name + '" ' + (module.can_view ? 'checked' : '') + '>';
+                            html += '<input type="checkbox" class="perm-check form-check-input" data-module="' + module.module_name + '" ' + checked + '>';
                             html += '</td>';
                             html += '</tr>';
                         });
@@ -1312,7 +1313,6 @@ if (isset($_GET['edit'])) {
                     alert('Permission berhasil disimpan!');
                     var modal = bootstrap.Modal.getInstance(document.getElementById('modalPermission'));
                     modal.hide();
-                    // Refresh halaman agar perubahan terlihat
                     location.reload();
                 } else {
                     alert('Gagal menyimpan permission: ' + (data.message || 'Unknown error'));
