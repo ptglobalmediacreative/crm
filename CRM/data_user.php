@@ -37,7 +37,7 @@ $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
 // Get data
-$sql = "SELECT id, username, email, full_name, phone, role, access_level, is_active, created_at FROM users $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+$sql = "SELECT id, username, email, full_name, phone, role, is_active, created_at FROM users $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $users = $stmt->fetchAll();
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($email)) $errors[] = 'Email wajib diisi!';
         if (empty($full_name)) $errors[] = 'Nama lengkap wajib diisi!';
         if (strlen($password) < 6) $errors[] = 'Password minimal 6 karakter!';
-        if (empty($role_name)) $errors[] = 'Akses User wajib dipilih!';
+        if (empty($role_name)) $errors[] = 'Divisi wajib dipilih!';
         
         // Cek username/email sudah ada
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
@@ -81,8 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (empty($errors)) {
             $hash = hashPassword($password);
-            $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, full_name, phone, role, access_level, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$username, $email, $hash, $full_name, $phone, $role_name, $role_name, $is_active]);
+            $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, full_name, phone, role, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$username, $email, $hash, $full_name, $phone, $role_name, $is_active]);
             
             setFlash('User berhasil ditambahkan!', 'success');
             redirect('data_user.php');
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($username)) $errors[] = 'Username wajib diisi!';
         if (empty($email)) $errors[] = 'Email wajib diisi!';
         if (empty($full_name)) $errors[] = 'Nama lengkap wajib diisi!';
-        if (empty($role_name)) $errors[] = 'Akses User wajib dipilih!';
+        if (empty($role_name)) $errors[] = 'Divisi wajib dipilih!';
         
         // Cek username/email sudah ada (kecuali dirinya sendiri)
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE (username = ? OR email = ?) AND id != ?");
@@ -124,11 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Update user
             if (!empty($password)) {
                 $hash = hashPassword($password);
-                $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, full_name = ?, phone = ?, role = ?, access_level = ?, is_active = ? WHERE id = ?");
-                $stmt->execute([$username, $email, $hash, $full_name, $phone, $role_name, $role_name, $is_active, $id]);
+                $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, full_name = ?, phone = ?, role = ?, is_active = ? WHERE id = ?");
+                $stmt->execute([$username, $email, $hash, $full_name, $phone, $role_name, $is_active, $id]);
             } else {
-                $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, role = ?, access_level = ?, is_active = ? WHERE id = ?");
-                $stmt->execute([$username, $email, $full_name, $phone, $role_name, $role_name, $is_active, $id]);
+                $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, role = ?, is_active = ? WHERE id = ?");
+                $stmt->execute([$username, $email, $full_name, $phone, $role_name, $is_active, $id]);
             }
             
             setFlash('User berhasil diupdate!', 'success');
@@ -935,7 +935,7 @@ if (isset($_GET['edit'])) {
         <div class="welcome-banner">
             <div class="welcome-text">
                 <div class="greeting">Data User</div>
-                <h3>Kelola Akses & User</h3>
+                <h3>Kelola User & Permission</h3>
             </div>
             <i class="fas fa-users welcome-icon"></i>
         </div>
@@ -971,7 +971,7 @@ if (isset($_GET['edit'])) {
                                 <th>Nama Lengkap</th>
                                 <th>Email</th>
                                 <th>No HP</th>
-                                <th>Akses</th>
+                                <th>Divisi</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -1113,9 +1113,9 @@ if (isset($_GET['edit'])) {
                                 <small class="text-muted" id="passwordHint">Minimal 6 karakter</small>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Akses User <span class="text-danger">*</span></label>
+                                <label class="form-label">Divisi <span class="text-danger">*</span></label>
                                 <select name="role_name" id="role_name" class="form-select" required>
-                                    <option value="">Pilih Akses</option>
+                                    <option value="">Pilih Divisi</option>
                                     <option value="it_support">IT Support</option>
                                     <option value="admin">Admin</option>
                                     <option value="business">Business</option>
@@ -1265,7 +1265,7 @@ if (isset($_GET['edit'])) {
                 .then(data => {
                     var html = '';
                     if (data.modules && data.modules.length > 0) {
-                        html = '<p class="text-muted mb-3">Atur akses menu utama untuk role <strong>' + data.role + '</strong></p>';
+                        html = '<p class="text-muted mb-3">Atur akses menu utama untuk divisi <strong>' + data.role + '</strong></p>';
                         html += '<p class="text-warning small"><i class="fas fa-info-circle"></i> Centang menu yang ingin ditampilkan di dashboard</p>';
                         html += '<div class="table-responsive">';
                         html += '<table class="table table-bordered table-sm">';
