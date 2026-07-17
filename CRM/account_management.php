@@ -16,7 +16,7 @@ requirePermission('account_management', 'view');
 // CEK ROLE DIREKTUR (untuk akses penuh)
 // ============================================
 $userRole = $_SESSION['role'] ?? 'user';
-$direkturRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional'];
+$direkturRoles = ['direktur_utama', 'direktur_sales']; // DIREKTUR OPERASIONAL DIHAPUS DARI SINI
 $isDirektur = in_array($userRole, $direkturRoles);
 
 // ============================================
@@ -36,6 +36,11 @@ function getRoleLabel($role) {
     ];
     return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
 }
+
+// ============================================
+// CEK APAKAH USER ADALAH DIREKTUR OPERASIONAL
+// ============================================
+$isDirekturOperasional = ($userRole === 'direktur_operasional');
 
 // ============================================
 // EXPORT TO EXCEL
@@ -141,9 +146,9 @@ $where = "WHERE 1=1";
 $params = [];
 
 // Filter berdasarkan role
-// - IT Support, Admin, dan semua Direktur bisa melihat semua data
+// - IT Support, Admin, dan semua Direktur (termasuk operasional) bisa melihat semua data
 // - Sales hanya bisa melihat data miliknya sendiri
-if ($userRole !== 'it_support' && $userRole !== 'admin' && !$isDirektur) {
+if ($userRole !== 'it_support' && $userRole !== 'admin' && !in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'])) {
     $where .= " AND a.sales_id = ?";
     $params[] = $userId;
 }
@@ -173,7 +178,7 @@ $accounts = $stmt->fetchAll();
 $statWhere = "WHERE 1=1";
 $statParams = [];
 
-if ($userRole !== 'it_support' && $userRole !== 'admin' && !$isDirektur) {
+if ($userRole !== 'it_support' && $userRole !== 'admin' && !in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'])) {
     $statWhere .= " AND sales_id = ?";
     $statParams[] = $userId;
 }
@@ -221,7 +226,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
-        // Cek permission tambah - SALES, DIREKTUR, dan yang punya permission bisa
+        // Cek permission tambah - SALES, DIREKTUR UTAMA & SALES, dan yang punya permission bisa
+        // DIREKTUR OPERASIONAL TIDAK BISA TAMBAH
         if ($userRole !== 'sales' && !$isDirektur && !canAdd('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menambah account!', 'danger');
             redirect('account_management.php');
@@ -286,7 +292,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
-        // Cek permission edit - DIREKTUR dan IT SUPPORT & ADMIN bisa edit
+        // Cek permission edit - DIREKTUR UTAMA & SALES, dan IT SUPPORT & ADMIN bisa edit
+        // DIREKTUR OPERASIONAL TIDAK BISA EDIT
         if (!$isDirektur && !canEdit('account_management')) {
             setFlash('Anda tidak memiliki akses untuk mengedit account!', 'danger');
             redirect('account_management.php');
@@ -349,7 +356,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        // Cek permission delete - DIREKTUR dan IT SUPPORT & ADMIN bisa hapus
+        // Cek permission delete - DIREKTUR UTAMA & SALES, dan IT SUPPORT & ADMIN bisa hapus
+        // DIREKTUR OPERASIONAL TIDAK BISA HAPUS
         if (!$isDirektur && !canDelete('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menghapus account!', 'danger');
             redirect('account_management.php');
@@ -1344,7 +1352,8 @@ if (isset($_GET['detail'])) {
                     <a href="account_management.php?export=excel" class="btn btn-sm btn-success-custom">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </a>
-                    <!-- Tombol Tambah - Sales, Direktur, dan yang punya permission bisa -->
+                    <!-- Tombol Tambah - Sales, Direktur Utama & Sales, dan yang punya permission bisa -->
+                    <!-- DIREKTUR OPERASIONAL TIDAK BISA TAMBAH -->
                     <?php if ($userRole === 'sales' || $isDirektur || canAdd('account_management')): ?>
                         <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
                             <i class="fas fa-plus"></i> Tambah
@@ -1411,14 +1420,16 @@ if (isset($_GET['detail'])) {
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
-                                                <!-- Edit - DIREKTUR, IT SUPPORT & ADMIN -->
+                                                <!-- Edit - DIREKTUR UTAMA & SALES, IT SUPPORT & ADMIN -->
+                                                <!-- DIREKTUR OPERASIONAL TIDAK BISA EDIT -->
                                                 <?php if ($isDirektur || canEdit('account_management')): ?>
                                                     <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 <?php endif; ?>
                                                 
-                                                <!-- Delete - DIREKTUR, IT SUPPORT & ADMIN -->
+                                                <!-- Delete - DIREKTUR UTAMA & SALES, IT SUPPORT & ADMIN -->
+                                                <!-- DIREKTUR OPERASIONAL TIDAK BISA HAPUS -->
                                                 <?php if ($isDirektur || canDelete('account_management')): ?>
                                                     <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
