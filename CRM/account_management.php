@@ -179,10 +179,19 @@ $leadWebsite = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_s
 $leadWebsite->execute($statParams);
 $leadWebsite = $leadWebsite->fetchColumn();
 
-// Ambil data sales dari tabel users (role = 'sales')
-$salesUsers = $db->query("SELECT id, username, full_name, email FROM users WHERE role = 'sales' ORDER BY full_name")->fetchAll();
+// ============================================
+// AMBIL DATA SALES DAN DIREKTUR UNTUK DROPDOWN
+// ============================================
+// Ambil data sales dan direktur dari tabel users
+// - Role 'sales' dan semua role yang mengandung 'direktur'
+$salesUsers = $db->query("
+    SELECT id, username, full_name, email, role 
+    FROM users 
+    WHERE role = 'sales' OR role LIKE 'direktur%' 
+    ORDER BY role, full_name
+")->fetchAll();
 
-// Cek apakah ada sales
+// Cek apakah ada sales/direktur
 $hasSales = count($salesUsers) > 0;
 
 $fullName = $_SESSION['full_name'] ?? 'User';
@@ -1537,19 +1546,34 @@ if (isset($_GET['detail'])) {
                                     <!-- Sales otomatis ditetapkan -->
                                     <input type="hidden" name="sales_id" value="<?= $userId ?>">
                                     <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" disabled>
+                                    <small class="text-muted">Sales otomatis sesuai akun Anda</small>
                                 <?php else: ?>
                                     <select name="sales_id" id="sales_id" class="form-select">
-                                        <option value="">-- Pilih Sales --</option>
-                                        <?php foreach ($salesUsers as $sales): ?>
-                                            <option value="<?= $sales['id'] ?>">
-                                                <?= htmlspecialchars($sales['full_name']) ?> (<?= htmlspecialchars($sales['username']) ?>)
-                                            </option>
+                                        <option value="">-- Pilih Sales / Direktur --</option>
+                                        <?php 
+                                        // Kelompokkan berdasarkan role
+                                        $groupedUsers = [];
+                                        foreach ($salesUsers as $u) {
+                                            $roleLabel = ucfirst(str_replace('_', ' ', $u['role']));
+                                            if (!isset($groupedUsers[$roleLabel])) {
+                                                $groupedUsers[$roleLabel] = [];
+                                            }
+                                            $groupedUsers[$roleLabel][] = $u;
+                                        }
+                                        foreach ($groupedUsers as $groupLabel => $users): ?>
+                                            <optgroup label="<?= htmlspecialchars($groupLabel) ?>">
+                                                <?php foreach ($users as $u): ?>
+                                                    <option value="<?= $u['id'] ?>">
+                                                        <?= htmlspecialchars($u['full_name']) ?> (<?= htmlspecialchars($u['username']) ?>)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
                                         <?php endforeach; ?>
                                     </select>
                                     <?php if (!$hasSales): ?>
                                         <small class="text-warning">
-                                            <i class="fas fa-exclamation-triangle"></i> Belum ada data Sales. 
-                                            <a href="data_user.php" target="_blank">Tambah Sales di Data User</a>
+                                            <i class="fas fa-exclamation-triangle"></i> Belum ada data Sales atau Direktur. 
+                                            <a href="data_user.php" target="_blank">Tambah di Data User</a>
                                         </small>
                                     <?php endif; ?>
                                 <?php endif; ?>
