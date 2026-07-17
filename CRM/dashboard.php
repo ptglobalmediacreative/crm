@@ -1031,8 +1031,9 @@ $bannerExists = file_exists($bannerPath);
             <h5><i class="fas fa-th-large"></i>Menu Utama</h5>
             
             <?php 
-            // Cek apakah ada menu yang di-hide (untuk toggle "Lainnya")
+            // Menu yang akan disembunyikan di tombol "Lainnya"
             $hiddenMenus = ['data_user', 'data_sales'];
+            // Cek apakah ada menu yang user punya akses dan termasuk dalam hiddenMenus
             $hasHidden = count(array_intersect($hiddenMenus, $menuNames)) > 0;
             ?>
             <?php if ($hasHidden): ?>

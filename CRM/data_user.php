@@ -36,7 +36,7 @@ $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Get data
+// Get data - TANPA access_level
 $sql = "SELECT id, username, email, full_name, phone, role, is_active, created_at FROM users $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
@@ -81,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (empty($errors)) {
             $hash = hashPassword($password);
+            // INSERT - TANPA access_level
             $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, full_name, phone, role, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$username, $email, $hash, $full_name, $phone, $role_name, $is_active]);
             
@@ -121,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            // Update user
+            // Update user - TANPA access_level
             if (!empty($password)) {
                 $hash = hashPassword($password);
                 $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, full_name = ?, phone = ?, role = ?, is_active = ? WHERE id = ?");
@@ -186,7 +187,6 @@ if (isset($_GET['edit'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        /* ===== SEMUA STYLE SAMA SEPERTI SEBELUMNYA ===== */
         * {
             margin: 0;
             padding: 0;
