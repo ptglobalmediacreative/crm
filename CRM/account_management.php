@@ -141,11 +141,37 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $accounts = $stmt->fetchAll();
 
-// Ambil data untuk statistik
-$totalAccounts = $db->query("SELECT COUNT(*) FROM accounts")->fetchColumn();
+// ============================================
+// STATISTIK - HANYA DATA YANG BISA DILIHAT USER
+// ============================================
+// Build where untuk statistik
+$statWhere = "WHERE 1=1";
+$statParams = [];
 
-// Ambil data lead source
-$leadStats = $db->query("SELECT lead_source, COUNT(*) as total FROM accounts GROUP BY lead_source")->fetchAll();
+if ($userRole !== 'it_support' && $userRole !== 'admin') {
+    $statWhere .= " AND sales_id = ?";
+    $statParams[] = $userId;
+}
+
+// Total Account
+$totalAccounts = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere");
+$totalAccounts->execute($statParams);
+$totalAccounts = $totalAccounts->fetchColumn();
+
+// Lead Call
+$leadCall = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_source = 'Call'");
+$leadCall->execute($statParams);
+$leadCall = $leadCall->fetchColumn();
+
+// Lead Chat
+$leadChat = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_source = 'Chat'");
+$leadChat->execute($statParams);
+$leadChat = $leadChat->fetchColumn();
+
+// Lead Website
+$leadWebsite = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_source = 'Website'");
+$leadWebsite->execute($statParams);
+$leadWebsite = $leadWebsite->fetchColumn();
 
 // Ambil data sales dari tabel users (role = 'sales')
 $salesUsers = $db->query("SELECT id, username, full_name, email FROM users WHERE role = 'sales' ORDER BY full_name")->fetchAll();
@@ -176,7 +202,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $email_pic = bersihkan($_POST['email_pic']);
         $lead_source = bersihkan($_POST['lead_source']);
         $bidang_usaha = bersihkan($_POST['bidang_usaha']);
-        $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
+        
+        // Jika user adalah sales, otomatis sales_id = user_id
+        if ($userRole === 'sales') {
+            $sales_id = $userId;
+        } else {
+            $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
+        }
+        
         $npwp_file = '';
         
         // Validasi
@@ -219,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
-        // Cek permission edit
+        // Cek permission edit - SALES TIDAK BISA EDIT
         if (!canEdit('account_management')) {
             setFlash('Anda tidak memiliki akses untuk mengedit account!', 'danger');
             redirect('account_management.php');
@@ -282,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        // Cek permission delete
+        // Cek permission delete - SALES TIDAK BISA HAPUS
         if (!canDelete('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menghapus account!', 'danger');
             redirect('account_management.php');
@@ -1206,7 +1239,7 @@ if (isset($_GET['detail'])) {
             <i class="fas fa-building welcome-icon"></i>
         </div>
 
-        <!-- STATISTIK -->
+        <!-- STATISTIK - HANYA DATA YANG BISA DILIHAT -->
         <div class="row g-3 mb-4">
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
@@ -1220,7 +1253,7 @@ if (isset($_GET['detail'])) {
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM accounts WHERE lead_source = 'Call'")->fetchColumn()) ?></div>
+                        <div class="stat-number"><?= number_format($leadCall) ?></div>
                         <div class="stat-label">Lead Call</div>
                     </div>
                     <div class="stat-icon"><i class="fas fa-phone"></i></div>
@@ -1229,7 +1262,7 @@ if (isset($_GET['detail'])) {
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM accounts WHERE lead_source = 'Chat'")->fetchColumn()) ?></div>
+                        <div class="stat-number"><?= number_format($leadChat) ?></div>
                         <div class="stat-label">Lead Chat</div>
                     </div>
                     <div class="stat-icon"><i class="fas fa-comment"></i></div>
@@ -1238,7 +1271,7 @@ if (isset($_GET['detail'])) {
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM accounts WHERE lead_source = 'Website'")->fetchColumn()) ?></div>
+                        <div class="stat-number"><?= number_format($leadWebsite) ?></div>
                         <div class="stat-label">Lead Website</div>
                     </div>
                     <div class="stat-icon"><i class="fas fa-globe"></i></div>
@@ -1322,14 +1355,19 @@ if (isset($_GET['detail'])) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
+                                                <!-- Detail - SEMUA USER BISA -->
                                                 <button class="btn-action detail" onclick="detailAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                                
+                                                <!-- Edit - HANYA IT SUPPORT & ADMIN -->
                                                 <?php if (canEdit('account_management')): ?>
                                                     <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 <?php endif; ?>
+                                                
+                                                <!-- Delete - HANYA IT SUPPORT & ADMIN -->
                                                 <?php if (canDelete('account_management')): ?>
                                                     <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -1466,19 +1504,26 @@ if (isset($_GET['detail'])) {
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Input Sales <span class="optional">(Optional)</span></label>
-                                <select name="sales_id" id="sales_id" class="form-select">
-                                    <option value="">-- Pilih Sales --</option>
-                                    <?php foreach ($salesUsers as $sales): ?>
-                                        <option value="<?= $sales['id'] ?>">
-                                            <?= htmlspecialchars($sales['full_name']) ?> (<?= htmlspecialchars($sales['username']) ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <?php if (!$hasSales): ?>
-                                    <small class="text-warning">
-                                        <i class="fas fa-exclamation-triangle"></i> Belum ada data Sales. 
-                                        <a href="data_user.php" target="_blank">Tambah Sales di Data User</a>
-                                    </small>
+                                <?php if ($userRole === 'sales'): ?>
+                                    <!-- Sales otomatis ditetapkan -->
+                                    <input type="hidden" name="sales_id" value="<?= $userId ?>">
+                                    <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" disabled>
+                                    <small class="text-muted">Sales otomatis sesuai akun Anda</small>
+                                <?php else: ?>
+                                    <select name="sales_id" id="sales_id" class="form-select">
+                                        <option value="">-- Pilih Sales --</option>
+                                        <?php foreach ($salesUsers as $sales): ?>
+                                            <option value="<?= $sales['id'] ?>">
+                                                <?= htmlspecialchars($sales['full_name']) ?> (<?= htmlspecialchars($sales['username']) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php if (!$hasSales): ?>
+                                        <small class="text-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> Belum ada data Sales. 
+                                            <a href="data_user.php" target="_blank">Tambah Sales di Data User</a>
+                                        </small>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </div>
