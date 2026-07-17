@@ -24,6 +24,24 @@ $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 $username = $_SESSION['username'] ?? '';
 
+// ============================================
+// FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
+// ============================================
+function getRoleLabel($role) {
+    $roleLabels = [
+        'it_support' => 'IT Support',
+        'admin' => 'Admin',
+        'finance' => 'Finance',
+        'direktur_utama' => 'Direktur Utama',
+        'direktur_operasional' => 'Direktur Operasional',
+        'direktur_sales' => 'Direktur Sales',
+        'business' => 'Business',
+        'sales_manager' => 'Sales Manager',
+        'sales' => 'Sales'
+    ];
+    return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+}
+
 // Cek banner
 $bannerPath = 'images/banner.png';
 $bannerExists = file_exists($bannerPath);
@@ -964,7 +982,7 @@ $bannerExists = file_exists($bannerPath);
             </div>
             <div class="user-info">
                 <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= ucfirst($role) ?></div>
+                <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
             <a href="logout.php" class="user-avatar">
                 <?= strtoupper(substr($fullName, 0, 1)) ?>
@@ -1009,6 +1027,9 @@ $bannerExists = file_exists($bannerPath);
             <div class="welcome-text">
                 <div class="greeting">Selamat Datang,</div>
                 <h3><?= htmlspecialchars($fullName) ?></h3>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px;">
+                    <i class="fas fa-briefcase"></i> <?= getRoleLabel($role) ?>
+                </div>
             </div>
         </div>
 
