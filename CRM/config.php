@@ -210,28 +210,29 @@ function canManageUser() {
 }
 
 // ============================================
-// AMBIL MENU YANG BOLEH DIAKSES USER
+// AMBIL MENU YANG BOLEH DIAKSES USER (HANYA MENU UTAMA)
 // ============================================
 function getUserMenus() {
     global $db;
     
     if (!isLoggedIn()) return [];
     
-    $userId = $_SESSION['user_id'] ?? 0;
     $role = $_SESSION['role'] ?? 'user';
     
-    // IT Support bisa lihat semua menu
+    // IT Support bisa lihat semua menu utama
     if ($role === 'it_support') {
-        $stmt = $db->query("SELECT * FROM modules WHERE is_active = 1 ORDER BY module_order");
+        $stmt = $db->query("SELECT * FROM modules WHERE is_main_menu = 1 AND is_active = 1 ORDER BY module_order");
         return $stmt->fetchAll();
     }
     
-    // Ambil permission berdasarkan role user
-    // Permission disimpan per role di tabel permissions
+    // Ambil permission berdasarkan role user (HANYA menu utama)
     $stmt = $db->prepare("
         SELECT m.* FROM modules m
         JOIN permissions p ON p.module_id = m.id
-        WHERE p.role_name = ? AND p.can_view = 1 AND m.is_active = 1
+        WHERE p.role_name = ? 
+        AND p.can_view = 1 
+        AND m.is_main_menu = 1 
+        AND m.is_active = 1
         ORDER BY m.module_order
     ");
     $stmt->execute([$role]);

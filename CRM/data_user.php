@@ -1145,13 +1145,13 @@ if (isset($_GET['edit'])) {
     </div>
 
     <!-- ============================================
-    MODAL PERMISSION - DIPERBAIKI
+    MODAL PERMISSION - HANYA MENU UTAMA
     ============================================ -->
     <div class="modal fade" id="modalPermission" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-lock" style="color:#ffd700;"></i> Atur Permission</h5>
+                    <h5 class="modal-title"><i class="fas fa-lock" style="color:#ffd700;"></i> Atur Akses Menu Utama</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="permissionBody">
@@ -1265,24 +1265,23 @@ if (isset($_GET['edit'])) {
                 .then(data => {
                     var html = '';
                     if (data.modules && data.modules.length > 0) {
-                        html = '<p class="text-muted mb-3">Atur akses untuk role <strong>' + data.role + '</strong></p>';
-                        html += '<p class="text-warning small"><i class="fas fa-info-circle"></i> Perubahan akan berlaku untuk SEMUA user dengan role yang sama</p>';
+                        html = '<p class="text-muted mb-3">Atur akses menu utama untuk role <strong>' + data.role + '</strong></p>';
+                        html += '<p class="text-warning small"><i class="fas fa-info-circle"></i> Centang menu yang ingin ditampilkan di dashboard</p>';
                         html += '<div class="table-responsive">';
                         html += '<table class="table table-bordered table-sm">';
-                        html += '<thead><tr><th>Menu</th><th>Lihat</th><th>Tambah</th><th>Edit</th><th>Hapus</th></tr></thead>';
+                        html += '<thead><tr><th>Menu Utama</th><th>Tampil di Dashboard</th></tr></thead>';
                         html += '<tbody>';
                         data.modules.forEach(function(module) {
                             html += '<tr>';
-                            html += '<td>' + module.module_label + '</td>';
-                            html += '<td><input type="checkbox" class="perm-check" data-module="' + module.module_name + '" data-perm="view" ' + (module.can_view ? 'checked' : '') + '></td>';
-                            html += '<td><input type="checkbox" class="perm-check" data-module="' + module.module_name + '" data-perm="add" ' + (module.can_add ? 'checked' : '') + '></td>';
-                            html += '<td><input type="checkbox" class="perm-check" data-module="' + module.module_name + '" data-perm="edit" ' + (module.can_edit ? 'checked' : '') + '></td>';
-                            html += '<td><input type="checkbox" class="perm-check" data-module="' + module.module_name + '" data-perm="delete" ' + (module.can_delete ? 'checked' : '') + '></td>';
+                            html += '<td><strong>' + module.module_label + '</strong></td>';
+                            html += '<td>';
+                            html += '<input type="checkbox" class="perm-check form-check-input" data-module="' + module.module_name + '" ' + (module.can_view ? 'checked' : '') + '>';
+                            html += '</td>';
                             html += '</tr>';
                         });
                         html += '</tbody></table></div>';
                     } else {
-                        html = '<div class="text-center py-4"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><p>Belum ada data permission</p></div>';
+                        html = '<div class="text-center py-4"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><p>Belum ada data menu utama</p></div>';
                     }
                     document.getElementById('permissionBody').innerHTML = html;
                 })
@@ -1295,12 +1294,10 @@ if (isset($_GET['edit'])) {
             var permissions = [];
             document.querySelectorAll('.perm-check').forEach(function(checkbox) {
                 var module = checkbox.dataset.module;
-                var perm = checkbox.dataset.perm;
                 var checked = checkbox.checked ? 1 : 0;
-                permissions.push({module: module, perm: perm, value: checked});
+                permissions.push({module: module, value: checked});
             });
             
-            // Kirim role_name, bukan user_id
             fetch('api/save_permission.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1315,6 +1312,8 @@ if (isset($_GET['edit'])) {
                     alert('Permission berhasil disimpan!');
                     var modal = bootstrap.Modal.getInstance(document.getElementById('modalPermission'));
                     modal.hide();
+                    // Refresh halaman agar perubahan terlihat
+                    location.reload();
                 } else {
                     alert('Gagal menyimpan permission: ' + (data.message || 'Unknown error'));
                 }

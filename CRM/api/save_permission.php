@@ -29,21 +29,19 @@ try {
     
     foreach ($permissions as $perm) {
         $module = $perm['module'];
-        $action = $perm['perm'];
-        $value = $perm['value'];
+        $value = $perm['value']; // 1 = centang, 0 = tidak
         
-        // Cari module_id
-        $stmt = $db->prepare("SELECT id FROM modules WHERE module_name = ?");
+        // Cari module_id (hanya menu utama)
+        $stmt = $db->prepare("SELECT id FROM modules WHERE module_name = ? AND is_main_menu = 1");
         $stmt->execute([$module]);
         $moduleId = $stmt->fetchColumn();
         
         if (!$moduleId) continue;
         
-        // Update permission berdasarkan role_name
-        $field = 'can_' . $action;
+        // Update permission (hanya can_view)
         $stmt = $db->prepare("
             UPDATE permissions 
-            SET $field = ? 
+            SET can_view = ? 
             WHERE module_id = ? AND role_name = ?
         ");
         $stmt->execute([$value, $moduleId, $roleName]);

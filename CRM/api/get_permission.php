@@ -26,17 +26,16 @@ if (!$user) {
     exit;
 }
 
-// Ambil semua modules dengan permission berdasarkan ROLE user
+// Ambil HANYA menu utama (is_main_menu = 1)
 $sql = "SELECT 
             m.id, 
             m.module_name, 
             m.module_label,
-            COALESCE(p.can_view, 0) as can_view,
-            COALESCE(p.can_add, 0) as can_add,
-            COALESCE(p.can_edit, 0) as can_edit,
-            COALESCE(p.can_delete, 0) as can_delete
+            m.is_main_menu,
+            COALESCE(p.can_view, 0) as can_view
         FROM modules m
         LEFT JOIN permissions p ON p.module_id = m.id AND p.role_name = ?
+        WHERE m.is_main_menu = 1 AND m.is_active = 1
         ORDER BY m.module_order";
 
 $stmt = $db->prepare($sql);
