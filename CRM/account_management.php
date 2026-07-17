@@ -15,6 +15,7 @@ requirePermission('account_management', 'view');
 // ============================================
 // CEK ROLE DIREKTUR (untuk akses penuh)
 // ============================================
+$userRole = $_SESSION['role'] ?? 'user';
 $direkturRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional'];
 $isDirektur = in_array($userRole, $direkturRoles);
 
@@ -372,7 +373,6 @@ if (isset($_GET['detail'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        /* ===== SEMUA STYLE SAMA DENGAN SEBELUMNYA ===== */
         * {
             margin: 0;
             padding: 0;
@@ -1551,23 +1551,25 @@ if (isset($_GET['detail'])) {
                                     <select name="sales_id" id="sales_id" class="form-select">
                                         <option value="">-- Pilih Sales / Direktur --</option>
                                         <?php 
-                                        // Kelompokkan berdasarkan role
-                                        $groupedUsers = [];
-                                        foreach ($salesUsers as $u) {
-                                            $roleLabel = ucfirst(str_replace('_', ' ', $u['role']));
-                                            if (!isset($groupedUsers[$roleLabel])) {
-                                                $groupedUsers[$roleLabel] = [];
-                                            }
-                                            $groupedUsers[$roleLabel][] = $u;
-                                        }
-                                        foreach ($groupedUsers as $groupLabel => $users): ?>
-                                            <optgroup label="<?= htmlspecialchars($groupLabel) ?>">
-                                                <?php foreach ($users as $u): ?>
-                                                    <option value="<?= $u['id'] ?>">
-                                                        <?= htmlspecialchars($u['full_name']) ?> (<?= htmlspecialchars($u['username']) ?>)
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </optgroup>
+                                        // Label role untuk ditampilkan
+                                        $roleLabels = [
+                                            'it_support' => 'IT Support',
+                                            'admin' => 'Admin',
+                                            'finance' => 'Finance',
+                                            'direktur_utama' => 'Direktur Utama',
+                                            'direktur_operasional' => 'Direktur Operasional',
+                                            'direktur_sales' => 'Direktur Sales',
+                                            'business' => 'Business',
+                                            'sales_manager' => 'Sales Manager',
+                                            'sales' => 'Sales'
+                                        ];
+                                        
+                                        foreach ($salesUsers as $u): 
+                                            $roleLabel = $roleLabels[$u['role']] ?? ucfirst(str_replace('_', ' ', $u['role']));
+                                        ?>
+                                            <option value="<?= $u['id'] ?>">
+                                                <?= htmlspecialchars($u['full_name']) ?> (<?= htmlspecialchars($roleLabel) ?>)
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                     <?php if (!$hasSales): ?>
