@@ -955,7 +955,7 @@ $bannerExists = file_exists($bannerPath);
             
             <!-- Produk - hanya tampil jika user punya akses -->
             <?php if (in_array('produk', $menuNames)): ?>
-                <a href="#" class="nav-link">
+                <a href="produk.php" class="nav-link">
                     <i class="fas fa-box"></i> Produk
                 </a>
             <?php endif; ?>
@@ -1078,7 +1078,7 @@ $bannerExists = file_exists($bannerPath);
             
             <!-- Produk - hanya tampil jika user punya akses -->
             <?php if (in_array('produk', $menuNames)): ?>
-                <a href="#" class="menu-card">
+                <a href="produk.php" class="menu-card">
                     <div class="menu-icon green"><i class="fas fa-box"></i></div>
                     <div class="menu-title">Produk</div>
                     <div class="menu-sub">Kelola produk</div>
@@ -1172,7 +1172,7 @@ $bannerExists = file_exists($bannerPath);
         <?php endif; ?>
         
         <?php if (in_array('produk', $menuNames)): ?>
-            <a href="#" class="nav-item">
+            <a href="produk.php" class="nav-item">
                 <i class="fas fa-box nav-icon"></i>
                 <span class="nav-label">Produk</span>
             </a>
