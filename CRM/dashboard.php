@@ -1078,7 +1078,7 @@ $bannerExists = file_exists($bannerPath);
             
             <!-- Produk - hanya tampil jika user punya akses -->
             <?php if (in_array('produk', $menuNames)): ?>
-                <a href="#" class="menu-card">
+                <a href="produk.php" class="menu-card">
                     <div class="menu-icon green"><i class="fas fa-box"></i></div>
                     <div class="menu-title">Produk</div>
                     <div class="menu-sub">Kelola produk</div>
