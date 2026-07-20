@@ -193,10 +193,10 @@ $leadCall = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_sour
 $leadCall->execute($statParams);
 $leadCall = $leadCall->fetchColumn();
 
-// Lead Chat
-$leadChat = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_source = 'Chat'");
-$leadChat->execute($statParams);
-$leadChat = $leadChat->fetchColumn();
+// Lead Canvasing (CHAT DIGANTI JADI CANVASING)
+$leadCanvasing = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_source = 'Canvasing'");
+$leadCanvasing->execute($statParams);
+$leadCanvasing = $leadCanvasing->fetchColumn();
 
 // Lead Website
 $leadWebsite = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_source = 'Website'");
@@ -1320,10 +1320,10 @@ if (isset($_GET['detail'])) {
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="stat-number"><?= number_format($leadChat) ?></div>
-                        <div class="stat-label">Lead Chat</div>
+                        <div class="stat-number"><?= number_format($leadCanvasing) ?></div>
+                        <div class="stat-label">Lead Canvasing</div>
                     </div>
-                    <div class="stat-icon"><i class="fas fa-comment"></i></div>
+                    <div class="stat-icon"><i class="fas fa-people-arrows"></i></div>
                 </div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6">
