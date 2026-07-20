@@ -948,8 +948,8 @@ $bannerExists = file_exists($bannerPath);
             
             <!-- Sales Activity - hanya tampil jika user punya akses -->
             <?php if (in_array('sales_activity', $menuNames)): ?>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-chart-bar"></i> Sales
+                <a href="salesactivity.php" class="nav-link">
+                    <i class="fas fa-chart-bar"></i> Sales Activity
                 </a>
             <?php endif; ?>
             

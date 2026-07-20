@@ -1235,7 +1235,7 @@ if (isset($_GET['edit'])) {
     <nav class="bottom-nav">
         <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large nav-icon"></i><span class="nav-label">Home</span></a>
         <a href="account_management.php" class="nav-item"><i class="fas fa-building nav-icon"></i><span class="nav-label">Account</span></a>
-        <a href="#" class="nav-item"><i class="fas fa-chart-bar nav-icon"></i><span class="nav-label">Sales</span></a>
+        <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar nav-icon"></i><span class="nav-label">Sales Activity</span></a>
         <a href="#" class="nav-item"><i class="fas fa-box nav-icon"></i><span class="nav-label">Produk</span></a>
         <a href="#" class="nav-item"><i class="fas fa-truck nav-icon"></i><span class="nav-label">DO</span><span class="badge-nav">12</span></a>
         <a href="data_user.php" class="nav-item active"><i class="fas fa-users nav-icon"></i><span class="nav-label">User</span></a>

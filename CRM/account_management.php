@@ -1220,8 +1220,8 @@ if (isset($_GET['detail'])) {
             
             <!-- Sales Activity - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('sales_activity')): ?>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-chart-bar"></i> Sales
+                <a href="salesactivity.php" class="nav-link">
+                    <i class="fas fa-chart-bar"></i> Sales Activity
                 </a>
             <?php endif; ?>
             

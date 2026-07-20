@@ -1461,9 +1461,9 @@ if (isset($_GET['edit']) && $hasFullAccess) {
             <i class="fas fa-building nav-icon"></i>
             <span class="nav-label">Account</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="salesactivity.php" class="nav-item">
             <i class="fas fa-chart-bar nav-icon"></i>
-            <span class="nav-label">Sales</span>
+            <span class="nav-label">Sales Activity</span>
         </a>
         <a href="produk.php" class="nav-item active">
             <i class="fas fa-box nav-icon"></i>
