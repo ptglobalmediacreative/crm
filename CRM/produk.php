@@ -60,6 +60,13 @@ function getRoleLabel($role) {
 }
 
 // ============================================
+// CEK USER YANG BISA AKSES PENUH (INPUT, EDIT, DELETE, DETAIL)
+// ============================================
+$fullAccessRoles = ['finance', 'business', 'it_support', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
+$userRole = $_SESSION['role'] ?? 'user';
+$hasFullAccess = in_array($userRole, $fullAccessRoles);
+
+// ============================================
 // EXPORT TO EXCEL
 // ============================================
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
@@ -171,9 +178,15 @@ $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 $userId = $_SESSION['user_id'] ?? 0;
 
-// Proses tambah produk
+// Proses tambah produk (hanya untuk yang punya akses penuh)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
+    
+    // Cek apakah user punya akses penuh
+    if (!$hasFullAccess) {
+        setFlash('Anda tidak memiliki akses untuk melakukan tindakan ini!', 'danger');
+        redirect('produk.php');
+    }
     
     if ($action === 'add') {
         // Cek permission tambah
@@ -250,9 +263,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Ambil data untuk edit
+// Ambil data untuk edit (hanya untuk yang punya akses penuh)
 $editData = null;
-if (isset($_GET['edit'])) {
+if (isset($_GET['edit']) && $hasFullAccess) {
     $id = (int)$_GET['edit'];
     $stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
     $stmt->execute([$id]);
@@ -1050,6 +1063,25 @@ if (isset($_GET['edit'])) {
             font-size: 12px;
             padding: 4px 10px;
         }
+        
+        /* Badge akses penuh */
+        .badge-full-access {
+            background: rgba(46, 204, 113, 0.12);
+            color: #27ae60;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .badge-view-only {
+            background: rgba(52, 152, 219, 0.12);
+            color: #2980b9;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -1209,7 +1241,8 @@ if (isset($_GET['edit'])) {
                     <a href="produk.php?export=excel" class="btn btn-sm btn-success-custom">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </a>
-                    <?php if (canAdd('produk')): ?>
+                    <!-- Tombol Tambah - HANYA UNTUK USER DENGAN AKSES PENUH -->
+                    <?php if ($hasFullAccess && canAdd('produk')): ?>
                         <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalProduk">
                             <i class="fas fa-plus"></i> Tambah Produk
                         </button>
@@ -1225,9 +1258,15 @@ if (isset($_GET['edit'])) {
                                 <th>No</th>
                                 <th>Nama Produk</th>
                                 <th>Jumlah Stok</th>
-                                <th>Harga Tebus Dealer</th>
+                                <!-- Harga Tebus Dealer - HANYA UNTUK AKSES PENUH -->
+                                <?php if ($hasFullAccess): ?>
+                                    <th>Harga Tebus Dealer</th>
+                                <?php endif; ?>
                                 <th>Harga Jual Sales</th>
-                                <th>Aksi</th>
+                                <!-- Kolom Aksi - HANYA UNTUK AKSES PENUH -->
+                                <?php if ($hasFullAccess): ?>
+                                    <th>Aksi</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -1242,30 +1281,36 @@ if (isset($_GET['edit'])) {
                                                 <?= number_format($product['jumlah_stok']) ?>
                                             </span>
                                         </td>
-                                        <td>Rp <?= number_format($product['harga_tebus_dealer'], 0, ',', '.') ?></td>
+                                        <!-- Harga Tebus Dealer - HANYA UNTUK AKSES PENUH -->
+                                        <?php if ($hasFullAccess): ?>
+                                            <td>Rp <?= number_format($product['harga_tebus_dealer'], 0, ',', '.') ?></td>
+                                        <?php endif; ?>
                                         <td>Rp <?= number_format($product['harga_jual_sales'], 0, ',', '.') ?></td>
-                                        <td>
-                                            <div class="d-flex gap-1">
-                                                <button class="btn-action detail" onclick="detailProduk(<?= htmlspecialchars(json_encode($product)) ?>)">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <?php if (canEdit('produk')): ?>
-                                                    <button class="btn-action edit" onclick="editProduk(<?= htmlspecialchars(json_encode($product)) ?>)">
-                                                        <i class="fas fa-edit"></i>
+                                        <!-- Kolom Aksi - HANYA UNTUK AKSES PENUH -->
+                                        <?php if ($hasFullAccess): ?>
+                                            <td>
+                                                <div class="d-flex gap-1">
+                                                    <button class="btn-action detail" onclick="detailProduk(<?= htmlspecialchars(json_encode($product)) ?>)">
+                                                        <i class="fas fa-eye"></i>
                                                     </button>
-                                                <?php endif; ?>
-                                                <?php if (canDelete('produk')): ?>
-                                                    <button class="btn-action delete" onclick="deleteProduk(<?= $product['id'] ?>)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
+                                                    <?php if (canEdit('produk')): ?>
+                                                        <button class="btn-action edit" onclick="editProduk(<?= htmlspecialchars(json_encode($product)) ?>)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                    <?php if (canDelete('produk')): ?>
+                                                        <button class="btn-action delete" onclick="deleteProduk(<?= $product['id'] ?>)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">
+                                    <td colspan="<?= $hasFullAccess ? 6 : 4 ?>" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data produk
                                     </td>
                                 </tr>
@@ -1303,8 +1348,9 @@ if (isset($_GET['edit'])) {
     </main>
 
     <!-- ============================================
-    MODAL TAMBAH / EDIT PRODUK
+    MODAL TAMBAH / EDIT PRODUK - HANYA UNTUK AKSES PENUH
     ============================================ -->
+    <?php if ($hasFullAccess): ?>
     <div class="modal fade" id="modalProduk" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -1351,10 +1397,12 @@ if (isset($_GET['edit'])) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- ============================================
-    MODAL DETAIL - DIPERBAIKI DENGAN HISTORY
+    MODAL DETAIL - HANYA UNTUK AKSES PENUH
     ============================================ -->
+    <?php if ($hasFullAccess): ?>
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -1371,10 +1419,12 @@ if (isset($_GET['edit'])) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- ============================================
-    MODAL DELETE
+    MODAL DELETE - HANYA UNTUK AKSES PENUH
     ============================================ -->
+    <?php if ($hasFullAccess): ?>
     <div class="modal fade" id="modalDelete" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
@@ -1397,6 +1447,7 @@ if (isset($_GET['edit'])) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- ============================================
     BOTTOM NAVIGATION - MOBILE
