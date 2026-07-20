@@ -40,7 +40,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     header('Cache-Control: max-age=0');
     
     // Ambil semua data tanpa pagination
-    $sql = "SELECT * FROM products ORDER BY created_at DESC";
+    $sql = "SELECT p.*, u.full_name as updated_by_name 
+            FROM products p 
+            LEFT JOIN users u ON p.updated_by = u.id 
+            ORDER BY p.created_at DESC";
     $stmt = $db->prepare($sql);
     $stmt->execute();
     $allProducts = $stmt->fetchAll();
@@ -60,6 +63,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<th>Harga Tebus Dealer</th>';
     echo '<th>Harga Jual Sales</th>';
     echo '<th>Tanggal Dibuat</th>';
+    echo '<th>Terakhir Update</th>';
+    echo '<th>Diupdate Oleh</th>';
     echo '</tr>';
     echo '</thead>';
     echo '<tbody>';
@@ -73,6 +78,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         echo '<td>Rp ' . number_format($product['harga_tebus_dealer'], 0, ',', '.') . '</td>';
         echo '<td>Rp ' . number_format($product['harga_jual_sales'], 0, ',', '.') . '</td>';
         echo '<td>' . date('d-m-Y H:i', strtotime($product['created_at'])) . '</td>';
+        echo '<td>' . date('d-m-Y H:i', strtotime($product['updated_at'])) . '</td>';
+        echo '<td>' . htmlspecialchars($product['updated_by_name'] ?? '-') . '</td>';
         echo '</tr>';
     }
     
@@ -108,18 +115,32 @@ $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Get data
-$sql = "SELECT * FROM products $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+// Get data dengan join user untuk updated_by
+$sql = "SELECT p.*, u.full_name as updated_by_name 
+        FROM products p 
+        LEFT JOIN users u ON p.updated_by = u.id 
+        $where 
+        ORDER BY p.created_at DESC 
+        LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll();
 
-// Total Produk
+// ============================================
+// STATISTIK
+// ============================================
 $totalProducts = $db->query("SELECT COUNT(*) FROM products")->fetchColumn();
+$totalStok = $db->query("SELECT SUM(jumlah_stok) FROM products")->fetchColumn() ?? 0;
+
+// Produk dengan stok <= 10 (hampir habis)
+$lowStock = $db->query("SELECT COUNT(*) FROM products WHERE jumlah_stok <= 10 AND jumlah_stok > 0")->fetchColumn() ?? 0;
+
+// Produk dengan stok 0
+$emptyStock = $db->query("SELECT COUNT(*) FROM products WHERE jumlah_stok <= 0")->fetchColumn() ?? 0;
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
-$userRole = $_SESSION['role'] ?? 'user';
+$userId = $_SESSION['user_id'] ?? 0;
 
 // Proses tambah produk
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -145,8 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($harga_jual_sales < 0) $errors[] = 'Harga jual sales tidak boleh negatif!';
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO products (nama_produk, jumlah_stok, harga_tebus_dealer, harga_jual_sales) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$nama_produk, $jumlah_stok, $harga_tebus_dealer, $harga_jual_sales]);
+            $stmt = $db->prepare("INSERT INTO products (nama_produk, jumlah_stok, harga_tebus_dealer, harga_jual_sales, updated_by) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$nama_produk, $jumlah_stok, $harga_tebus_dealer, $harga_jual_sales, $userId]);
             
             setFlash('Produk berhasil ditambahkan!', 'success');
             redirect('produk.php');
@@ -175,8 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($harga_jual_sales < 0) $errors[] = 'Harga jual sales tidak boleh negatif!';
         
         if (empty($errors)) {
-            $stmt = $db->prepare("UPDATE products SET nama_produk = ?, jumlah_stok = ?, harga_tebus_dealer = ?, harga_jual_sales = ? WHERE id = ?");
-            $stmt->execute([$nama_produk, $jumlah_stok, $harga_tebus_dealer, $harga_jual_sales, $id]);
+            $stmt = $db->prepare("UPDATE products SET nama_produk = ?, jumlah_stok = ?, harga_tebus_dealer = ?, harga_jual_sales = ?, updated_by = ? WHERE id = ?");
+            $stmt->execute([$nama_produk, $jumlah_stok, $harga_tebus_dealer, $harga_jual_sales, $userId, $id]);
             
             setFlash('Produk berhasil diupdate!', 'success');
             redirect('produk.php');
@@ -970,6 +991,36 @@ if (isset($_GET['edit'])) {
         .currency-input .form-control {
             padding-left: 40px;
         }
+        
+        /* Detail Item */
+        .detail-item {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-item .detail-label {
+            font-weight: 600;
+            color: #555;
+            width: 160px;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        
+        .detail-item .detail-value {
+            color: #1a1a2e;
+            font-size: 13px;
+            word-break: break-word;
+        }
+        
+        .detail-item .detail-value .badge {
+            font-size: 12px;
+            padding: 4px 10px;
+        }
     </style>
 </head>
 <body>
@@ -1076,7 +1127,7 @@ if (isset($_GET['edit'])) {
 
         <!-- STATISTIK -->
         <div class="row g-3 mb-4">
-            <div class="col-xl-4 col-lg-4 col-md-4">
+            <div class="col-xl-3 col-lg-3 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
                         <div class="stat-number"><?= number_format($totalProducts) ?></div>
@@ -1085,13 +1136,31 @@ if (isset($_GET['edit'])) {
                     <div class="stat-icon"><i class="fas fa-box"></i></div>
                 </div>
             </div>
-            <div class="col-xl-4 col-lg-4 col-md-4">
+            <div class="col-xl-3 col-lg-3 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT SUM(jumlah_stok) FROM products")->fetchColumn() ?? 0) ?></div>
+                        <div class="stat-number"><?= number_format($totalStok) ?></div>
                         <div class="stat-label">Total Stok</div>
                     </div>
                     <div class="stat-icon"><i class="fas fa-cubes"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-3 col-md-6">
+                <div class="stat-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number"><?= number_format($lowStock) ?></div>
+                        <div class="stat-label">Stok Hampir Habis</div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle" style="color:#f39c12;"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-3 col-md-6">
+                <div class="stat-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number"><?= number_format($emptyStock) ?></div>
+                        <div class="stat-label">Stok Kosong</div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-times-circle" style="color:#d63031;"></i></div>
                 </div>
             </div>
         </div>
@@ -1128,7 +1197,7 @@ if (isset($_GET['edit'])) {
                                 <th>Nama Produk</th>
                                 <th>Jumlah Stok</th>
                                 <th>Harga Tebus Dealer</th>
-                                <th>Harga Jual</th>
+                                <th>Harga Jual Sales</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1255,7 +1324,7 @@ if (isset($_GET['edit'])) {
     </div>
 
     <!-- ============================================
-    MODAL DETAIL
+    MODAL DETAIL - DIPERBAIKI DENGAN HISTORY
     ============================================ -->
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog">
@@ -1348,8 +1417,9 @@ if (isset($_GET['edit'])) {
             });
         });
         
-        // Detail Produk
+        // Detail Produk dengan history
         function detailProduk(data) {
+            var updatedByName = data.updated_by_name || '-';
             var html = `
                 <div class="detail-item">
                     <div class="detail-label">Nama Produk</div>
@@ -1378,6 +1448,13 @@ if (isset($_GET['edit'])) {
                 <div class="detail-item">
                     <div class="detail-label">Terakhir Update</div>
                     <div class="detail-value">${new Date(data.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Diupdate Oleh</div>
+                    <div class="detail-value">
+                        <i class="fas fa-user-edit" style="color:#2980b9;"></i>
+                        ${updatedByName}
+                    </div>
                 </div>
             `;
             document.getElementById('detailBody').innerHTML = html;
