@@ -963,7 +963,7 @@ $bannerExists = file_exists($bannerPath);
             <!-- Delivery Order - hanya tampil jika user punya akses -->
             <?php if (in_array('delivery_order', $menuNames)): ?>
                 <a href="#" class="nav-link">
-                    <i class="fas fa-truck"></i> Delivery
+                    <i class="fas fa-tractor"></i> Delivery
                 </a>
             <?php endif; ?>
             
@@ -1088,7 +1088,7 @@ $bannerExists = file_exists($bannerPath);
             <!-- Delivery Order - hanya tampil jika user punya akses -->
             <?php if (in_array('delivery_order', $menuNames)): ?>
                 <a href="#" class="menu-card">
-                    <div class="menu-icon gold"><i class="fas fa-truck"></i></div>
+                    <div class="menu-icon gold"><i class="fas fa-tractor"></i></div>
                     <div class="menu-title">Delivery Order</div>
                     <div class="menu-sub">Pengiriman</div>
                 </a>
@@ -1166,7 +1166,7 @@ $bannerExists = file_exists($bannerPath);
         <?php if (in_array('sales_activity', $menuNames)): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales</span>
+                <span class="nav-label">Sales Activity</span>
                 <span class="badge-nav"><?= $salesActivity ?></span>
             </a>
         <?php endif; ?>
@@ -1180,8 +1180,8 @@ $bannerExists = file_exists($bannerPath);
         
         <?php if (in_array('delivery_order', $menuNames)): ?>
             <a href="#" class="nav-item">
-                <i class="fas fa-truck nav-icon"></i>
-                <span class="nav-label">DO</span>
+                <i class="fas fa-tractor nav-icon"></i>
+                <span class="nav-label">Delivery Order</span>
                 <span class="badge-nav">12</span>
             </a>
         <?php endif; ?>

@@ -923,7 +923,7 @@ if (isset($_GET['edit'])) {
             
             <!-- Sales Activity - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('sales_activity')): ?>
-                <a href="#" class="nav-link"><i class="fas fa-chart-bar"></i> Sales</a>
+                <a href="#" class="nav-link"><i class="fas fa-chart-bar"></i> Sales Activity</a>
             <?php endif; ?>
             
             <!-- Produk - hanya tampil jika user punya akses -->
@@ -933,7 +933,7 @@ if (isset($_GET['edit'])) {
             
             <!-- Delivery Order - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('delivery_order')): ?>
-                <a href="#" class="nav-link"><i class="fas fa-truck"></i> Delivery</a>
+                <a href="#" class="nav-link"><i class="fas fa-tractor"></i> Delivery</a>
             <?php endif; ?>
             
         </div>
@@ -1231,15 +1231,56 @@ if (isset($_GET['edit'])) {
         </div>
     </div>
 
-    <!-- BOTTOM NAVIGATION -->
+    <!-- ============================================
+    BOTTOM NAVIGATION - MOBILE
+    ============================================ -->
     <nav class="bottom-nav">
-        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large nav-icon"></i><span class="nav-label">Home</span></a>
-        <a href="account_management.php" class="nav-item"><i class="fas fa-building nav-icon"></i><span class="nav-label">Account</span></a>
-        <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar nav-icon"></i><span class="nav-label">Sales Activity</span></a>
-        <a href="#" class="nav-item"><i class="fas fa-box nav-icon"></i><span class="nav-label">Produk</span></a>
-        <a href="#" class="nav-item"><i class="fas fa-truck nav-icon"></i><span class="nav-label">DO</span><span class="badge-nav">12</span></a>
-        <a href="data_user.php" class="nav-item active"><i class="fas fa-users nav-icon"></i><span class="nav-label">User</span></a>
-        <a href="logout.php" class="nav-item"><i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i><span class="nav-label" style="color:#d63031;">Logout</span></a>
+        <a href="dashboard.php" class="nav-item active">
+            <i class="fas fa-th-large nav-icon"></i>
+            <span class="nav-label">Home</span>
+        </a>
+        
+        <?php if (in_array('account_management', $menuNames)): ?>
+            <a href="account_management.php" class="nav-item">
+                <i class="fas fa-building nav-icon"></i>
+                <span class="nav-label">Account</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('sales_activity', $menuNames)): ?>
+            <a href="#" class="nav-item">
+                <i class="fas fa-chart-bar nav-icon"></i>
+                <span class="nav-label">Sales Activity</span>
+                <span class="badge-nav"><?= $salesActivity ?></span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('produk', $menuNames)): ?>
+            <a href="produk.php" class="nav-item">
+                <i class="fas fa-box nav-icon"></i>
+                <span class="nav-label">Produk</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('delivery_order', $menuNames)): ?>
+            <a href="#" class="nav-item">
+                <i class="fas fa-tractor nav-icon"></i>
+                <span class="nav-label">Delivery Order</span>
+                <span class="badge-nav">12</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (in_array('data_user', $menuNames)): ?>
+            <a href="data_user.php" class="nav-item">
+                <i class="fas fa-users nav-icon"></i>
+                <span class="nav-label">User</span>
+            </a>
+        <?php endif; ?>
+        
+        <a href="logout.php" class="nav-item">
+            <i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i>
+            <span class="nav-label" style="color:#d63031;">Logout</span>
+        </a>
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
