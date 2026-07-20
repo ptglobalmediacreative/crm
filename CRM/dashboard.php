@@ -78,18 +78,17 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           TOP HEADER - MOBILE
+           TOP HEADER - MOBILE (SAMA DENGAN ACCOUNT MANAGEMENT)
            ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 10px 16px;
+            padding: 10px 20px;
             position: sticky;
             top: 0;
             z-index: 100;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: 52px;
         }
         
         .top-header .header-left {
@@ -99,8 +98,8 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .top-header .header-left .logo-wrapper {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -115,7 +114,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .top-header .header-left .brand-text .brand-name {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #fff;
             line-height: 1.2;
@@ -135,13 +134,13 @@ $bannerExists = file_exists($bannerPath);
         .top-header .header-right {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
         
         .top-header .header-right .notif-icon {
             position: relative;
             color: rgba(255, 255, 255, 0.6);
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
         }
         
@@ -151,7 +150,7 @@ $bannerExists = file_exists($bannerPath);
             right: -6px;
             background: #d63031;
             color: #fff;
-            font-size: 9px;
+            font-size: 8px;
             padding: 1px 5px;
             border-radius: 50%;
             min-width: 16px;
@@ -159,8 +158,8 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .top-header .header-right .user-avatar {
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.2);
             display: flex;
@@ -168,7 +167,7 @@ $bannerExists = file_exists($bannerPath);
             justify-content: center;
             color: #ffd700;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 13px;
             text-decoration: none;
             border: 2px solid rgba(255, 215, 0, 0.2);
             transition: border-color 0.3s ease;
@@ -474,7 +473,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           BOTTOM NAVIGATION - MOBILE
+           BOTTOM NAVIGATION - MOBILE (SAMA DENGAN ACCOUNT MANAGEMENT)
            ============================================ */
         .bottom-nav {
             position: fixed;
@@ -483,13 +482,12 @@ $bannerExists = file_exists($bannerPath);
             right: 0;
             background: #ffffff;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 6px 0 env(safe-area-inset-bottom);
+            padding: 5px 0 env(safe-area-inset-bottom);
             z-index: 999;
             display: flex;
             justify-content: space-around;
             align-items: center;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
-            min-height: 56px;
         }
         
         .bottom-nav .nav-item {
@@ -497,21 +495,21 @@ $bannerExists = file_exists($bannerPath);
             flex-direction: column;
             align-items: center;
             text-decoration: none;
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 8px;
             transition: all 0.3s ease;
             position: relative;
-            min-width: 48px;
+            min-width: 45px;
         }
         
         .bottom-nav .nav-item .nav-icon {
-            font-size: 19px;
+            font-size: 17px;
             color: #999;
             transition: all 0.3s ease;
         }
         
         .bottom-nav .nav-item .nav-label {
-            font-size: 9px;
+            font-size: 8px;
             color: #999;
             font-weight: 500;
             margin-top: 2px;
@@ -533,7 +531,7 @@ $bannerExists = file_exists($bannerPath);
             top: -2px;
             left: 50%;
             transform: translateX(-50%);
-            width: 20px;
+            width: 18px;
             height: 2px;
             background: #ffd700;
             border-radius: 0 0 2px 2px;
@@ -545,10 +543,10 @@ $bannerExists = file_exists($bannerPath);
             right: -2px;
             background: #d63031;
             color: #fff;
-            font-size: 8px;
+            font-size: 7px;
             padding: 1px 5px;
             border-radius: 50%;
-            min-width: 16px;
+            min-width: 15px;
             text-align: center;
         }
         
@@ -557,7 +555,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           DESKTOP NAVBAR
+           DESKTOP NAVBAR (SAMA DENGAN ACCOUNT MANAGEMENT)
            ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -568,19 +566,18 @@ $bannerExists = file_exists($bannerPath);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: 64px;
         }
         
         .desktop-nav-wrapper .brand-section {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             padding: 10px 0;
         }
         
         .desktop-nav-wrapper .brand-section .logo-wrapper {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -595,7 +592,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .desktop-nav-wrapper .brand-section .brand-text .brand-name {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             color: #fff;
             line-height: 1.2;
@@ -606,7 +603,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .desktop-nav-wrapper .brand-section .brand-text .brand-sub {
-            font-size: 9px;
+            font-size: 8px;
             color: rgba(255, 255, 255, 0.4);
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -615,17 +612,17 @@ $bannerExists = file_exists($bannerPath);
         .desktop-nav-wrapper .desktop-menu {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
         
         .desktop-nav-wrapper .desktop-menu .nav-link {
             color: rgba(255, 255, 255, 0.6);
-            padding: 8px 18px;
+            padding: 8px 16px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             border-radius: 8px;
             transition: all 0.3s ease;
@@ -642,19 +639,19 @@ $bannerExists = file_exists($bannerPath);
         }
         
         .desktop-nav-wrapper .desktop-menu .nav-link i {
-            font-size: 15px;
+            font-size: 14px;
         }
         
         .desktop-nav-wrapper .nav-right {
             display: flex;
             align-items: center;
-            gap: 18px;
+            gap: 16px;
         }
         
         .desktop-nav-wrapper .nav-right .notif-icon {
             position: relative;
             color: rgba(255, 255, 255, 0.6);
-            font-size: 18px;
+            font-size: 17px;
             cursor: pointer;
         }
         
@@ -678,18 +675,18 @@ $bannerExists = file_exists($bannerPath);
         
         .desktop-nav-wrapper .nav-right .user-info .name {
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.2;
         }
         
         .desktop-nav-wrapper .nav-right .user-info .role {
-            font-size: 11px;
+            font-size: 10px;
             color: rgba(255, 255, 255, 0.4);
         }
         
         .desktop-nav-wrapper .nav-right .user-avatar {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.2);
             display: flex;
@@ -697,7 +694,7 @@ $bannerExists = file_exists($bannerPath);
             justify-content: center;
             color: #ffd700;
             font-weight: 700;
-            font-size: 15px;
+            font-size: 14px;
             text-decoration: none;
             border: 2px solid rgba(255, 215, 0, 0.2);
             transition: border-color 0.3s ease;
@@ -709,10 +706,10 @@ $bannerExists = file_exists($bannerPath);
         
         .desktop-nav-wrapper .nav-right .logout-btn {
             color: rgba(255, 255, 255, 0.5);
-            padding: 6px 16px;
+            padding: 5px 14px;
             border-radius: 6px;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -725,7 +722,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           RESPONSIVE
+           RESPONSIVE (SAMA DENGAN ACCOUNT MANAGEMENT)
            ============================================ */
         
         @media (min-width: 769px) {
@@ -797,31 +794,6 @@ $bannerExists = file_exists($bannerPath);
             .promo-banner .banner-placeholder .banner-desc {
                 font-size: 12px;
             }
-            
-            /* Bottom nav mobile - lebih besar */
-            .bottom-nav {
-                min-height: 60px;
-                padding: 6px 0 env(safe-area-inset-bottom);
-            }
-            
-            .bottom-nav .nav-item {
-                padding: 4px 8px;
-                min-width: 44px;
-            }
-            
-            .bottom-nav .nav-item .nav-icon {
-                font-size: 20px;
-            }
-            
-            .bottom-nav .nav-item .nav-label {
-                font-size: 9px;
-            }
-            
-            .bottom-nav .nav-item .badge-nav {
-                font-size: 8px;
-                min-width: 16px;
-                padding: 1px 5px;
-            }
         }
         
         @media (max-width: 480px) {
@@ -849,57 +821,21 @@ $bannerExists = file_exists($bannerPath);
                 font-size: 9px;
             }
             
-            .top-header {
-                padding: 8px 14px;
-                min-height: 48px;
+            .bottom-nav .nav-item .nav-label {
+                font-size: 7px;
+            }
+            
+            .bottom-nav .nav-item .nav-icon {
+                font-size: 15px;
+            }
+            
+            .top-header .header-left .brand-text .brand-name {
+                font-size: 11px;
             }
             
             .top-header .header-left .logo-wrapper {
                 width: 28px;
                 height: 28px;
-            }
-            
-            .top-header .header-left .brand-text .brand-name {
-                font-size: 12px;
-            }
-            
-            .top-header .header-right .user-avatar {
-                width: 30px;
-                height: 30px;
-                font-size: 12px;
-            }
-            
-            .top-header .header-right .notif-icon {
-                font-size: 16px;
-            }
-            
-            .bottom-nav {
-                min-height: 54px;
-                padding: 4px 0 env(safe-area-inset-bottom);
-            }
-            
-            .bottom-nav .nav-item {
-                padding: 3px 6px;
-                min-width: 38px;
-            }
-            
-            .bottom-nav .nav-item .nav-icon {
-                font-size: 17px;
-            }
-            
-            .bottom-nav .nav-item .nav-label {
-                font-size: 7px;
-            }
-            
-            .bottom-nav .nav-item .badge-nav {
-                font-size: 7px;
-                min-width: 14px;
-                padding: 1px 4px;
-            }
-            
-            .bottom-nav .nav-item.active::before {
-                width: 16px;
-                height: 2px;
             }
             
             .my-activity {
@@ -973,7 +909,7 @@ $bannerExists = file_exists($bannerPath);
 <body>
 
     <!-- ============================================
-    DESKTOP NAVBAR - DIPERBESAR
+    DESKTOP NAVBAR (SAMA DENGAN ACCOUNT MANAGEMENT)
     ============================================ -->
     <div class="desktop-nav-wrapper">
         <div class="brand-section">
@@ -991,24 +927,28 @@ $bannerExists = file_exists($bannerPath);
                 <i class="fas fa-th-large"></i> Dashboard
             </a>
             
+            <!-- Account Management - hanya tampil jika user punya akses -->
             <?php if (in_array('account_management', $menuNames)): ?>
                 <a href="account_management.php" class="nav-link">
                     <i class="fas fa-building"></i> Account
                 </a>
             <?php endif; ?>
             
+            <!-- Sales Activity - hanya tampil jika user punya akses -->
             <?php if (in_array('sales_activity', $menuNames)): ?>
                 <a href="salesactivity.php" class="nav-link">
                     <i class="fas fa-chart-bar"></i> Sales Activity
                 </a>
             <?php endif; ?>
             
+            <!-- Produk - hanya tampil jika user punya akses -->
             <?php if (in_array('produk', $menuNames)): ?>
                 <a href="produk.php" class="nav-link">
                     <i class="fas fa-box"></i> Produk
                 </a>
             <?php endif; ?>
             
+            <!-- Delivery Order - hanya tampil jika user punya akses -->
             <?php if (in_array('delivery_order', $menuNames)): ?>
                 <a href="#" class="nav-link">
                     <i class="fas fa-tractor"></i> Delivery
@@ -1035,7 +975,7 @@ $bannerExists = file_exists($bannerPath);
     </div>
 
     <!-- ============================================
-    MOBILE HEADER - DIPERBESAR
+    MOBILE HEADER (SAMA DENGAN ACCOUNT MANAGEMENT)
     ============================================ -->
     <header class="top-header">
         <div class="header-left">
@@ -1093,7 +1033,9 @@ $bannerExists = file_exists($bannerPath);
             <h5><i class="fas fa-th-large"></i>Menu Utama</h5>
             
             <?php 
+            // Menu yang akan disembunyikan di tombol "Lainnya"
             $hiddenMenus = ['data_user', 'data_sales'];
+            // Cek apakah ada menu yang user punya akses dan termasuk dalam hiddenMenus
             $hasHidden = count(array_intersect($hiddenMenus, $menuNames)) > 0;
             ?>
             <?php if ($hasHidden): ?>
@@ -1103,6 +1045,7 @@ $bannerExists = file_exists($bannerPath);
 
         <!-- MENU GRID -->
         <div class="menu-grid" id="menuGrid">
+            <!-- Account Management - hanya tampil jika user punya akses -->
             <?php if (in_array('account_management', $menuNames)): ?>
                 <a href="account_management.php" class="menu-card">
                     <div class="menu-icon orange"><i class="fas fa-building"></i></div>
@@ -1111,6 +1054,7 @@ $bannerExists = file_exists($bannerPath);
                 </a>
             <?php endif; ?>
             
+            <!-- Sales Activity - hanya tampil jika user punya akses -->
             <?php if (in_array('sales_activity', $menuNames)): ?>
                 <a href="salesactivity.php" class="menu-card">
                     <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
@@ -1119,6 +1063,7 @@ $bannerExists = file_exists($bannerPath);
                 </a>
             <?php endif; ?>
             
+            <!-- Produk - hanya tampil jika user punya akses -->
             <?php if (in_array('produk', $menuNames)): ?>
                 <a href="produk.php" class="menu-card">
                     <div class="menu-icon green"><i class="fas fa-box"></i></div>
@@ -1127,6 +1072,7 @@ $bannerExists = file_exists($bannerPath);
                 </a>
             <?php endif; ?>
             
+            <!-- Delivery Order - hanya tampil jika user punya akses -->
             <?php if (in_array('delivery_order', $menuNames)): ?>
                 <a href="#" class="menu-card">
                     <div class="menu-icon gold"><i class="fas fa-tractor"></i></div>
@@ -1135,6 +1081,7 @@ $bannerExists = file_exists($bannerPath);
                 </a>
             <?php endif; ?>
             
+            <!-- Data User (Hidden) - hanya tampil jika user punya akses -->
             <?php if (in_array('data_user', $menuNames)): ?>
                 <a href="data_user.php" class="menu-card hidden-menu">
                     <div class="menu-icon purple"><i class="fas fa-users"></i></div>
@@ -1143,6 +1090,7 @@ $bannerExists = file_exists($bannerPath);
                 </a>
             <?php endif; ?>
             
+            <!-- Data Sales (Hidden) - hanya tampil jika user punya akses -->
             <?php if (in_array('data_sales', $menuNames)): ?>
                 <a href="#" class="menu-card hidden-menu">
                     <div class="menu-icon teal"><i class="fas fa-user-tie"></i></div>
@@ -1153,7 +1101,7 @@ $bannerExists = file_exists($bannerPath);
         </div>
 
         <!-- ============================================
-        MY ACTIVITY
+        MY ACTIVITY - SIMPLE SEPERTI GAMBAR
         ============================================ -->
         <?php if (in_array('sales_activity', $menuNames)): ?>
         <div class="section-title" style="margin-top: 0px;">
@@ -1187,7 +1135,7 @@ $bannerExists = file_exists($bannerPath);
     </main>
 
     <!-- ============================================
-    BOTTOM NAVIGATION - MOBILE (DIPERBESAR)
+    BOTTOM NAVIGATION - MOBILE (SAMA DENGAN ACCOUNT MANAGEMENT)
     ============================================ -->
     <nav class="bottom-nav">
         <a href="dashboard.php" class="nav-item active">
@@ -1242,6 +1190,7 @@ $bannerExists = file_exists($bannerPath);
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Toggle Menu - Show/Hide hidden menus
         const toggleMenu = document.getElementById('toggleMenu');
         const menuGrid = document.getElementById('menuGrid');
         let isMenuOpen = false;
@@ -1261,6 +1210,7 @@ $bannerExists = file_exists($bannerPath);
             });
         }
 
+        // Active state untuk bottom nav
         document.querySelectorAll('.bottom-nav .nav-item').forEach(function(item) {
             item.addEventListener('click', function(e) {
                 document.querySelectorAll('.bottom-nav .nav-item').forEach(function(el) {
