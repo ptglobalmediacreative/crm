@@ -473,7 +473,7 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           BOTTOM NAVIGATION
+           BOTTOM NAVIGATION - MOBILE
            ============================================ */
         .bottom-nav {
             position: fixed;
@@ -722,30 +722,18 @@ $bannerExists = file_exists($bannerPath);
         }
         
         /* ============================================
-           RESPONSIVE
+           RESPONSIVE - DISAMAKAN DENGAN ACCOUNT MANAGEMENT
            ============================================ */
         
-        /* Desktop */
         @media (min-width: 769px) {
-            .bottom-nav {
-                display: none !important;
-            }
-            body {
-                padding-bottom: 0;
-            }
-            .top-header {
-                display: none !important;
-            }
+            .bottom-nav { display: none !important; }
+            body { padding-bottom: 0; }
+            .top-header { display: none !important; }
         }
         
-        /* Tablet & Mobile */
         @media (max-width: 768px) {
-            .desktop-nav-wrapper {
-                display: none !important;
-            }
-            body {
-                padding-bottom: 65px;
-            }
+            .desktop-nav-wrapper { display: none !important; }
+            body { padding-bottom: 65px; }
             
             .menu-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -966,7 +954,6 @@ $bannerExists = file_exists($bannerPath);
                     <i class="fas fa-tractor"></i> Delivery
                 </a>
             <?php endif; ?>
-            
         </div>
         
         <div class="nav-right">
@@ -1022,7 +1009,7 @@ $bannerExists = file_exists($bannerPath);
                 <div class="greeting">Selamat Datang,</div>
                 <h3><?= htmlspecialchars($fullName) ?></h3>
                 <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px;">
-                    <i class=""></i> <?= getRoleLabel($role) ?>
+                    <i class="fas fa-user-tie"></i> <?= getRoleLabel($role) ?>
                 </div>
             </div>
         </div>
@@ -1069,7 +1056,7 @@ $bannerExists = file_exists($bannerPath);
             
             <!-- Sales Activity - hanya tampil jika user punya akses -->
             <?php if (in_array('sales_activity', $menuNames)): ?>
-                <a href="#" class="menu-card">
+                <a href="salesactivity.php" class="menu-card">
                     <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
                     <div class="menu-title">Sales Activity</div>
                     <div class="menu-sub">Aktivitas sales</div>
@@ -1166,7 +1153,7 @@ $bannerExists = file_exists($bannerPath);
         <?php if (in_array('sales_activity', $menuNames)): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales Activity</span>
+                <span class="nav-label">Sales</span>
                 <span class="badge-nav"><?= $salesActivity ?></span>
             </a>
         <?php endif; ?>
@@ -1181,8 +1168,7 @@ $bannerExists = file_exists($bannerPath);
         <?php if (in_array('delivery_order', $menuNames)): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">Delivery Order</span>
-                <span class="badge-nav">12</span>
+                <span class="nav-label">DO</span>
             </a>
         <?php endif; ?>
         
