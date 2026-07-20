@@ -1022,7 +1022,7 @@ $bannerExists = file_exists($bannerPath);
                 <div class="greeting">Selamat Datang,</div>
                 <h3><?= htmlspecialchars($fullName) ?></h3>
                 <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px;">
-                    <i class="fas fa-briefcase"></i> <?= getRoleLabel($role) ?>
+                    </i> <?= getRoleLabel($role) ?>
                 </div>
             </div>
         </div>
