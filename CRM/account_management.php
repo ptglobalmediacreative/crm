@@ -1644,7 +1644,7 @@ if (isset($_GET['detail'])) {
         <?php if (canAccessMenu('sales_activity')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales</span>
+                <span class="nav-label">Sales Activity</span>
             </a>
         <?php endif; ?>
         
@@ -1658,7 +1658,7 @@ if (isset($_GET['detail'])) {
         <?php if (canAccessMenu('delivery_order')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">DO</span>
+                <span class="nav-label">Delivery Order</span>
             </a>
         <?php endif; ?>
         
