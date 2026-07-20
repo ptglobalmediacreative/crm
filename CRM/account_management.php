@@ -1664,42 +1664,45 @@ if (isset($_GET['detail'])) {
     BOTTOM NAVIGATION - MOBILE
     ============================================ -->
     <nav class="bottom-nav">
-        <a href="dashboard.php" class="nav-item active">
+        <a href="dashboard.php" class="nav-item">
             <i class="fas fa-th-large nav-icon"></i>
             <span class="nav-label">Home</span>
         </a>
         
-        <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item">
+        <!-- Account Management -->
+        <?php if (canAccessMenu('account_management')): ?>
+            <a href="account_management.php" class="nav-item active">
                 <i class="fas fa-building nav-icon"></i>
                 <span class="nav-label">Account</span>
             </a>
         <?php endif; ?>
         
-        <?php if (in_array('sales_activity', $menuNames)): ?>
+        <!-- Sales Activity -->
+        <?php if (canAccessMenu('sales_activity')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales Activity</span>
-                <span class="badge-nav"><?= $salesActivity ?></span>
+                <span class="nav-label">Sales</span>
             </a>
         <?php endif; ?>
         
-        <?php if (in_array('produk', $menuNames)): ?>
+        <!-- Produk -->
+        <?php if (canAccessMenu('produk')): ?>
             <a href="produk.php" class="nav-item">
                 <i class="fas fa-box nav-icon"></i>
                 <span class="nav-label">Produk</span>
             </a>
         <?php endif; ?>
         
-        <?php if (in_array('delivery_order', $menuNames)): ?>
+        <!-- Delivery Order -->
+        <?php if (canAccessMenu('delivery_order')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">Delivery Order</span>
-                <span class="badge-nav">12</span>
+                <span class="nav-label">DO</span>
             </a>
         <?php endif; ?>
         
-        <?php if (in_array('data_user', $menuNames)): ?>
+        <!-- Data User -->
+        <?php if (canAccessMenu('data_user')): ?>
             <a href="data_user.php" class="nav-item">
                 <i class="fas fa-users nav-icon"></i>
                 <span class="nav-label">User</span>
