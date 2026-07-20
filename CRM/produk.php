@@ -13,6 +13,35 @@ if (!isLoggedIn()) {
 requirePermission('produk', 'view');
 
 // ============================================
+// CEK APAKAH TABEL PRODUCTS ADA
+// ============================================
+try {
+    $db->query("SELECT 1 FROM products LIMIT 1");
+} catch(PDOException $e) {
+    // Buat tabel jika belum ada
+    $db->exec("CREATE TABLE IF NOT EXISTS products (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        nama_produk VARCHAR(200) NOT NULL,
+        jumlah_stok INT DEFAULT 0,
+        harga_tebus_dealer DECIMAL(15,2) DEFAULT 0,
+        harga_jual_sales DECIMAL(15,2) DEFAULT 0,
+        updated_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+}
+
+// ============================================
+// CEK APAKAH KOLOM updated_by ADA
+// ============================================
+try {
+    $db->query("SELECT updated_by FROM products LIMIT 1");
+} catch(PDOException $e) {
+    // Tambahkan kolom jika belum ada
+    $db->exec("ALTER TABLE products ADD COLUMN updated_by INT NULL");
+}
+
+// ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
 function getRoleLabel($role) {
