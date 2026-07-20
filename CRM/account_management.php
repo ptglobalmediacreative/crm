@@ -1227,7 +1227,7 @@ if (isset($_GET['detail'])) {
             
             <!-- Produk - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('produk')): ?>
-                <a href="#" class="nav-link">
+                <a href="produk.php" class="nav-link">
                     <i class="fas fa-box"></i> Produk
                 </a>
             <?php endif; ?>
