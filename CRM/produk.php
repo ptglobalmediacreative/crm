@@ -1094,15 +1094,6 @@ if (isset($_GET['edit'])) {
                     <div class="stat-icon"><i class="fas fa-cubes"></i></div>
                 </div>
             </div>
-            <div class="col-xl-4 col-lg-4 col-md-4">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM products WHERE jumlah_stok <= 0")->fetchColumn() ?? 0) ?></div>
-                        <div class="stat-label">Stok Kosong</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-exclamation-triangle" style="color:#d63031;"></i></div>
-                </div>
-            </div>
         </div>
 
         <!-- TABLE -->
@@ -1137,7 +1128,7 @@ if (isset($_GET['edit'])) {
                                 <th>Nama Produk</th>
                                 <th>Jumlah Stok</th>
                                 <th>Harga Tebus Dealer</th>
-                                <th>Harga Jual Sales</th>
+                                <th>Harga Jual</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
