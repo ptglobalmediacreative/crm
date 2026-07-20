@@ -16,7 +16,7 @@ requirePermission('account_management', 'view');
 // CEK ROLE DIREKTUR (untuk akses penuh)
 // ============================================
 $userRole = $_SESSION['role'] ?? 'user';
-$direkturRoles = ['direktur_utama', 'direktur_sales']; // DIREKTUR OPERASIONAL DIHAPUS DARI SINI
+$direkturRoles = ['direktur_utama', 'direktur_sales'];
 $isDirektur = in_array($userRole, $direkturRoles);
 
 // ============================================
@@ -46,18 +46,15 @@ $isDirekturOperasional = ($userRole === 'direktur_operasional');
 // EXPORT TO EXCEL
 // ============================================
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
-    // Set header untuk download file Excel
     header('Content-Type: application/vnd.ms-excel');
     header('Content-Disposition: attachment; filename="Data_Account_' . date('Y-m-d') . '.xls"');
     header('Cache-Control: max-age=0');
     
-    // Ambil semua data tanpa pagination
     $sql = "SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id ORDER BY a.created_at DESC";
     $stmt = $db->prepare($sql);
     $stmt->execute();
     $allAccounts = $stmt->fetchAll();
     
-    // Buat tabel HTML untuk Excel
     echo '<html>';
     echo '<head><meta charset="UTF-8"></head>';
     echo '<body>';
@@ -146,8 +143,6 @@ $where = "WHERE 1=1";
 $params = [];
 
 // Filter berdasarkan role
-// - IT Support, Admin, dan semua Direktur (termasuk operasional) bisa melihat semua data
-// - Sales hanya bisa melihat data miliknya sendiri
 if ($userRole !== 'it_support' && $userRole !== 'admin' && !in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'])) {
     $where .= " AND a.sales_id = ?";
     $params[] = $userId;
@@ -174,7 +169,6 @@ $accounts = $stmt->fetchAll();
 // ============================================
 // STATISTIK - HANYA DATA YANG BISA DILIHAT USER
 // ============================================
-// Build where untuk statistik
 $statWhere = "WHERE 1=1";
 $statParams = [];
 
@@ -193,7 +187,7 @@ $leadCall = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_sour
 $leadCall->execute($statParams);
 $leadCall = $leadCall->fetchColumn();
 
-// Lead Canvasing (CHAT DIGANTI JADI CANVASING)
+// Lead Canvasing
 $leadCanvasing = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere AND lead_source = 'Canvasing'");
 $leadCanvasing->execute($statParams);
 $leadCanvasing = $leadCanvasing->fetchColumn();
@@ -206,8 +200,6 @@ $leadWebsite = $leadWebsite->fetchColumn();
 // ============================================
 // AMBIL DATA SALES DAN DIREKTUR UNTUK DROPDOWN
 // ============================================
-// Ambil data sales dan direktur dari tabel users
-// - Role 'sales' dan semua role yang mengandung 'direktur'
 $salesUsers = $db->query("
     SELECT id, username, full_name, email, role 
     FROM users 
@@ -215,7 +207,6 @@ $salesUsers = $db->query("
     ORDER BY role, full_name
 ")->fetchAll();
 
-// Cek apakah ada sales/direktur
 $hasSales = count($salesUsers) > 0;
 
 $fullName = $_SESSION['full_name'] ?? 'User';
@@ -226,8 +217,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
-        // Cek permission tambah - SALES, DIREKTUR UTAMA & SALES, dan yang punya permission bisa
-        // DIREKTUR OPERASIONAL TIDAK BISA TAMBAH
         if ($userRole !== 'sales' && !$isDirektur && !canAdd('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menambah account!', 'danger');
             redirect('account_management.php');
@@ -243,7 +232,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $lead_source = bersihkan($_POST['lead_source']);
         $bidang_usaha = bersihkan($_POST['bidang_usaha']);
         
-        // Jika user adalah sales, otomatis sales_id = user_id
         if ($userRole === 'sales') {
             $sales_id = $userId;
         } else {
@@ -252,7 +240,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $npwp_file = '';
         
-        // Validasi
         $errors = [];
         if (empty($nama_pt)) $errors[] = 'Nama PT wajib diisi!';
         if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
@@ -263,7 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
         if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
         
-        // Upload file NPWP
         if (!empty($_FILES['npwp_file']['name'])) {
             $target_dir = "uploads/npwp/";
             if (!file_exists($target_dir)) {
@@ -292,8 +278,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
-        // Cek permission edit - DIREKTUR UTAMA & SALES, dan IT SUPPORT & ADMIN bisa edit
-        // DIREKTUR OPERASIONAL TIDAK BISA EDIT
         if (!$isDirektur && !canEdit('account_management')) {
             setFlash('Anda tidak memiliki akses untuk mengedit account!', 'danger');
             redirect('account_management.php');
@@ -321,7 +305,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
         if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
         
-        // Upload file NPWP
         $npwp_file = '';
         if (!empty($_FILES['npwp_file']['name'])) {
             $target_dir = "uploads/npwp/";
@@ -356,8 +339,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        // Cek permission delete - DIREKTUR UTAMA & SALES, dan IT SUPPORT & ADMIN bisa hapus
-        // DIREKTUR OPERASIONAL TIDAK BISA HAPUS
         if (!$isDirektur && !canDelete('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menghapus account!', 'danger');
             redirect('account_management.php');
@@ -411,6 +392,9 @@ if (isset($_GET['detail'])) {
             padding-bottom: 70px;
         }
         
+        /* ============================================
+           TOP HEADER - MOBILE
+           ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 10px 20px;
@@ -508,6 +492,9 @@ if (isset($_GET['detail'])) {
             border-color: #ffd700;
         }
         
+        /* ============================================
+           WELCOME BANNER
+           ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border-radius: 12px;
@@ -542,6 +529,9 @@ if (isset($_GET['detail'])) {
             bottom: 10px;
         }
         
+        /* ============================================
+           SECTION TITLE
+           ============================================ */
         .section-title {
             display: flex;
             justify-content: space-between;
@@ -562,19 +552,9 @@ if (isset($_GET['detail'])) {
             font-size: 14px;
         }
         
-        .section-title .see-all {
-            font-size: 12px;
-            color: #888;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .section-title .see-all:hover {
-            color: #ffd700;
-        }
-        
+        /* ============================================
+           STAT CARD
+           ============================================ */
         .stat-card {
             background: #fff;
             border-radius: 12px;
@@ -606,6 +586,9 @@ if (isset($_GET['detail'])) {
             opacity: 0.15;
         }
         
+        /* ============================================
+           TABLE
+           ============================================ */
         .card-custom {
             background: #fff;
             border-radius: 12px;
@@ -715,29 +698,23 @@ if (isset($_GET['detail'])) {
             background: rgba(46, 204, 113, 0.1);
             color: #27ae60;
         }
-        
-        .btn-action.detail:hover {
-            background: rgba(46, 204, 113, 0.2);
-        }
+        .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
         
         .btn-action.edit {
             background: rgba(52, 152, 219, 0.1);
             color: #2980b9;
         }
-        
-        .btn-action.edit:hover {
-            background: rgba(52, 152, 219, 0.2);
-        }
+        .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
         
         .btn-action.delete {
             background: rgba(231, 76, 60, 0.1);
             color: #c0392b;
         }
+        .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
         
-        .btn-action.delete:hover {
-            background: rgba(231, 76, 60, 0.2);
-        }
-        
+        /* ============================================
+           MODAL
+           ============================================ */
         .modal-content {
             border: none;
             border-radius: 12px;
@@ -791,10 +768,6 @@ if (isset($_GET['detail'])) {
         .form-control:focus, .form-select:focus {
             border-color: #ffd700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-        }
-        
-        .form-control-file {
-            padding: 8px 0;
         }
         
         .btn-primary-custom {
@@ -885,20 +858,9 @@ if (isset($_GET['detail'])) {
             word-break: break-word;
         }
         
-        .detail-item .detail-value .badge-lead {
-            font-size: 11px;
-            padding: 4px 12px;
-        }
-        
-        .detail-item .detail-value a {
-            color: #2980b9;
-            text-decoration: none;
-        }
-        
-        .detail-item .detail-value a:hover {
-            text-decoration: underline;
-        }
-        
+        /* ============================================
+           BOTTOM NAVIGATION - MOBILE
+           ============================================ */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -974,6 +936,13 @@ if (isset($_GET['detail'])) {
             text-align: center;
         }
         
+        .bottom-nav .nav-item:hover .nav-icon {
+            color: #1a1a2e;
+        }
+        
+        /* ============================================
+           DESKTOP NAVBAR
+           ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 0 30px;
@@ -1138,6 +1107,10 @@ if (isset($_GET['detail'])) {
             border-color: rgba(214, 48, 49, 0.3);
         }
         
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1147,14 +1120,17 @@ if (isset($_GET['detail'])) {
         @media (max-width: 768px) {
             .desktop-nav-wrapper { display: none !important; }
             body { padding-bottom: 65px; }
+            
             .stat-card .stat-number { font-size: 20px; }
             .welcome-banner { padding: 14px 18px; }
             .welcome-banner .welcome-text h3 { font-size: 16px; }
             .welcome-banner .welcome-icon { display: none; }
             .section-title h5 { font-size: 14px; }
+            
             .table-custom { font-size: 12px; }
             .table-custom th, .table-custom td { padding: 8px 10px; }
             .card-custom .card-header-custom { padding: 12px 16px; }
+            
             .detail-item .detail-label { width: 100px; font-size: 12px; }
             .detail-item .detail-value { font-size: 12px; }
         }
@@ -1162,11 +1138,14 @@ if (isset($_GET['detail'])) {
         @media (max-width: 480px) {
             .stat-card .stat-number { font-size: 17px; }
             .stat-card { padding: 12px 14px; }
+            
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
+            
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
             .btn-action { width: 26px; height: 26px; font-size: 11px; }
+            
             .detail-item { flex-direction: column; padding: 8px 0; }
             .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
@@ -1211,34 +1190,29 @@ if (isset($_GET['detail'])) {
                 <i class="fas fa-th-large"></i> Dashboard
             </a>
             
-            <!-- Account Management - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('account_management')): ?>
                 <a href="account_management.php" class="nav-link active">
                     <i class="fas fa-building"></i> Account
                 </a>
             <?php endif; ?>
             
-            <!-- Sales Activity - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('sales_activity')): ?>
                 <a href="salesactivity.php" class="nav-link">
                     <i class="fas fa-chart-bar"></i> Sales Activity
                 </a>
             <?php endif; ?>
             
-            <!-- Produk - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('produk')): ?>
                 <a href="produk.php" class="nav-link">
                     <i class="fas fa-box"></i> Produk
                 </a>
             <?php endif; ?>
             
-            <!-- Delivery Order - hanya tampil jika user punya akses -->
             <?php if (canAccessMenu('delivery_order')): ?>
                 <a href="#" class="nav-link">
                     <i class="fas fa-tractor"></i> Delivery
                 </a>
             <?php endif; ?>
-            
         </div>
         
         <div class="nav-right">
@@ -1352,8 +1326,6 @@ if (isset($_GET['detail'])) {
                     <a href="account_management.php?export=excel" class="btn btn-sm btn-success-custom">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </a>
-                    <!-- Tombol Tambah - Sales, Direktur Utama & Sales, dan yang punya permission bisa -->
-                    <!-- DIREKTUR OPERASIONAL TIDAK BISA TAMBAH -->
                     <?php if ($userRole === 'sales' || $isDirektur || canAdd('account_management')): ?>
                         <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
                             <i class="fas fa-plus"></i> Tambah
@@ -1415,21 +1387,16 @@ if (isset($_GET['detail'])) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <!-- Detail - SEMUA USER BISA -->
                                                 <button class="btn-action detail" onclick="detailAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
-                                                <!-- Edit - DIREKTUR UTAMA & SALES, IT SUPPORT & ADMIN -->
-                                                <!-- DIREKTUR OPERASIONAL TIDAK BISA EDIT -->
                                                 <?php if ($isDirektur || canEdit('account_management')): ?>
                                                     <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 <?php endif; ?>
                                                 
-                                                <!-- Delete - DIREKTUR UTAMA & SALES, IT SUPPORT & ADMIN -->
-                                                <!-- DIREKTUR OPERASIONAL TIDAK BISA HAPUS -->
                                                 <?php if ($isDirektur || canDelete('account_management')): ?>
                                                     <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -1566,7 +1533,6 @@ if (isset($_GET['detail'])) {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Input Sales</label>
                                 <?php if ($userRole === 'sales'): ?>
-                                    <!-- Sales otomatis ditetapkan -->
                                     <input type="hidden" name="sales_id" value="<?= $userId ?>">
                                     <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" disabled>
                                     <small class="text-muted">Sales otomatis sesuai akun Anda</small>
@@ -1574,7 +1540,6 @@ if (isset($_GET['detail'])) {
                                     <select name="sales_id" id="sales_id" class="form-select">
                                         <option value="">-- Pilih Sales / Direktur --</option>
                                         <?php 
-                                        // Label role untuk ditampilkan
                                         $roleLabels = [
                                             'it_support' => 'IT Support',
                                             'admin' => 'Admin',
@@ -1669,7 +1634,6 @@ if (isset($_GET['detail'])) {
             <span class="nav-label">Home</span>
         </a>
         
-        <!-- Account Management -->
         <?php if (canAccessMenu('account_management')): ?>
             <a href="account_management.php" class="nav-item active">
                 <i class="fas fa-building nav-icon"></i>
@@ -1677,7 +1641,6 @@ if (isset($_GET['detail'])) {
             </a>
         <?php endif; ?>
         
-        <!-- Sales Activity -->
         <?php if (canAccessMenu('sales_activity')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
@@ -1685,7 +1648,6 @@ if (isset($_GET['detail'])) {
             </a>
         <?php endif; ?>
         
-        <!-- Produk -->
         <?php if (canAccessMenu('produk')): ?>
             <a href="produk.php" class="nav-item">
                 <i class="fas fa-box nav-icon"></i>
@@ -1693,7 +1655,6 @@ if (isset($_GET['detail'])) {
             </a>
         <?php endif; ?>
         
-        <!-- Delivery Order -->
         <?php if (canAccessMenu('delivery_order')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-tractor nav-icon"></i>
@@ -1701,7 +1662,6 @@ if (isset($_GET['detail'])) {
             </a>
         <?php endif; ?>
         
-        <!-- Data User -->
         <?php if (canAccessMenu('data_user')): ?>
             <a href="data_user.php" class="nav-item">
                 <i class="fas fa-users nav-icon"></i>
@@ -1720,7 +1680,6 @@ if (isset($_GET['detail'])) {
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Detail Account
         function detailAccount(data) {
             var salesName = data.sales_name || '-';
             var html = `
@@ -1786,7 +1745,6 @@ if (isset($_GET['detail'])) {
             modal.show();
         }
         
-        // Edit Account
         function editAccount(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Account';
             document.getElementById('formAction').value = 'edit';
@@ -1802,14 +1760,12 @@ if (isset($_GET['detail'])) {
             document.getElementById('bidang_usaha').value = data.bidang_usaha;
             document.getElementById('sales_id').value = data.sales_id || '';
             
-            // Hapus required pada file upload
             document.getElementById('npwp_file').required = false;
             
             var modal = new bootstrap.Modal(document.getElementById('modalAccount'));
             modal.show();
         }
         
-        // Reset form when modal closed
         document.getElementById('modalAccount').addEventListener('hidden.bs.modal', function() {
             document.getElementById('formAccount').reset();
             document.getElementById('formAction').value = 'add';
@@ -1818,7 +1774,6 @@ if (isset($_GET['detail'])) {
             document.getElementById('npwp_file').required = false;
         });
         
-        // Delete Account
         function deleteAccount(id) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
