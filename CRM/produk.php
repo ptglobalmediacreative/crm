@@ -134,8 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $nama_produk = bersihkan($_POST['nama_produk']);
         $jumlah_stok = (int)$_POST['jumlah_stok'];
-        $harga_tebus_dealer = str_replace(',', '', $_POST['harga_tebus_dealer']);
-        $harga_jual_sales = str_replace(',', '', $_POST['harga_jual_sales']);
+        $harga_tebus_dealer = str_replace(['.', ','], '', $_POST['harga_tebus_dealer']);
+        $harga_jual_sales = str_replace(['.', ','], '', $_POST['harga_jual_sales']);
         
         // Validasi
         $errors = [];
@@ -165,8 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $id = (int)$_POST['id'];
         $nama_produk = bersihkan($_POST['nama_produk']);
         $jumlah_stok = (int)$_POST['jumlah_stok'];
-        $harga_tebus_dealer = str_replace(',', '', $_POST['harga_tebus_dealer']);
-        $harga_jual_sales = str_replace(',', '', $_POST['harga_jual_sales']);
+        $harga_tebus_dealer = str_replace(['.', ','], '', $_POST['harga_tebus_dealer']);
+        $harga_jual_sales = str_replace(['.', ','], '', $_POST['harga_jual_sales']);
         
         $errors = [];
         if (empty($nama_produk)) $errors[] = 'Nama produk wajib diisi!';
