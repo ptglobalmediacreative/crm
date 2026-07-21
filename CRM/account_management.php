@@ -38,6 +38,19 @@ function getRoleLabel($role) {
 }
 
 // ============================================
+// FUNGSI UNTUK MEMBERSIHKAN NAMA PT (CEK DUPLIKAT)
+// ============================================
+function bersihkanNamaPT($nama) {
+    // Hilangkan titik, koma, strip, dan karakter khusus lainnya
+    $nama = preg_replace('/[^\w\s]/', '', $nama);
+    // Hilangkan spasi berlebih
+    $nama = preg_replace('/\s+/', ' ', $nama);
+    // Ubah ke huruf kecil semua
+    $nama = strtolower(trim($nama));
+    return $nama;
+}
+
+// ============================================
 // CEK APAKAH USER ADALAH DIREKTUR OPERASIONAL
 // ============================================
 $isDirekturOperasional = ($userRole === 'direktur_operasional');
@@ -240,6 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $npwp_file = '';
         
+        // Validasi
         $errors = [];
         if (empty($nama_pt)) $errors[] = 'Nama PT wajib diisi!';
         if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
@@ -250,6 +264,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
         if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
         
+        // ============================================
+        // CEK DUPLIKAT NAMA PT
+        // ============================================
+        $nama_pt_clean = bersihkanNamaPT($nama_pt);
+        
+        // Ambil semua nama PT dari database
+        $stmt = $db->prepare("SELECT id, nama_pt FROM accounts");
+        $stmt->execute();
+        $existingAccounts = $stmt->fetchAll();
+        
+        $isDuplicate = false;
+        foreach ($existingAccounts as $existing) {
+            $existing_clean = bersihkanNamaPT($existing['nama_pt']);
+            if ($nama_pt_clean === $existing_clean) {
+                $isDuplicate = true;
+                break;
+            }
+        }
+        
+        if ($isDuplicate) {
+            $errors[] = 'Nama PT "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
+        }
+        
+        // Upload file NPWP
         if (!empty($_FILES['npwp_file']['name'])) {
             $target_dir = "uploads/npwp/";
             if (!file_exists($target_dir)) {
@@ -305,6 +343,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
         if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
         
+        // ============================================
+        // CEK DUPLIKAT NAMA PT (Kecuali dirinya sendiri)
+        // ============================================
+        $nama_pt_clean = bersihkanNamaPT($nama_pt);
+        
+        // Ambil semua nama PT dari database (kecuali dirinya sendiri)
+        $stmt = $db->prepare("SELECT id, nama_pt FROM accounts WHERE id != ?");
+        $stmt->execute([$id]);
+        $existingAccounts = $stmt->fetchAll();
+        
+        $isDuplicate = false;
+        foreach ($existingAccounts as $existing) {
+            $existing_clean = bersihkanNamaPT($existing['nama_pt']);
+            if ($nama_pt_clean === $existing_clean) {
+                $isDuplicate = true;
+                break;
+            }
+        }
+        
+        if ($isDuplicate) {
+            $errors[] = 'Nama PT "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
+        }
+        
+        // Upload file NPWP
         $npwp_file = '';
         if (!empty($_FILES['npwp_file']['name'])) {
             $target_dir = "uploads/npwp/";
