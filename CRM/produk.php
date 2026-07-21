@@ -1460,7 +1460,7 @@ if (isset($_GET['edit']) && $hasFullAccess) {
         
         <!-- Account Management -->
         <?php if (canAccessMenu('account_management')): ?>
-            <a href="account_management.php" class="nav-item active">
+            <a href="account_management.php" class="nav-item">
                 <i class="fas fa-building nav-icon"></i>
                 <span class="nav-label">Account</span>
             </a>
@@ -1470,13 +1470,13 @@ if (isset($_GET['edit']) && $hasFullAccess) {
         <?php if (canAccessMenu('sales_activity')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales</span>
+                <span class="nav-label">Sales Activity</span>
             </a>
         <?php endif; ?>
         
         <!-- Produk -->
         <?php if (canAccessMenu('produk')): ?>
-            <a href="produk.php" class="nav-item">
+            <a href="produk.php" class="nav-item active">
                 <i class="fas fa-box nav-icon"></i>
                 <span class="nav-label">Produk</span>
             </a>
@@ -1486,7 +1486,7 @@ if (isset($_GET['edit']) && $hasFullAccess) {
         <?php if (canAccessMenu('delivery_order')): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">DO</span>
+                <span class="nav-label">Delivery Order</span>
             </a>
         <?php endif; ?>
         

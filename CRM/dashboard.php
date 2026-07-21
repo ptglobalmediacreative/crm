@@ -1153,7 +1153,7 @@ $bannerExists = file_exists($bannerPath);
         <?php if (in_array('sales_activity', $menuNames)): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales</span>
+                <span class="nav-label">Sales Activity</span>
                 <span class="badge-nav"><?= $salesActivity ?></span>
             </a>
         <?php endif; ?>
@@ -1168,7 +1168,7 @@ $bannerExists = file_exists($bannerPath);
         <?php if (in_array('delivery_order', $menuNames)): ?>
             <a href="#" class="nav-item">
                 <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">DO</span>
+                <span class="nav-label">Delivery Order</span>
             </a>
         <?php endif; ?>
         
