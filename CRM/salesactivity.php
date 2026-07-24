@@ -1605,8 +1605,6 @@ if (isset($_GET['complete'])) {
                                 <th>Jenis Tugas</th>
                                 <th>Due Date</th>
                                 <th>Status Deadline</th>
-                                <th>Status</th>
-                                <th>Sales</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1676,23 +1674,6 @@ if (isset($_GET['complete'])) {
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <span class="badge-status <?= $activity['status'] ?>">
-                                                <?php if ($activity['status'] == 'in_progress'): ?>
-                                                    In Progress
-                                                <?php elseif ($activity['status'] == 'overdue'): ?>
-                                                    Overdue
-                                                <?php else: ?>
-                                                    Completed
-                                                <?php endif; ?>
-                                            </span>
-                                            <?php if ($activity['status'] == 'completed' && $activity['completed_at']): ?>
-                                                <br><small class="text-muted" style="font-size:9px;">
-                                                    <?= date('d/m/Y', strtotime($activity['completed_at'])) ?>
-                                                </small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
-                                        <td>
                                             <div class="d-flex gap-1">
                                                 <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                     <i class="fas fa-eye"></i>
@@ -1722,7 +1703,7 @@ if (isset($_GET['complete'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="11" class="text-center py-4 text-muted">
+                                    <td colspan="9" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
                                     </td>
                                 </tr>
