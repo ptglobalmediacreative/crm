@@ -52,7 +52,21 @@ $hasFullAccess = in_array($userRole, $fullAccessRoles);
 // ============================================
 // FUNGSI CEK DEADLINE (dengan WIB)
 // ============================================
-function getDeadlineStatus($due_date) {
+function getDeadlineStatus($due_date, $status = 'in_progress') {
+    // Jika status sudah completed, return normal tanpa warna/icon
+    if ($status == 'completed') {
+        if (empty($due_date)) {
+            return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
+        }
+        return [
+            'status' => 'completed',
+            'label' => date('d/m/Y', strtotime($due_date)),
+            'class' => 'text-muted',
+            'icon' => '',
+            'badge_class' => 'secondary'
+        ];
+    }
+    
     if (empty($due_date)) return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
     
     // Gunakan WIB
@@ -1601,9 +1615,10 @@ if (isset($_GET['complete'])) {
                                 <?php $no = $offset + 1; ?>
                                 <?php foreach ($activities as $activity): ?>
                                     <?php 
-                                    $deadline = getDeadlineStatus($activity['due_date']);
+                                    $deadline = getDeadlineStatus($activity['due_date'], $activity['status']);
                                     $isOverdue = $activity['status'] == 'overdue' || ($deadline['status'] == 'overdue' && $activity['status'] == 'in_progress');
                                     $isApproaching = $deadline['status'] == 'approaching' && $activity['status'] == 'in_progress';
+                                    $isCompleted = $activity['status'] == 'completed';
                                     $rowClass = $isOverdue ? 'table-overdue' : ($isApproaching ? 'table-warning' : '');
                                     ?>
                                     <tr class="<?= $rowClass ?>">
@@ -1624,7 +1639,7 @@ if (isset($_GET['complete'])) {
                                         <td>
                                             <?php if ($activity['due_date']): ?>
                                                 <span class="<?= $deadline['class'] ?>">
-                                                    <?php if ($deadline['icon']): ?>
+                                                    <?php if ($deadline['icon'] && !$isCompleted): ?>
                                                         <i class="fas <?= $deadline['icon'] ?>"></i>
                                                     <?php endif; ?>
                                                     <?= date('d/m/Y', strtotime($activity['due_date'])) ?>
@@ -2134,7 +2149,10 @@ if (isset($_GET['complete'])) {
             var statusBadge = data.status == 'in_progress' ? 'in_progress' : (data.status == 'overdue' ? 'overdue' : 'completed');
             
             var deadlineStatus = '';
-            if ((data.status == 'in_progress' || data.status == 'overdue') && data.due_date) {
+            if (data.status == 'completed') {
+                // Jika completed, tampilkan normal tanpa emoticon
+                deadlineStatus = `<span class="text-muted">Selesai</span>`;
+            } else if ((data.status == 'in_progress' || data.status == 'overdue') && data.due_date) {
                 var dueDate = new Date(data.due_date);
                 var today = new Date();
                 var diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
@@ -2145,8 +2163,6 @@ if (isset($_GET['complete'])) {
                 } else {
                     deadlineStatus = `<span class="text-success"><i class="fas fa-check-circle"></i> On Track (${diffDays} hari)</span>`;
                 }
-            } else if (data.status == 'completed') {
-                deadlineStatus = `<span class="text-secondary"><i class="fas fa-check"></i> Selesai</span>`;
             }
             
             var html = `
@@ -2188,6 +2204,7 @@ if (isset($_GET['complete'])) {
                     <div class="detail-value">
                         ${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
                         ${(data.status == 'in_progress' || data.status == 'overdue') && data.due_date ? `<br><small>${deadlineStatus}</small>` : ''}
+                        ${data.status == 'completed' && data.due_date ? `<br><small class="text-muted">Selesai</small>` : ''}
                     </div>
                 </div>
                 <div class="detail-item">
