@@ -1681,11 +1681,9 @@ if (isset($_GET['complete'])) {
                                                 
                                                 <?php if ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'): ?>
                                                     <?php if (canEdit('sales_activity') && ($hasFullAccess || $activity['sales_id'] == $userId)): ?>
-                                                        <?php if ($activity['status'] == 'in_progress'): ?>
-                                                            <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
-                                                                <i class="fas fa-edit"></i>
-                                                            </button>
-                                                        <?php endif; ?>
+                                                        <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
                                                         <button class="btn-action complete" onclick="completeActivity(<?= $activity['id'] ?>)">
                                                             <i class="fas fa-check"></i>
                                                         </button>
