@@ -49,7 +49,6 @@ function generateLeadsNumber($db, $date) {
     $month = date('m', strtotime($date));
     $year = date('Y', strtotime($date));
     
-    // Cari nomor terakhir untuk bulan dan tahun yang sama
     $stmt = $db->prepare("SELECT leads_number FROM sales_activities 
                           WHERE leads_number LIKE ? 
                           ORDER BY leads_number DESC LIMIT 1");
@@ -58,7 +57,6 @@ function generateLeadsNumber($db, $date) {
     $last = $stmt->fetchColumn();
     
     if ($last) {
-        // Ambil angka terakhir (4 digit terakhir)
         $lastNumber = (int)substr($last, -4);
         $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
     } else {
@@ -69,27 +67,35 @@ function generateLeadsNumber($db, $date) {
 }
 
 // ============================================
+// TAMBAHKAN KOLOM status KE TABEL (jika belum ada)
+// ============================================
+try {
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS status VARCHAR(20) NULL DEFAULT 'in_progress'");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS completed_at DATETIME NULL");
+    $db->exec("ALTER TABLE sales_activities ADD INDEX idx_status (status)");
+} catch(PDOException $e) {
+    // Kolom sudah ada atau error lainnya
+}
+
+// ============================================
 // AMBIL DATA ACCOUNT UNTUK DROPDOWN (sesuai sales)
 // ============================================
 if ($userRole === 'sales') {
-    // Sales hanya melihat account miliknya
-    $stmt = $db->prepare("SELECT id, nama_pt FROM accounts WHERE sales_id = ? ORDER BY nama_pt");
+    $stmt = $db->prepare("SELECT id, nama_pt, badan_usaha FROM accounts WHERE sales_id = ? ORDER BY nama_pt");
     $stmt->execute([$userId]);
 } else {
-    // Admin/Manager/Direktur melihat semua account
-    $stmt = $db->prepare("SELECT id, nama_pt FROM accounts ORDER BY nama_pt");
+    $stmt = $db->prepare("SELECT id, nama_pt, badan_usaha FROM accounts ORDER BY nama_pt");
     $stmt->execute();
 }
 $accounts = $stmt->fetchAll();
 
 // ============================================
-// PROSES TAMBAH / EDIT / DELETE
+// PROSES TAMBAH / EDIT / COMPLETE / DELETE
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
-        // Cek permission tambah
         if (!canAdd('sales_activity')) {
             setFlash('Anda tidak memiliki akses untuk menambah sales activity!', 'danger');
             redirect('salesactivity.php');
@@ -99,29 +105,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $account_id = !empty($_POST['account_id']) ? (int)$_POST['account_id'] : NULL;
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
         $deskripsi = bersihkan($_POST['deskripsi']);
-        $result = bersihkan($_POST['result']);
-        $customer_prospek = bersihkan($_POST['customer_prospek']);
-        $activity_date = $_POST['activity_date'];
+        $start_date = $_POST['start_date'];
         
         // Ambil data account untuk auto-fill
         $contact_name = '';
         $contact_mobile = '';
         $business_segment = '';
+        $badan_usaha = '';
         if ($account_id) {
-            $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha FROM accounts WHERE id = ?");
+            $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
             $stmt->execute([$account_id]);
             $account = $stmt->fetch();
             if ($account) {
                 $contact_name = $account['nama_pic'];
                 $contact_mobile = $account['no_hp_pic'];
                 $business_segment = $account['bidang_usaha'];
+                $badan_usaha = $account['badan_usaha'];
             }
         }
+        
+        // Validasi
+        $errors = [];
+        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
+        if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
+        if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
+        if (empty($start_date)) $errors[] = 'Start Date wajib diisi!';
+        
+        if (empty($errors)) {
+            $stmt = $db->prepare("INSERT INTO sales_activities 
+                                  (subject, account_id, contact_name, contact_mobile, business_segment, 
+                                   badan_usaha, jenis_tugas, deskripsi, start_date, status, sales_id) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_progress', ?)");
+            $stmt->execute([
+                $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
+                $badan_usaha, $jenis_tugas, $deskripsi, $start_date, $userId
+            ]);
+            
+            setFlash('Sales Activity berhasil ditambahkan!', 'success');
+            redirect('salesactivity.php');
+        } else {
+            setFlash(implode('<br>', $errors), 'danger');
+        }
+    }
+    
+    if ($action === 'complete') {
+        if (!canEdit('sales_activity')) {
+            setFlash('Anda tidak memiliki akses untuk menyelesaikan sales activity!', 'danger');
+            redirect('salesactivity.php');
+        }
+        
+        $id = (int)$_POST['id'];
+        $result = bersihkan($_POST['result']);
+        $customer_prospek = bersihkan($_POST['customer_prospek']);
         
         // Generate leads number jika customer prospek = Yes
         $leads_number = NULL;
         if ($customer_prospek === 'Yes') {
-            $leads_number = generateLeadsNumber($db, $activity_date);
+            $stmt = $db->prepare("SELECT start_date FROM sales_activities WHERE id = ?");
+            $stmt->execute([$id]);
+            $start_date = $stmt->fetchColumn();
+            if ($start_date) {
+                $leads_number = generateLeadsNumber($db, $start_date);
+            }
         }
         
         // Upload file
@@ -133,36 +178,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             $file_extension = strtolower(pathinfo($_FILES['attachment_file']['name'], PATHINFO_EXTENSION));
-            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
             
             if (in_array($file_extension, $allowed_extensions)) {
                 $attachment_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
                 move_uploaded_file($_FILES['attachment_file']['tmp_name'], $attachment_file);
             } else {
-                setFlash('Format file tidak didukung! (JPG, PNG, GIF, WEBP)', 'danger');
+                setFlash('Format file tidak didukung! (JPG, PNG, GIF, WEBP, PDF)', 'danger');
                 redirect('salesactivity.php');
             }
         }
         
-        // Validasi
+        // Keep existing file jika tidak upload baru
+        if (empty($attachment_file)) {
+            $stmt = $db->prepare("SELECT attachment_file FROM sales_activities WHERE id = ?");
+            $stmt->execute([$id]);
+            $attachment_file = $stmt->fetchColumn();
+        }
+        
         $errors = [];
-        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
-        if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($activity_date)) $errors[] = 'Tanggal wajib diisi!';
+        if (empty($result)) $errors[] = 'Result wajib diisi!';
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO sales_activities 
-                                  (subject, account_id, contact_name, contact_mobile, business_segment, 
-                                   jenis_tugas, deskripsi, result, customer_prospek, leads_number, 
-                                   activity_date, attachment_file, sales_id) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                $jenis_tugas, $deskripsi, $result, $customer_prospek, $leads_number,
-                $activity_date, $attachment_file, $userId
-            ]);
+            $stmt = $db->prepare("UPDATE sales_activities SET 
+                                  result = ?, customer_prospek = ?, leads_number = ?, 
+                                  attachment_file = ?, status = 'completed', completed_at = NOW() 
+                                  WHERE id = ?");
+            $stmt->execute([$result, $customer_prospek, $leads_number, $attachment_file, $id]);
             
-            setFlash('Sales Activity berhasil ditambahkan!', 'success');
+            setFlash('Sales Activity berhasil diselesaikan!', 'success');
             redirect('salesactivity.php');
         } else {
             setFlash(implode('<br>', $errors), 'danger');
@@ -170,7 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
-        // Cek permission edit
         if (!canEdit('sales_activity')) {
             setFlash('Anda tidak memiliki akses untuk mengedit sales activity!', 'danger');
             redirect('salesactivity.php');
@@ -181,90 +224,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $account_id = !empty($_POST['account_id']) ? (int)$_POST['account_id'] : NULL;
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
         $deskripsi = bersihkan($_POST['deskripsi']);
-        $result = bersihkan($_POST['result']);
-        $customer_prospek = bersihkan($_POST['customer_prospek']);
-        $activity_date = $_POST['activity_date'];
+        $start_date = $_POST['start_date'];
         
         // Ambil data account untuk auto-fill
         $contact_name = '';
         $contact_mobile = '';
         $business_segment = '';
+        $badan_usaha = '';
         if ($account_id) {
-            $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha FROM accounts WHERE id = ?");
+            $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
             $stmt->execute([$account_id]);
             $account = $stmt->fetch();
             if ($account) {
                 $contact_name = $account['nama_pic'];
                 $contact_mobile = $account['no_hp_pic'];
                 $business_segment = $account['bidang_usaha'];
-            }
-        }
-        
-        // Generate leads number jika customer prospek = Yes dan belum ada leads number
-        $leads_number = NULL;
-        if ($customer_prospek === 'Yes') {
-            // Cek apakah sudah ada leads_number
-            $stmt = $db->prepare("SELECT leads_number FROM sales_activities WHERE id = ?");
-            $stmt->execute([$id]);
-            $existing = $stmt->fetchColumn();
-            if (empty($existing)) {
-                $leads_number = generateLeadsNumber($db, $activity_date);
-            } else {
-                $leads_number = $existing;
-            }
-        }
-        
-        // Upload file
-        $attachment_file = '';
-        $keep_file = isset($_POST['keep_file']) ? true : false;
-        
-        if (!empty($_FILES['attachment_file']['name'])) {
-            $target_dir = "uploads/sales_activity/";
-            if (!file_exists($target_dir)) {
-                mkdir($target_dir, 0777, true);
-            }
-            
-            $file_extension = strtolower(pathinfo($_FILES['attachment_file']['name'], PATHINFO_EXTENSION));
-            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            
-            if (in_array($file_extension, $allowed_extensions)) {
-                $attachment_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
-                move_uploaded_file($_FILES['attachment_file']['tmp_name'], $attachment_file);
-            } else {
-                setFlash('Format file tidak didukung! (JPG, PNG, GIF, WEBP)', 'danger');
-                redirect('salesactivity.php');
+                $badan_usaha = $account['badan_usaha'];
             }
         }
         
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
+        if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($activity_date)) $errors[] = 'Tanggal wajib diisi!';
+        if (empty($start_date)) $errors[] = 'Start Date wajib diisi!';
         
         if (empty($errors)) {
-            if (!empty($attachment_file)) {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      subject = ?, account_id = ?, contact_name = ?, contact_mobile = ?, 
-                                      business_segment = ?, jenis_tugas = ?, deskripsi = ?, result = ?, 
-                                      customer_prospek = ?, leads_number = ?, activity_date = ?, 
-                                      attachment_file = ? WHERE id = ?");
-                $stmt->execute([
-                    $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                    $jenis_tugas, $deskripsi, $result, $customer_prospek, $leads_number,
-                    $activity_date, $attachment_file, $id
-                ]);
-            } else {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      subject = ?, account_id = ?, contact_name = ?, contact_mobile = ?, 
-                                      business_segment = ?, jenis_tugas = ?, deskripsi = ?, result = ?, 
-                                      customer_prospek = ?, leads_number = ?, activity_date = ? 
-                                      WHERE id = ?");
-                $stmt->execute([
-                    $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                    $jenis_tugas, $deskripsi, $result, $customer_prospek, $leads_number,
-                    $activity_date, $id
-                ]);
-            }
+            $stmt = $db->prepare("UPDATE sales_activities SET 
+                                  subject = ?, account_id = ?, contact_name = ?, contact_mobile = ?, 
+                                  business_segment = ?, badan_usaha = ?, jenis_tugas = ?, deskripsi = ?, start_date = ? 
+                                  WHERE id = ? AND status = 'in_progress'");
+            $stmt->execute([
+                $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
+                $badan_usaha, $jenis_tugas, $deskripsi, $start_date, $id
+            ]);
             
             setFlash('Sales Activity berhasil diupdate!', 'success');
             redirect('salesactivity.php');
@@ -274,7 +267,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        // Cek permission delete
         if (!canDelete('sales_activity')) {
             setFlash('Anda tidak memiliki akses untuk menghapus sales activity!', 'danger');
             redirect('salesactivity.php');
@@ -282,7 +274,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $id = (int)$_POST['id'];
         
-        // Hapus file attachment jika ada
         $stmt = $db->prepare("SELECT attachment_file FROM sales_activities WHERE id = ?");
         $stmt->execute([$id]);
         $file = $stmt->fetchColumn();
@@ -305,14 +296,19 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
+$status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 
 $where = "WHERE 1=1";
 $params = [];
 
-// Filter berdasarkan sales
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
+}
+
+if ($status_filter !== 'all') {
+    $where .= " AND sa.status = ?";
+    $params[] = $status_filter;
 }
 
 if (!empty($search)) {
@@ -328,19 +324,21 @@ $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
 // Get data
-$sql = "SELECT sa.*, a.nama_pt, u.full_name as sales_name 
+$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha as account_badan_usaha, u.full_name as sales_name 
         FROM sales_activities sa 
         LEFT JOIN accounts a ON sa.account_id = a.id 
         LEFT JOIN users u ON sa.sales_id = u.id 
         $where 
-        ORDER BY sa.activity_date DESC, sa.created_at DESC 
+        ORDER BY sa.start_date DESC, sa.created_at DESC 
         LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
 // Statistik
-$totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities")->fetchColumn();
+$totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress'")->fetchColumn();
+$totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
+$totalActivities = $totalInProgress + $totalCompleted;
 
 // Ambil data untuk edit
 $editData = null;
@@ -356,12 +354,23 @@ if (isset($_GET['edit'])) {
 // ============================================
 if (isset($_GET['get_account'])) {
     $account_id = (int)$_GET['get_account'];
-    $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha FROM accounts WHERE id = ?");
+    $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
     $stmt->execute([$account_id]);
     $data = $stmt->fetch(PDO::FETCH_ASSOC);
     header('Content-Type: application/json');
     echo json_encode($data ?: []);
     exit;
+}
+
+// ============================================
+// AMBIL DATA UNTUK MODAL COMPLETE
+// ============================================
+$completeData = null;
+if (isset($_GET['complete'])) {
+    $id = (int)$_GET['complete'];
+    $stmt = $db->prepare("SELECT * FROM sales_activities WHERE id = ?");
+    $stmt->execute([$id]);
+    $completeData = $stmt->fetch();
 }
 ?>
 <!DOCTYPE html>
@@ -649,10 +658,13 @@ if (isset($_GET['get_account'])) {
             font-weight: 600;
         }
         
-        .badge-tugas.Visit { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-tugas.Follow_Up { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-tugas.Meeting { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
-        .badge-tugas.Blast { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
+        .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-tugas.Visit_Meeting { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .badge-tugas.Prospecting { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
+        .badge-tugas.Negosiasi { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
+        .badge-tugas.Kontrak { background: rgba(26, 188, 156, 0.12); color: #16a085; }
+        .badge-tugas.Collect_Payment { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
+        .badge-tugas.Aftersales { background: rgba(22, 160, 133, 0.12); color: #1abc9c; }
         
         .badge-prospek {
             padding: 3px 10px;
@@ -663,6 +675,16 @@ if (isset($_GET['get_account'])) {
         
         .badge-prospek.Yes { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-prospek.No { background: rgba(149, 165, 166, 0.12); color: #7f8c8d; }
+        
+        .badge-status {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         
         .btn-action {
             width: 30px;
@@ -698,6 +720,12 @@ if (isset($_GET['get_account'])) {
             color: #c0392b;
         }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
+        
+        .btn-action.complete {
+            background: rgba(241, 196, 15, 0.12);
+            color: #d4a017;
+        }
+        .btn-action.complete:hover { background: rgba(241, 196, 15, 0.2); }
         
         .modal-content {
             border: none;
@@ -815,6 +843,26 @@ if (isset($_GET['get_account'])) {
             color: #fff;
         }
         
+        .btn-complete-custom {
+            background: #f39c12;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            color: #fff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-complete-custom:hover {
+            background: #e67e22;
+            color: #fff;
+        }
+        
         .alert {
             border-radius: 10px;
             border: none;
@@ -844,11 +892,6 @@ if (isset($_GET['get_account'])) {
             color: #1a1a2e;
             font-size: 13px;
             word-break: break-word;
-        }
-        
-        .detail-item .detail-value .badge {
-            font-size: 12px;
-            padding: 4px 10px;
         }
         
         .bottom-nav {
@@ -1113,6 +1156,7 @@ if (isset($_GET['get_account'])) {
             .card-custom .card-header-custom { padding: 12px 16px; }
             .detail-item .detail-label { width: 100px; font-size: 12px; }
             .detail-item .detail-value { font-size: 12px; }
+            .filter-buttons { flex-wrap: wrap; }
         }
         
         @media (max-width: 480px) {
@@ -1145,18 +1189,50 @@ if (isset($_GET['get_account'])) {
             color: #ffd700;
         }
         
-        /* Auto-fill fields styling */
         .auto-fill-field {
             background: #f8f9fa !important;
             cursor: default;
         }
         
-        .leads-number-container {
-            display: none;
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         
-        .leads-number-container.show {
-            display: block;
+        .filter-buttons .btn-filter {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 2px solid #e8edf2;
+            background: transparent;
+            color: #666;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .filter-buttons .btn-filter:hover {
+            border-color: #ffd700;
+            color: #1a1a2e;
+        }
+        
+        .filter-buttons .btn-filter.active {
+            background: #1a1a2e;
+            border-color: #1a1a2e;
+            color: #fff;
+        }
+        
+        .filter-buttons .btn-filter .count {
+            background: rgba(0,0,0,0.1);
+            padding: 0 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+        
+        .filter-buttons .btn-filter.active .count {
+            background: rgba(255,255,255,0.2);
         }
     </style>
 </head>
@@ -1264,7 +1340,7 @@ if (isset($_GET['get_account'])) {
 
         <!-- STATISTIK -->
         <div class="row g-3 mb-4">
-            <div class="col-xl-3 col-lg-3 col-md-6">
+            <div class="col-xl-4 col-lg-4 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
                         <div class="stat-number"><?= number_format($totalActivities) ?></div>
@@ -1273,31 +1349,22 @@ if (isset($_GET['get_account'])) {
                     <div class="stat-icon"><i class="fas fa-tasks"></i></div>
                 </div>
             </div>
-            <div class="col-xl-3 col-lg-3 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
+            <div class="col-xl-4 col-lg-4 col-md-6">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #2980b9;">
                     <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM sales_activities WHERE customer_prospek = 'Yes'")->fetchColumn() ?? 0) ?></div>
-                        <div class="stat-label">Customer Prospek</div>
+                        <div class="stat-number" style="color: #2980b9;"><?= number_format($totalInProgress) ?></div>
+                        <div class="stat-label">In Progress</div>
                     </div>
-                    <div class="stat-icon"><i class="fas fa-star" style="color:#f1c40f;"></i></div>
+                    <div class="stat-icon"><i class="fas fa-spinner"></i></div>
                 </div>
             </div>
-            <div class="col-xl-3 col-lg-3 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
+            <div class="col-xl-4 col-lg-4 col-md-6">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #27ae60;">
                     <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM sales_activities WHERE jenis_tugas = 'Visit'")->fetchColumn() ?? 0) ?></div>
-                        <div class="stat-label">Visit</div>
+                        <div class="stat-number" style="color: #27ae60;"><?= number_format($totalCompleted) ?></div>
+                        <div class="stat-label">Completed</div>
                     </div>
-                    <div class="stat-icon"><i class="fas fa-phone"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-3 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($db->query("SELECT COUNT(*) FROM sales_activities WHERE jenis_tugas = 'Meeting'")->fetchColumn() ?? 0) ?></div>
-                        <div class="stat-label">Meeting</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-handshake"></i></div>
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
                 </div>
             </div>
         </div>
@@ -1306,12 +1373,12 @@ if (isset($_GET['get_account'])) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i>Daftar Sales Activity</h6>
-                <div class="d-flex gap-2 flex-wrap">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
                     <form method="GET" class="d-flex gap-2">
-                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 200px;">
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 180px;">
                         <button type="submit" class="btn btn-sm btn-primary-custom"><i class="fas fa-search"></i></button>
                         <?php if (!empty($search)): ?>
-                            <a href="salesactivity.php" class="btn btn-sm btn-secondary-custom"><i class="fas fa-times"></i></a>
+                            <a href="salesactivity.php?status=<?= $status_filter ?>" class="btn btn-sm btn-secondary-custom"><i class="fas fa-times"></i></a>
                         <?php endif; ?>
                     </form>
                     <?php if (canAdd('sales_activity')): ?>
@@ -1321,6 +1388,22 @@ if (isset($_GET['get_account'])) {
                     <?php endif; ?>
                 </div>
             </div>
+            
+            <!-- Filter Status -->
+            <div class="px-3 pt-3 pb-2 border-bottom">
+                <div class="filter-buttons">
+                    <a href="?status=all&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'all' ? 'active' : '' ?>">
+                        Semua <span class="count"><?= $totalActivities ?></span>
+                    </a>
+                    <a href="?status=in_progress&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'in_progress' ? 'active' : '' ?>">
+                        <i class="fas fa-spinner fa-fw"></i> In Progress <span class="count"><?= $totalInProgress ?></span>
+                    </a>
+                    <a href="?status=completed&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'completed' ? 'active' : '' ?>">
+                        <i class="fas fa-check-circle fa-fw"></i> Completed <span class="count"><?= $totalCompleted ?></span>
+                    </a>
+                </div>
+            </div>
+            
             <div class="card-body-custom">
                 <?= showFlash() ?>
                 <div class="table-responsive">
@@ -1330,11 +1413,11 @@ if (isset($_GET['get_account'])) {
                                 <th>No</th>
                                 <th>Subject</th>
                                 <th>Account</th>
+                                <th>Badan Usaha</th>
                                 <th>Contact</th>
                                 <th>Jenis Tugas</th>
-                                <th>Prospek</th>
-                                <th>Leads Number</th>
-                                <th>Tanggal</th>
+                                <th>Start Date</th>
+                                <th>Status</th>
                                 <th>Sales</th>
                                 <th>Aksi</th>
                             </tr>
@@ -1347,36 +1430,43 @@ if (isset($_GET['get_account'])) {
                                         <td><?= $no++ ?></td>
                                         <td><strong><?= htmlspecialchars($activity['subject']) ?></strong></td>
                                         <td><?= htmlspecialchars($activity['nama_pt'] ?? '-') ?></td>
+                                        <td>
+                                            <span class="badge-badan-usaha">
+                                                <?= htmlspecialchars($activity['account_badan_usaha'] ?? $activity['badan_usaha'] ?? 'PT') ?>
+                                            </span>
+                                        </td>
                                         <td><?= htmlspecialchars($activity['contact_name'] ?? '-') ?></td>
                                         <td>
-                                            <span class="badge-tugas <?= str_replace(' ', '_', $activity['jenis_tugas']) ?>">
+                                            <span class="badge-tugas <?= str_replace(' ', '_', str_replace('/', '_', $activity['jenis_tugas'])) ?>">
                                                 <?= htmlspecialchars($activity['jenis_tugas']) ?>
                                             </span>
                                         </td>
+                                        <td><?= date('d/m/Y', strtotime($activity['start_date'])) ?></td>
                                         <td>
-                                            <span class="badge-prospek <?= $activity['customer_prospek'] ?>">
-                                                <?= $activity['customer_prospek'] ?>
+                                            <span class="badge-status <?= $activity['status'] ?>">
+                                                <?= $activity['status'] == 'in_progress' ? 'In Progress' : 'Completed' ?>
                                             </span>
                                         </td>
-                                        <td>
-                                            <?php if ($activity['leads_number']): ?>
-                                                <code><?= htmlspecialchars($activity['leads_number']) ?></code>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><?= date('d/m/Y', strtotime($activity['activity_date'])) ?></td>
                                         <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
                                                 <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <?php if (canEdit('sales_activity') && ($hasFullAccess || $activity['sales_id'] == $userId)): ?>
-                                                    <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
+                                                
+                                                <?php if ($activity['status'] == 'in_progress'): ?>
+                                                    <?php if (canEdit('sales_activity') && ($hasFullAccess || $activity['sales_id'] == $userId)): ?>
+                                                        <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                    <?php if (canEdit('sales_activity') && ($hasFullAccess || $activity['sales_id'] == $userId)): ?>
+                                                        <button class="btn-action complete" onclick="completeActivity(<?= $activity['id'] ?>)">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
+                                                
                                                 <?php if (canDelete('sales_activity') && ($hasFullAccess || $activity['sales_id'] == $userId)): ?>
                                                     <button class="btn-action delete" onclick="deleteActivity(<?= $activity['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -1402,15 +1492,15 @@ if (isset($_GET['get_account'])) {
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
@@ -1426,7 +1516,7 @@ if (isset($_GET['get_account'])) {
     </main>
 
     <!-- ============================================
-    MODAL TAMBAH / EDIT SALES ACTIVITY
+    MODAL TAMBAH / EDIT SALES ACTIVITY (IN PROGRESS)
     ============================================ -->
     <div class="modal fade" id="modalSalesActivity" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1451,7 +1541,7 @@ if (isset($_GET['get_account'])) {
                                 <option value="">-- Pilih Account --</option>
                                 <?php foreach ($accounts as $account): ?>
                                     <option value="<?= $account['id'] ?>">
-                                        <?= htmlspecialchars($account['nama_pt']) ?>
+                                        <?= htmlspecialchars($account['nama_pt']) ?> (<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -1459,12 +1549,12 @@ if (isset($_GET['get_account'])) {
                         
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label class="form-label">Business Segment</label>
-                                <input type="text" name="business_segment" id="business_segment" class="form-control auto-fill-field" readonly>
+                                <label class="form-label">Badan Usaha</label>
+                                <input type="text" name="badan_usaha_field" id="badan_usaha_field" class="form-control auto-fill-field" readonly>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label">Contact Name</label>
-                                <input type="text" name="contact_name" id="contact_name" class="form-control auto-fill-field" readonly>
+                                <label class="form-label">Business Segment</label>
+                                <input type="text" name="business_segment" id="business_segment" class="form-control auto-fill-field" readonly>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Contact Mobile Phone</label>
@@ -1477,15 +1567,18 @@ if (isset($_GET['get_account'])) {
                                 <label class="form-label">Jenis Tugas <span class="text-danger">*</span></label>
                                 <select name="jenis_tugas" id="jenis_tugas" class="form-select" required>
                                     <option value="">-- Pilih Jenis Tugas --</option>
-                                    <option value="Visit">Visit</option>
-                                    <option value="Follow Up">Follow Up</option>
-                                    <option value="Meeting">Meeting</option>
-                                    <option value="Blast">Blast</option>
+                                    <option value="Perkenalan">Perkenalan</option>
+                                    <option value="Visit/Meeting">Visit/Meeting</option>
+                                    <option value="Prospecting">Prospecting</option>
+                                    <option value="Negosiasi">Negosiasi</option>
+                                    <option value="Kontrak">Kontrak</option>
+                                    <option value="Collect Payment">Collect Payment</option>
+                                    <option value="Aftersales">Aftersales</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Tanggal <span class="text-danger">*</span></label>
-                                <input type="date" name="activity_date" id="activity_date" class="form-control" required>
+                                <label class="form-label">Start Date <span class="text-danger">*</span></label>
+                                <input type="date" name="start_date" id="start_date" class="form-control" required>
                             </div>
                         </div>
                         
@@ -1494,9 +1587,69 @@ if (isset($_GET['get_account'])) {
                             <textarea name="deskripsi" id="deskripsi" class="form-control" rows="3" placeholder="Masukkan deskripsi"></textarea>
                         </div>
                         
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Info:</strong> Setelah menyimpan, Anda dapat melanjutkan ke tahap <strong>Complete</strong> untuk mengisi Result, Customer Prospek, dan Attachment.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan (In Progress)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+    MODAL COMPLETE
+    ============================================ -->
+    <div class="modal fade" id="modalComplete" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #27ae60, #2ecc71);">
+                    <h5 class="modal-title" style="color: #fff;">
+                        <i class="fas fa-check-circle"></i> Complete Sales Activity
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" enctype="multipart/form-data" id="formComplete">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="complete">
+                        <input type="hidden" name="id" id="completeId" value="">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Subject</label>
+                                <input type="text" id="completeSubject" class="form-control" readonly style="background: #f8f9fa;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Account</label>
+                                <input type="text" id="completeAccount" class="form-control" readonly style="background: #f8f9fa;">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Jenis Tugas</label>
+                                <input type="text" id="completeJenisTugas" class="form-control" readonly style="background: #f8f9fa;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Start Date</label>
+                                <input type="text" id="completeStartDate" class="form-control" readonly style="background: #f8f9fa;">
+                            </div>
+                        </div>
+                        
                         <div class="mb-3">
-                            <label class="form-label">Result</label>
-                            <textarea name="result" id="result" class="form-control" rows="2" placeholder="Masukkan hasil"></textarea>
+                            <label class="form-label">Deskripsi</label>
+                            <textarea id="completeDeskripsi" class="form-control" rows="2" readonly style="background: #f8f9fa;"></textarea>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Result <span class="text-danger">*</span></label>
+                            <textarea name="result" id="result" class="form-control" rows="3" placeholder="Masukkan hasil dari aktivitas" required></textarea>
                         </div>
                         
                         <div class="row">
@@ -1507,26 +1660,24 @@ if (isset($_GET['get_account'])) {
                                     <option value="Yes">Yes</option>
                                 </select>
                             </div>
-                            <div class="col-md-6 mb-3 leads-number-container" id="leadsNumberContainer">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Leads Number</label>
                                 <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
-                                <small class="text-muted">Akan digenerate otomatis</small>
+                                <small class="text-muted">Akan digenerate otomatis jika Customer Prospek = Yes</small>
                             </div>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Attachment File <span class="optional">(Optional)</span></label>
-                            <input type="file" name="attachment_file" id="attachment_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp">
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP (Max 5MB)</small>
-                            <div id="currentFile" style="display:none;" class="mt-2">
-                                <span class="text-muted">File saat ini:</span>
-                                <a href="#" id="currentFileLink" target="_blank"><i class="fas fa-file"></i> Lihat File</a>
-                            </div>
+                            <input type="file" name="attachment_file" id="attachment_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB)</small>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan</button>
+                        <button type="submit" class="btn btn-complete-custom">
+                            <i class="fas fa-check"></i> Complete
+                        </button>
                     </div>
                 </form>
             </div>
@@ -1643,41 +1794,23 @@ if (isset($_GET['get_account'])) {
                 fetch('salesactivity.php?get_account=' + accountId)
                     .then(response => response.json())
                     .then(data => {
+                        document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
                         document.getElementById('business_segment').value = data.bidang_usaha || '';
-                        document.getElementById('contact_name').value = data.nama_pic || '';
                         document.getElementById('contact_mobile').value = data.no_hp_pic || '';
                     })
                     .catch(error => console.error('Error:', error));
             } else {
+                document.getElementById('badan_usaha_field').value = '';
                 document.getElementById('business_segment').value = '';
-                document.getElementById('contact_name').value = '';
                 document.getElementById('contact_mobile').value = '';
             }
         });
 
         // ============================================
-        // SHOW LEADS NUMBER WHEN PROSPEK = YES
-        // ============================================
-        document.getElementById('customer_prospek').addEventListener('change', function() {
-            var container = document.getElementById('leadsNumberContainer');
-            if (this.value === 'Yes') {
-                container.classList.add('show');
-            } else {
-                container.classList.remove('show');
-                document.getElementById('leads_number').value = '';
-            }
-        });
-
-        // Trigger on page load
-        if (document.getElementById('customer_prospek').value === 'Yes') {
-            document.getElementById('leadsNumberContainer').classList.add('show');
-        }
-
-        // ============================================
         // SET DEFAULT DATE TO TODAY
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            var dateInput = document.getElementById('activity_date');
+            var dateInput = document.getElementById('start_date');
             if (dateInput && !dateInput.value) {
                 var today = new Date();
                 var year = today.getFullYear();
@@ -1688,10 +1821,66 @@ if (isset($_GET['get_account'])) {
         });
 
         // ============================================
+        // COMPLETE ACTIVITY
+        // ============================================
+        function completeActivity(id) {
+            // Fetch data for complete modal
+            fetch('salesactivity.php?complete=' + id)
+                .then(response => response.text())
+                .then(html => {
+                    // Parse data from the complete modal
+                    var parser = new DOMParser();
+                    var doc = parser.parseFromString(html, 'text/html');
+                    var dataElement = doc.querySelector('#completeData');
+                    if (dataElement) {
+                        var data = JSON.parse(dataElement.textContent);
+                        document.getElementById('completeId').value = data.id;
+                        document.getElementById('completeSubject').value = data.subject;
+                        document.getElementById('completeAccount').value = data.nama_pt || '-';
+                        document.getElementById('completeJenisTugas').value = data.jenis_tugas;
+                        document.getElementById('completeStartDate').value = data.start_date ? new Date(data.start_date).toLocaleDateString('id-ID') : '-';
+                        document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            
+            // Alternatively, use the data from the table row
+            // For simplicity, we'll use the data from the table
+            var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
+            modal.show();
+        }
+
+        // ============================================
+        // SHOW LEADS NUMBER WHEN PROSPEK = YES (in complete modal)
+        // ============================================
+        document.getElementById('customer_prospek').addEventListener('change', function() {
+            var leadsInput = document.getElementById('leads_number');
+            if (this.value === 'Yes') {
+                leadsInput.value = 'Akan digenerate otomatis';
+                leadsInput.style.color = '#27ae60';
+                leadsInput.style.fontWeight = '600';
+            } else {
+                leadsInput.value = '';
+                leadsInput.style.color = '';
+                leadsInput.style.fontWeight = '';
+            }
+        });
+
+        // ============================================
         // DETAIL ACTIVITY
         // ============================================
         function detailActivity(data) {
+            var statusLabel = data.status == 'in_progress' ? 'In Progress' : 'Completed';
+            var statusBadge = data.status == 'in_progress' ? 'in_progress' : 'completed';
+            
             var html = `
+                <div class="detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value">
+                        <span class="badge-status ${statusBadge}">${statusLabel}</span>
+                        ${data.status == 'completed' ? `<small class="text-muted ms-2">Selesai pada: ${new Date(data.completed_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
+                    </div>
+                </div>
                 <div class="detail-item">
                     <div class="detail-label">Subject</div>
                     <div class="detail-value"><strong>${data.subject}</strong></div>
@@ -1701,12 +1890,12 @@ if (isset($_GET['get_account'])) {
                     <div class="detail-value">${data.nama_pt || '-'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Business Segment</div>
-                    <div class="detail-value">${data.business_segment || '-'}</div>
+                    <div class="detail-label">Badan Usaha</div>
+                    <div class="detail-value">${data.account_badan_usaha || data.badan_usaha || 'PT'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Contact Name</div>
-                    <div class="detail-value">${data.contact_name || '-'}</div>
+                    <div class="detail-label">Business Segment</div>
+                    <div class="detail-value">${data.business_segment || '-'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Contact Mobile</div>
@@ -1715,13 +1904,18 @@ if (isset($_GET['get_account'])) {
                 <div class="detail-item">
                     <div class="detail-label">Jenis Tugas</div>
                     <div class="detail-value">
-                        <span class="badge-tugas ${data.jenis_tugas.replace(/ /g, '_')}">${data.jenis_tugas}</span>
+                        <span class="badge-tugas ${data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_')}">${data.jenis_tugas}</span>
                     </div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Deskripsi</div>
                     <div class="detail-value">${data.deskripsi || '-'}</div>
                 </div>
+                <div class="detail-item">
+                    <div class="detail-label">Start Date</div>
+                    <div class="detail-value">${new Date(data.start_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+                </div>
+                ${data.status == 'completed' ? `
                 <div class="detail-item">
                     <div class="detail-label">Result</div>
                     <div class="detail-value">${data.result || '-'}</div>
@@ -1737,26 +1931,19 @@ if (isset($_GET['get_account'])) {
                     <div class="detail-value">${data.leads_number ? `<code>${data.leads_number}</code>` : '-'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Tanggal</div>
-                    <div class="detail-value">${new Date(data.activity_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Sales</div>
-                    <div class="detail-value">${data.sales_name || '-'}</div>
-                </div>
-                <div class="detail-item">
                     <div class="detail-label">Attachment</div>
                     <div class="detail-value">
                         ${data.attachment_file ? `<a href="${data.attachment_file}" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>` : '-'}
                     </div>
                 </div>
+                ` : ''}
+                <div class="detail-item">
+                    <div class="detail-label">Sales</div>
+                    <div class="detail-value">${data.sales_name || '-'}</div>
+                </div>
                 <div class="detail-item">
                     <div class="detail-label">Dibuat Pada</div>
                     <div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Terakhir Update</div>
-                    <div class="detail-value">${new Date(data.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
             `;
             document.getElementById('detailBody').innerHTML = html;
@@ -1765,7 +1952,7 @@ if (isset($_GET['get_account'])) {
         }
 
         // ============================================
-        // EDIT ACTIVITY
+        // EDIT ACTIVITY (only for in_progress)
         // ============================================
         function editActivity(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Sales Activity';
@@ -1773,31 +1960,12 @@ if (isset($_GET['get_account'])) {
             document.getElementById('formId').value = data.id;
             document.getElementById('subject').value = data.subject;
             document.getElementById('account_id').value = data.account_id || '';
+            document.getElementById('badan_usaha_field').value = data.account_badan_usaha || data.badan_usaha || '';
             document.getElementById('business_segment').value = data.business_segment || '';
-            document.getElementById('contact_name').value = data.contact_name || '';
             document.getElementById('contact_mobile').value = data.contact_mobile || '';
             document.getElementById('jenis_tugas').value = data.jenis_tugas;
             document.getElementById('deskripsi').value = data.deskripsi || '';
-            document.getElementById('result').value = data.result || '';
-            document.getElementById('customer_prospek').value = data.customer_prospek;
-            document.getElementById('activity_date').value = data.activity_date;
-            
-            // Show leads number if prospek = Yes
-            if (data.customer_prospek === 'Yes') {
-                document.getElementById('leadsNumberContainer').classList.add('show');
-                document.getElementById('leads_number').value = data.leads_number || '';
-            } else {
-                document.getElementById('leadsNumberContainer').classList.remove('show');
-                document.getElementById('leads_number').value = '';
-            }
-            
-            // Show current file
-            if (data.attachment_file) {
-                document.getElementById('currentFile').style.display = 'block';
-                document.getElementById('currentFileLink').href = data.attachment_file;
-            } else {
-                document.getElementById('currentFile').style.display = 'none';
-            }
+            document.getElementById('start_date').value = data.start_date;
             
             var modal = new bootstrap.Modal(document.getElementById('modalSalesActivity'));
             modal.show();
@@ -1811,18 +1979,15 @@ if (isset($_GET['get_account'])) {
             document.getElementById('formAction').value = 'add';
             document.getElementById('formId').value = '';
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
-            document.getElementById('leadsNumberContainer').classList.remove('show');
+            document.getElementById('badan_usaha_field').value = '';
             document.getElementById('business_segment').value = '';
-            document.getElementById('contact_name').value = '';
             document.getElementById('contact_mobile').value = '';
-            document.getElementById('currentFile').style.display = 'none';
             
-            // Set date to today
             var today = new Date();
             var year = today.getFullYear();
             var month = String(today.getMonth() + 1).padStart(2, '0');
             var day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('activity_date').value = year + '-' + month + '-' + day;
+            document.getElementById('start_date').value = year + '-' + month + '-' + day;
         });
 
         // ============================================
@@ -1832,6 +1997,55 @@ if (isset($_GET['get_account'])) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
+        }
+
+        // ============================================
+        // COMPLETE MODAL - LOAD DATA
+        // ============================================
+        // Override completeActivity with better implementation
+        function completeActivity(id) {
+            // Find the data from the table row
+            var rows = document.querySelectorAll('table tbody tr');
+            var data = null;
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var deleteBtn = row.querySelector('.btn-action.delete');
+                if (deleteBtn) {
+                    var onclickAttr = deleteBtn.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(id)) {
+                        // Found the row, get the data from the detail button
+                        var detailBtn = row.querySelector('.btn-action.detail');
+                        if (detailBtn) {
+                            var detailOnclick = detailBtn.getAttribute('onclick');
+                            if (detailOnclick) {
+                                var match = detailOnclick.match(/detailActivity\((.*)\)/);
+                                if (match) {
+                                    data = JSON.parse(match[1]);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            if (data) {
+                document.getElementById('completeId').value = data.id;
+                document.getElementById('completeSubject').value = data.subject;
+                document.getElementById('completeAccount').value = data.nama_pt || '-';
+                document.getElementById('completeJenisTugas').value = data.jenis_tugas;
+                document.getElementById('completeStartDate').value = data.start_date ? new Date(data.start_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+                document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
+                document.getElementById('customer_prospek').value = 'No';
+                document.getElementById('leads_number').value = '';
+                document.getElementById('result').value = '';
+                document.getElementById('attachment_file').value = '';
+                
+                var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
+                modal.show();
+            } else {
+                alert('Data tidak ditemukan!');
+            }
         }
     </script>
 </body>
