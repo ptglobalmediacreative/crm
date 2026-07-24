@@ -219,12 +219,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Validasi
+        // Validasi - Deskripsi WAJIB diisi
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
+        if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
         
         if (empty($errors)) {
             $stmt = $db->prepare("INSERT INTO sales_activities 
@@ -281,7 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Upload file
+        // Upload file - WAJIB diisi saat complete
         $attachment_file = '';
         if (!empty($_FILES['attachment_file']['name'])) {
             $target_dir = "uploads/sales_activity/";
@@ -301,15 +302,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Keep existing file jika tidak upload baru
-        if (empty($attachment_file)) {
-            $stmt = $db->prepare("SELECT attachment_file FROM sales_activities WHERE id = ?");
-            $stmt->execute([$id]);
-            $attachment_file = $stmt->fetchColumn();
-        }
-        
+        // Validasi - Result dan Attachment WAJIB diisi
         $errors = [];
         if (empty($result)) $errors[] = 'Result wajib diisi!';
+        if (empty($attachment_file)) $errors[] = 'Attachment file wajib diupload!';
         
         if (empty($errors)) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
@@ -377,6 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
+        if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
         
         if (empty($errors)) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
@@ -1892,8 +1889,8 @@ if (isset($_GET['complete'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Deskripsi</label>
-                            <textarea name="deskripsi" id="deskripsi" class="form-control" rows="3" placeholder="Masukkan deskripsi"></textarea>
+                            <label class="form-label">Deskripsi <span class="text-danger">*</span></label>
+                            <textarea name="deskripsi" id="deskripsi" class="form-control" rows="3" placeholder="Masukkan deskripsi" required></textarea>
                         </div>
                         
                         <div class="alert alert-info">
@@ -1977,9 +1974,9 @@ if (isset($_GET['complete'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Attachment File <span class="optional">(Optional)</span></label>
-                            <input type="file" name="attachment_file" id="attachment_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB)</small>
+                            <label class="form-label">Attachment File <span class="text-danger">*</span></label>
+                            <input type="file" name="attachment_file" id="attachment_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" required>
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib diupload</small>
                         </div>
                     </div>
                     <div class="modal-footer">
