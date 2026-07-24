@@ -77,7 +77,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<thead>';
     echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
     echo '<th>No</th>';
-    echo '<th>Nama PT</th>';
+    echo '<th>Badan Usaha</th>';
+    echo '<th>Nama PT/Perusahaan</th>';
     echo '<th>Bidang Usaha</th>';
     echo '<th>Alamat</th>';
     echo '<th>Area</th>';
@@ -96,6 +97,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     foreach ($allAccounts as $account) {
         echo '<tr>';
         echo '<td>' . $no++ . '</td>';
+        echo '<td>' . htmlspecialchars($account['badan_usaha'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($account['nama_pt']) . '</td>';
         echo '<td>' . htmlspecialchars($account['bidang_usaha']) . '</td>';
         echo '<td>' . htmlspecialchars($account['alamat']) . '</td>';
@@ -133,6 +135,15 @@ try {
 // ============================================
 try {
     $db->exec("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS area VARCHAR(100) NULL");
+} catch(PDOException $e) {
+    // Kolom sudah ada atau error lainnya
+}
+
+// ============================================
+// TAMBAHKAN KOLOM badan_usaha KE TABEL accounts (jika belum ada)
+// ============================================
+try {
+    $db->exec("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL DEFAULT 'PT'");
 } catch(PDOException $e) {
     // Kolom sudah ada atau error lainnya
 }
@@ -235,6 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             redirect('account_management.php');
         }
         
+        $badan_usaha = bersihkan($_POST['badan_usaha']);
         $nama_pt = bersihkan($_POST['nama_pt']);
         $alamat = bersihkan($_POST['alamat']);
         $area = bersihkan($_POST['area']);
@@ -255,7 +267,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         // Validasi
         $errors = [];
-        if (empty($nama_pt)) $errors[] = 'Nama PT wajib diisi!';
+        if (empty($badan_usaha)) $errors[] = 'Badan Usaha wajib dipilih!';
+        if (empty($nama_pt)) $errors[] = 'Nama PT/Perusahaan wajib diisi!';
         if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
         if (empty($area)) $errors[] = 'Area wajib diisi!';
         if (empty($nama_pic)) $errors[] = 'Nama PIC wajib diisi!';
@@ -284,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if ($isDuplicate) {
-            $errors[] = 'Nama PT "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
+            $errors[] = 'Nama PT/Perusahaan "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
         }
         
         // Upload file NPWP
@@ -306,8 +319,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO accounts (nama_pt, alamat, area, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha, sales_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id]);
+            $stmt = $db->prepare("INSERT INTO accounts (badan_usaha, nama_pt, alamat, area, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha, sales_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id]);
             setFlash('Data account berhasil ditambahkan!', 'success');
             redirect('account_management.php');
         } else {
@@ -322,6 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         $id = (int)$_POST['id'];
+        $badan_usaha = bersihkan($_POST['badan_usaha']);
         $nama_pt = bersihkan($_POST['nama_pt']);
         $alamat = bersihkan($_POST['alamat']);
         $area = bersihkan($_POST['area']);
@@ -334,7 +348,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
         
         $errors = [];
-        if (empty($nama_pt)) $errors[] = 'Nama PT wajib diisi!';
+        if (empty($badan_usaha)) $errors[] = 'Badan Usaha wajib dipilih!';
+        if (empty($nama_pt)) $errors[] = 'Nama PT/Perusahaan wajib diisi!';
         if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
         if (empty($area)) $errors[] = 'Area wajib diisi!';
         if (empty($nama_pic)) $errors[] = 'Nama PIC wajib diisi!';
@@ -363,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if ($isDuplicate) {
-            $errors[] = 'Nama PT "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
+            $errors[] = 'Nama PT/Perusahaan "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
         }
         
         // Upload file NPWP
@@ -387,11 +402,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (empty($errors)) {
             if (!empty($npwp_file)) {
-                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, area = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                $stmt->execute([$nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
             } else {
-                $stmt = $db->prepare("UPDATE accounts SET nama_pt = ?, alamat = ?, area = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                $stmt->execute([$nama_pt, $alamat, $area, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
             }
             setFlash('Data account berhasil diupdate!', 'success');
             redirect('account_management.php');
@@ -737,6 +752,15 @@ if (isset($_GET['detail'])) {
             font-weight: 600;
             background: rgba(241, 196, 15, 0.12);
             color: #d4a017;
+        }
+        
+        .badge-badan-usaha {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(26, 188, 156, 0.12);
+            color: #16a085;
         }
         
         .btn-action {
@@ -1402,7 +1426,8 @@ if (isset($_GET['detail'])) {
                         <thead>
                             <tr>
                                 <th>No</th>
-                                <th>Nama PT</th>
+                                <th>Badan Usaha</th>
+                                <th>Nama PT/Perusahaan</th>
                                 <th>PIC</th>
                                 <th>No HP</th>
                                 <th>Email</th>
@@ -1419,6 +1444,11 @@ if (isset($_GET['detail'])) {
                                 <?php foreach ($accounts as $account): ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
+                                        <td>
+                                            <span class="badge-badan-usaha">
+                                                <?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>
+                                            </span>
+                                        </td>
                                         <td><strong><?= htmlspecialchars($account['nama_pt']) ?></strong></td>
                                         <td><?= htmlspecialchars($account['nama_pic']) ?></td>
                                         <td><?= htmlspecialchars($account['no_hp_pic']) ?></td>
@@ -1470,7 +1500,7 @@ if (isset($_GET['detail'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="11" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data account
                                     </td>
                                 </tr>
@@ -1524,9 +1554,21 @@ if (isset($_GET['detail'])) {
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Nama PT <span class="text-danger">*</span></label>
-                                <input type="text" name="nama_pt" id="nama_pt" class="form-control" placeholder="Masukkan nama PT" required>
+                                <label class="form-label">Badan Usaha <span class="text-danger">*</span></label>
+                                <select name="badan_usaha" id="badan_usaha" class="form-select" required>
+                                    <option value="">Pilih Badan Usaha</option>
+                                    <option value="PT">PT</option>
+                                    <option value="CV">CV</option>
+                                    <option value="Perorangan">Perorangan</option>
+                                </select>
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nama PT/Perusahaan <span class="text-danger">*</span></label>
+                                <input type="text" name="nama_pt" id="nama_pt" class="form-control" placeholder="Masukkan nama PT/perusahaan" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Bidang Usaha <span class="text-danger">*</span></label>
                                 <select name="bidang_usaha" id="bidang_usaha" class="form-select" required>
@@ -1537,7 +1579,15 @@ if (isset($_GET['detail'])) {
                                     <option value="Forestry">Forestry</option>
                                     <option value="Oil & Gas">Oil & Gas</option>
                                     <option value="Industrial">Industrial</option>
+                                    <option value="Property">Property</option>
+                                    <option value="Trading">Trading</option>
+                                    <option value="Services">Services</option>
+                                    <option value="Other">Other</option>
                                 </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Area <span class="text-danger">*</span></label>
+                                <input type="text" name="area" id="area" class="form-control" placeholder="Contoh: Jakarta, Surabaya, Kalimantan" required>
                             </div>
                         </div>
                         
@@ -1548,31 +1598,13 @@ if (isset($_GET['detail'])) {
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Area <span class="text-danger">*</span></label>
-                                <input type="text" name="area" id="area" class="form-control" placeholder="Contoh: Jakarta, Surabaya, Kalimantan" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
                                 <label class="form-label">NPWP <span class="optional">(Optional)</span></label>
                                 <input type="text" name="npwp" id="npwp" class="form-control" placeholder="Contoh: 12.345.678.9-012.000">
                             </div>
-                        </div>
-                        
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Upload NPWP <span class="optional">(Optional)</span></label>
                                 <input type="file" name="npwp_file" id="npwp_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Lead Source <span class="text-danger">*</span></label>
-                                <select name="lead_source" id="lead_source" class="form-select" required>
-                                    <option value="">Pilih Lead Source</option>
-                                    <option value="Call">Call</option>
-                                    <option value="Chat">Chat</option>
-                                    <option value="Meeting">Meeting</option>
-                                    <option value="Canvasing">Canvasing</option>
-                                    <option value="Referensi">Referensi</option>
-                                    <option value="Website">Website</option>
-                                </select>
+                                <small class="text-muted">Format: JPG, PNG, PDF | Maks: 2MB</small>
                             </div>
                         </div>
                         
@@ -1593,6 +1625,21 @@ if (isset($_GET['detail'])) {
                                 <input type="email" name="email_pic" id="email_pic" class="form-control" placeholder="pic@email.com" required>
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Source <span class="text-danger">*</span></label>
+                                <select name="lead_source" id="lead_source" class="form-select" required>
+                                    <option value="">Pilih Lead Source</option>
+                                    <option value="Call">Call</option>
+                                    <option value="Chat">Chat</option>
+                                    <option value="Meeting">Meeting</option>
+                                    <option value="Canvasing">Canvasing</option>
+                                    <option value="Referensi">Referensi</option>
+                                    <option value="Website">Website</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
                                 <label class="form-label">Input Sales</label>
                                 <?php if ($userRole === 'sales'): ?>
                                     <input type="hidden" name="sales_id" value="<?= $userId ?>">
@@ -1704,7 +1751,7 @@ if (isset($_GET['detail'])) {
         <?php endif; ?>
         
         <?php if (canAccessMenu('sales_activity')): ?>
-            <a href="#" class="nav-item">
+            <a href="salesactivity.php" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
                 <span class="nav-label">Sales Activity</span>
             </a>
@@ -1746,7 +1793,13 @@ if (isset($_GET['detail'])) {
             var salesName = data.sales_name || '-';
             var html = `
                 <div class="detail-item">
-                    <div class="detail-label">Nama PT</div>
+                    <div class="detail-label">Badan Usaha</div>
+                    <div class="detail-value">
+                        <span class="badge-badan-usaha">${data.badan_usaha || 'PT'}</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Nama PT/Perusahaan</div>
                     <div class="detail-value"><strong>${data.nama_pt}</strong></div>
                 </div>
                 <div class="detail-item">
@@ -1811,6 +1864,7 @@ if (isset($_GET['detail'])) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Account';
             document.getElementById('formAction').value = 'edit';
             document.getElementById('formId').value = data.id;
+            document.getElementById('badan_usaha').value = data.badan_usaha || 'PT';
             document.getElementById('nama_pt').value = data.nama_pt;
             document.getElementById('alamat').value = data.alamat;
             document.getElementById('area').value = data.area || '';
