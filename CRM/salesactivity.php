@@ -45,6 +45,47 @@ $fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utam
 $hasFullAccess = in_array($userRole, $fullAccessRoles);
 
 // ============================================
+// FUNGSI CEK DEADLINE
+// ============================================
+function getDeadlineStatus($due_date) {
+    if (empty($due_date)) return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
+    
+    $today = new DateTime();
+    $due = new DateTime($due_date);
+    $diff = $today->diff($due);
+    $days = $diff->days;
+    
+    if ($due < $today) {
+        return [
+            'status' => 'overdue',
+            'label' => 'LEWAT JATUH TEMPO!',
+            'class' => 'text-danger fw-bold deadline-overdue',
+            'icon' => 'fa-exclamation-triangle',
+            'badge_class' => 'danger',
+            'days' => $days
+        ];
+    } elseif ($days <= 3) {
+        return [
+            'status' => 'approaching',
+            'label' => $days . ' hari lagi',
+            'class' => 'text-warning fw-bold',
+            'icon' => 'fa-clock',
+            'badge_class' => 'warning',
+            'days' => $days
+        ];
+    } else {
+        return [
+            'status' => 'safe',
+            'label' => date('d/m/Y', strtotime($due_date)),
+            'class' => 'text-muted',
+            'icon' => '',
+            'badge_class' => 'success',
+            'days' => $days
+        ];
+    }
+}
+
+// ============================================
 // GENERATE LEADS NUMBER
 // ============================================
 function generateLeadsNumber($db, $date) {
@@ -69,12 +110,19 @@ function generateLeadsNumber($db, $date) {
 }
 
 // ============================================
-// TAMBAHKAN KOLOM status KE TABEL (jika belum ada)
+// TAMBAHKAN KOLOM KE TABEL (jika belum ada)
 // ============================================
 try {
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS status VARCHAR(20) NULL DEFAULT 'in_progress'");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS completed_at DATETIME NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS due_date DATE NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS result TEXT NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_prospek VARCHAR(10) NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS leads_number VARCHAR(50) NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file VARCHAR(255) NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL");
     $db->exec("ALTER TABLE sales_activities ADD INDEX idx_status (status)");
+    $db->exec("ALTER TABLE sales_activities ADD INDEX idx_due_date (due_date)");
 } catch(PDOException $e) {
     // Kolom sudah ada atau error lainnya
 }
@@ -107,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $account_id = !empty($_POST['account_id']) ? (int)$_POST['account_id'] : NULL;
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
         $deskripsi = bersihkan($_POST['deskripsi']);
-        $start_date = $_POST['start_date'];
+        $due_date = $_POST['due_date'];
         
         // Ambil data account untuk auto-fill
         $contact_name = '';
@@ -131,16 +179,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($start_date)) $errors[] = 'Start Date wajib diisi!';
+        if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         
         if (empty($errors)) {
             $stmt = $db->prepare("INSERT INTO sales_activities 
                                   (subject, account_id, contact_name, contact_mobile, business_segment, 
-                                   badan_usaha, jenis_tugas, deskripsi, start_date, status, sales_id) 
+                                   badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id) 
                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_progress', ?)");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                $badan_usaha, $jenis_tugas, $deskripsi, $start_date, $userId
+                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $userId
             ]);
             
             setFlash('Sales Activity berhasil ditambahkan!', 'success');
@@ -163,11 +211,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Generate leads number jika customer prospek = Yes
         $leads_number = NULL;
         if ($customer_prospek === 'Yes') {
-            $stmt = $db->prepare("SELECT start_date FROM sales_activities WHERE id = ?");
+            $stmt = $db->prepare("SELECT due_date FROM sales_activities WHERE id = ?");
             $stmt->execute([$id]);
-            $start_date = $stmt->fetchColumn();
-            if ($start_date) {
-                $leads_number = generateLeadsNumber($db, $start_date);
+            $due_date = $stmt->fetchColumn();
+            if ($due_date) {
+                $leads_number = generateLeadsNumber($db, $due_date);
             }
         }
         
@@ -226,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $account_id = !empty($_POST['account_id']) ? (int)$_POST['account_id'] : NULL;
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
         $deskripsi = bersihkan($_POST['deskripsi']);
-        $start_date = $_POST['start_date'];
+        $due_date = $_POST['due_date'];
         
         // Ambil data account untuk auto-fill
         $contact_name = '';
@@ -249,16 +297,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($start_date)) $errors[] = 'Start Date wajib diisi!';
+        if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         
         if (empty($errors)) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
                                   subject = ?, account_id = ?, contact_name = ?, contact_mobile = ?, 
-                                  business_segment = ?, badan_usaha = ?, jenis_tugas = ?, deskripsi = ?, start_date = ? 
+                                  business_segment = ?, badan_usaha = ?, jenis_tugas = ?, deskripsi = ?, due_date = ? 
                                   WHERE id = ? AND status = 'in_progress'");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                $badan_usaha, $jenis_tugas, $deskripsi, $start_date, $id
+                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $id
             ]);
             
             setFlash('Sales Activity berhasil diupdate!', 'success');
@@ -331,16 +379,20 @@ $sql = "SELECT sa.*, a.nama_pt, a.badan_usaha as account_badan_usaha, u.full_nam
         LEFT JOIN accounts a ON sa.account_id = a.id 
         LEFT JOIN users u ON sa.sales_id = u.id 
         $where 
-        ORDER BY sa.start_date DESC, sa.created_at DESC 
+        ORDER BY sa.due_date ASC, sa.created_at DESC 
         LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
-// Statistik
+// Statistik dengan deadline
 $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress'")->fetchColumn();
 $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
 $totalActivities = $totalInProgress + $totalCompleted;
+
+// Hitung overdue dan approaching
+$overdueCount = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' AND due_date < CURDATE()")->fetchColumn();
+$approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
 
 // Ambil data untuk edit
 $editData = null;
@@ -370,7 +422,10 @@ if (isset($_GET['get_account'])) {
 $completeData = null;
 if (isset($_GET['complete'])) {
     $id = (int)$_GET['complete'];
-    $stmt = $db->prepare("SELECT * FROM sales_activities WHERE id = ?");
+    $stmt = $db->prepare("SELECT sa.*, a.nama_pt 
+                          FROM sales_activities sa 
+                          LEFT JOIN accounts a ON sa.account_id = a.id 
+                          WHERE sa.id = ?");
     $stmt->execute([$id]);
     $completeData = $stmt->fetch();
 }
@@ -1236,6 +1291,43 @@ if (isset($_GET['complete'])) {
         .filter-buttons .btn-filter.active .count {
             background: rgba(255,255,255,0.2);
         }
+        
+        /* ============================================
+           DEADLINE STYLES
+           ============================================ */
+        .deadline-overdue {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        .badge-overdue {
+            background: #dc3545 !important;
+            animation: blink 1s infinite;
+        }
+        
+        .badge-approaching {
+            background: #ffc107 !important;
+            color: #212529 !important;
+        }
+        
+        .badge-safe {
+            background: #198754 !important;
+        }
+        
+        .deadline-alert {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+        
+        .deadline-warning {
+            border-left: 4px solid #ffc107;
+            background: #fffbf0;
+        }
     </style>
 </head>
 <body>
@@ -1287,7 +1379,7 @@ if (isset($_GET['complete'])) {
         <div class="nav-right">
             <div class="notif-icon">
                 <i class="fas fa-bell"></i>
-                <span class="badge-notif">3</span>
+                <span class="badge-notif"><?= $overdueCount + $approachingCount ?></span>
             </div>
             <div class="user-info">
                 <div class="name"><?= htmlspecialchars($fullName) ?></div>
@@ -1318,7 +1410,7 @@ if (isset($_GET['complete'])) {
         <div class="header-right">
             <div class="notif-icon">
                 <i class="fas fa-bell"></i>
-                <span class="badge-notif">3</span>
+                <span class="badge-notif"><?= $overdueCount + $approachingCount ?></span>
             </div>
             <a href="logout.php" class="user-avatar">
                 <?= strtoupper(substr($fullName, 0, 1)) ?>
@@ -1340,9 +1432,24 @@ if (isset($_GET['complete'])) {
             <i class="fas fa-chart-bar welcome-icon"></i>
         </div>
 
+        <!-- DEADLINE NOTIFICATION -->
+        <?php if ($overdueCount > 0): ?>
+            <div class="alert alert-danger deadline-alert mb-3" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Perhatian!</strong> Ada <strong><?= $overdueCount ?></strong> aktivitas yang <strong>MELEWATI JATUH TEMPO</strong>! Segera selesaikan!
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($approachingCount > 0): ?>
+            <div class="alert alert-warning deadline-warning mb-3" role="alert">
+                <i class="fas fa-clock me-2"></i>
+                Ada <strong><?= $approachingCount ?></strong> aktivitas yang <strong>mendekati jatuh tempo</strong> (≤ 3 hari)! Segera selesaikan!
+            </div>
+        <?php endif; ?>
+
         <!-- STATISTIK -->
         <div class="row g-3 mb-4">
-            <div class="col-xl-4 col-lg-4 col-md-6">
+            <div class="col-xl-3 col-lg-3 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
                     <div>
                         <div class="stat-number"><?= number_format($totalActivities) ?></div>
@@ -1351,7 +1458,7 @@ if (isset($_GET['complete'])) {
                     <div class="stat-icon"><i class="fas fa-tasks"></i></div>
                 </div>
             </div>
-            <div class="col-xl-4 col-lg-4 col-md-6">
+            <div class="col-xl-3 col-lg-3 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #2980b9;">
                     <div>
                         <div class="stat-number" style="color: #2980b9;"><?= number_format($totalInProgress) ?></div>
@@ -1360,13 +1467,22 @@ if (isset($_GET['complete'])) {
                     <div class="stat-icon"><i class="fas fa-spinner"></i></div>
                 </div>
             </div>
-            <div class="col-xl-4 col-lg-4 col-md-6">
+            <div class="col-xl-3 col-lg-3 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #27ae60;">
                     <div>
                         <div class="stat-number" style="color: #27ae60;"><?= number_format($totalCompleted) ?></div>
                         <div class="stat-label">Completed</div>
                     </div>
                     <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-3 col-md-6">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #dc3545;">
+                    <div>
+                        <div class="stat-number" style="color: #dc3545;"><?= number_format($overdueCount) ?></div>
+                        <div class="stat-label">Overdue</div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle" style="color:#dc3545;"></i></div>
                 </div>
             </div>
         </div>
@@ -1403,6 +1519,9 @@ if (isset($_GET['complete'])) {
                     <a href="?status=completed&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'completed' ? 'active' : '' ?>">
                         <i class="fas fa-check-circle fa-fw"></i> Completed <span class="count"><?= $totalCompleted ?></span>
                     </a>
+                    <a href="?status=overdue&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'overdue' ? 'active' : '' ?>">
+                        <i class="fas fa-exclamation-triangle fa-fw" style="color:#dc3545;"></i> Overdue <span class="count"><?= $overdueCount ?></span>
+                    </a>
                 </div>
             </div>
             
@@ -1418,7 +1537,8 @@ if (isset($_GET['complete'])) {
                                 <th>Badan Usaha</th>
                                 <th>Contact</th>
                                 <th>Jenis Tugas</th>
-                                <th>Start Date</th>
+                                <th>Due Date</th>
+                                <th>Status Deadline</th>
                                 <th>Status</th>
                                 <th>Sales</th>
                                 <th>Aksi</th>
@@ -1428,7 +1548,13 @@ if (isset($_GET['complete'])) {
                             <?php if (count($activities) > 0): ?>
                                 <?php $no = $offset + 1; ?>
                                 <?php foreach ($activities as $activity): ?>
-                                    <tr>
+                                    <?php 
+                                    $deadline = getDeadlineStatus($activity['due_date']);
+                                    $isOverdue = $deadline['status'] == 'overdue' && $activity['status'] == 'in_progress';
+                                    $isApproaching = $deadline['status'] == 'approaching' && $activity['status'] == 'in_progress';
+                                    $rowClass = $isOverdue ? 'table-danger' : ($isApproaching ? 'table-warning' : '');
+                                    ?>
+                                    <tr class="<?= $rowClass ?>">
                                         <td><?= $no++ ?></td>
                                         <td><strong><?= htmlspecialchars($activity['subject']) ?></strong></td>
                                         <td><?= htmlspecialchars($activity['nama_pt'] ?? '-') ?></td>
@@ -1443,11 +1569,50 @@ if (isset($_GET['complete'])) {
                                                 <?= htmlspecialchars($activity['jenis_tugas']) ?>
                                             </span>
                                         </td>
-                                        <td><?= date('d/m/Y', strtotime($activity['start_date'])) ?></td>
+                                        <td>
+                                            <?php if ($activity['due_date']): ?>
+                                                <span class="<?= $deadline['class'] ?>">
+                                                    <?php if ($deadline['icon']): ?>
+                                                        <i class="fas <?= $deadline['icon'] ?>"></i>
+                                                    <?php endif; ?>
+                                                    <?= date('d/m/Y', strtotime($activity['due_date'])) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($activity['status'] == 'in_progress' && $activity['due_date']): ?>
+                                                <?php if ($deadline['status'] == 'overdue'): ?>
+                                                    <span class="badge badge-overdue">
+                                                        <i class="fas fa-exclamation-triangle"></i> LEWAT!
+                                                    </span>
+                                                <?php elseif ($deadline['status'] == 'approaching'): ?>
+                                                    <span class="badge badge-approaching">
+                                                        <i class="fas fa-clock"></i> <?= $deadline['label'] ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-safe">
+                                                        <i class="fas fa-check-circle"></i> On Track
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php elseif ($activity['status'] == 'completed'): ?>
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-check"></i> Selesai
+                                                </span>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <span class="badge-status <?= $activity['status'] ?>">
                                                 <?= $activity['status'] == 'in_progress' ? 'In Progress' : 'Completed' ?>
                                             </span>
+                                            <?php if ($activity['status'] == 'completed' && $activity['completed_at']): ?>
+                                                <br><small class="text-muted" style="font-size:9px;">
+                                                    <?= date('d/m/Y', strtotime($activity['completed_at'])) ?>
+                                                </small>
+                                            <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
                                         <td>
@@ -1480,7 +1645,7 @@ if (isset($_GET['complete'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="11" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
                                     </td>
                                 </tr>
@@ -1579,8 +1744,9 @@ if (isset($_GET['complete'])) {
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Start Date <span class="text-danger">*</span></label>
-                                <input type="date" name="start_date" id="start_date" class="form-control" required>
+                                <label class="form-label">Due Date <span class="text-danger">*</span></label>
+                                <input type="date" name="due_date" id="due_date" class="form-control" required>
+                                <small class="text-muted">Tanggal jatuh tempo penyelesaian aktivitas</small>
                             </div>
                         </div>
                         
@@ -1637,8 +1803,8 @@ if (isset($_GET['complete'])) {
                                 <input type="text" id="completeJenisTugas" class="form-control" readonly style="background: #f8f9fa;">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Start Date</label>
-                                <input type="text" id="completeStartDate" class="form-control" readonly style="background: #f8f9fa;">
+                                <label class="form-label">Due Date</label>
+                                <input type="text" id="completeDueDate" class="form-control" readonly style="background: #f8f9fa;">
                             </div>
                         </div>
                         
@@ -1809,12 +1975,13 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // SET DEFAULT DATE TO TODAY
+        // SET DEFAULT DATE TO TODAY + 7 DAYS (Due Date)
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            var dateInput = document.getElementById('start_date');
+            var dateInput = document.getElementById('due_date');
             if (dateInput && !dateInput.value) {
                 var today = new Date();
+                today.setDate(today.getDate() + 7); // Default 7 hari dari sekarang
                 var year = today.getFullYear();
                 var month = String(today.getMonth() + 1).padStart(2, '0');
                 var day = String(today.getDate()).padStart(2, '0');
@@ -1826,34 +1993,51 @@ if (isset($_GET['complete'])) {
         // COMPLETE ACTIVITY
         // ============================================
         function completeActivity(id) {
-            // Fetch data for complete modal
-            fetch('salesactivity.php?complete=' + id)
-                .then(response => response.text())
-                .then(html => {
-                    // Parse data from the complete modal
-                    var parser = new DOMParser();
-                    var doc = parser.parseFromString(html, 'text/html');
-                    var dataElement = doc.querySelector('#completeData');
-                    if (dataElement) {
-                        var data = JSON.parse(dataElement.textContent);
-                        document.getElementById('completeId').value = data.id;
-                        document.getElementById('completeSubject').value = data.subject;
-                        document.getElementById('completeAccount').value = data.nama_pt || '-';
-                        document.getElementById('completeJenisTugas').value = data.jenis_tugas;
-                        document.getElementById('completeStartDate').value = data.start_date ? new Date(data.start_date).toLocaleDateString('id-ID') : '-';
-                        document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
+            // Find the data from the table row
+            var rows = document.querySelectorAll('table tbody tr');
+            var data = null;
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var deleteBtn = row.querySelector('.btn-action.delete');
+                if (deleteBtn) {
+                    var onclickAttr = deleteBtn.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(id)) {
+                        var detailBtn = row.querySelector('.btn-action.detail');
+                        if (detailBtn) {
+                            var detailOnclick = detailBtn.getAttribute('onclick');
+                            if (detailOnclick) {
+                                var match = detailOnclick.match(/detailActivity\((.*)\)/);
+                                if (match) {
+                                    data = JSON.parse(match[1]);
+                                }
+                            }
+                        }
+                        break;
                     }
-                })
-                .catch(error => console.error('Error:', error));
+                }
+            }
             
-            // Alternatively, use the data from the table row
-            // For simplicity, we'll use the data from the table
-            var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
-            modal.show();
+            if (data) {
+                document.getElementById('completeId').value = data.id;
+                document.getElementById('completeSubject').value = data.subject;
+                document.getElementById('completeAccount').value = data.nama_pt || '-';
+                document.getElementById('completeJenisTugas').value = data.jenis_tugas;
+                document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+                document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
+                document.getElementById('customer_prospek').value = 'No';
+                document.getElementById('leads_number').value = '';
+                document.getElementById('result').value = '';
+                document.getElementById('attachment_file').value = '';
+                
+                var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
+                modal.show();
+            } else {
+                alert('Data tidak ditemukan!');
+            }
         }
 
         // ============================================
-        // SHOW LEADS NUMBER WHEN PROSPEK = YES (in complete modal)
+        // SHOW LEADS NUMBER WHEN PROSPEK = YES
         // ============================================
         document.getElementById('customer_prospek').addEventListener('change', function() {
             var leadsInput = document.getElementById('leads_number');
@@ -1875,12 +2059,28 @@ if (isset($_GET['complete'])) {
             var statusLabel = data.status == 'in_progress' ? 'In Progress' : 'Completed';
             var statusBadge = data.status == 'in_progress' ? 'in_progress' : 'completed';
             
+            var deadlineStatus = '';
+            if (data.status == 'in_progress' && data.due_date) {
+                var dueDate = new Date(data.due_date);
+                var today = new Date();
+                var diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) {
+                    deadlineStatus = `<span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> LEWAT JATUH TEMPO! (${Math.abs(diffDays)} hari)</span>`;
+                } else if (diffDays <= 3) {
+                    deadlineStatus = `<span class="text-warning fw-bold"><i class="fas fa-clock"></i> ${diffDays} hari lagi</span>`;
+                } else {
+                    deadlineStatus = `<span class="text-success"><i class="fas fa-check-circle"></i> On Track (${diffDays} hari)</span>`;
+                }
+            } else if (data.status == 'completed') {
+                deadlineStatus = `<span class="text-secondary"><i class="fas fa-check"></i> Selesai</span>`;
+            }
+            
             var html = `
                 <div class="detail-item">
                     <div class="detail-label">Status</div>
                     <div class="detail-value">
                         <span class="badge-status ${statusBadge}">${statusLabel}</span>
-                        ${data.status == 'completed' ? `<small class="text-muted ms-2">Selesai pada: ${new Date(data.completed_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
+                        ${data.status == 'completed' && data.completed_at ? `<small class="text-muted ms-2">Selesai pada: ${new Date(data.completed_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
                     </div>
                 </div>
                 <div class="detail-item">
@@ -1906,16 +2106,19 @@ if (isset($_GET['complete'])) {
                 <div class="detail-item">
                     <div class="detail-label">Jenis Tugas</div>
                     <div class="detail-value">
-                        <span class="badge-tugas ${data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_')}">${data.jenis_tugas}</span>
+                        <span class="badge-tugas ${data.jenis_tugas ? data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_') : ''}">${data.jenis_tugas || '-'}</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Due Date</div>
+                    <div class="detail-value">
+                        ${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                        ${data.status == 'in_progress' && data.due_date ? `<br><small>${deadlineStatus}</small>` : ''}
                     </div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Deskripsi</div>
                     <div class="detail-value">${data.deskripsi || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Start Date</div>
-                    <div class="detail-value">${new Date(data.start_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
                 </div>
                 ${data.status == 'completed' ? `
                 <div class="detail-item">
@@ -1945,7 +2148,7 @@ if (isset($_GET['complete'])) {
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Dibuat Pada</div>
-                    <div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="detail-value">${data.created_at ? new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                 </div>
             `;
             document.getElementById('detailBody').innerHTML = html;
@@ -1967,7 +2170,7 @@ if (isset($_GET['complete'])) {
             document.getElementById('contact_mobile').value = data.contact_mobile || '';
             document.getElementById('jenis_tugas').value = data.jenis_tugas;
             document.getElementById('deskripsi').value = data.deskripsi || '';
-            document.getElementById('start_date').value = data.start_date;
+            document.getElementById('due_date').value = data.due_date || '';
             
             var modal = new bootstrap.Modal(document.getElementById('modalSalesActivity'));
             modal.show();
@@ -1986,10 +2189,11 @@ if (isset($_GET['complete'])) {
             document.getElementById('contact_mobile').value = '';
             
             var today = new Date();
+            today.setDate(today.getDate() + 7);
             var year = today.getFullYear();
             var month = String(today.getMonth() + 1).padStart(2, '0');
             var day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('start_date').value = year + '-' + month + '-' + day;
+            document.getElementById('due_date').value = year + '-' + month + '-' + day;
         });
 
         // ============================================
@@ -1999,55 +2203,6 @@ if (isset($_GET['complete'])) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
-        }
-
-        // ============================================
-        // COMPLETE MODAL - LOAD DATA
-        // ============================================
-        // Override completeActivity with better implementation
-        function completeActivity(id) {
-            // Find the data from the table row
-            var rows = document.querySelectorAll('table tbody tr');
-            var data = null;
-            for (var i = 0; i < rows.length; i++) {
-                var row = rows[i];
-                var deleteBtn = row.querySelector('.btn-action.delete');
-                if (deleteBtn) {
-                    var onclickAttr = deleteBtn.getAttribute('onclick');
-                    if (onclickAttr && onclickAttr.includes(id)) {
-                        // Found the row, get the data from the detail button
-                        var detailBtn = row.querySelector('.btn-action.detail');
-                        if (detailBtn) {
-                            var detailOnclick = detailBtn.getAttribute('onclick');
-                            if (detailOnclick) {
-                                var match = detailOnclick.match(/detailActivity\((.*)\)/);
-                                if (match) {
-                                    data = JSON.parse(match[1]);
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            if (data) {
-                document.getElementById('completeId').value = data.id;
-                document.getElementById('completeSubject').value = data.subject;
-                document.getElementById('completeAccount').value = data.nama_pt || '-';
-                document.getElementById('completeJenisTugas').value = data.jenis_tugas;
-                document.getElementById('completeStartDate').value = data.start_date ? new Date(data.start_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-                document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
-                document.getElementById('customer_prospek').value = 'No';
-                document.getElementById('leads_number').value = '';
-                document.getElementById('result').value = '';
-                document.getElementById('attachment_file').value = '';
-                
-                var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
-                modal.show();
-            } else {
-                alert('Data tidak ditemukan!');
-            }
         }
     </script>
 </body>
