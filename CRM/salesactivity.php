@@ -3,6 +3,11 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 require_once 'config.php';
 
+// ============================================
+// SET ZONA WAKTU WIB (GMT+7)
+// ============================================
+date_default_timezone_set('Asia/Jakarta');
+
 // Cek login
 if (!isLoggedIn()) {
     setFlash('Silakan login dulu!', 'warning');
@@ -45,24 +50,29 @@ $fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utam
 $hasFullAccess = in_array($userRole, $fullAccessRoles);
 
 // ============================================
-// FUNGSI CEK DEADLINE
+// FUNGSI CEK DEADLINE (dengan WIB)
 // ============================================
 function getDeadlineStatus($due_date) {
     if (empty($due_date)) return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
     
-    $today = new DateTime();
-    $due = new DateTime($due_date);
-    $diff = $today->diff($due);
-    $days = $diff->days;
+    // Gunakan WIB
+    $today = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+    $today->setTime(0, 0, 0);
     
-    if ($due < $today) {
+    $due = new DateTime($due_date);
+    $due->setTime(0, 0, 0);
+    
+    $diff = $today->diff($due);
+    $days = (int)$diff->format('%r%a');
+    
+    if ($days < 0) {
         return [
             'status' => 'overdue',
             'label' => 'LEWAT JATUH TEMPO!',
             'class' => 'text-danger fw-bold deadline-overdue',
             'icon' => 'fa-exclamation-triangle',
             'badge_class' => 'danger',
-            'days' => $days
+            'days' => abs($days)
         ];
     } elseif ($days <= 3) {
         return [
@@ -113,7 +123,13 @@ function generateLeadsNumber($db, $date) {
 // TAMBAHKAN KOLOM KE TABEL (jika belum ada)
 // ============================================
 try {
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS status VARCHAR(20) NULL DEFAULT 'in_progress'");
+    // Cek apakah kolom status ada, jika tidak tambahkan
+    $stmt = $db->query("SHOW COLUMNS FROM sales_activities LIKE 'status'");
+    if ($stmt->rowCount() == 0) {
+        $db->exec("ALTER TABLE sales_activities ADD COLUMN status VARCHAR(20) NULL DEFAULT 'in_progress'");
+    }
+    
+    // Tambahkan kolom lainnya
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS completed_at DATETIME NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS due_date DATE NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS result TEXT NULL");
@@ -121,10 +137,25 @@ try {
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS leads_number VARCHAR(50) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file VARCHAR(255) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL");
-    $db->exec("ALTER TABLE sales_activities ADD INDEX idx_status (status)");
-    $db->exec("ALTER TABLE sales_activities ADD INDEX idx_due_date (due_date)");
+    
+    // Tambahkan indeks
+    $db->exec("ALTER TABLE sales_activities ADD INDEX IF NOT EXISTS idx_status (status)");
+    $db->exec("ALTER TABLE sales_activities ADD INDEX IF NOT EXISTS idx_due_date (due_date)");
 } catch(PDOException $e) {
     // Kolom sudah ada atau error lainnya
+}
+
+// ============================================
+// UPDATE STATUS OVERDUE OTOMATIS
+// ============================================
+try {
+    // Update status menjadi 'overdue' jika melewati due date (in_progress)
+    $db->exec("UPDATE sales_activities 
+               SET status = 'overdue' 
+               WHERE status = 'in_progress' 
+               AND due_date < CURDATE()");
+} catch(PDOException $e) {
+    // Error handling
 }
 
 // ============================================
@@ -356,9 +387,18 @@ if ($userRole === 'sales') {
     $params[] = $userId;
 }
 
+// Filter status
 if ($status_filter !== 'all') {
-    $where .= " AND sa.status = ?";
-    $params[] = $status_filter;
+    if ($status_filter === 'overdue') {
+        $where .= " AND sa.status = 'overdue'";
+    } elseif ($status_filter === 'in_progress') {
+        $where .= " AND sa.status = 'in_progress'";
+    } elseif ($status_filter === 'completed') {
+        $where .= " AND sa.status = 'completed'";
+    } else {
+        $where .= " AND sa.status = ?";
+        $params[] = $status_filter;
+    }
 }
 
 if (!empty($search)) {
@@ -388,11 +428,14 @@ $activities = $stmt->fetchAll();
 // Statistik dengan deadline
 $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress'")->fetchColumn();
 $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
-$totalActivities = $totalInProgress + $totalCompleted;
+$totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'overdue'")->fetchColumn();
+$totalActivities = $totalInProgress + $totalCompleted + $totalOverdue;
 
-// Hitung overdue dan approaching
-$overdueCount = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' AND due_date < CURDATE()")->fetchColumn();
-$approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
+// Hitung approaching (mendekati deadline)
+$approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
+                                WHERE status = 'in_progress' 
+                                AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
+$overdueCount = $totalOverdue;
 
 // Ambil data untuk edit
 $editData = null;
@@ -742,6 +785,7 @@ if (isset($_GET['complete'])) {
         
         .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .badge-status.overdue { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
         
         .btn-action {
             width: 30px;
@@ -1328,6 +1372,14 @@ if (isset($_GET['complete'])) {
             border-left: 4px solid #ffc107;
             background: #fffbf0;
         }
+        
+        /* Row styling untuk overdue */
+        .table-overdue {
+            background-color: #fff5f5 !important;
+        }
+        .table-overdue:hover {
+            background-color: #ffe8e8 !important;
+        }
     </style>
 </head>
 <body>
@@ -1550,9 +1602,9 @@ if (isset($_GET['complete'])) {
                                 <?php foreach ($activities as $activity): ?>
                                     <?php 
                                     $deadline = getDeadlineStatus($activity['due_date']);
-                                    $isOverdue = $deadline['status'] == 'overdue' && $activity['status'] == 'in_progress';
+                                    $isOverdue = $activity['status'] == 'overdue' || ($deadline['status'] == 'overdue' && $activity['status'] == 'in_progress');
                                     $isApproaching = $deadline['status'] == 'approaching' && $activity['status'] == 'in_progress';
-                                    $rowClass = $isOverdue ? 'table-danger' : ($isApproaching ? 'table-warning' : '');
+                                    $rowClass = $isOverdue ? 'table-overdue' : ($isApproaching ? 'table-warning' : '');
                                     ?>
                                     <tr class="<?= $rowClass ?>">
                                         <td><?= $no++ ?></td>
@@ -1596,6 +1648,10 @@ if (isset($_GET['complete'])) {
                                                         <i class="fas fa-check-circle"></i> On Track
                                                     </span>
                                                 <?php endif; ?>
+                                            <?php elseif ($activity['status'] == 'overdue'): ?>
+                                                <span class="badge badge-overdue">
+                                                    <i class="fas fa-exclamation-triangle"></i> OVERDUE!
+                                                </span>
                                             <?php elseif ($activity['status'] == 'completed'): ?>
                                                 <span class="badge bg-secondary">
                                                     <i class="fas fa-check"></i> Selesai
@@ -1606,7 +1662,13 @@ if (isset($_GET['complete'])) {
                                         </td>
                                         <td>
                                             <span class="badge-status <?= $activity['status'] ?>">
-                                                <?= $activity['status'] == 'in_progress' ? 'In Progress' : 'Completed' ?>
+                                                <?php if ($activity['status'] == 'in_progress'): ?>
+                                                    In Progress
+                                                <?php elseif ($activity['status'] == 'overdue'): ?>
+                                                    Overdue
+                                                <?php else: ?>
+                                                    Completed
+                                                <?php endif; ?>
                                             </span>
                                             <?php if ($activity['status'] == 'completed' && $activity['completed_at']): ?>
                                                 <br><small class="text-muted" style="font-size:9px;">
@@ -1954,6 +2016,21 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
+        // GET DATE WIB (GMT+7)
+        // ============================================
+        function getDateWIB(offsetDays) {
+            var now = new Date();
+            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (offsetDays) {
+                today.setDate(today.getDate() + offsetDays);
+            }
+            var year = today.getFullYear();
+            var month = String(today.getMonth() + 1).padStart(2, '0');
+            var day = String(today.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+
+        // ============================================
         // AUTO FILL ACCOUNT DATA
         // ============================================
         document.getElementById('account_id').addEventListener('change', function() {
@@ -1975,26 +2052,14 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // SET DEFAULT DATE TO TODAY + 7 DAYS (Due Date)
+        // SET DEFAULT DATE TO TODAY + 7 DAYS (WIB)
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Tunggu sebentar agar DOM benar-benar siap
             setTimeout(function() {
                 var dateInput = document.getElementById('due_date');
-                if (dateInput) {
-                    // Hanya set jika kosong
-                    if (!dateInput.value) {
-                        var today = new Date();
-                        // Set ke 7 hari dari sekarang
-                        today.setDate(today.getDate() + 7);
-                        
-                        var year = today.getFullYear();
-                        var month = String(today.getMonth() + 1).padStart(2, '0');
-                        var day = String(today.getDate()).padStart(2, '0');
-                        dateInput.value = year + '-' + month + '-' + day;
-                        
-                        console.log('Due Date set to: ' + dateInput.value);
-                    }
+                if (dateInput && !dateInput.value) {
+                    dateInput.value = getDateWIB(7);
+                    console.log('Due Date (WIB) set to: ' + dateInput.value);
                 }
             }, 100);
         });
@@ -2003,7 +2068,6 @@ if (isset($_GET['complete'])) {
         // COMPLETE ACTIVITY
         // ============================================
         function completeActivity(id) {
-            // Find the data from the table row
             var rows = document.querySelectorAll('table tbody tr');
             var data = null;
             for (var i = 0; i < rows.length; i++) {
@@ -2066,15 +2130,15 @@ if (isset($_GET['complete'])) {
         // DETAIL ACTIVITY
         // ============================================
         function detailActivity(data) {
-            var statusLabel = data.status == 'in_progress' ? 'In Progress' : 'Completed';
-            var statusBadge = data.status == 'in_progress' ? 'in_progress' : 'completed';
+            var statusLabel = data.status == 'in_progress' ? 'In Progress' : (data.status == 'overdue' ? 'Overdue' : 'Completed');
+            var statusBadge = data.status == 'in_progress' ? 'in_progress' : (data.status == 'overdue' ? 'overdue' : 'completed');
             
             var deadlineStatus = '';
-            if (data.status == 'in_progress' && data.due_date) {
+            if ((data.status == 'in_progress' || data.status == 'overdue') && data.due_date) {
                 var dueDate = new Date(data.due_date);
                 var today = new Date();
                 var diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-                if (diffDays < 0) {
+                if (diffDays < 0 || data.status == 'overdue') {
                     deadlineStatus = `<span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> LEWAT JATUH TEMPO! (${Math.abs(diffDays)} hari)</span>`;
                 } else if (diffDays <= 3) {
                     deadlineStatus = `<span class="text-warning fw-bold"><i class="fas fa-clock"></i> ${diffDays} hari lagi</span>`;
@@ -2123,7 +2187,7 @@ if (isset($_GET['complete'])) {
                     <div class="detail-label">Due Date</div>
                     <div class="detail-value">
                         ${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
-                        ${data.status == 'in_progress' && data.due_date ? `<br><small>${deadlineStatus}</small>` : ''}
+                        ${(data.status == 'in_progress' || data.status == 'overdue') && data.due_date ? `<br><small>${deadlineStatus}</small>` : ''}
                     </div>
                 </div>
                 <div class="detail-item">
@@ -2197,13 +2261,7 @@ if (isset($_GET['complete'])) {
             document.getElementById('badan_usaha_field').value = '';
             document.getElementById('business_segment').value = '';
             document.getElementById('contact_mobile').value = '';
-            
-            var today = new Date();
-            today.setDate(today.getDate() + 7);
-            var year = today.getFullYear();
-            var month = String(today.getMonth() + 1).padStart(2, '0');
-            var day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('due_date').value = year + '-' + month + '-' + day;
+            document.getElementById('due_date').value = getDateWIB(7);
         });
 
         // ============================================
