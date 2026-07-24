@@ -1978,15 +1978,25 @@ if (isset($_GET['complete'])) {
         // SET DEFAULT DATE TO TODAY + 7 DAYS (Due Date)
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            var dateInput = document.getElementById('due_date');
-            if (dateInput && !dateInput.value) {
-                var today = new Date();
-                today.setDate(today.getDate() + 7); // Default 7 hari dari sekarang
-                var year = today.getFullYear();
-                var month = String(today.getMonth() + 1).padStart(2, '0');
-                var day = String(today.getDate()).padStart(2, '0');
-                dateInput.value = year + '-' + month + '-' + day;
-            }
+            // Tunggu sebentar agar DOM benar-benar siap
+            setTimeout(function() {
+                var dateInput = document.getElementById('due_date');
+                if (dateInput) {
+                    // Hanya set jika kosong
+                    if (!dateInput.value) {
+                        var today = new Date();
+                        // Set ke 7 hari dari sekarang
+                        today.setDate(today.getDate() + 7);
+                        
+                        var year = today.getFullYear();
+                        var month = String(today.getMonth() + 1).padStart(2, '0');
+                        var day = String(today.getDate()).padStart(2, '0');
+                        dateInput.value = year + '-' + month + '-' + day;
+                        
+                        console.log('Due Date set to: ' + dateInput.value);
+                    }
+                }
+            }, 100);
         });
 
         // ============================================
