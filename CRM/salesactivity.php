@@ -298,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
                                   result = ?, customer_prospek = ?, leads_number = ?, 
                                   attachment_file = ?, status = 'completed', completed_at = NOW() 
-                                  WHERE id = ?");
+                                  WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
             $stmt->execute([$result, $customer_prospek, $leads_number, $attachment_file, $id]);
             
             setFlash('Sales Activity berhasil diselesaikan!', 'success');
@@ -348,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
                                   subject = ?, account_id = ?, contact_name = ?, contact_mobile = ?, 
                                   business_segment = ?, badan_usaha = ?, jenis_tugas = ?, deskripsi = ?, due_date = ? 
-                                  WHERE id = ? AND status = 'in_progress'");
+                                  WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
                 $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $id
@@ -401,12 +401,12 @@ if ($userRole === 'sales') {
     $params[] = $userId;
 }
 
-// Filter status
+// Filter status - In Progress mencakup in_progress DAN overdue
 if ($status_filter !== 'all') {
     if ($status_filter === 'overdue') {
         $where .= " AND sa.status = 'overdue'";
     } elseif ($status_filter === 'in_progress') {
-        $where .= " AND sa.status = 'in_progress'";
+        $where .= " AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
     } elseif ($status_filter === 'completed') {
         $where .= " AND sa.status = 'completed'";
     } else {
@@ -440,10 +440,10 @@ $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
 // Statistik dengan deadline
-$totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress'")->fetchColumn();
+$totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' OR status = 'overdue'")->fetchColumn();
 $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
 $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'overdue'")->fetchColumn();
-$totalActivities = $totalInProgress + $totalCompleted + $totalOverdue;
+$totalActivities = $totalInProgress + $totalCompleted;
 
 // Hitung approaching (mendekati deadline)
 $approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
