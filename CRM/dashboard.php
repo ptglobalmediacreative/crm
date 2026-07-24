@@ -17,8 +17,19 @@ $menuNames = array_column($userMenus, 'module_name');
 $totalUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $totalActive = $db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
 
-// Ambil data Sales Activity (contoh: total user aktif sebagai aktivitas sales)
-$salesActivity = $totalActive;
+// ============================================
+// AMBIL TOTAL SALES ACTIVITY SESUAI USER
+// ============================================
+$userId = $_SESSION['user_id'] ?? 0;
+$userRole = $_SESSION['role'] ?? 'user';
+
+if ($userRole === 'sales') {
+    // Sales hanya melihat aktivitasnya sendiri
+    $salesActivity = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId")->fetchColumn();
+} else {
+    // Admin/Full Access melihat semua aktivitas
+    $salesActivity = $db->query("SELECT COUNT(*) FROM sales_activities")->fetchColumn();
+}
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
@@ -46,6 +57,7 @@ function getRoleLabel($role) {
 $bannerPath = 'images/banner.png';
 $bannerExists = file_exists($bannerPath);
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1120,7 +1132,7 @@ $bannerExists = file_exists($bannerPath);
                 </div>
             </div>
             <div class="activity-right">
-                <a href="sales_activity.php" class="btn-add">
+                <a href="salesactivity.php" class="btn-add">
                     <i class="fas fa-plus"></i>
                 </a>
             </div>
