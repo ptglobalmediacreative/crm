@@ -244,12 +244,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'complete') {
-        if (!canEdit('sales_activity')) {
+        $id = (int)$_POST['id'];
+        
+        // Cek permission
+        $canComplete = false;
+        if ($hasFullAccess) {
+            $canComplete = true;
+        } elseif ($userRole === 'sales') {
+            // Sales hanya bisa complete milik sendiri
+            $stmt = $db->prepare("SELECT sales_id FROM sales_activities WHERE id = ?");
+            $stmt->execute([$id]);
+            $ownerId = $stmt->fetchColumn();
+            if ($ownerId == $userId) {
+                $canComplete = true;
+            }
+        } elseif (canEdit('sales_activity')) {
+            $canComplete = true;
+        }
+        
+        if (!$canComplete) {
             setFlash('Anda tidak memiliki akses untuk menyelesaikan sales activity!', 'danger');
             redirect('salesactivity.php');
         }
         
-        $id = (int)$_POST['id'];
         $result = bersihkan($_POST['result']);
         $customer_prospek = bersihkan($_POST['customer_prospek']);
         
@@ -309,12 +326,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
-        if (!canEdit('sales_activity')) {
+        $id = (int)$_POST['id'];
+        
+        // Cek permission
+        $canEdit = false;
+        if ($hasFullAccess) {
+            $canEdit = true;
+        } elseif ($userRole === 'sales') {
+            // Sales hanya bisa edit milik sendiri
+            $stmt = $db->prepare("SELECT sales_id FROM sales_activities WHERE id = ?");
+            $stmt->execute([$id]);
+            $ownerId = $stmt->fetchColumn();
+            if ($ownerId == $userId) {
+                $canEdit = true;
+            }
+        } elseif (canEdit('sales_activity')) {
+            $canEdit = true;
+        }
+        
+        if (!$canEdit) {
             setFlash('Anda tidak memiliki akses untuk mengedit sales activity!', 'danger');
             redirect('salesactivity.php');
         }
         
-        $id = (int)$_POST['id'];
         $subject = bersihkan($_POST['subject']);
         $account_id = !empty($_POST['account_id']) ? (int)$_POST['account_id'] : NULL;
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
@@ -362,7 +396,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        if (!canDelete('sales_activity')) {
+        // Hanya full access yang bisa hapus
+        if (!$hasFullAccess || !canDelete('sales_activity')) {
             setFlash('Anda tidak memiliki akses untuk menghapus sales activity!', 'danger');
             redirect('salesactivity.php');
         }
@@ -1675,12 +1710,29 @@ if (isset($_GET['complete'])) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
+                                                <!-- DETAIL - Semua user bisa melihat -->
                                                 <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
+                                                <!-- EDIT & COMPLETE - Hanya untuk in_progress/overdue dan user yang berhak -->
                                                 <?php if ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'): ?>
-                                                    <?php if (canEdit('sales_activity') && ($hasFullAccess || $activity['sales_id'] == $userId)): ?>
+                                                    <?php 
+                                                    $canEdit = false;
+                                                    // Admin/Full Access bisa edit semua
+                                                    if ($hasFullAccess) {
+                                                        $canEdit = true;
+                                                    } 
+                                                    // Sales hanya bisa edit milik sendiri
+                                                    elseif ($userRole === 'sales' && $activity['sales_id'] == $userId) {
+                                                        $canEdit = true;
+                                                    }
+                                                    // Role lain dengan permission edit
+                                                    elseif (canEdit('sales_activity')) {
+                                                        $canEdit = true;
+                                                    }
+                                                    ?>
+                                                    <?php if ($canEdit): ?>
                                                         <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
@@ -1690,7 +1742,8 @@ if (isset($_GET['complete'])) {
                                                     <?php endif; ?>
                                                 <?php endif; ?>
                                                 
-                                                <?php if (canDelete('sales_activity') && ($hasFullAccess || $activity['sales_id'] == $userId)): ?>
+                                                <!-- DELETE - Hanya untuk Full Access (admin, dll), Sales tidak bisa hapus -->
+                                                <?php if ($hasFullAccess && canDelete('sales_activity')): ?>
                                                     <button class="btn-action delete" onclick="deleteActivity(<?= $activity['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -1700,11 +1753,26 @@ if (isset($_GET['complete'])) {
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
-                                        <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
-                                    </td>
-                                </tr>
+                                <?php if ($userRole === 'sales'): ?>
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5">
+                                            <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
+                                            <h5 class="text-muted">Belum Ada Aktivitas</h5>
+                                            <p class="text-muted">Anda belum menambahkan sales activity. Klik tombol <strong>Tambah</strong> untuk memulai.</p>
+                                            <?php if (canAdd('sales_activity')): ?>
+                                                <button class="btn btn-primary-custom mt-2" data-bs-toggle="modal" data-bs-target="#modalSalesActivity">
+                                                    <i class="fas fa-plus"></i> Tambah Activity
+                                                </button>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="9" class="text-center py-4 text-muted">
+                                            <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </tbody>
                     </table>
