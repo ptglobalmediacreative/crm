@@ -1112,7 +1112,7 @@ if (isset($_GET['edit']) && $hasFullAccess) {
             <?php endif; ?>
             
             <?php if (canAccessMenu('sales_activity')): ?>
-                <a href="#" class="nav-link">
+                <a href="salesactivity.php" class="nav-link">
                     <i class="fas fa-chart-bar"></i> Sales Activity
                 </a>
             <?php endif; ?>
@@ -1468,7 +1468,7 @@ if (isset($_GET['edit']) && $hasFullAccess) {
         
         <!-- Sales Activity -->
         <?php if (canAccessMenu('sales_activity')): ?>
-            <a href="#" class="nav-item">
+            <a href="salesactivity.php" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
                 <span class="nav-label">Sales Activity</span>
             </a>
