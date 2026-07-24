@@ -474,16 +474,33 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
-// Statistik dengan deadline
-$totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' OR status = 'overdue'")->fetchColumn();
-$totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
-$totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'overdue'")->fetchColumn();
-$totalActivities = $totalInProgress + $totalCompleted;
+// ============================================
+// STATISTIK BERDASARKAN USER
+// ============================================
+$totalInProgress = 0;
+$totalCompleted = 0;
+$totalOverdue = 0;
+$approachingCount = 0;
 
-// Hitung approaching (mendekati deadline)
-$approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
-                                WHERE status = 'in_progress' 
-                                AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
+if ($userRole === 'sales') {
+    // Sales hanya melihat datanya sendiri
+    $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
+    $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND status = 'completed'")->fetchColumn();
+    $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND status = 'overdue'")->fetchColumn();
+    $approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
+                                    WHERE sales_id = $userId 
+                                    AND status = 'in_progress' 
+                                    AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
+} else {
+    // Admin/Full Access melihat semua data
+    $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' OR status = 'overdue'")->fetchColumn();
+    $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
+    $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'overdue'")->fetchColumn();
+    $approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
+                                    WHERE status = 'in_progress' 
+                                    AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
+}
+$totalActivities = $totalInProgress + $totalCompleted;
 $overdueCount = $totalOverdue;
 
 // Ambil data untuk edit
