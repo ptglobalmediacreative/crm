@@ -484,6 +484,10 @@ if ($status_filter !== 'all') {
         $where .= " AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
     } elseif ($status_filter === 'completed') {
         $where .= " AND sa.status = 'completed'";
+    } elseif ($status_filter === 'middle_prospek') {
+        $where .= " AND sa.jenis_tugas = 'Prospecting' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
+    } elseif ($status_filter === 'hot_prospek') {
+        $where .= " AND sa.jenis_tugas = 'Negosiasi' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
     } else {
         $where .= " AND sa.status = ?";
         $params[] = $status_filter;
@@ -521,6 +525,8 @@ $totalInProgress = 0;
 $totalCompleted = 0;
 $totalOverdue = 0;
 $approachingCount = 0;
+$totalMiddleProspek = 0;
+$totalHotProspek = 0;
 
 if ($userRole === 'sales') {
     // Sales hanya melihat datanya sendiri
@@ -531,6 +537,14 @@ if ($userRole === 'sales') {
                                     WHERE sales_id = $userId 
                                     AND status = 'in_progress' 
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
+    $totalMiddleProspek = $db->query("SELECT COUNT(*) FROM sales_activities 
+                                      WHERE sales_id = $userId 
+                                      AND jenis_tugas = 'Prospecting' 
+                                      AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
+    $totalHotProspek = $db->query("SELECT COUNT(*) FROM sales_activities 
+                                   WHERE sales_id = $userId 
+                                   AND jenis_tugas = 'Negosiasi' 
+                                   AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
 } else {
     // Admin/Full Access melihat semua data
     $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' OR status = 'overdue'")->fetchColumn();
@@ -539,6 +553,12 @@ if ($userRole === 'sales') {
     $approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
                                     WHERE status = 'in_progress' 
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
+    $totalMiddleProspek = $db->query("SELECT COUNT(*) FROM sales_activities 
+                                      WHERE jenis_tugas = 'Prospecting' 
+                                      AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
+    $totalHotProspek = $db->query("SELECT COUNT(*) FROM sales_activities 
+                                   WHERE jenis_tugas = 'Negosiasi' 
+                                   AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
 }
 $totalActivities = $totalInProgress + $totalCompleted;
 $overdueCount = $totalOverdue;
@@ -1486,6 +1506,25 @@ if (isset($_GET['complete'])) {
         .table-overdue:hover {
             background-color: #ffe8e8 !important;
         }
+
+        /* Badge untuk Middle Prospek */
+        .badge-middle-prospek {
+            background: rgba(243, 156, 18, 0.15);
+            color: #f39c12;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .badge-hot-prospek {
+            background: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -1645,6 +1684,32 @@ if (isset($_GET['complete'])) {
             </div>
         </div>
 
+        <!-- STATISTIK PROSPEK -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-6 col-lg-6 col-md-6">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #f39c12;">
+                    <div>
+                        <div class="stat-number" style="color: #f39c12;"><?= number_format($totalMiddleProspek) ?></div>
+                        <div class="stat-label">
+                            <i class="fas fa-user-tie" style="color:#f39c12;"></i> Middle Prospek (Prospecting)
+                        </div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-user-tie" style="color:#f39c12;"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6 col-md-6">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #e74c3c;">
+                    <div>
+                        <div class="stat-number" style="color: #e74c3c;"><?= number_format($totalHotProspek) ?></div>
+                        <div class="stat-label">
+                            <i class="fas fa-fire" style="color:#e74c3c;"></i> Hot Prospek (Negosiasi)
+                        </div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-fire" style="color:#e74c3c;"></i></div>
+                </div>
+            </div>
+        </div>
+
         <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
@@ -1680,6 +1745,12 @@ if (isset($_GET['complete'])) {
                     <a href="?status=overdue&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'overdue' ? 'active' : '' ?>">
                         <i class="fas fa-exclamation-triangle fa-fw" style="color:#dc3545;"></i> Overdue <span class="count"><?= $overdueCount ?></span>
                     </a>
+                    <a href="?status=middle_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'middle_prospek' ? 'active' : '' ?>">
+                        <i class="fas fa-user-tie fa-fw" style="color:#f39c12;"></i> Middle Prospek <span class="count"><?= $totalMiddleProspek ?></span>
+                    </a>
+                    <a href="?status=hot_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'hot_prospek' ? 'active' : '' ?>">
+                        <i class="fas fa-fire fa-fw" style="color:#e74c3c;"></i> Hot Prospek <span class="count"><?= $totalHotProspek ?></span>
+                    </a>
                 </div>
             </div>
             
@@ -1710,10 +1781,22 @@ if (isset($_GET['complete'])) {
                                     $isApproaching = $deadline['status'] == 'approaching' && $activity['status'] == 'in_progress';
                                     $isCompleted = $activity['status'] == 'completed';
                                     $rowClass = $isOverdue ? 'table-overdue' : ($isApproaching ? 'table-warning' : '');
+                                    
+                                    // Cek apakah ini Middle Prospek atau Hot Prospek
+                                    $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
+                                    $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
                                     ?>
                                     <tr class="<?= $rowClass ?>">
                                         <td><?= $no++ ?></td>
-                                        <td><strong><?= htmlspecialchars($activity['subject']) ?></strong></td>
+                                        <td>
+                                            <strong><?= htmlspecialchars($activity['subject']) ?></strong>
+                                            <?php if ($isMiddleProspek): ?>
+                                                <br><span class="badge-middle-prospek"><i class="fas fa-user-tie"></i> Middle Prospek</span>
+                                            <?php endif; ?>
+                                            <?php if ($isHotProspek): ?>
+                                                <br><span class="badge-hot-prospek"><i class="fas fa-fire"></i> Hot Prospek</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= htmlspecialchars($activity['nama_pt'] ?? '-') ?></td>
                                         <td>
                                             <span class="badge-badan-usaha">
@@ -2400,6 +2483,8 @@ if (isset($_GET['complete'])) {
                     <div class="detail-label">Jenis Tugas</div>
                     <div class="detail-value">
                         <span class="badge-tugas ${data.jenis_tugas ? data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_') : ''}">${data.jenis_tugas || '-'}</span>
+                        ${data.jenis_tugas == 'Prospecting' ? `<span class="badge-middle-prospek ms-2"><i class="fas fa-user-tie"></i> Middle Prospek</span>` : ''}
+                        ${data.jenis_tugas == 'Negosiasi' ? `<span class="badge-hot-prospek ms-2"><i class="fas fa-fire"></i> Hot Prospek</span>` : ''}
                     </div>
                 </div>
                 <div class="detail-item">
