@@ -542,11 +542,11 @@ if ($userRole === 'sales') {
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
     // ============================================
-    // HITUNG PIPELINE PROSPEK BERDASARKAN ACCOUNT
+    // HITUNG PIPELINE PROSPEK BERDASARKAN ACCOUNT (SEMUA STATUS)
     // ============================================
-    // Ambil semua account_id yang memiliki aktivitas in_progress/overdue
+    // Ambil semua account_id yang memiliki aktivitas (semua status)
     $stmt = $db->prepare("SELECT DISTINCT account_id FROM sales_activities 
-                          WHERE sales_id = ? AND (status = 'in_progress' OR status = 'overdue') 
+                          WHERE sales_id = ? 
                           AND account_id IS NOT NULL");
     $stmt->execute([$userId]);
     $accountIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -556,11 +556,10 @@ if ($userRole === 'sales') {
     $totalDeal = 0;
     
     foreach ($accountIds as $accountId) {
-        // Cek apakah ada aktivitas Kontrak untuk account ini
+        // Cek apakah ada aktivitas Kontrak untuk account ini (semua status)
         $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
                               WHERE sales_id = ? AND account_id = ? 
-                              AND jenis_tugas = 'Kontrak' 
-                              AND (status = 'in_progress' OR status = 'overdue')");
+                              AND jenis_tugas = 'Kontrak'");
         $stmt->execute([$userId, $accountId]);
         $hasKontrak = $stmt->fetchColumn() > 0;
         
@@ -569,11 +568,10 @@ if ($userRole === 'sales') {
             continue;
         }
         
-        // Cek apakah ada aktivitas Negosiasi untuk account ini
+        // Cek apakah ada aktivitas Negosiasi untuk account ini (semua status)
         $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
                               WHERE sales_id = ? AND account_id = ? 
-                              AND jenis_tugas = 'Negosiasi' 
-                              AND (status = 'in_progress' OR status = 'overdue')");
+                              AND jenis_tugas = 'Negosiasi'");
         $stmt->execute([$userId, $accountId]);
         $hasNegosiasi = $stmt->fetchColumn() > 0;
         
@@ -582,11 +580,10 @@ if ($userRole === 'sales') {
             continue;
         }
         
-        // Cek apakah ada aktivitas Prospecting untuk account ini
+        // Cek apakah ada aktivitas Prospecting untuk account ini (semua status)
         $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
                               WHERE sales_id = ? AND account_id = ? 
-                              AND jenis_tugas = 'Prospecting' 
-                              AND (status = 'in_progress' OR status = 'overdue')");
+                              AND jenis_tugas = 'Prospecting'");
         $stmt->execute([$userId, $accountId]);
         $hasProspecting = $stmt->fetchColumn() > 0;
         
@@ -605,12 +602,11 @@ if ($userRole === 'sales') {
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
     // ============================================
-    // HITUNG PIPELINE PROSPEK BERDASARKAN ACCOUNT
+    // HITUNG PIPELINE PROSPEK BERDASARKAN ACCOUNT (SEMUA STATUS)
     // ============================================
-    // Ambil semua account_id yang memiliki aktivitas in_progress/overdue
+    // Ambil semua account_id yang memiliki aktivitas (semua status)
     $stmt = $db->query("SELECT DISTINCT account_id FROM sales_activities 
-                        WHERE (status = 'in_progress' OR status = 'overdue') 
-                        AND account_id IS NOT NULL");
+                        WHERE account_id IS NOT NULL");
     $accountIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     $totalMiddleProspek = 0;
@@ -618,11 +614,10 @@ if ($userRole === 'sales') {
     $totalDeal = 0;
     
     foreach ($accountIds as $accountId) {
-        // Cek apakah ada aktivitas Kontrak untuk account ini
+        // Cek apakah ada aktivitas Kontrak untuk account ini (semua status)
         $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
                               WHERE account_id = ? 
-                              AND jenis_tugas = 'Kontrak' 
-                              AND (status = 'in_progress' OR status = 'overdue')");
+                              AND jenis_tugas = 'Kontrak'");
         $stmt->execute([$accountId]);
         $hasKontrak = $stmt->fetchColumn() > 0;
         
@@ -631,11 +626,10 @@ if ($userRole === 'sales') {
             continue;
         }
         
-        // Cek apakah ada aktivitas Negosiasi untuk account ini
+        // Cek apakah ada aktivitas Negosiasi untuk account ini (semua status)
         $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
                               WHERE account_id = ? 
-                              AND jenis_tugas = 'Negosiasi' 
-                              AND (status = 'in_progress' OR status = 'overdue')");
+                              AND jenis_tugas = 'Negosiasi'");
         $stmt->execute([$accountId]);
         $hasNegosiasi = $stmt->fetchColumn() > 0;
         
@@ -644,11 +638,10 @@ if ($userRole === 'sales') {
             continue;
         }
         
-        // Cek apakah ada aktivitas Prospecting untuk account ini
+        // Cek apakah ada aktivitas Prospecting untuk account ini (semua status)
         $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
                               WHERE account_id = ? 
-                              AND jenis_tugas = 'Prospecting' 
-                              AND (status = 'in_progress' OR status = 'overdue')");
+                              AND jenis_tugas = 'Prospecting'");
         $stmt->execute([$accountId]);
         $hasProspecting = $stmt->fetchColumn() > 0;
         
