@@ -850,43 +850,15 @@ if (isset($_GET['complete'])) {
         
         .chart-wrapper {
             position: relative;
-            height: 220px;
+            height: 280px;
             width: 100%;
-            max-width: 250px;
+            max-width: 320px;
             margin: 0 auto;
         }
         
         .chart-wrapper canvas {
-            max-height: 220px;
-            max-width: 250px;
-        }
-        
-        .chart-legend {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-top: 10px;
-        }
-        
-        .chart-legend .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 11px;
-            color: #555;
-        }
-        
-        .chart-legend .legend-item .color-box {
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-            flex-shrink: 0;
-        }
-        
-        .chart-legend .legend-item .legend-value {
-            margin-left: auto;
-            font-weight: 600;
-            color: #1a1a2e;
+            max-height: 280px;
+            max-width: 320px;
         }
         
         .card-custom {
@@ -1461,8 +1433,8 @@ if (isset($_GET['complete'])) {
             .detail-item .detail-label { width: 100px; font-size: 12px; }
             .detail-item .detail-value { font-size: 12px; }
             .filter-buttons { flex-wrap: wrap; }
-            .chart-wrapper { height: 180px; max-width: 200px; }
-            .chart-wrapper canvas { max-height: 180px; max-width: 200px; }
+            .chart-wrapper { height: 220px; max-width: 240px; }
+            .chart-wrapper canvas { max-height: 220px; max-width: 240px; }
         }
         
         @media (max-width: 480px) {
@@ -1476,8 +1448,8 @@ if (isset($_GET['complete'])) {
             .detail-item { flex-direction: column; padding: 8px 0; }
             .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
-            .chart-wrapper { height: 160px; max-width: 180px; }
-            .chart-wrapper canvas { max-height: 160px; max-width: 180px; }
+            .chart-wrapper { height: 200px; max-width: 200px; }
+            .chart-wrapper canvas { max-height: 200px; max-width: 200px; }
         }
         
         .footer-text {
@@ -1733,77 +1705,6 @@ if (isset($_GET['complete'])) {
                 Ada <strong><?= $approachingCount ?></strong> aktivitas yang <strong>mendekati jatuh tempo</strong> (≤ 3 hari)! Segera selesaikan!
             </div>
         <?php endif; ?>
-
-        <!-- STATISTIK CARD -->
-        <div class="row g-3 mb-4">
-            <div class="col-xl-3 col-lg-3 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($totalActivities) ?></div>
-                        <div class="stat-label">Total Aktivitas</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-tasks"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-3 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #2980b9;">
-                    <div>
-                        <div class="stat-number" style="color: #2980b9;"><?= number_format($totalInProgress) ?></div>
-                        <div class="stat-label">In Progress</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-spinner"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-3 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #27ae60;">
-                    <div>
-                        <div class="stat-number" style="color: #27ae60;"><?= number_format($totalCompleted) ?></div>
-                        <div class="stat-label">Completed</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-3 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #dc3545;">
-                    <div>
-                        <div class="stat-number" style="color: #dc3545;"><?= number_format($overdueCount) ?></div>
-                        <div class="stat-label">Overdue</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-exclamation-triangle" style="color:#dc3545;"></i></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- STATISTIK PROSPEK -->
-        <div class="row g-3 mb-4">
-            <div class="col-xl-4 col-lg-4 col-md-4">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #f39c12;">
-                    <div>
-                        <div class="stat-number" style="color: #f39c12;"><?= number_format($totalMiddleProspek) ?></div>
-                        <div class="stat-label">Middle Prospek</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-user-tie" style="color:#f39c12;"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-4 col-lg-4 col-md-4">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #e74c3c;">
-                    <div>
-                        <div class="stat-number" style="color: #e74c3c;"><?= number_format($totalHotProspek) ?></div>
-                        <div class="stat-label">Hot Prospek</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-fire" style="color:#e74c3c;"></i></div>
-                </div>
-            </div>
-            <div class="col-xl-4 col-lg-4 col-md-4">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #8e44ad;">
-                    <div>
-                        <div class="stat-number" style="color: #8e44ad;"><?= number_format($totalDeal) ?></div>
-                        <div class="stat-label">Deal</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-handshake" style="color:#8e44ad;"></i></div>
-                </div>
-            </div>
-        </div>
 
         <!-- GRAFIK LINGKARAN 2 CHART -->
         <div class="row g-3 mb-4">
@@ -2074,6 +1975,7 @@ if (isset($_GET['complete'])) {
 
     </main>
 
+    <!-- MODALS -->
     <!-- ============================================
     MODAL TAMBAH / EDIT SALES ACTIVITY
     ============================================ -->
@@ -2711,7 +2613,7 @@ if (isset($_GET['complete'])) {
         // INIT CHARTS - 2 CHART TERPISAH
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // CHART 1: Status Aktivitas (In Progress, Complete, Overdue, Total)
+            // CHART 1: Status Aktivitas (In Progress, Complete, Overdue)
             var ctx1 = document.getElementById('statusChart').getContext('2d');
             var inProgress = <?= $totalInProgress ?>;
             var completed = <?= $totalCompleted ?>;
