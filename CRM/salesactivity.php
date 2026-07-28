@@ -201,6 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
         $deskripsi = bersihkan($_POST['deskripsi']);
         $due_date = $_POST['due_date'];
+        $result = !empty($_POST['result']) ? bersihkan($_POST['result']) : '';
+        $customer_prospek = !empty($_POST['customer_prospek']) ? bersihkan($_POST['customer_prospek']) : 'No';
         
         // Ambil data account untuk auto-fill
         $contact_name = '';
@@ -219,7 +221,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Validasi - Deskripsi WAJIB diisi
+        // Upload file jika ada (optional saat add)
+        $attachment_file = '';
+        if (!empty($_FILES['attachment_file']['name'])) {
+            $target_dir = "uploads/sales_activity/";
+            if (!file_exists($target_dir)) {
+                mkdir($target_dir, 0777, true);
+            }
+            
+            $file_extension = strtolower(pathinfo($_FILES['attachment_file']['name'], PATHINFO_EXTENSION));
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+            
+            if (in_array($file_extension, $allowed_extensions)) {
+                $attachment_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
+                move_uploaded_file($_FILES['attachment_file']['tmp_name'], $attachment_file);
+            } else {
+                setFlash('Format file tidak didukung! (JPG, PNG, GIF, WEBP, PDF)', 'danger');
+                redirect('salesactivity.php');
+            }
+        }
+        
+        // Validasi
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
@@ -227,17 +249,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
         
+        // Jika result diisi, maka attachment wajib diupload (karena complete)
+        if (!empty($result) && empty($attachment_file)) {
+            $errors[] = 'Jika mengisi Result, Attachment file wajib diupload!';
+        }
+        
         if (empty($errors)) {
+            // Tentukan status
+            $status = empty($result) ? 'in_progress' : 'completed';
+            
+            // Generate leads number jika customer prospek = Yes dan status complete
+            $leads_number = NULL;
+            if ($status === 'completed' && $customer_prospek === 'Yes') {
+                $leads_number = generateLeadsNumber($db, $due_date);
+            }
+            
             $stmt = $db->prepare("INSERT INTO sales_activities 
                                   (subject, account_id, contact_name, contact_mobile, business_segment, 
-                                   badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_progress', ?)");
+                                   badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id,
+                                   result, customer_prospek, leads_number, attachment_file, completed_at) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $userId
+                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $status, $userId,
+                $result, $customer_prospek, $leads_number, $attachment_file,
+                $status === 'completed' ? date('Y-m-d H:i:s') : NULL
             ]);
             
-            setFlash('Sales Activity berhasil ditambahkan!', 'success');
+            if ($status === 'completed') {
+                setFlash('Sales Activity berhasil ditambahkan dan diselesaikan!', 'success');
+            } else {
+                setFlash('Sales Activity berhasil ditambahkan! (In Progress)', 'success');
+            }
             redirect('salesactivity.php');
         } else {
             setFlash(implode('<br>', $errors), 'danger');
@@ -1821,7 +1864,7 @@ if (isset($_GET['complete'])) {
     </main>
 
     <!-- ============================================
-    MODAL TAMBAH / EDIT SALES ACTIVITY (IN PROGRESS)
+    MODAL TAMBAH / EDIT SALES ACTIVITY
     ============================================ -->
     <div class="modal fade" id="modalSalesActivity" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1893,14 +1936,43 @@ if (isset($_GET['complete'])) {
                             <textarea name="deskripsi" id="deskripsi" class="form-control" rows="3" placeholder="Masukkan deskripsi" required></textarea>
                         </div>
                         
-                        <div class="alert alert-info">
+                        <hr>
+                        <div class="alert alert-info mb-3">
                             <i class="fas fa-info-circle"></i> 
-                            <strong>Info:</strong> Setelah menyimpan, Anda dapat melanjutkan ke tahap <strong>Complete</strong> untuk mengisi Result, Customer Prospek, dan Attachment.
+                            <strong>Opsional:</strong> Jika Anda langsung mengisi <strong>Result</strong>, aktivitas akan otomatis menjadi <strong>Completed</strong>. Jika tidak diisi, status akan <strong>In Progress</strong>.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Result</label>
+                            <textarea name="result" id="result_add" class="form-control" rows="3" placeholder="Masukkan hasil aktivitas (kosongkan jika masih in progress)"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Customer Prospek</label>
+                                <select name="customer_prospek" id="customer_prospek_add" class="form-select">
+                                    <option value="No">No</option>
+                                    <option value="Yes">Yes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Leads Number</label>
+                                <input type="text" name="leads_number" id="leads_number_add" class="form-control" readonly>
+                                <small class="text-muted">Akan digenerate otomatis jika Customer Prospek = Yes</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Attachment File <span id="attachment_required" style="display:none;color:red;">*</span></label>
+                            <input type="file" name="attachment_file" id="attachment_file_add" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib jika mengisi Result</small>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan (In Progress)</button>
+                        <button type="submit" class="btn btn-primary-custom" id="btnSubmit">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
                     </div>
                 </form>
             </div>
@@ -2138,6 +2210,76 @@ if (isset($_GET['complete'])) {
                     console.log('Due Date (WIB) set to: ' + dateInput.value);
                 }
             }, 100);
+        });
+
+        // ============================================
+        // VALIDASI RESULT - TAMPILKAN PERINGATAN
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            var resultInput = document.getElementById('result_add');
+            var attachmentInput = document.getElementById('attachment_file_add');
+            var attachmentRequired = document.getElementById('attachment_required');
+            var customerProspek = document.getElementById('customer_prospek_add');
+            var leadsNumber = document.getElementById('leads_number_add');
+            
+            // Event listener untuk result
+            if (resultInput) {
+                resultInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        attachmentRequired.style.display = 'inline';
+                        attachmentInput.required = true;
+                        // Tampilkan notifikasi
+                        if (!document.getElementById('resultNotification')) {
+                            var note = document.createElement('div');
+                            note.id = 'resultNotification';
+                            note.className = 'alert alert-warning mt-2';
+                            note.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <strong>Perhatian:</strong> Karena Anda mengisi Result, Attachment wajib diupload dan aktivitas akan otomatis menjadi <strong>Completed</strong>.';
+                            resultInput.parentNode.appendChild(note);
+                        }
+                    } else {
+                        attachmentRequired.style.display = 'none';
+                        attachmentInput.required = false;
+                        var note = document.getElementById('resultNotification');
+                        if (note) note.remove();
+                    }
+                });
+            }
+            
+            // Event listener untuk customer prospek
+            if (customerProspek) {
+                customerProspek.addEventListener('change', function() {
+                    if (this.value === 'Yes') {
+                        leadsNumber.value = 'Akan digenerate otomatis saat Complete';
+                        leadsNumber.style.color = '#27ae60';
+                        leadsNumber.style.fontWeight = '600';
+                    } else {
+                        leadsNumber.value = '';
+                        leadsNumber.style.color = '';
+                        leadsNumber.style.fontWeight = '';
+                    }
+                });
+            }
+        });
+
+        // ============================================
+        // RESET FORM ADD
+        // ============================================
+        document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('formSalesActivity').reset();
+            document.getElementById('formAction').value = 'add';
+            document.getElementById('formId').value = '';
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
+            document.getElementById('badan_usaha_field').value = '';
+            document.getElementById('business_segment').value = '';
+            document.getElementById('contact_mobile').value = '';
+            document.getElementById('due_date').value = getDateWIB(7);
+            document.getElementById('result_add').value = '';
+            document.getElementById('attachment_file_add').value = '';
+            document.getElementById('leads_number_add').value = '';
+            document.getElementById('attachment_required').style.display = 'none';
+            document.getElementById('attachment_file_add').required = false;
+            var note = document.getElementById('resultNotification');
+            if (note) note.remove();
         });
 
         // ============================================
