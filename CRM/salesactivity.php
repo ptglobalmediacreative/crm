@@ -616,6 +616,8 @@ if (isset($_GET['complete'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
         * {
@@ -788,6 +790,7 @@ if (isset($_GET['complete'])) {
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(0, 0, 0, 0.03);
             transition: all 0.3s ease;
+            height: 100%;
         }
         
         .stat-card:hover {
@@ -810,6 +813,70 @@ if (isset($_GET['complete'])) {
         .stat-card .stat-icon {
             font-size: 28px;
             opacity: 0.15;
+        }
+
+        .chart-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-card .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 180px;
+            width: 100%;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+        
+        .chart-wrapper canvas {
+            max-height: 180px;
+            max-width: 180px;
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 10px;
+        }
+        
+        .chart-legend .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #555;
+        }
+        
+        .chart-legend .legend-item .color-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        
+        .chart-legend .legend-item .legend-value {
+            margin-left: auto;
+            font-weight: 600;
+            color: #1a1a2e;
         }
         
         .card-custom {
@@ -1384,6 +1451,8 @@ if (isset($_GET['complete'])) {
             .detail-item .detail-label { width: 100px; font-size: 12px; }
             .detail-item .detail-value { font-size: 12px; }
             .filter-buttons { flex-wrap: wrap; }
+            .chart-wrapper { height: 150px; max-width: 150px; }
+            .chart-wrapper canvas { max-height: 150px; max-width: 150px; }
         }
         
         @media (max-width: 480px) {
@@ -1397,6 +1466,8 @@ if (isset($_GET['complete'])) {
             .detail-item { flex-direction: column; padding: 8px 0; }
             .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
+            .chart-wrapper { height: 120px; max-width: 120px; }
+            .chart-wrapper canvas { max-height: 120px; max-width: 120px; }
         }
         
         .footer-text {
@@ -1644,7 +1715,7 @@ if (isset($_GET['complete'])) {
             </div>
         <?php endif; ?>
 
-        <!-- STATISTIK -->
+        <!-- STATISTIK CARD -->
         <div class="row g-3 mb-4">
             <div class="col-xl-3 col-lg-3 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
@@ -1684,28 +1755,74 @@ if (isset($_GET['complete'])) {
             </div>
         </div>
 
-        <!-- STATISTIK PROSPEK -->
+        <!-- GRAFIK LINGKARAN PROSPEK -->
         <div class="row g-3 mb-4">
-            <div class="col-xl-6 col-lg-6 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #f39c12;">
-                    <div>
-                        <div class="stat-number" style="color: #f39c12;"><?= number_format($totalMiddleProspek) ?></div>
-                        <div class="stat-label">
-                            <i class="fas fa-user-tie" style="color:#f39c12;"></i> Middle Prospek (Prospecting)
+            <div class="col-xl-6 col-lg-6 col-md-12">
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-pie" style="color:#f39c12;"></i> 
+                        Distribusi Prospek
+                    </div>
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center">
+                            <div class="chart-wrapper">
+                                <canvas id="prospekChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <span class="color-box" style="background: #3498db;"></span>
+                                    <span>Lainnya</span>
+                                    <span class="legend-value"><?= $totalInProgress - $totalMiddleProspek - $totalHotProspek ?></span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="color-box" style="background: #f39c12;"></span>
+                                    <span>Middle Prospek</span>
+                                    <span class="legend-value"><?= $totalMiddleProspek ?></span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="color-box" style="background: #e74c3c;"></span>
+                                    <span>Hot Prospek</span>
+                                    <span class="legend-value"><?= $totalHotProspek ?></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-icon"><i class="fas fa-user-tie" style="color:#f39c12;"></i></div>
                 </div>
             </div>
-            <div class="col-xl-6 col-lg-6 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #e74c3c;">
-                    <div>
-                        <div class="stat-number" style="color: #e74c3c;"><?= number_format($totalHotProspek) ?></div>
-                        <div class="stat-label">
-                            <i class="fas fa-fire" style="color:#e74c3c;"></i> Hot Prospek (Negosiasi)
+            <div class="col-xl-6 col-lg-6 col-md-12">
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-pie" style="color:#27ae60;"></i> 
+                        Status Aktivitas
+                    </div>
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center">
+                            <div class="chart-wrapper">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <span class="color-box" style="background: #2980b9;"></span>
+                                    <span>In Progress</span>
+                                    <span class="legend-value"><?= $totalInProgress ?></span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="color-box" style="background: #27ae60;"></span>
+                                    <span>Completed</span>
+                                    <span class="legend-value"><?= $totalCompleted ?></span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="color-box" style="background: #dc3545;"></span>
+                                    <span>Overdue</span>
+                                    <span class="legend-value"><?= $overdueCount ?></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-icon"><i class="fas fa-fire" style="color:#e74c3c;"></i></div>
                 </div>
             </div>
         </div>
@@ -2577,6 +2694,69 @@ if (isset($_GET['complete'])) {
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
         }
+
+        // ============================================
+        // INIT CHARTS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Chart Prospek
+            var ctx1 = document.getElementById('prospekChart').getContext('2d');
+            var middleProspek = <?= $totalMiddleProspek ?>;
+            var hotProspek = <?= $totalHotProspek ?>;
+            var lainnya = <?= $totalInProgress - $totalMiddleProspek - $totalHotProspek ?>;
+            
+            new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Lainnya', 'Middle Prospek', 'Hot Prospek'],
+                    datasets: [{
+                        data: [lainnya, middleProspek, hotProspek],
+                        backgroundColor: ['#3498db', '#f39c12', '#e74c3c'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Chart Status
+            var ctx2 = document.getElementById('statusChart').getContext('2d');
+            var inProgress = <?= $totalInProgress ?>;
+            var completed = <?= $totalCompleted ?>;
+            var overdue = <?= $overdueCount ?>;
+            
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['In Progress', 'Completed', 'Overdue'],
+                    datasets: [{
+                        data: [inProgress, completed, overdue],
+                        backgroundColor: ['#2980b9', '#27ae60', '#dc3545'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>
