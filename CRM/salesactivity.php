@@ -485,11 +485,31 @@ if ($status_filter !== 'all') {
     } elseif ($status_filter === 'completed') {
         $where .= " AND sa.status = 'completed'";
     } elseif ($status_filter === 'middle_prospek') {
-        $where .= " AND sa.jenis_tugas = 'Prospecting' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
+        // Middle Prospek: account yang memiliki Prospecting (semua status) dan TIDAK ada Negosiasi/Kontrak
+        $where .= " AND sa.account_id IN (
+                        SELECT DISTINCT account_id FROM sales_activities 
+                        WHERE jenis_tugas = 'Prospecting'
+                        AND account_id NOT IN (
+                            SELECT DISTINCT account_id FROM sales_activities 
+                            WHERE jenis_tugas IN ('Negosiasi', 'Kontrak')
+                        )
+                    )";
     } elseif ($status_filter === 'hot_prospek') {
-        $where .= " AND sa.jenis_tugas = 'Negosiasi' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
+        // Hot Prospek: account yang memiliki Negosiasi (semua status) dan TIDAK ada Kontrak
+        $where .= " AND sa.account_id IN (
+                        SELECT DISTINCT account_id FROM sales_activities 
+                        WHERE jenis_tugas = 'Negosiasi'
+                        AND account_id NOT IN (
+                            SELECT DISTINCT account_id FROM sales_activities 
+                            WHERE jenis_tugas = 'Kontrak'
+                        )
+                    )";
     } elseif ($status_filter === 'deal') {
-        $where .= " AND sa.jenis_tugas = 'Kontrak' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
+        // Deal: account yang memiliki Kontrak (semua status)
+        $where .= " AND sa.account_id IN (
+                        SELECT DISTINCT account_id FROM sales_activities 
+                        WHERE jenis_tugas = 'Kontrak'
+                    )";
     } else {
         $where .= " AND sa.status = ?";
         $params[] = $status_filter;
@@ -1887,7 +1907,7 @@ if (isset($_GET['complete'])) {
                                     $isCompleted = $activity['status'] == 'completed';
                                     $rowClass = $isOverdue ? 'table-overdue' : ($isApproaching ? 'table-warning' : '');
                                     
-                                    // Cek apakah ini Middle Prospek, Hot Prospek, atau Deal
+                                    // Cek apakah ini Middle Prospek, Hot Prospek, atau Deal - hanya untuk display badge
                                     $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
                                     $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
                                     $isDeal = ($activity['jenis_tugas'] == 'Kontrak' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
