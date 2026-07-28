@@ -488,6 +488,8 @@ if ($status_filter !== 'all') {
         $where .= " AND sa.jenis_tugas = 'Prospecting' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
     } elseif ($status_filter === 'hot_prospek') {
         $where .= " AND sa.jenis_tugas = 'Negosiasi' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
+    } elseif ($status_filter === 'deal') {
+        $where .= " AND sa.jenis_tugas = 'Kontrak' AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
     } else {
         $where .= " AND sa.status = ?";
         $params[] = $status_filter;
@@ -527,6 +529,7 @@ $totalOverdue = 0;
 $approachingCount = 0;
 $totalMiddleProspek = 0;
 $totalHotProspek = 0;
+$totalDeal = 0;
 
 if ($userRole === 'sales') {
     // Sales hanya melihat datanya sendiri
@@ -545,6 +548,10 @@ if ($userRole === 'sales') {
                                    WHERE sales_id = $userId 
                                    AND jenis_tugas = 'Negosiasi' 
                                    AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
+    $totalDeal = $db->query("SELECT COUNT(*) FROM sales_activities 
+                             WHERE sales_id = $userId 
+                             AND jenis_tugas = 'Kontrak' 
+                             AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
 } else {
     // Admin/Full Access melihat semua data
     $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' OR status = 'overdue'")->fetchColumn();
@@ -559,6 +566,9 @@ if ($userRole === 'sales') {
     $totalHotProspek = $db->query("SELECT COUNT(*) FROM sales_activities 
                                    WHERE jenis_tugas = 'Negosiasi' 
                                    AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
+    $totalDeal = $db->query("SELECT COUNT(*) FROM sales_activities 
+                             WHERE jenis_tugas = 'Kontrak' 
+                             AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
 }
 $totalActivities = $totalInProgress + $totalCompleted;
 $overdueCount = $totalOverdue;
@@ -840,15 +850,15 @@ if (isset($_GET['complete'])) {
         
         .chart-wrapper {
             position: relative;
-            height: 250px;
+            height: 220px;
             width: 100%;
-            max-width: 280px;
+            max-width: 250px;
             margin: 0 auto;
         }
         
         .chart-wrapper canvas {
-            max-height: 250px;
-            max-width: 280px;
+            max-height: 220px;
+            max-width: 250px;
         }
         
         .chart-legend {
@@ -1451,8 +1461,8 @@ if (isset($_GET['complete'])) {
             .detail-item .detail-label { width: 100px; font-size: 12px; }
             .detail-item .detail-value { font-size: 12px; }
             .filter-buttons { flex-wrap: wrap; }
-            .chart-wrapper { height: 200px; max-width: 220px; }
-            .chart-wrapper canvas { max-height: 200px; max-width: 220px; }
+            .chart-wrapper { height: 180px; max-width: 200px; }
+            .chart-wrapper canvas { max-height: 180px; max-width: 200px; }
         }
         
         @media (max-width: 480px) {
@@ -1466,8 +1476,8 @@ if (isset($_GET['complete'])) {
             .detail-item { flex-direction: column; padding: 8px 0; }
             .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
-            .chart-wrapper { height: 180px; max-width: 200px; }
-            .chart-wrapper canvas { max-height: 180px; max-width: 200px; }
+            .chart-wrapper { height: 160px; max-width: 180px; }
+            .chart-wrapper canvas { max-height: 160px; max-width: 180px; }
         }
         
         .footer-text {
@@ -1591,6 +1601,15 @@ if (isset($_GET['complete'])) {
         .badge-hot-prospek {
             background: rgba(231, 76, 60, 0.15);
             color: #e74c3c;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .badge-deal {
+            background: rgba(142, 68, 173, 0.15);
+            color: #8e44ad;
             padding: 3px 10px;
             border-radius: 20px;
             font-size: 10px;
@@ -1755,49 +1774,58 @@ if (isset($_GET['complete'])) {
             </div>
         </div>
 
-        <!-- GRAFIK LINGKARAN ALL IN ONE -->
+        <!-- STATISTIK PROSPEK -->
         <div class="row g-3 mb-4">
-            <div class="col-12">
+            <div class="col-xl-4 col-lg-4 col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #f39c12;">
+                    <div>
+                        <div class="stat-number" style="color: #f39c12;"><?= number_format($totalMiddleProspek) ?></div>
+                        <div class="stat-label">Middle Prospek</div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-user-tie" style="color:#f39c12;"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-4 col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #e74c3c;">
+                    <div>
+                        <div class="stat-number" style="color: #e74c3c;"><?= number_format($totalHotProspek) ?></div>
+                        <div class="stat-label">Hot Prospek</div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-fire" style="color:#e74c3c;"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-4 col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center" style="border-left: 3px solid #8e44ad;">
+                    <div>
+                        <div class="stat-number" style="color: #8e44ad;"><?= number_format($totalDeal) ?></div>
+                        <div class="stat-label">Deal</div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-handshake" style="color:#8e44ad;"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRAFIK LINGKARAN 2 CHART -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-6 col-lg-6 col-md-12">
                 <div class="chart-card">
                     <div class="chart-title">
-                        <i class="fas fa-chart-pie" style="color:#ffd700;"></i> 
-                        Ringkasan Sales Activity
+                        <i class="fas fa-chart-pie" style="color:#2980b9;"></i> 
+                        Status Aktivitas
                     </div>
-                    <div class="row align-items-center">
-                        <div class="col-md-5 text-center">
-                            <div class="chart-wrapper">
-                                <canvas id="mainChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="col-md-7">
-                            <div class="chart-legend">
-                                <div class="legend-item">
-                                    <span class="color-box" style="background: #2980b9;"></span>
-                                    <span>In Progress</span>
-                                    <span class="legend-value"><?= $totalInProgress ?></span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="color-box" style="background: #27ae60;"></span>
-                                    <span>Completed</span>
-                                    <span class="legend-value"><?= $totalCompleted ?></span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="color-box" style="background: #e74c3c;"></span>
-                                    <span>Overdue</span>
-                                    <span class="legend-value"><?= $overdueCount ?></span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="color-box" style="background: #f39c12;"></span>
-                                    <span>Middle Prospek</span>
-                                    <span class="legend-value"><?= $totalMiddleProspek ?></span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="color-box" style="background: #ff6b6b;"></span>
-                                    <span>Hot Prospek</span>
-                                    <span class="legend-value"><?= $totalHotProspek ?></span>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="chart-wrapper">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6 col-md-12">
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-pie" style="color:#f39c12;"></i> 
+                        Pipeline Prospek
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="prospekChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -1844,6 +1872,9 @@ if (isset($_GET['complete'])) {
                     <a href="?status=hot_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'hot_prospek' ? 'active' : '' ?>">
                         <i class="fas fa-fire fa-fw" style="color:#ff6b6b;"></i> Hot Prospek <span class="count"><?= $totalHotProspek ?></span>
                     </a>
+                    <a href="?status=deal&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'deal' ? 'active' : '' ?>">
+                        <i class="fas fa-handshake fa-fw" style="color:#8e44ad;"></i> Deal <span class="count"><?= $totalDeal ?></span>
+                    </a>
                 </div>
             </div>
             
@@ -1875,9 +1906,10 @@ if (isset($_GET['complete'])) {
                                     $isCompleted = $activity['status'] == 'completed';
                                     $rowClass = $isOverdue ? 'table-overdue' : ($isApproaching ? 'table-warning' : '');
                                     
-                                    // Cek apakah ini Middle Prospek atau Hot Prospek
+                                    // Cek apakah ini Middle Prospek, Hot Prospek, atau Deal
                                     $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
                                     $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
+                                    $isDeal = ($activity['jenis_tugas'] == 'Kontrak' && ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
                                     ?>
                                     <tr class="<?= $rowClass ?>">
                                         <td><?= $no++ ?></td>
@@ -1888,6 +1920,9 @@ if (isset($_GET['complete'])) {
                                             <?php endif; ?>
                                             <?php if ($isHotProspek): ?>
                                                 <br><span class="badge-hot-prospek"><i class="fas fa-fire"></i> Hot Prospek</span>
+                                            <?php endif; ?>
+                                            <?php if ($isDeal): ?>
+                                                <br><span class="badge-deal"><i class="fas fa-handshake"></i> Deal</span>
                                             <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($activity['nama_pt'] ?? '-') ?></td>
@@ -2578,6 +2613,7 @@ if (isset($_GET['complete'])) {
                         <span class="badge-tugas ${data.jenis_tugas ? data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_') : ''}">${data.jenis_tugas || '-'}</span>
                         ${data.jenis_tugas == 'Prospecting' ? `<span class="badge-middle-prospek ms-2"><i class="fas fa-user-tie"></i> Middle Prospek</span>` : ''}
                         ${data.jenis_tugas == 'Negosiasi' ? `<span class="badge-hot-prospek ms-2"><i class="fas fa-fire"></i> Hot Prospek</span>` : ''}
+                        ${data.jenis_tugas == 'Kontrak' ? `<span class="badge-deal ms-2"><i class="fas fa-handshake"></i> Deal</span>` : ''}
                     </div>
                 </div>
                 <div class="detail-item">
@@ -2672,25 +2708,22 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // INIT CHART - ALL IN ONE
+        // INIT CHARTS - 2 CHART TERPISAH
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Data untuk chart
+            // CHART 1: Status Aktivitas (In Progress, Complete, Overdue, Total)
+            var ctx1 = document.getElementById('statusChart').getContext('2d');
             var inProgress = <?= $totalInProgress ?>;
             var completed = <?= $totalCompleted ?>;
             var overdue = <?= $overdueCount ?>;
-            var middleProspek = <?= $totalMiddleProspek ?>;
-            var hotProspek = <?= $totalHotProspek ?>;
             
-            var ctx = document.getElementById('mainChart').getContext('2d');
-            
-            new Chart(ctx, {
+            new Chart(ctx1, {
                 type: 'doughnut',
                 data: {
-                    labels: ['In Progress', 'Completed', 'Overdue', 'Middle Prospek', 'Hot Prospek'],
+                    labels: ['In Progress', 'Completed', 'Overdue'],
                     datasets: [{
-                        data: [inProgress, completed, overdue, middleProspek, hotProspek],
-                        backgroundColor: ['#2980b9', '#27ae60', '#e74c3c', '#f39c12', '#ff6b6b'],
+                        data: [inProgress, completed, overdue],
+                        backgroundColor: ['#2980b9', '#27ae60', '#e74c3c'],
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
@@ -2698,19 +2731,55 @@ if (isset($_GET['complete'])) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '65%',
+                    cutout: '70%',
                     plugins: {
                         legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    var label = context.label || '';
-                                    var value = context.parsed || 0;
-                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    var percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                    return label + ': ' + value + ' (' + percentage + '%)';
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: {
+                                    size: 11,
+                                    weight: '600'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // CHART 2: Pipeline Prospek (Middle Prospek, Hot Prospek, Deal)
+            var ctx2 = document.getElementById('prospekChart').getContext('2d');
+            var middleProspek = <?= $totalMiddleProspek ?>;
+            var hotProspek = <?= $totalHotProspek ?>;
+            var deal = <?= $totalDeal ?>;
+            
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Middle Prospek', 'Hot Prospek', 'Deal'],
+                    datasets: [{
+                        data: [middleProspek, hotProspek, deal],
+                        backgroundColor: ['#f39c12', '#ff6b6b', '#8e44ad'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: {
+                                    size: 11,
+                                    weight: '600'
                                 }
                             }
                         }
