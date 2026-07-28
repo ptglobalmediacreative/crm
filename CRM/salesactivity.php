@@ -1782,7 +1782,7 @@ if (isset($_GET['complete'])) {
                                     <span class="legend-value"><?= $totalCompleted ?></span>
                                 </div>
                                 <div class="legend-item">
-                                    <span class="color-box" style="background: #dc3545;"></span>
+                                    <span class="color-box" style="background: #e74c3c;"></span>
                                     <span>Overdue</span>
                                     <span class="legend-value"><?= $overdueCount ?></span>
                                 </div>
@@ -1792,7 +1792,7 @@ if (isset($_GET['complete'])) {
                                     <span class="legend-value"><?= $totalMiddleProspek ?></span>
                                 </div>
                                 <div class="legend-item">
-                                    <span class="color-box" style="background: #e74c3c;"></span>
+                                    <span class="color-box" style="background: #ff6b6b;"></span>
                                     <span>Hot Prospek</span>
                                     <span class="legend-value"><?= $totalHotProspek ?></span>
                                 </div>
@@ -1836,13 +1836,13 @@ if (isset($_GET['complete'])) {
                         <i class="fas fa-check-circle fa-fw"></i> Completed <span class="count"><?= $totalCompleted ?></span>
                     </a>
                     <a href="?status=overdue&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'overdue' ? 'active' : '' ?>">
-                        <i class="fas fa-exclamation-triangle fa-fw" style="color:#dc3545;"></i> Overdue <span class="count"><?= $overdueCount ?></span>
+                        <i class="fas fa-exclamation-triangle fa-fw" style="color:#e74c3c;"></i> Overdue <span class="count"><?= $overdueCount ?></span>
                     </a>
                     <a href="?status=middle_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'middle_prospek' ? 'active' : '' ?>">
                         <i class="fas fa-user-tie fa-fw" style="color:#f39c12;"></i> Middle Prospek <span class="count"><?= $totalMiddleProspek ?></span>
                     </a>
                     <a href="?status=hot_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'hot_prospek' ? 'active' : '' ?>">
-                        <i class="fas fa-fire fa-fw" style="color:#e74c3c;"></i> Hot Prospek <span class="count"><?= $totalHotProspek ?></span>
+                        <i class="fas fa-fire fa-fw" style="color:#ff6b6b;"></i> Hot Prospek <span class="count"><?= $totalHotProspek ?></span>
                     </a>
                 </div>
             </div>
@@ -2690,7 +2690,7 @@ if (isset($_GET['complete'])) {
                     labels: ['In Progress', 'Completed', 'Overdue', 'Middle Prospek', 'Hot Prospek'],
                     datasets: [{
                         data: [inProgress, completed, overdue, middleProspek, hotProspek],
-                        backgroundColor: ['#2980b9', '#27ae60', '#dc3545', '#f39c12', '#e74c3c'],
+                        backgroundColor: ['#2980b9', '#27ae60', '#e74c3c', '#f39c12', '#ff6b6b'],
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
