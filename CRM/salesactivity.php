@@ -476,7 +476,7 @@ if ($userRole === 'sales') {
     $params[] = $userId;
 }
 
-// Filter status - In Progress mencakup in_progress DAN overdue
+// Filter status
 if ($status_filter !== 'all') {
     if ($status_filter === 'overdue') {
         $where .= " AND sa.status = 'overdue'";
@@ -485,31 +485,14 @@ if ($status_filter !== 'all') {
     } elseif ($status_filter === 'completed') {
         $where .= " AND sa.status = 'completed'";
     } elseif ($status_filter === 'middle_prospek') {
-        // Middle Prospek: account yang memiliki Prospecting (semua status) dan TIDAK ada Negosiasi/Kontrak
-        $where .= " AND sa.account_id IN (
-                        SELECT DISTINCT account_id FROM sales_activities 
-                        WHERE jenis_tugas = 'Prospecting'
-                        AND account_id NOT IN (
-                            SELECT DISTINCT account_id FROM sales_activities 
-                            WHERE jenis_tugas IN ('Negosiasi', 'Kontrak')
-                        )
-                    )";
+        // Middle Prospek: semua aktivitas dengan jenis tugas Prospecting (semua status)
+        $where .= " AND sa.jenis_tugas = 'Prospecting'";
     } elseif ($status_filter === 'hot_prospek') {
-        // Hot Prospek: account yang memiliki Negosiasi (semua status) dan TIDAK ada Kontrak
-        $where .= " AND sa.account_id IN (
-                        SELECT DISTINCT account_id FROM sales_activities 
-                        WHERE jenis_tugas = 'Negosiasi'
-                        AND account_id NOT IN (
-                            SELECT DISTINCT account_id FROM sales_activities 
-                            WHERE jenis_tugas = 'Kontrak'
-                        )
-                    )";
+        // Hot Prospek: semua aktivitas dengan jenis tugas Negosiasi (semua status)
+        $where .= " AND sa.jenis_tugas = 'Negosiasi'";
     } elseif ($status_filter === 'deal') {
-        // Deal: account yang memiliki Kontrak (semua status)
-        $where .= " AND sa.account_id IN (
-                        SELECT DISTINCT account_id FROM sales_activities 
-                        WHERE jenis_tugas = 'Kontrak'
-                    )";
+        // Deal: semua aktivitas dengan jenis tugas Kontrak (semua status)
+        $where .= " AND sa.jenis_tugas = 'Kontrak'";
     } else {
         $where .= " AND sa.status = ?";
         $params[] = $status_filter;
