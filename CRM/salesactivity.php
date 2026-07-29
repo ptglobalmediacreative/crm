@@ -375,12 +375,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($attachment_file)) $errors[] = 'Attachment file wajib diupload!';
         
         if (empty($errors)) {
-            // Cek siapa pemilik activity ini
-            $stmt = $db->prepare("SELECT sales_id, account_id FROM sales_activities WHERE id = ?");
-            $stmt->execute([$id]);
-            $activityData = $stmt->fetch();
-            $currentSalesId = $activityData['sales_id'] ?? null;
-            
             $stmt = $db->prepare("UPDATE sales_activities SET 
                                   result = ?, customer_prospek = ?, leads_number = ?, 
                                   attachment_file = ?, status = 'completed', completed_at = NOW() 
@@ -2008,7 +2002,7 @@ if (isset($_GET['complete'])) {
                                                         <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn-action complete" onclick="completeActivity(<?= $activity['id'] ?>)">
+                                                        <button class="btn-action complete" onclick="completeActivity(<?= $activity['id'] ?>, <?= htmlspecialchars(json_encode($activity)) ?>)">
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     <?php endif; ?>
@@ -2499,32 +2493,9 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // COMPLETE ACTIVITY
+        // COMPLETE ACTIVITY - VERSION WITH DATA PARAMETER
         // ============================================
-        function completeActivity(id) {
-            var rows = document.querySelectorAll('table tbody tr');
-            var data = null;
-            for (var i = 0; i < rows.length; i++) {
-                var row = rows[i];
-                var deleteBtn = row.querySelector('.btn-action.delete');
-                if (deleteBtn) {
-                    var onclickAttr = deleteBtn.getAttribute('onclick');
-                    if (onclickAttr && onclickAttr.includes(id)) {
-                        var detailBtn = row.querySelector('.btn-action.detail');
-                        if (detailBtn) {
-                            var detailOnclick = detailBtn.getAttribute('onclick');
-                            if (detailOnclick) {
-                                var match = detailOnclick.match(/detailActivity\((.*)\)/);
-                                if (match) {
-                                    data = JSON.parse(match[1]);
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            
+        function completeActivity(id, data) {
             if (data) {
                 document.getElementById('completeId').value = data.id;
                 document.getElementById('completeSubject').value = data.subject;
