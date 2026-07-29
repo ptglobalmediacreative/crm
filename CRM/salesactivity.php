@@ -1787,7 +1787,7 @@ if (isset($_GET['complete'])) {
                 <div class="chart-card">
                     <div class="chart-title">
                         <i class="fas fa-chart-pie" style="color:#f39c12;"></i> 
-                        Pipeline Prospek
+                        Status Prospek
                     </div>
                     <div class="chart-wrapper">
                         <canvas id="prospekChart"></canvas>
@@ -1905,9 +1905,6 @@ if (isset($_GET['complete'])) {
                                             <span class="badge-tugas <?= str_replace(' ', '_', str_replace('/', '_', $activity['jenis_tugas'])) ?>">
                                                 <?= htmlspecialchars($activity['jenis_tugas']) ?>
                                             </span>
-                                            <?php if ($activity['status'] == 'completed'): ?>
-                                                <span class="badge bg-secondary ms-1">Selesai</span>
-                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if ($activity['due_date']): ?>
