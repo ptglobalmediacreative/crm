@@ -485,25 +485,27 @@ if ($status_filter !== 'all') {
     } elseif ($status_filter === 'completed') {
         $where .= " AND sa.status = 'completed'";
     } elseif ($status_filter === 'middle_prospek') {
-        // Middle Prospek: Prospecting, belum ada Negosiasi atau Kontrak di account yang sama
+        // Middle Prospek: Prospecting, semua status (in_progress, overdue, completed)
+        // dan belum ada Negosiasi atau Kontrak di account yang sama
         $where .= " AND sa.jenis_tugas = 'Prospecting' 
-                    AND (sa.status = 'in_progress' OR sa.status = 'overdue')
                     AND NOT EXISTS (
                         SELECT 1 FROM sales_activities sa2 
                         WHERE sa2.account_id = sa.account_id 
                         AND sa2.jenis_tugas IN ('Negosiasi', 'Kontrak')
+                        AND sa2.id != sa.id
                     )";
     } elseif ($status_filter === 'hot_prospek') {
-        // Hot Prospek: Negosiasi, belum ada Kontrak di account yang sama
+        // Hot Prospek: Negosiasi, semua status (in_progress, overdue, completed)
+        // dan belum ada Kontrak di account yang sama
         $where .= " AND sa.jenis_tugas = 'Negosiasi' 
-                    AND (sa.status = 'in_progress' OR sa.status = 'overdue')
                     AND NOT EXISTS (
                         SELECT 1 FROM sales_activities sa2 
                         WHERE sa2.account_id = sa.account_id 
                         AND sa2.jenis_tugas = 'Kontrak'
+                        AND sa2.id != sa.id
                     )";
     } elseif ($status_filter === 'deal') {
-        // Deal: Kontrak (semua status)
+        // Deal: Kontrak, semua status (in_progress, overdue, completed)
         $where .= " AND sa.jenis_tugas = 'Kontrak'";
     } else {
         $where .= " AND sa.status = ?";
@@ -525,8 +527,8 @@ $totalPages = ceil($totalData / $limit);
 
 // Get data - tambahkan subquery untuk cek status pipeline
 $sql = "SELECT sa.*, a.nama_pt, a.badan_usaha as account_badan_usaha, u.full_name as sales_name,
-        (SELECT COUNT(*) FROM sales_activities sa2 WHERE sa2.account_id = sa.account_id AND sa2.jenis_tugas IN ('Negosiasi', 'Kontrak')) as has_negosiasi_kontrak,
-        (SELECT COUNT(*) FROM sales_activities sa3 WHERE sa3.account_id = sa.account_id AND sa3.jenis_tugas = 'Kontrak') as has_kontrak
+        (SELECT COUNT(*) FROM sales_activities sa2 WHERE sa2.account_id = sa.account_id AND sa2.jenis_tugas IN ('Negosiasi', 'Kontrak') AND sa2.id != sa.id) as has_negosiasi_kontrak,
+        (SELECT COUNT(*) FROM sales_activities sa3 WHERE sa3.account_id = sa.account_id AND sa3.jenis_tugas = 'Kontrak' AND sa3.id != sa.id) as has_kontrak
         FROM sales_activities sa 
         LEFT JOIN accounts a ON sa.account_id = a.id 
         LEFT JOIN users u ON sa.sales_id = u.id 
@@ -556,13 +558,12 @@ if ($userRole === 'sales') {
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
     // ============================================
-    // HITUNG STATISTIK PIPELINE PROSPEK
+    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS)
     // ============================================
     // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE sales_id = ? 
                           AND jenis_tugas = 'Prospecting'
-                          AND (status = 'in_progress' OR status = 'overdue')
                           AND account_id NOT IN (
                               SELECT DISTINCT account_id FROM sales_activities 
                               WHERE sales_id = ? 
@@ -576,7 +577,6 @@ if ($userRole === 'sales') {
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE sales_id = ? 
                           AND jenis_tugas = 'Negosiasi'
-                          AND (status = 'in_progress' OR status = 'overdue')
                           AND account_id NOT IN (
                               SELECT DISTINCT account_id FROM sales_activities 
                               WHERE sales_id = ? 
@@ -603,12 +603,11 @@ if ($userRole === 'sales') {
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
     // ============================================
-    // HITUNG STATISTIK PIPELINE PROSPEK
+    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS)
     // ============================================
     // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE jenis_tugas = 'Prospecting'
-                          AND (status = 'in_progress' OR status = 'overdue')
                           AND account_id NOT IN (
                               SELECT DISTINCT account_id FROM sales_activities 
                               WHERE jenis_tugas IN ('Negosiasi', 'Kontrak')
@@ -620,7 +619,6 @@ if ($userRole === 'sales') {
     // Hot Prospek: Negosiasi, belum ada Kontrak
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE jenis_tugas = 'Negosiasi'
-                          AND (status = 'in_progress' OR status = 'overdue')
                           AND account_id NOT IN (
                               SELECT DISTINCT account_id FROM sales_activities 
                               WHERE jenis_tugas = 'Kontrak'
@@ -1872,20 +1870,15 @@ if (isset($_GET['complete'])) {
                                     $isCompleted = $activity['status'] == 'completed';
                                     $rowClass = $isOverdue ? 'table-overdue' : ($isApproaching ? 'table-warning' : '');
                                     
-                                    // Cek pipeline prospek berdasarkan account
-                                    // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak
-                                    $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && 
-                                                        ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue') &&
-                                                        $activity['has_negosiasi_kontrak'] == 0);
+                                    // Cek pipeline prospek berdasarkan account - SEMUA STATUS
+                                    // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak di account yang sama
+                                    $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && $activity['has_negosiasi_kontrak'] == 0);
                                     
-                                    // Hot Prospek: Negosiasi, belum ada Kontrak
-                                    $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && 
-                                                    ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue') &&
-                                                    $activity['has_kontrak'] == 0);
+                                    // Hot Prospek: Negosiasi, belum ada Kontrak di account yang sama
+                                    $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && $activity['has_kontrak'] == 0);
                                     
                                     // Deal: Kontrak
-                                    $isDeal = ($activity['jenis_tugas'] == 'Kontrak' && 
-                                              ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'));
+                                    $isDeal = ($activity['jenis_tugas'] == 'Kontrak');
                                     ?>
                                     <tr class="<?= $rowClass ?>">
                                         <td><?= $no++ ?></td>
@@ -1912,6 +1905,9 @@ if (isset($_GET['complete'])) {
                                             <span class="badge-tugas <?= str_replace(' ', '_', str_replace('/', '_', $activity['jenis_tugas'])) ?>">
                                                 <?= htmlspecialchars($activity['jenis_tugas']) ?>
                                             </span>
+                                            <?php if ($activity['status'] == 'completed'): ?>
+                                                <span class="badge bg-secondary ms-1">Selesai</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if ($activity['due_date']): ?>
@@ -2556,10 +2552,10 @@ if (isset($_GET['complete'])) {
                 }
             }
             
-            // Cek badge pipeline prospek
-            var isMiddleProspek = data.jenis_tugas == 'Prospecting' && (data.status == 'in_progress' || data.status == 'overdue') && data.has_negosiasi_kontrak == 0;
-            var isHotProspek = data.jenis_tugas == 'Negosiasi' && (data.status == 'in_progress' || data.status == 'overdue') && data.has_kontrak == 0;
-            var isDeal = data.jenis_tugas == 'Kontrak' && (data.status == 'in_progress' || data.status == 'overdue');
+            // Cek badge pipeline prospek - SEMUA STATUS
+            var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
+            var isHotProspek = data.jenis_tugas == 'Negosiasi' && data.has_kontrak == 0;
+            var isDeal = data.jenis_tugas == 'Kontrak';
             
             var pipelineBadge = '';
             if (isMiddleProspek) {
