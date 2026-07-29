@@ -49,6 +49,9 @@ $role = $_SESSION['role'] ?? 'user';
 $fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
 $hasFullAccess = in_array($userRole, $fullAccessRoles);
 
+// Role yang bisa input untuk sales lain
+$direkturRoles = ['direktur_utama', 'direktur_operasional', 'direktur_sales', 'admin', 'it_support', 'finance', 'business'];
+
 // ============================================
 // FUNGSI CEK DEADLINE (dengan WIB)
 // ============================================
@@ -131,6 +134,16 @@ function generateLeadsNumber($db, $date) {
     }
     
     return "LEAD/GET/" . $month . "/" . $year . "/" . $newNumber;
+}
+
+// ============================================
+// FUNGSI UNTUK MENDAPATKAN SALES ID DARI ACCOUNT
+// ============================================
+function getSalesIdFromAccount($db, $account_id) {
+    $stmt = $db->prepare("SELECT sales_id FROM accounts WHERE id = ?");
+    $stmt->execute([$account_id]);
+    $sales_id = $stmt->fetchColumn();
+    return $sales_id ? (int)$sales_id : null;
 }
 
 // ============================================
@@ -264,6 +277,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $leads_number = generateLeadsNumber($db, $due_date);
             }
             
+            // Tentukan sales_id yang akan digunakan
+            $targetSalesId = $userId; // default: user yang login
+            
+            // Jika user adalah direktur/admin/business, gunakan sales_id dari account
+            if (in_array($userRole, $direkturRoles) && $account_id) {
+                $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
+                if ($salesIdFromAccount) {
+                    $targetSalesId = $salesIdFromAccount;
+                }
+            }
+            
             $stmt = $db->prepare("INSERT INTO sales_activities 
                                   (subject, account_id, contact_name, contact_mobile, business_segment, 
                                    badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id,
@@ -271,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $status, $userId,
+                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $status, $targetSalesId,
                 $result, $customer_prospek, $leads_number, $attachment_file,
                 $status === 'completed' ? date('Y-m-d H:i:s') : NULL
             ]);
@@ -351,6 +375,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($attachment_file)) $errors[] = 'Attachment file wajib diupload!';
         
         if (empty($errors)) {
+            // Cek siapa pemilik activity ini
+            $stmt = $db->prepare("SELECT sales_id, account_id FROM sales_activities WHERE id = ?");
+            $stmt->execute([$id]);
+            $activityData = $stmt->fetch();
+            $currentSalesId = $activityData['sales_id'] ?? null;
+            
             $stmt = $db->prepare("UPDATE sales_activities SET 
                                   result = ?, customer_prospek = ?, leads_number = ?, 
                                   attachment_file = ?, status = 'completed', completed_at = NOW() 
@@ -471,10 +501,12 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $where = "WHERE 1=1";
 $params = [];
 
+// Jika user adalah sales, hanya lihat milik sendiri
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
 }
+// Untuk direktur/admin/business, lihat semua data (tidak difilter)
 
 // Filter status
 if ($status_filter !== 'all') {
@@ -558,7 +590,7 @@ if ($userRole === 'sales') {
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
     // ============================================
-    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS)
+    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS) - UNTUK SALES
     // ============================================
     // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
@@ -594,8 +626,8 @@ if ($userRole === 'sales') {
     $totalDeal = $stmt->fetchColumn();
     
 } else {
-    // Admin/Full Access melihat semua data
-    $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'in_progress' OR status = 'overdue'")->fetchColumn();
+    // Admin/Direktur/Business melihat semua data
+    $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
     $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
     $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'overdue'")->fetchColumn();
     $approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
@@ -603,7 +635,7 @@ if ($userRole === 'sales') {
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
     // ============================================
-    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS)
+    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS) - UNTUK ADMIN/DIREKTUR
     // ============================================
     // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
@@ -1810,7 +1842,8 @@ if (isset($_GET['complete'])) {
                     </form>
                     <?php if (canAdd('sales_activity')): ?>
                         <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalSalesActivity">
-                            <i class="fas fa-plus"></i> Tambah                        </button>
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -1856,6 +1889,7 @@ if (isset($_GET['complete'])) {
                                 <th>Jenis Tugas</th>
                                 <th>Due Date</th>
                                 <th>Status Deadline</th>
+                                <th>Sales</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1945,6 +1979,7 @@ if (isset($_GET['complete'])) {
                                                 -
                                             <?php endif; ?>
                                         </td>
+                                        <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
                                                 <!-- DETAIL - Semua user bisa melihat -->
@@ -1992,7 +2027,7 @@ if (isset($_GET['complete'])) {
                             <?php else: ?>
                                 <?php if ($userRole === 'sales'): ?>
                                     <tr>
-                                        <td colspan="9" class="text-center py-5">
+                                        <td colspan="10" class="text-center py-5">
                                             <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
                                             <h5 class="text-muted">Belum Ada Aktivitas</h5>
                                             <p class="text-muted">Anda belum menambahkan sales activity. Klik tombol <strong>Tambah</strong> untuk memulai.</p>
@@ -2005,7 +2040,7 @@ if (isset($_GET['complete'])) {
                                     </tr>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="9" class="text-center py-4 text-muted">
+                                        <td colspan="10" class="text-center py-4 text-muted">
                                             <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
                                         </td>
                                     </tr>
