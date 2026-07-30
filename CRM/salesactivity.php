@@ -3099,7 +3099,6 @@ if (isset($_GET['complete'])) {
                             var note = document.createElement('div');
                             note.id = 'resultNotification';
                             note.className = 'alert alert-warning mt-2';
-                            note.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <strong>Perhatian:</strong> Karena Anda mengisi Result, Attachment wajib diupload dan aktivitas akan otomatis menjadi <strong>Completed</strong>.';
                             resultInput.parentNode.appendChild(note);
                         }
                     } else {
