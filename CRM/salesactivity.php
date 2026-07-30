@@ -2406,7 +2406,7 @@ if (isset($_GET['complete'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Deskripsi <span class="text-danger">*</span> <span class="text-muted small">(Minimal 80 karakter)</span></label>
+                            <label class="form-label">Deskripsi <span class="text-danger">*</span></label>
                             <textarea name="deskripsi" id="deskripsi" class="form-control" rows="4" placeholder="Masukkan deskripsi (minimal 80 karakter)" required oninput="updateCharCount('deskripsi', 'deskripsiCounter')"></textarea>
                             <div class="char-counter">
                                 <span class="count" id="deskripsiCounter">0</span> / 80 karakter (minimal)
@@ -2451,7 +2451,6 @@ if (isset($_GET['complete'])) {
                         <div class="mb-3">
                             <label class="form-label">Attachment File <span id="attachment_required" style="display:none;color:red;">*</span></label>
                             <input type="file" name="attachment_file" id="attachment_file_add" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib jika mengisi Result</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -2513,7 +2512,7 @@ if (isset($_GET['complete'])) {
                         <hr>
                         
                         <div class="mb-3">
-                            <label class="form-label">Result <span class="text-danger">*</span> <span class="text-muted small">(Minimal 80 karakter)</span></label>
+                            <label class="form-label">Result <span class="text-danger">*</span></label>
                             <textarea name="result" id="result" class="form-control" rows="4" placeholder="Masukkan hasil dari aktivitas (minimal 80 karakter)" required oninput="updateCharCount('result', 'resultCounter')"></textarea>
                             <div class="char-counter">
                                 <span class="count" id="resultCounter">0</span> / 80 karakter (minimal)
@@ -2932,7 +2931,6 @@ if (isset($_GET['complete'])) {
             var deskripsiStatus = document.getElementById('deskripsiStatus');
             if (deskripsiStatus) {
                 deskripsiStatus.className = 'status-text invalid';
-                deskripsiStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang 80 karakter lagi';
             }
             var resultCounterAdd = document.getElementById('resultCounterAdd');
             if (resultCounterAdd) {
@@ -2942,7 +2940,6 @@ if (isset($_GET['complete'])) {
             var resultStatusAdd = document.getElementById('resultStatusAdd');
             if (resultStatusAdd) {
                 resultStatusAdd.className = 'status-text invalid';
-                resultStatusAdd.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang 80 karakter lagi';
             }
         });
 
@@ -2981,7 +2978,6 @@ if (isset($_GET['complete'])) {
                 var resultStatus = document.getElementById('resultStatus');
                 if (resultStatus) {
                     resultStatus.className = 'status-text invalid';
-                    resultStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang 80 karakter lagi';
                 }
                 
                 var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
