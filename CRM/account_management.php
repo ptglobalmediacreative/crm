@@ -1737,7 +1737,6 @@ function canSalesEdit($db, $account_id, $userId) {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Upload NPWP <span class="text-danger" id="npwpFileRequired" style="display:none;">*</span></label>
                                 <input type="file" name="npwp_file" id="npwp_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
-                                <small class="text-muted" id="npwpFileHelp">Format: JPG, PNG, PDF | Maks: 2MB (Wajib jika NPWP diisi)</small>
                             </div>
                         </div>
                         
@@ -1865,7 +1864,6 @@ function canSalesEdit($db, $account_id, $userId) {
                         <div class="mb-3">
                             <label class="form-label">Upload File NPWP <span class="text-danger" id="editNPWPFileRequired" style="display:none;">*</span></label>
                             <input type="file" name="npwp_file" id="editNPWPFile" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
-                            <small class="text-muted">Format: JPG, PNG, PDF | Maks: 2MB (Wajib jika NPWP diisi)</small>
                         </div>
                     </div>
                     <div class="modal-footer">
