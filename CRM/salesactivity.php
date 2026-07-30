@@ -38,6 +38,159 @@ function getRoleLabel($role) {
 }
 
 // ============================================
+// FUNGSI KOMPRESI GAMBAR
+// ============================================
+function compressImage($source_path, $destination_path, $quality = 80) {
+    // Cek apakah file ada
+    if (!file_exists($source_path)) {
+        return false;
+    }
+    
+    // Cek tipe file
+    $image_info = getimagesize($source_path);
+    if (!$image_info) {
+        return false;
+    }
+    
+    $mime_type = $image_info['mime'];
+    
+    // Tentukan ukuran maksimum (opsional - resize jika terlalu besar)
+    $max_width = 1920;
+    $max_height = 1920;
+    
+    // Load gambar berdasarkan tipe
+    switch ($mime_type) {
+        case 'image/jpeg':
+        case 'image/jpg':
+            $image = imagecreatefromjpeg($source_path);
+            break;
+        case 'image/png':
+            $image = imagecreatefrompng($source_path);
+            // PNG perlu preserved transparency
+            break;
+        case 'image/gif':
+            $image = imagecreatefromgif($source_path);
+            break;
+        case 'image/webp':
+            $image = imagecreatefromwebp($source_path);
+            break;
+        default:
+            // Bukan gambar, copy saja
+            return copy($source_path, $destination_path);
+    }
+    
+    if (!$image) {
+        return false;
+    }
+    
+    // Dapatkan dimensi asli
+    $orig_width = imagesx($image);
+    $orig_height = imagesy($image);
+    
+    // Resize jika lebih besar dari max
+    if ($orig_width > $max_width || $orig_height > $max_height) {
+        $ratio = min($max_width / $orig_width, $max_height / $orig_height);
+        $new_width = round($orig_width * $ratio);
+        $new_height = round($orig_height * $ratio);
+        
+        $resized_image = imagecreatetruecolor($new_width, $new_height);
+        
+        // Untuk PNG, preserve transparansi
+        if ($mime_type == 'image/png') {
+            imagealphablending($resized_image, false);
+            imagesavealpha($resized_image, true);
+            $transparent = imagecolorallocatealpha($resized_image, 255, 255, 255, 127);
+            imagefilledrectangle($resized_image, 0, 0, $new_width, $new_height, $transparent);
+        } elseif ($mime_type == 'image/gif') {
+            // Preserve transparansi untuk GIF
+            $transparent = imagecolorallocatealpha($resized_image, 0, 0, 0, 127);
+            imagecolortransparent($resized_image, $transparent);
+        }
+        
+        imagecopyresampled($resized_image, $image, 0, 0, 0, 0, $new_width, $new_height, $orig_width, $orig_height);
+        imagedestroy($image);
+        $image = $resized_image;
+    }
+    
+    // Simpan dengan kompresi
+    $result = false;
+    switch ($mime_type) {
+        case 'image/jpeg':
+        case 'image/jpg':
+            $result = imagejpeg($image, $destination_path, $quality);
+            break;
+        case 'image/png':
+            // Untuk PNG, quality 0-9 (0 = no compression, 9 = max)
+            $png_quality = round(($quality / 100) * 9);
+            $result = imagepng($image, $destination_path, $png_quality);
+            break;
+        case 'image/gif':
+            $result = imagegif($image, $destination_path);
+            break;
+        case 'image/webp':
+            $result = imagewebp($image, $destination_path, $quality);
+            break;
+        default:
+            $result = copy($source_path, $destination_path);
+    }
+    
+    imagedestroy($image);
+    return $result;
+}
+
+// ============================================
+// FUNGSI UPLOAD FILE DENGAN KOMPRESI
+// ============================================
+function uploadFileWithCompression($file, $target_dir, $allowed_extensions = [], $max_file_size = 5242880, $compress_quality = 80) {
+    if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
+        return ['success' => false, 'message' => 'Error upload file'];
+    }
+    
+    // Validasi ukuran
+    if ($file['size'] > $max_file_size) {
+        return ['success' => false, 'message' => 'Ukuran file melebihi ' . ($max_file_size / 1024 / 1024) . 'MB'];
+    }
+    
+    $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    
+    // Validasi ekstensi
+    if (!in_array($file_extension, $allowed_extensions)) {
+        return ['success' => false, 'message' => 'Format file tidak didukung'];
+    }
+    
+    // Buat direktori jika belum ada
+    if (!file_exists($target_dir)) {
+        mkdir($target_dir, 0777, true);
+    }
+    
+    // Generate nama unik
+    $new_filename = time() . '_' . uniqid() . '.' . $file_extension;
+    $file_path = $target_dir . $new_filename;
+    
+    // Cek apakah file adalah gambar yang bisa dikompres
+    $image_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    if (in_array($file_extension, $image_types)) {
+        // Kompres gambar
+        $compress_result = compressImage($file['tmp_name'], $file_path, $compress_quality);
+        if (!$compress_result) {
+            // Jika kompresi gagal, copy original
+            copy($file['tmp_name'], $file_path);
+        }
+    } else {
+        // Bukan gambar, copy langsung
+        copy($file['tmp_name'], $file_path);
+    }
+    
+    return [
+        'success' => true,
+        'file_path' => $file_path,
+        'filename' => $new_filename,
+        'original_name' => $file['name'],
+        'size' => filesize($file_path)
+    ];
+}
+
+// ============================================
 // CEK USER UNTUK AKSES
 // ============================================
 $userId = $_SESSION['user_id'] ?? 0;
@@ -170,7 +323,7 @@ try {
     
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_deal VARCHAR(10) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS leads_number VARCHAR(50) NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file VARCHAR(255) NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file TEXT NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL");
     
     // Tambahkan indeks
@@ -242,22 +395,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Upload file jika ada (optional saat add)
+        // Upload file dengan kompresi jika ada (optional saat add)
         $attachment_file = '';
         if (!empty($_FILES['attachment_file']['name'])) {
-            $target_dir = "uploads/sales_activity/";
-            if (!file_exists($target_dir)) {
-                mkdir($target_dir, 0777, true);
-            }
+            $target_dir = "uploads/salesactivity/";
             
-            $file_extension = strtolower(pathinfo($_FILES['attachment_file']['name'], PATHINFO_EXTENSION));
             $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+            $max_file_size = 5 * 1024 * 1024; // 5MB
+            $compress_quality = 80; // Kualitas kompresi 80%
             
-            if (in_array($file_extension, $allowed_extensions)) {
-                $attachment_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
-                move_uploaded_file($_FILES['attachment_file']['tmp_name'], $attachment_file);
+            $upload_result = uploadFileWithCompression(
+                $_FILES['attachment_file'],
+                $target_dir,
+                $allowed_extensions,
+                $max_file_size,
+                $compress_quality
+            );
+            
+            if ($upload_result['success']) {
+                $attachment_file = $upload_result['file_path'];
             } else {
-                setFlash('Format file tidak didukung! (JPG, PNG, GIF, WEBP, PDF)', 'danger');
+                setFlash($upload_result['message'], 'danger');
                 redirect('salesactivity.php');
             }
         }
@@ -363,23 +521,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Upload file - WAJIB diisi saat complete
-        $attachment_file = '';
-        if (!empty($_FILES['attachment_file']['name'])) {
-            $target_dir = "uploads/sales_activity/";
-            if (!file_exists($target_dir)) {
-                mkdir($target_dir, 0777, true);
-            }
-            
-            $file_extension = strtolower(pathinfo($_FILES['attachment_file']['name'], PATHINFO_EXTENSION));
-            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-            
-            if (in_array($file_extension, $allowed_extensions)) {
-                $attachment_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
-                move_uploaded_file($_FILES['attachment_file']['tmp_name'], $attachment_file);
-            } else {
-                setFlash('Format file tidak didukung! (JPG, PNG, GIF, WEBP, PDF)', 'danger');
-                redirect('salesactivity.php');
+        // Upload file dengan kompresi - MULTIPLE FILE (WAJIB diisi saat complete)
+        $attachment_files = [];
+        $attachment_file_names = [];
+        
+        $target_dir = "uploads/salesactivity/";
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+        
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
+        $max_file_size = 5 * 1024 * 1024; // 5MB
+        $compress_quality = 80; // Kualitas kompresi 80%
+        
+        if (!empty($_FILES['attachment_files']['name'][0])) {
+            foreach ($_FILES['attachment_files']['name'] as $key => $name) {
+                if (empty($name)) continue;
+                
+                // Siapkan array file untuk setiap file
+                $file = [
+                    'name' => $_FILES['attachment_files']['name'][$key],
+                    'type' => $_FILES['attachment_files']['type'][$key],
+                    'tmp_name' => $_FILES['attachment_files']['tmp_name'][$key],
+                    'error' => $_FILES['attachment_files']['error'][$key],
+                    'size' => $_FILES['attachment_files']['size'][$key]
+                ];
+                
+                if ($file['error'] !== UPLOAD_ERR_OK) {
+                    setFlash('Error upload file: ' . htmlspecialchars($name), 'danger');
+                    redirect('salesactivity.php');
+                }
+                
+                $upload_result = uploadFileWithCompression(
+                    $file,
+                    $target_dir,
+                    $allowed_extensions,
+                    $max_file_size,
+                    $compress_quality
+                );
+                
+                if ($upload_result['success']) {
+                    $attachment_files[] = $upload_result['file_path'];
+                    $attachment_file_names[] = $upload_result['original_name'];
+                } else {
+                    setFlash($upload_result['message'] . ' - ' . htmlspecialchars($name), 'danger');
+                    redirect('salesactivity.php');
+                }
             }
         }
         
@@ -387,14 +574,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $errors = [];
         if (empty($result)) $errors[] = 'Result wajib diisi!';
         if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter! (saat ini: ' . strlen($result) . ' karakter)';
-        if (empty($attachment_file)) $errors[] = 'Attachment file wajib diupload!';
+        if (empty($attachment_files)) $errors[] = 'Minimal 1 file attachment wajib diupload!';
         
         if (empty($errors)) {
+            // Simpan sebagai JSON
+            $attachment_json = json_encode([
+                'files' => $attachment_files,
+                'names' => $attachment_file_names
+            ]);
+            
             $stmt = $db->prepare("UPDATE sales_activities SET 
                                   result = ?, customer_deal = ?, leads_number = ?, 
                                   attachment_file = ?, status = 'completed', completed_at = NOW() 
                                   WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-            $stmt->execute([$result, $customer_deal, $leads_number, $attachment_file, $id]);
+            $stmt->execute([$result, $customer_deal, $leads_number, $attachment_json, $id]);
             
             setFlash('Sales Activity berhasil diselesaikan!', 'success');
             redirect('salesactivity.php');
@@ -486,9 +679,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $stmt = $db->prepare("SELECT attachment_file FROM sales_activities WHERE id = ?");
         $stmt->execute([$id]);
-        $file = $stmt->fetchColumn();
-        if ($file && file_exists($file)) {
-            unlink($file);
+        $attachment_data = $stmt->fetchColumn();
+        
+        // Hapus semua file attachment
+        if ($attachment_data) {
+            $files = json_decode($attachment_data, true);
+            if ($files && isset($files['files']) && is_array($files['files'])) {
+                foreach ($files['files'] as $file) {
+                    if ($file && file_exists($file)) {
+                        unlink($file);
+                    }
+                }
+            } else if ($attachment_data && file_exists($attachment_data)) {
+                // Fallback untuk single file (format lama)
+                unlink($attachment_data);
+            }
         }
         
         $stmt = $db->prepare("DELETE FROM sales_activities WHERE id = ?");
@@ -736,7 +941,6 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
-        /* CSS styles sama seperti sebelumnya */
         * {
             margin: 0;
             padding: 0;
@@ -1733,7 +1937,7 @@ if (isset($_GET['complete'])) {
 <body>
 
     <!-- ============================================
-    DESKTOP NAVBAR (sama seperti sebelumnya)
+    DESKTOP NAVBAR
     ============================================ -->
     <div class="desktop-nav-wrapper">
         <div class="brand-section">
@@ -1795,7 +1999,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MOBILE HEADER (sama seperti sebelumnya)
+    MOBILE HEADER
     ============================================ -->
     <header class="top-header">
         <div class="header-left">
@@ -1819,7 +2023,7 @@ if (isset($_GET['complete'])) {
     </header>
 
     <!-- ============================================
-    MAIN CONTENT (sama seperti sebelumnya, hanya ubah label Customer Prospek menjadi Customer Deal)
+    MAIN CONTENT
     ============================================ -->
     <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
 
@@ -1873,7 +2077,7 @@ if (isset($_GET['complete'])) {
             </div>
         </div>
 
-        <!-- TABLE (sama seperti sebelumnya) -->
+        <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i>Daftar Sales Activity</h6>
@@ -2027,19 +2231,24 @@ if (isset($_GET['complete'])) {
                                         <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
+                                                <!-- DETAIL - Semua user bisa melihat -->
                                                 <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
+                                                <!-- EDIT & COMPLETE - Hanya untuk in_progress/overdue dan user yang berhak -->
                                                 <?php if ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'): ?>
                                                     <?php 
                                                     $canEdit = false;
+                                                    // Admin/Full Access bisa edit semua
                                                     if ($hasFullAccess) {
                                                         $canEdit = true;
                                                     } 
+                                                    // Sales hanya bisa edit milik sendiri
                                                     elseif ($userRole === 'sales' && $activity['sales_id'] == $userId) {
                                                         $canEdit = true;
                                                     }
+                                                    // Role lain dengan permission edit
                                                     elseif (canEdit('sales_activity')) {
                                                         $canEdit = true;
                                                     }
@@ -2054,6 +2263,7 @@ if (isset($_GET['complete'])) {
                                                     <?php endif; ?>
                                                 <?php endif; ?>
                                                 
+                                                <!-- DELETE - Hanya untuk Full Access (admin, dll), Sales tidak bisa hapus -->
                                                 <?php if ($hasFullAccess && canDelete('sales_activity')): ?>
                                                     <button class="btn-action delete" onclick="deleteActivity(<?= $activity['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -2119,9 +2329,9 @@ if (isset($_GET['complete'])) {
 
     <!-- MODALS -->
     <!-- ============================================
-    MODAL TAMBAH / EDIT SALES ACTIVITY (Ubah Customer Prospek menjadi Customer Deal)
+    MODAL TAMBAH / EDIT SALES ACTIVITY
     ============================================ -->
-    <div class="modal fade" id="modalSalesActivity" tabindex="-1">
+    <div class="modal fade" id="modalSalesActivity" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -2199,6 +2409,7 @@ if (isset($_GET['complete'])) {
                         <div class="alert alert-info mb-3">
                             <i class="fas fa-info-circle"></i> 
                             <strong>Opsional:</strong> Jika Anda langsung mengisi <strong>Result</strong>, aktivitas akan otomatis menjadi <strong>Completed</strong>. Jika tidak diisi, status akan <strong>In Progress</strong>.
+                            <br><small class="text-muted">* File gambar akan otomatis dikompres untuk menghemat storage</small>
                         </div>
                         
                         <div class="mb-3">
@@ -2228,7 +2439,7 @@ if (isset($_GET['complete'])) {
                         <div class="mb-3">
                             <label class="form-label">Attachment File <span id="attachment_required" style="display:none;color:red;">*</span></label>
                             <input type="file" name="attachment_file" id="attachment_file_add" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib jika mengisi Result</small>
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib jika mengisi Result. Gambar akan dikompres otomatis.</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -2243,9 +2454,9 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MODAL COMPLETE (Ubah Customer Prospek menjadi Customer Deal)
+    MODAL COMPLETE - DENGAN MULTIPLE FILE UPLOAD
     ============================================ -->
-    <div class="modal fade" id="modalComplete" tabindex="-1">
+    <div class="modal fade" id="modalComplete" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header" style="background: linear-gradient(135deg, #27ae60, #2ecc71);">
@@ -2313,9 +2524,10 @@ if (isset($_GET['complete'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Attachment File <span class="text-danger">*</span></label>
-                            <input type="file" name="attachment_file" id="attachment_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" required>
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib diupload</small>
+                            <label class="form-label">Attachment Files <span class="text-danger">*</span></label>
+                            <input type="file" name="attachment_files[]" id="attachment_files" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple required>
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF, DOC, DOCX, XLS, XLSX, ZIP, RAR (Max 5MB per file) - Bisa upload banyak file. Gambar akan dikompres otomatis.</small>
+                            <div id="fileList" class="mt-2"><span class="text-muted">Belum ada file dipilih</span></div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -2330,7 +2542,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MODAL DETAIL (Ubah Customer Prospek menjadi Customer Deal)
+    MODAL DETAIL
     ============================================ -->
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -2350,9 +2562,9 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MODAL DELETE (sama seperti sebelumnya)
+    MODAL DELETE
     ============================================ -->
-    <div class="modal fade" id="modalDelete" tabindex="-1">
+    <div class="modal fade" id="modalDelete" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
@@ -2509,6 +2721,48 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
+        // PREVIEW MULTIPLE FILES
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            var attachmentInput = document.getElementById('attachment_files');
+            if (attachmentInput) {
+                attachmentInput.addEventListener('change', function() {
+                    var fileList = document.getElementById('fileList');
+                    if (!fileList) return;
+                    
+                    fileList.innerHTML = '';
+                    
+                    if (this.files.length === 0) {
+                        fileList.innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
+                        return;
+                    }
+                    
+                    var html = '<div class="alert alert-info"><i class="fas fa-file"></i> <strong>' + this.files.length + ' file</strong> dipilih:<br>';
+                    for (var i = 0; i < this.files.length; i++) {
+                        var file = this.files[i];
+                        var size = (file.size / 1024).toFixed(1);
+                        if (size > 1024) {
+                            size = (size / 1024).toFixed(1) + ' MB';
+                        } else {
+                            size = size + ' KB';
+                        }
+                        var icon = 'fa-file';
+                        var ext = file.name.split('.').pop().toLowerCase();
+                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) icon = 'fa-file-image';
+                        else if (['pdf'].includes(ext)) icon = 'fa-file-pdf';
+                        else if (['doc', 'docx'].includes(ext)) icon = 'fa-file-word';
+                        else if (['xls', 'xlsx'].includes(ext)) icon = 'fa-file-excel';
+                        else if (['zip', 'rar'].includes(ext)) icon = 'fa-file-archive';
+                        
+                        html += '<span class="badge bg-secondary me-1 mb-1"><i class="fas ' + icon + '"></i> ' + file.name + ' (' + size + ')</span> ';
+                    }
+                    html += '</div>';
+                    fileList.innerHTML = html;
+                });
+            }
+        });
+
+        // ============================================
         // VALIDASI FORM ADD SEBELUM SUBMIT
         // ============================================
         function validateFormAdd() {
@@ -2517,6 +2771,7 @@ if (isset($_GET['complete'])) {
             var attachmentAdd = document.getElementById('attachment_file_add');
             var errors = [];
             
+            // Validasi deskripsi minimal 80 karakter
             if (deskripsi && deskripsi.value.trim().length < 80) {
                 errors.push('Deskripsi minimal 80 karakter! (saat ini: ' + deskripsi.value.trim().length + ' karakter)');
                 deskripsi.style.borderColor = '#e74c3c';
@@ -2524,6 +2779,7 @@ if (isset($_GET['complete'])) {
                 deskripsi.style.borderColor = '';
             }
             
+            // Validasi result minimal 80 karakter jika diisi
             if (resultAdd && resultAdd.value.trim().length > 0 && resultAdd.value.trim().length < 80) {
                 errors.push('Result minimal 80 karakter jika diisi! (saat ini: ' + resultAdd.value.trim().length + ' karakter)');
                 resultAdd.style.borderColor = '#e74c3c';
@@ -2531,6 +2787,7 @@ if (isset($_GET['complete'])) {
                 resultAdd.style.borderColor = '';
             }
             
+            // Validasi attachment jika result diisi
             if (resultAdd && resultAdd.value.trim().length > 0 && (!attachmentAdd || !attachmentAdd.files || attachmentAdd.files.length === 0)) {
                 errors.push('Jika mengisi Result, Attachment file wajib diupload!');
                 if (attachmentAdd) attachmentAdd.style.borderColor = '#e74c3c';
@@ -2550,9 +2807,10 @@ if (isset($_GET['complete'])) {
         // ============================================
         function validateFormComplete() {
             var result = document.getElementById('result');
-            var attachment = document.getElementById('attachment_file');
+            var attachment = document.getElementById('attachment_files');
             var errors = [];
             
+            // Validasi result minimal 80 karakter
             if (result && result.value.trim().length < 80) {
                 errors.push('Result minimal 80 karakter! (saat ini: ' + result.value.trim().length + ' karakter)');
                 result.style.borderColor = '#e74c3c';
@@ -2560,8 +2818,9 @@ if (isset($_GET['complete'])) {
                 result.style.borderColor = '';
             }
             
+            // Validasi attachment wajib diupload minimal 1 file
             if (attachment && (!attachment.files || attachment.files.length === 0)) {
-                errors.push('Attachment file wajib diupload!');
+                errors.push('Minimal 1 file attachment wajib diupload!');
                 attachment.style.borderColor = '#e74c3c';
             } else if (attachment) {
                 attachment.style.borderColor = '';
@@ -2594,6 +2853,7 @@ if (isset($_GET['complete'])) {
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
             
+            // Reset counter
             var deskripsiCounter = document.getElementById('deskripsiCounter');
             if (deskripsiCounter) {
                 deskripsiCounter.textContent = '0';
@@ -2617,7 +2877,7 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // COMPLETE ACTIVITY
+        // COMPLETE ACTIVITY - VERSION WITH DATA PARAMETER
         // ============================================
         function completeActivity(id, data) {
             if (data) {
@@ -2630,8 +2890,15 @@ if (isset($_GET['complete'])) {
                 document.getElementById('customer_deal').value = 'No';
                 document.getElementById('leads_number').value = '';
                 document.getElementById('result').value = '';
-                document.getElementById('attachment_file').value = '';
+                document.getElementById('attachment_files').value = '';
                 
+                // Reset file list
+                var fileList = document.getElementById('fileList');
+                if (fileList) {
+                    fileList.innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
+                }
+                
+                // Reset counter
                 var resultCounter = document.getElementById('resultCounter');
                 if (resultCounter) {
                     resultCounter.textContent = '0';
@@ -2687,11 +2954,13 @@ if (isset($_GET['complete'])) {
             var attachmentInput = document.getElementById('attachment_file_add');
             var attachmentRequired = document.getElementById('attachment_required');
             
+            // Event listener untuk result
             if (resultInput) {
                 resultInput.addEventListener('input', function() {
                     if (this.value.trim() !== '') {
                         attachmentRequired.style.display = 'inline';
                         attachmentInput.required = true;
+                        // Tampilkan notifikasi
                         if (!document.getElementById('resultNotification')) {
                             var note = document.createElement('div');
                             note.id = 'resultNotification';
@@ -2708,6 +2977,7 @@ if (isset($_GET['complete'])) {
                 });
             }
             
+            // Init counters
             var deskripsi = document.getElementById('deskripsi');
             if (deskripsi) {
                 updateCharCount('deskripsi', 'deskripsiCounter');
@@ -2725,7 +2995,7 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // DETAIL ACTIVITY (Ubah Customer Prospek menjadi Customer Deal)
+        // DETAIL ACTIVITY
         // ============================================
         function detailActivity(data) {
             var statusLabel = data.status == 'in_progress' ? 'In Progress' : (data.status == 'overdue' ? 'Overdue' : 'Completed');
@@ -2733,6 +3003,7 @@ if (isset($_GET['complete'])) {
             
             var deadlineStatus = '';
             if (data.status == 'completed') {
+                // Jika completed, tampilkan normal tanpa emoticon
                 deadlineStatus = `<span class="text-muted">Selesai</span>`;
             } else if ((data.status == 'in_progress' || data.status == 'overdue') && data.due_date) {
                 var dueDate = new Date(data.due_date);
@@ -2747,6 +3018,7 @@ if (isset($_GET['complete'])) {
                 }
             }
             
+            // Cek badge pipeline prospek - SEMUA STATUS
             var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
             var isHotProspek = data.jenis_tugas == 'Negosiasi' && data.has_kontrak == 0;
             var isDeal = data.jenis_tugas == 'Kontrak';
@@ -2825,7 +3097,33 @@ if (isset($_GET['complete'])) {
                 <div class="detail-item">
                     <div class="detail-label">Attachment</div>
                     <div class="detail-value">
-                        ${data.attachment_file ? `<a href="${data.attachment_file}" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>` : '-'}
+                        ${data.attachment_file ? (function() {
+                            try {
+                                var files = JSON.parse(data.attachment_file);
+                                if (files.files && files.files.length > 0) {
+                                    var html = '<div class="d-flex flex-wrap gap-2">';
+                                    for (var i = 0; i < files.files.length; i++) {
+                                        var filePath = files.files[i];
+                                        var fileName = files.names && files.names[i] ? files.names[i] : filePath.split('/').pop();
+                                        var icon = 'fa-file';
+                                        var ext = fileName.split('.').pop().toLowerCase();
+                                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) icon = 'fa-file-image';
+                                        else if (['pdf'].includes(ext)) icon = 'fa-file-pdf';
+                                        else if (['doc', 'docx'].includes(ext)) icon = 'fa-file-word';
+                                        else if (['xls', 'xlsx'].includes(ext)) icon = 'fa-file-excel';
+                                        else if (['zip', 'rar'].includes(ext)) icon = 'fa-file-archive';
+                                        
+                                        html += '<a href="' + filePath + '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas ' + icon + '"></i> ' + fileName + '</a>';
+                                    }
+                                    html += '</div>';
+                                    return html;
+                                } else {
+                                    return '<a href="' + data.attachment_file + '" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>';
+                                }
+                            } catch(e) {
+                                return '<a href="' + data.attachment_file + '" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>';
+                            }
+                        })() : '-'}
                     </div>
                 </div>
                 ` : ''}
@@ -2844,7 +3142,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // EDIT ACTIVITY
+        // EDIT ACTIVITY (only for in_progress)
         // ============================================
         function editActivity(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Sales Activity';
@@ -2859,6 +3157,7 @@ if (isset($_GET['complete'])) {
             document.getElementById('deskripsi').value = data.deskripsi || '';
             document.getElementById('due_date').value = data.due_date || '';
             
+            // Update counter untuk deskripsi
             setTimeout(function() {
                 updateCharCount('deskripsi', 'deskripsiCounter');
             }, 300);
@@ -2880,6 +3179,7 @@ if (isset($_GET['complete'])) {
         // INIT CHARTS - 2 CHART TERPISAH
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
+            // CHART 1: Status Aktivitas (In Progress, Complete, Overdue)
             var ctx1 = document.getElementById('statusChart').getContext('2d');
             var inProgress = <?= $totalInProgress ?>;
             var completed = <?= $totalCompleted ?>;
@@ -2917,6 +3217,7 @@ if (isset($_GET['complete'])) {
                 }
             });
 
+            // CHART 2: Pipeline Prospek (Middle Prospek, Hot Prospek, Deal)
             var ctx2 = document.getElementById('prospekChart').getContext('2d');
             var middleProspek = <?= $totalMiddleProspek ?>;
             var hotProspek = <?= $totalHotProspek ?>;
