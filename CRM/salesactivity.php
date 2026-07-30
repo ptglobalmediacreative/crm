@@ -2409,7 +2409,6 @@ if (isset($_GET['complete'])) {
                         <div class="alert alert-info mb-3">
                             <i class="fas fa-info-circle"></i> 
                             <strong>Opsional:</strong> Jika Anda langsung mengisi <strong>Result</strong>, aktivitas akan otomatis menjadi <strong>Completed</strong>. Jika tidak diisi, status akan <strong>In Progress</strong>.
-                            <br><small class="text-muted">* File gambar akan otomatis dikompres untuk menghemat storage</small>
                         </div>
                         
                         <div class="mb-3">
@@ -2439,7 +2438,6 @@ if (isset($_GET['complete'])) {
                         <div class="mb-3">
                             <label class="form-label">Attachment File <span id="attachment_required" style="display:none;color:red;">*</span></label>
                             <input type="file" name="attachment_file" id="attachment_file_add" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib jika mengisi Result. Gambar akan dikompres otomatis.</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -2519,14 +2517,12 @@ if (isset($_GET['complete'])) {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Leads Number</label>
                                 <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
-                                <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
                             </div>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Attachment Files <span class="text-danger">*</span></label>
                             <input type="file" name="attachment_files[]" id="attachment_files" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple required>
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF, DOC, DOCX, XLS, XLSX, ZIP, RAR (Max 5MB per file) - Bisa upload banyak file. Gambar akan dikompres otomatis.</small>
                             <div id="fileList" class="mt-2"><span class="text-muted">Belum ada file dipilih</span></div>
                         </div>
                     </div>
