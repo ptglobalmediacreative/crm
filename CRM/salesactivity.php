@@ -2164,7 +2164,6 @@ if (isset($_GET['complete'])) {
                                 <th>Badan Usaha</th>
                                 <th>Contact</th>
                                 <th>Jenis Tugas</th>
-                                <th>TR Number</th>
                                 <th>Due Date</th>
                                 <th>Status Deadline</th>
                                 <th>Sales</th>
@@ -2215,15 +2214,6 @@ if (isset($_GET['complete'])) {
                                             <span class="badge-tugas <?= str_replace(' ', '_', str_replace('/', '_', $activity['jenis_tugas'])) ?>">
                                                 <?= htmlspecialchars($activity['jenis_tugas']) ?>
                                             </span>
-                                        </td>
-                                        <td>
-                                            <?php if (!empty($activity['trf_number'])): ?>
-                                                <span class="badge-trf">
-                                                    <i class="fas fa-file-signature"></i> <?= htmlspecialchars($activity['trf_number']) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if ($activity['due_date']): ?>
@@ -2303,7 +2293,7 @@ if (isset($_GET['complete'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="11" class="text-center py-4 text-muted">
+                                    <td colspan="10" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
                                     </td>
                                 </tr>
