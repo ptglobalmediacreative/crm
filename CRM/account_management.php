@@ -319,6 +319,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         // ============================================
+        // VALIDASI: Jika NPWP diisi, file NPWP WAJIB diupload
+        // ============================================
+        if (!empty($npwp) && empty($_FILES['npwp_file']['name'])) {
+            $errors[] = 'Jika mengisi NPWP, Anda wajib upload file NPWP!';
+        }
+        
+        // ============================================
         // CEK DUPLIKAT NAMA PT
         // ============================================
         $nama_pt_clean = bersihkanNamaPT($nama_pt);
@@ -383,6 +390,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             // Sales hanya bisa update NPWP saja
             $npwp = bersihkan($_POST['npwp']);
+            
+            // ============================================
+            // VALIDASI: Jika NPWP diisi, file NPWP WAJIB diupload
+            // ============================================
+            if (!empty($npwp) && empty($_FILES['npwp_file']['name'])) {
+                setFlash('Jika mengisi NPWP, Anda wajib upload file NPWP!', 'danger');
+                redirect('account_management.php');
+            }
             
             // Upload file NPWP
             $npwp_file = '';
@@ -450,6 +465,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Validasi jika lead source = Referensi, nama_referensi wajib diisi
             if ($lead_source === 'Referensi' && empty($nama_referensi)) {
                 $errors[] = 'Nama Referensi wajib diisi jika Lead Source = Referensi!';
+            }
+            
+            // ============================================
+            // VALIDASI: Jika NPWP diisi, file NPWP WAJIB diupload
+            // ============================================
+            if (!empty($npwp) && empty($_FILES['npwp_file']['name']) && empty($_POST['existing_npwp_file'])) {
+                $errors[] = 'Jika mengisi NPWP, Anda wajib upload file NPWP!';
             }
             
             // ============================================
@@ -1713,9 +1735,9 @@ function canSalesEdit($db, $account_id, $userId) {
                                 <input type="text" name="npwp" id="npwp" class="form-control" placeholder="Contoh: 12.345.678.9-012.000">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Upload NPWP <span class="optional">(Optional)</span></label>
+                                <label class="form-label">Upload NPWP <span class="text-danger" id="npwpFileRequired" style="display:none;">*</span></label>
                                 <input type="file" name="npwp_file" id="npwp_file" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
-                                <small class="text-muted">Format: JPG, PNG, PDF | Maks: 2MB</small>
+                                <small class="text-muted" id="npwpFileHelp">Format: JPG, PNG, PDF | Maks: 2MB (Wajib jika NPWP diisi)</small>
                             </div>
                         </div>
                         
@@ -1841,9 +1863,9 @@ function canSalesEdit($db, $account_id, $userId) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Upload File NPWP <span class="optional">(Optional)</span></label>
+                            <label class="form-label">Upload File NPWP <span class="text-danger" id="editNPWPFileRequired" style="display:none;">*</span></label>
                             <input type="file" name="npwp_file" id="editNPWPFile" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
-                            <small class="text-muted">Format: JPG, PNG, PDF | Maks: 2MB</small>
+                            <small class="text-muted">Format: JPG, PNG, PDF | Maks: 2MB (Wajib jika NPWP diisi)</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1988,6 +2010,31 @@ function canSalesEdit($db, $account_id, $userId) {
         });
 
         // ============================================
+        // SHOW/HIDE NPWP FILE REQUIRED
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            var npwpInput = document.getElementById('npwp');
+            var npwpFileRequired = document.getElementById('npwpFileRequired');
+            var npwpFile = document.getElementById('npwp_file');
+            
+            function toggleNPWPFileRequired() {
+                if (npwpInput.value.trim() !== '') {
+                    npwpFileRequired.style.display = 'inline';
+                    npwpFile.required = true;
+                } else {
+                    npwpFileRequired.style.display = 'none';
+                    npwpFile.required = false;
+                }
+            }
+            
+            // Jalankan saat pertama kali load
+            toggleNPWPFileRequired();
+            
+            // Jalankan saat NPWP berubah
+            npwpInput.addEventListener('input', toggleNPWPFileRequired);
+        });
+
+        // ============================================
         // DETAIL ACCOUNT
         // ============================================
         function detailAccount(data) {
@@ -2082,11 +2129,22 @@ function canSalesEdit($db, $account_id, $userId) {
             document.getElementById('sales_id').value = data.sales_id || '';
             document.getElementById('nama_referensi').value = data.nama_referensi || '';
             
+            // Tambahkan hidden input untuk existing npwp file
+            var existingInput = document.createElement('input');
+            existingInput.type = 'hidden';
+            existingInput.name = 'existing_npwp_file';
+            existingInput.value = data.npwp_file || '';
+            document.getElementById('formAccount').appendChild(existingInput);
+            
             document.getElementById('npwp_file').required = false;
             
             // Trigger show/hide referensi field
             var event = new Event('change');
             document.getElementById('lead_source').dispatchEvent(event);
+            
+            // Trigger show/hide NPWP file required
+            var npwpEvent = new Event('input');
+            document.getElementById('npwp').dispatchEvent(npwpEvent);
             
             var modal = new bootstrap.Modal(document.getElementById('modalAccount'));
             modal.show();
@@ -2097,6 +2155,10 @@ function canSalesEdit($db, $account_id, $userId) {
             document.getElementById('editNPWPNama').value = data.nama_pt;
             document.getElementById('editNPWPInput').value = data.npwp || '';
             document.getElementById('editNPWPFile').value = '';
+            
+            // Trigger show/hide NPWP file required
+            var npwpEvent = new Event('input');
+            document.getElementById('editNPWPInput').dispatchEvent(npwpEvent);
             
             var modal = new bootstrap.Modal(document.getElementById('modalEditNPWP'));
             modal.show();
@@ -2111,6 +2173,12 @@ function canSalesEdit($db, $account_id, $userId) {
             document.getElementById('nama_referensi').value = '';
             document.getElementById('nama_referensi').required = false;
             document.getElementById('referensiField').classList.remove('show');
+            
+            // Remove existing npwp file hidden input
+            var existingInput = document.querySelector('input[name="existing_npwp_file"]');
+            if (existingInput) {
+                existingInput.remove();
+            }
         });
         
         function deleteAccount(id) {
