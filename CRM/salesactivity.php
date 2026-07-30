@@ -2456,7 +2456,6 @@ if (isset($_GET['complete'])) {
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Leads Number</label>
                                     <input type="text" name="leads_number" id="leads_number_add" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
                                 </div>
                             </div>
                         </div>
@@ -2559,7 +2558,6 @@ if (isset($_GET['complete'])) {
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Leads Number</label>
                                     <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
                                 </div>
                             </div>
                         </div>
