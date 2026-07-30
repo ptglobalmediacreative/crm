@@ -2550,10 +2550,6 @@ if (isset($_GET['complete'])) {
                         <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
-                            <div class="alert alert-success mb-3">
-                                <i class="fas fa-handshake"></i> 
-                                <strong>Informasi Deal:</strong> Field ini hanya muncul jika jenis tugas adalah <strong>Negosiasi</strong>.
-                            </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Customer Deal</label>
