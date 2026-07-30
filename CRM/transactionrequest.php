@@ -245,6 +245,15 @@ if (isset($_GET['detail'])) {
     $stmt->execute([$id]);
     $detailData = $stmt->fetch();
 }
+
+// ============================================
+// CEK APAKAH DETAIL TR SUDAH ADA
+// ============================================
+function hasDetailTR($db, $trf_number) {
+    $stmt = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+    $stmt->execute([$trf_number]);
+    return $stmt->fetch() ? true : false;
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -528,6 +537,7 @@ if (isset($_GET['detail'])) {
             transition: all 0.3s ease;
             font-size: 13px;
             cursor: pointer;
+            text-decoration: none;
         }
         
         .btn-action:hover {
@@ -539,6 +549,12 @@ if (isset($_GET['detail'])) {
             color: #27ae60;
         }
         .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
+        
+        .btn-action.detailtr {
+            background: rgba(155, 89, 182, 0.1);
+            color: #8e44ad;
+        }
+        .btn-action.detailtr:hover { background: rgba(155, 89, 182, 0.2); }
         
         .btn-action.approve {
             background: rgba(52, 152, 219, 0.1);
@@ -1007,6 +1023,17 @@ if (isset($_GET['detail'])) {
             font-size: 14px;
         }
         
+        .trf-link {
+            color: #2980b9;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .trf-link:hover {
+            color: #1a6d9e;
+            text-decoration: underline;
+        }
+        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1093,6 +1120,12 @@ if (isset($_GET['detail'])) {
             <?php if (canAccessMenu('transaction_request')): ?>
                 <a href="transactionrequest.php" class="nav-link active">
                     <i class="fas fa-file-signature"></i> TR Request
+                </a>
+            <?php endif; ?>
+            
+            <?php if (canAccessMenu('detail_transaction_request')): ?>
+                <a href="detailtr.php" class="nav-link">
+                    <i class="fas fa-file-alt"></i> Detail TR
                 </a>
             <?php endif; ?>
             
@@ -1261,13 +1294,16 @@ if (isset($_GET['detail'])) {
                                     <?php 
                                     $statusLabel = ucfirst($request['status']);
                                     $statusClass = $request['status'];
+                                    $hasDetail = hasDetailTR($db, $request['trf_number']);
                                     ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
                                         <td>
-                                            <span class="badge-trf">
-                                                <i class="fas fa-file-signature"></i> <?= htmlspecialchars($request['trf_number']) ?>
-                                            </span>
+                                            <a href="detailtr.php?trf=<?= urlencode($request['trf_number']) ?>" class="trf-link">
+                                                <span class="badge-trf">
+                                                    <i class="fas fa-file-signature"></i> <?= htmlspecialchars($request['trf_number']) ?>
+                                                </span>
+                                            </a>
                                         </td>
                                         <td><strong><?= htmlspecialchars($request['subject']) ?></strong></td>
                                         <td><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></td>
@@ -1293,6 +1329,11 @@ if (isset($_GET['detail'])) {
                                                 <button class="btn-action detail" onclick="detailRequest(<?= htmlspecialchars(json_encode($request)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                                
+                                                <!-- Tombol Detail TR -->
+                                                <a href="detailtr.php?trf=<?= urlencode($request['trf_number']) ?>" class="btn-action detailtr" title="Detail Transaction Request">
+                                                    <i class="fas fa-file-alt"></i>
+                                                </a>
                                                 
                                                 <?php if ($request['status'] == 'pending'): ?>
                                                     <?php if ($isDirektur || $hasFullAccess): ?>
@@ -1491,6 +1532,13 @@ if (isset($_GET['detail'])) {
             <a href="transactionrequest.php" class="nav-item active">
                 <i class="fas fa-file-signature nav-icon"></i>
                 <span class="nav-label">TR Request</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (canAccessMenu('detail_transaction_request')): ?>
+            <a href="detailtr.php" class="nav-item">
+                <i class="fas fa-file-alt nav-icon"></i>
+                <span class="nav-label">Detail TR</span>
             </a>
         <?php endif; ?>
         
