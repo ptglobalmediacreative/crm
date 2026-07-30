@@ -38,27 +38,61 @@ function getRoleLabel($role) {
 }
 
 // ============================================
+// FUNGSI ROMAN MONTH (BULAN ROMAWI)
+// ============================================
+function getRomanMonth($month) {
+    $romanMonths = [
+        1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+        7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
+    ];
+    return $romanMonths[(int)$month] ?? '';
+}
+
+// ============================================
+// GENERATE TRANSACTION REQUEST FORM NUMBER
+// ============================================
+function generateTRFNumber($db) {
+    $month = date('m');
+    $year = date('Y');
+    $romanMonth = getRomanMonth($month);
+    
+    // Cari nomor terakhir untuk bulan dan tahun ini
+    $stmt = $db->prepare("SELECT trf_number FROM sales_activities 
+                          WHERE trf_number LIKE ? 
+                          ORDER BY trf_number DESC LIMIT 1");
+    $pattern = "%/GET-TR/JKT/" . $romanMonth . "/" . $year;
+    $stmt->execute([$pattern]);
+    $last = $stmt->fetchColumn();
+    
+    if ($last) {
+        // Ambil nomor urut dari depan
+        $parts = explode('/', $last);
+        $lastNumber = (int)$parts[0];
+        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+    } else {
+        $newNumber = '0001';
+    }
+    
+    return $newNumber . "/GET-TR/JKT/" . $romanMonth . "/" . $year;
+}
+
+// ============================================
 // FUNGSI KOMPRESI GAMBAR
 // ============================================
 function compressImage($source_path, $destination_path, $quality = 80) {
-    // Cek apakah file ada
     if (!file_exists($source_path)) {
         return false;
     }
     
-    // Cek tipe file
     $image_info = getimagesize($source_path);
     if (!$image_info) {
         return false;
     }
     
     $mime_type = $image_info['mime'];
-    
-    // Tentukan ukuran maksimum (opsional - resize jika terlalu besar)
     $max_width = 1920;
     $max_height = 1920;
     
-    // Load gambar berdasarkan tipe
     switch ($mime_type) {
         case 'image/jpeg':
         case 'image/jpg':
@@ -290,6 +324,7 @@ try {
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS completed_at DATETIME NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS due_date DATE NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS result TEXT NULL");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS trf_number VARCHAR(50) NULL");
     
     try {
         $db->exec("ALTER TABLE sales_activities CHANGE COLUMN customer_prospek customer_deal VARCHAR(10) NULL");
@@ -345,6 +380,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $due_date = $_POST['due_date'];
         $result = !empty($_POST['result']) ? bersihkan($_POST['result']) : '';
         $customer_deal = !empty($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : 'No';
+        $trf_number = !empty($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
         
         $contact_name = '';
         $contact_mobile = '';
@@ -410,6 +446,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $leads_number = generateLeadsNumber($db, $due_date);
             }
             
+            // Generate TRF Number jika jenis tugas = Negosiasi
+            if ($jenis_tugas === 'Negosiasi' && empty($trf_number)) {
+                $trf_number = generateTRFNumber($db);
+            }
+            
             $targetSalesId = $userId;
             if (in_array($userRole, $direkturRoles) && $account_id) {
                 $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
@@ -421,13 +462,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $db->prepare("INSERT INTO sales_activities 
                                   (subject, account_id, contact_name, contact_mobile, business_segment, 
                                    badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id,
-                                   result, customer_deal, leads_number, attachment_file, completed_at) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                   result, customer_deal, leads_number, attachment_file, completed_at, trf_number) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
                 $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $status, $targetSalesId,
                 $result, $customer_deal, $leads_number, $attachment_file,
-                $status === 'completed' ? date('Y-m-d H:i:s') : NULL
+                $status === 'completed' ? date('Y-m-d H:i:s') : NULL,
+                $trf_number
             ]);
             
             if ($status === 'completed') {
@@ -466,6 +508,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $result = bersihkan($_POST['result']);
         $customer_deal = bersihkan($_POST['customer_deal']);
         $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
+        $trf_number = !empty($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
         
         $leads_number = NULL;
         if ($customer_deal === 'Yes' && $jenis_tugas === 'Negosiasi') {
@@ -475,6 +518,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($due_date) {
                 $leads_number = generateLeadsNumber($db, $due_date);
             }
+        }
+        
+        // Generate TRF Number jika jenis tugas = Negosiasi dan belum ada
+        if ($jenis_tugas === 'Negosiasi' && empty($trf_number)) {
+            $trf_number = generateTRFNumber($db);
         }
         
         $attachment_files = [];
@@ -537,9 +585,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             $stmt = $db->prepare("UPDATE sales_activities SET 
                                   result = ?, customer_deal = ?, leads_number = ?, 
-                                  attachment_file = ?, status = 'completed', completed_at = NOW() 
+                                  attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
                                   WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-            $stmt->execute([$result, $customer_deal, $leads_number, $attachment_json, $id]);
+            $stmt->execute([$result, $customer_deal, $leads_number, $attachment_json, $trf_number, $id]);
             
             setFlash('Sales Activity berhasil diselesaikan!', 'success');
             redirect('salesactivity.php');
@@ -683,7 +731,6 @@ if ($status_filter !== 'all') {
                         AND sa2.id != sa.id
                     )";
     } elseif ($status_filter === 'hot_prospek') {
-        // Hot Prospek: Negosiasi, belum ada Kontrak, dan belum lost (customer_deal != 'No' atau belum completed)
         $where .= " AND sa.jenis_tugas = 'Negosiasi' 
                     AND NOT EXISTS (
                         SELECT 1 FROM sales_activities sa2 
@@ -701,7 +748,6 @@ if ($status_filter !== 'all') {
                     )
                     AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')";
     } elseif ($status_filter === 'lost_prospek') {
-        // Lost Prospek: Negosiasi yang completed dengan customer_deal = 'No'
         $where .= " AND sa.jenis_tugas = 'Negosiasi' 
                     AND sa.status = 'completed' 
                     AND sa.customer_deal = 'No'";
@@ -714,8 +760,8 @@ if ($status_filter !== 'all') {
 }
 
 if (!empty($search)) {
-    $where .= " AND (sa.subject LIKE ? OR sa.contact_name LIKE ? OR sa.contact_mobile LIKE ? OR a.nama_pt LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%"]);
+    $where .= " AND (sa.subject LIKE ? OR sa.contact_name LIKE ? OR sa.contact_mobile LIKE ? OR a.nama_pt LIKE ? OR sa.trf_number LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
 }
 
 $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
@@ -767,7 +813,6 @@ if ($userRole === 'sales') {
     $stmt->execute([$userId, $userId]);
     $totalMiddleProspek = $stmt->fetchColumn();
     
-    // Hot Prospek: Negosiasi, belum ada Kontrak, dan belum lost
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE sales_id = ? 
                           AND jenis_tugas = 'Negosiasi'
@@ -788,7 +833,6 @@ if ($userRole === 'sales') {
     $stmt->execute([$userId, $userId, $userId]);
     $totalHotProspek = $stmt->fetchColumn();
     
-    // Lost Prospek: Negosiasi completed dengan customer_deal = 'No'
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE sales_id = ? 
                           AND jenis_tugas = 'Negosiasi'
@@ -821,7 +865,6 @@ if ($userRole === 'sales') {
     $stmt->execute();
     $totalMiddleProspek = $stmt->fetchColumn();
     
-    // Hot Prospek: Negosiasi, belum ada Kontrak, dan belum lost
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE jenis_tugas = 'Negosiasi'
                           AND account_id NOT IN (
@@ -839,7 +882,6 @@ if ($userRole === 'sales') {
     $stmt->execute();
     $totalHotProspek = $stmt->fetchColumn();
     
-    // Lost Prospek: Negosiasi completed dengan customer_deal = 'No'
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE jenis_tugas = 'Negosiasi'
                           AND status = 'completed'
@@ -1227,6 +1269,15 @@ if (isset($_GET['complete'])) {
         .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-status.overdue { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
+        
+        .badge-trf {
+            background: rgba(52, 152, 219, 0.12);
+            color: #2980b9;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
         
         .btn-action {
             width: 30px;
@@ -2098,6 +2149,7 @@ if (isset($_GET['complete'])) {
                                 <th>Badan Usaha</th>
                                 <th>Contact</th>
                                 <th>Jenis Tugas</th>
+                                <th>TRF Number</th>
                                 <th>Due Date</th>
                                 <th>Status Deadline</th>
                                 <th>Sales</th>
@@ -2148,6 +2200,15 @@ if (isset($_GET['complete'])) {
                                             <span class="badge-tugas <?= str_replace(' ', '_', str_replace('/', '_', $activity['jenis_tugas'])) ?>">
                                                 <?= htmlspecialchars($activity['jenis_tugas']) ?>
                                             </span>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($activity['trf_number'])): ?>
+                                                <span class="badge-trf">
+                                                    <i class="fas fa-file-signature"></i> <?= htmlspecialchars($activity['trf_number']) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if ($activity['due_date']): ?>
@@ -2227,7 +2288,7 @@ if (isset($_GET['complete'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="11" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
                                     </td>
                                 </tr>
@@ -2355,9 +2416,13 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
+                        <!-- Customer Deal & Leads Number & TRF Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
+                            <div class="alert alert-success mb-3">
+                                <i class="fas fa-handshake"></i> 
+                                <strong>Informasi Deal:</strong> Field ini hanya muncul jika jenis tugas adalah <strong>Negosiasi</strong>.
+                            </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Customer Deal</label>
@@ -2370,6 +2435,13 @@ if (isset($_GET['complete'])) {
                                     <label class="form-label">Leads Number</label>
                                     <input type="text" name="leads_number" id="leads_number_add" class="form-control" readonly>
                                     <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
+                                    <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
+                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
                                 </div>
                             </div>
                         </div>
@@ -2444,7 +2516,7 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
+                        <!-- Customer Deal & Leads Number & TRF Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
                             <div class="alert alert-success mb-3">
@@ -2463,6 +2535,13 @@ if (isset($_GET['complete'])) {
                                     <label class="form-label">Leads Number</label>
                                     <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
                                     <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
+                                    <input type="text" name="trf_number" id="trf_number_complete" class="form-control" readonly>
+                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
                                 </div>
                             </div>
                         </div>
@@ -2640,6 +2719,7 @@ if (isset($_GET['complete'])) {
                     dealFields.classList.remove('show');
                     document.getElementById('customer_deal_add').value = 'No';
                     document.getElementById('leads_number_add').value = '';
+                    document.getElementById('trf_number_add').value = '';
                 }
             }
         }
@@ -2656,6 +2736,7 @@ if (isset($_GET['complete'])) {
                     dealFieldsComplete.classList.remove('show');
                     document.getElementById('customer_deal').value = 'No';
                     document.getElementById('leads_number').value = '';
+                    document.getElementById('trf_number_complete').value = '';
                 }
             }
         }
@@ -2814,6 +2895,7 @@ if (isset($_GET['complete'])) {
             document.getElementById('result_add').value = '';
             document.getElementById('attachment_file_add').value = '';
             document.getElementById('leads_number_add').value = '';
+            document.getElementById('trf_number_add').value = '';
             document.getElementById('attachment_required').style.display = 'none';
             document.getElementById('attachment_file_add').required = false;
             document.getElementById('customer_deal_add').value = 'No';
@@ -2855,6 +2937,7 @@ if (isset($_GET['complete'])) {
                 document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
                 document.getElementById('customer_deal').value = 'No';
                 document.getElementById('leads_number').value = '';
+                document.getElementById('trf_number_complete').value = '';
                 document.getElementById('result').value = '';
                 document.getElementById('attachment_files').value = '';
                 
@@ -3028,6 +3111,12 @@ if (isset($_GET['complete'])) {
                     <div class="detail-value">
                         <span class="badge-tugas ${data.jenis_tugas ? data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_') : ''}">${data.jenis_tugas || '-'}</span>
                         ${pipelineBadge}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">TRF Number</div>
+                    <div class="detail-value">
+                        ${data.trf_number ? `<span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span>` : '-'}
                     </div>
                 </div>
                 <div class="detail-item">
