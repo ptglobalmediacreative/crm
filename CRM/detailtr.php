@@ -70,10 +70,25 @@ if ($userRole === 'sales') {
 $trRequests = $stmt->fetchAll();
 
 // ============================================
-// AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
+// AMBIL DATA PRODUK UNTUK DROPDOWN UNIT (MENGGUNAKAN TABEL products)
 // ============================================
-$stmt = $db->query("SELECT id, nama_produk, kode_produk FROM produk ORDER BY nama_produk");
-$produkList = $stmt->fetchAll();
+try {
+    // Cek apakah kolom status ada di tabel products
+    $stmt = $db->query("SHOW COLUMNS FROM products LIKE 'status'");
+    if ($stmt->rowCount() > 0) {
+        $stmt = $db->query("SELECT id, nama_produk, kode_produk FROM products WHERE status = 'active' ORDER BY nama_produk");
+    } else {
+        // Jika tidak ada kolom status, ambil semua
+        $stmt = $db->query("SELECT id, nama_produk, kode_produk FROM products ORDER BY nama_produk");
+    }
+    $produkList = $stmt->fetchAll();
+} catch(PDOException $e) {
+    $produkList = [];
+    // Jika tabel tidak ada, tampilkan pesan
+    if (strpos($e->getMessage(), 'Base table or view not found') !== false) {
+        setFlash('Tabel products belum dibuat. Silakan buat tabel products terlebih dahulu.', 'warning');
+    }
+}
 
 // ============================================
 // PROSES SIMPAN / UPDATE
@@ -377,6 +392,21 @@ if ($userRole === 'sales') {
     $stmt->execute();
 }
 $requests = $stmt->fetchAll();
+
+// ============================================
+// FUNGSI UNTUK MENDAPATKAN NAMA PRODUK DARI ID
+// ============================================
+function getProductName($db, $product_id) {
+    if (empty($product_id)) return '';
+    try {
+        $stmt = $db->prepare("SELECT nama_produk FROM products WHERE id = ?");
+        $stmt->execute([$product_id]);
+        $result = $stmt->fetch();
+        return $result ? $result['nama_produk'] : '';
+    } catch(PDOException $e) {
+        return '';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -393,6 +423,9 @@ $requests = $stmt->fetchAll();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* ============================================
+           STYLES (SAME AS BEFORE)
+           ============================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1874,20 +1907,16 @@ $requests = $stmt->fetchAll();
         function calculateTOP() {
             let total = 0;
             
-            // Booking Fee
             const bookingFee = parseFloat(document.querySelector('input[name="booking_fee"]').value.replace(/\./g, '').replace(/,/g, '')) || 0;
             total += bookingFee;
             
-            // Nominal PO Leasing
             const poLeasing = parseFloat(document.querySelector('input[name="nominal_po_leasing"]').value.replace(/\./g, '').replace(/,/g, '')) || 0;
             total += poLeasing;
             
-            // Down Payments
             document.querySelectorAll('input[name="dp_value[]"]').forEach(input => {
                 total += parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
             });
             
-            // Installments
             document.querySelectorAll('input[name="installment_value[]"]').forEach(input => {
                 total += parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
             });
@@ -1926,7 +1955,6 @@ $requests = $stmt->fetchAll();
         // GRAND TOTAL ALL
         // ============================================
         function calculateAllGrandTotals() {
-            // Calculate Unit Grand Total
             let unitTotal = 0;
             document.querySelectorAll('.grand-total-unit').forEach(input => {
                 const val = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
@@ -1979,7 +2007,6 @@ $requests = $stmt->fetchAll();
         // INITIAL CALCULATIONS
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Calculate all units
             document.querySelectorAll('.qty, .price').forEach(input => {
                 const row = input.closest('.unit-row');
                 if (row) {
@@ -1987,16 +2014,10 @@ $requests = $stmt->fetchAll();
                 }
             });
             
-            // Calculate TOP
             calculateTOP();
-            
-            // Calculate Additional
             calculateAdditional();
-            
-            // Update Mediator Amount
             updateMediatorAmount();
             
-            // Set default date for delivery schedule
             document.querySelectorAll('input[name="delivery_schedule[]"]').forEach(input => {
                 if (!input.value) {
                     const date = new Date();
