@@ -1544,7 +1544,7 @@ function canSalesEdit($db, $account_id, $userId) {
                                                     </a>
                                                 <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Kosong</span>
+                                                <span class="text-warning"></i> Kosong</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
