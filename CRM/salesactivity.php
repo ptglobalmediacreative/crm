@@ -2358,8 +2358,6 @@ if (isset($_GET['complete'])) {
                         <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
-                            <div class="alert alert-success mb-3">
-                            </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Customer Deal</label>
