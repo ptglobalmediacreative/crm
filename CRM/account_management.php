@@ -1526,7 +1526,6 @@ function canSalesEdit($db, $account_id, $userId) {
                                 <th>No HP</th>
                                 <th>Email</th>
                                 <th>Lead Source</th>
-                                <th>Nama Referensi</th>
                                 <th>Sales</th>
                                 <th>Area</th>
                                 <th>NPWP</th>
@@ -1556,15 +1555,6 @@ function canSalesEdit($db, $account_id, $userId) {
                                             <span class="badge-lead <?= strtolower($account['lead_source']) ?>">
                                                 <?= htmlspecialchars($account['lead_source']) ?>
                                             </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($account['lead_source'] === 'Referensi' && !empty($account['nama_referensi'])): ?>
-                                                <span class="badge-sales">
-                                                    <i class="fas fa-user-friends"></i> <?= htmlspecialchars($account['nama_referensi']) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if (!empty($account['sales_name'])): ?>
@@ -1622,7 +1612,7 @@ function canSalesEdit($db, $account_id, $userId) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="12" class="text-center py-4 text-muted">
+                                    <td colspan="11" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data account
                                     </td>
                                 </tr>
