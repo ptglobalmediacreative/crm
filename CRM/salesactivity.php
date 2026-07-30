@@ -56,7 +56,6 @@ function generateTRFNumber($db) {
     $year = date('Y');
     $romanMonth = getRomanMonth($month);
     
-    // Cari nomor terakhir untuk bulan dan tahun ini
     $stmt = $db->prepare("SELECT trf_number FROM sales_activities 
                           WHERE trf_number LIKE ? 
                           ORDER BY trf_number DESC LIMIT 1");
@@ -65,7 +64,6 @@ function generateTRFNumber($db) {
     $last = $stmt->fetchColumn();
     
     if ($last) {
-        // Ambil nomor urut dari depan
         $parts = explode('/', $last);
         $lastNumber = (int)$parts[0];
         $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
@@ -360,6 +358,16 @@ if ($userRole === 'sales') {
     $stmt->execute();
 }
 $accounts = $stmt->fetchAll();
+
+// ============================================
+// API ENDPOINT untuk generate TRF Number (AJAX)
+// ============================================
+if (isset($_GET['generate_trf'])) {
+    $trf_number = generateTRFNumber($db);
+    header('Content-Type: application/json');
+    echo json_encode(['trf_number' => $trf_number]);
+    exit;
+}
 
 // ============================================
 // PROSES TAMBAH / EDIT / COMPLETE / DELETE
@@ -1770,6 +1778,13 @@ if (isset($_GET['complete'])) {
             display: block;
         }
         
+        .trf-field {
+            display: none;
+        }
+        .trf-field.show {
+            display: block;
+        }
+        
         .badge-lost {
             background: rgba(231, 76, 60, 0.15);
             color: #e74c3c;
@@ -2392,6 +2407,17 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
+                        <!-- Transaction Request Form Number - Muncul ketika jenis tugas = Negosiasi -->
+                        <div class="trf-field" id="trfField">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
+                                    <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
+                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="mb-3">
                             <label class="form-label">Deskripsi <span class="text-danger">*</span></label>
                             <textarea name="deskripsi" id="deskripsi" class="form-control" rows="4" placeholder="Masukkan deskripsi (minimal 80 karakter)" required oninput="updateCharCount('deskripsi', 'deskripsiCounter')"></textarea>
@@ -2416,7 +2442,7 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & Leads Number & TRF Number - Hanya muncul jika jenis tugas = Negosiasi -->
+                        <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
                             <div class="alert alert-success mb-3">
@@ -2435,13 +2461,6 @@ if (isset($_GET['complete'])) {
                                     <label class="form-label">Leads Number</label>
                                     <input type="text" name="leads_number" id="leads_number_add" class="form-control" readonly>
                                     <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
-                                    <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
                                 </div>
                             </div>
                         </div>
@@ -2500,6 +2519,17 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
+                        <!-- TRF Number di Complete Modal -->
+                        <div class="trf-field" id="trfFieldComplete">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
+                                    <input type="text" name="trf_number" id="trf_number_complete" class="form-control" readonly>
+                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="mb-3">
                             <label class="form-label">Deskripsi</label>
                             <textarea id="completeDeskripsi" class="form-control" rows="2" readonly style="background: #f8f9fa;"></textarea>
@@ -2516,7 +2546,7 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & Leads Number & TRF Number - Hanya muncul jika jenis tugas = Negosiasi -->
+                        <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
                             <div class="alert alert-success mb-3">
@@ -2535,13 +2565,6 @@ if (isset($_GET['complete'])) {
                                     <label class="form-label">Leads Number</label>
                                     <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
                                     <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
-                                    <input type="text" name="trf_number" id="trf_number_complete" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
                                 </div>
                             </div>
                         </div>
@@ -2706,6 +2729,81 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
+        // TOGGLE TRF FIELD
+        // ============================================
+        function toggleTRFField() {
+            var jenisTugas = document.getElementById('jenis_tugas');
+            var trfField = document.getElementById('trfField');
+            var trfInput = document.getElementById('trf_number_add');
+            
+            if (jenisTugas && trfField) {
+                if (jenisTugas.value === 'Negosiasi') {
+                    trfField.classList.add('show');
+                    // Generate TRF Number via AJAX jika belum ada
+                    if (trfInput && trfInput.value === '') {
+                        fetch('salesactivity.php?generate_trf=1')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.trf_number) {
+                                    trfInput.value = data.trf_number;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error generating TRF:', error);
+                                // Fallback generate manual
+                                var now = new Date();
+                                var month = now.getMonth() + 1;
+                                var year = now.getFullYear();
+                                var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                                var romanMonth = romanMonths[month];
+                                trfInput.value = '0001/GET-TR/JKT/' + romanMonth + '/' + year;
+                            });
+                    }
+                } else {
+                    trfField.classList.remove('show');
+                    if (trfInput) {
+                        trfInput.value = '';
+                    }
+                }
+            }
+        }
+
+        function toggleTRFFieldComplete() {
+            var jenisTugas = document.getElementById('completeJenisTugas');
+            var trfFieldComplete = document.getElementById('trfFieldComplete');
+            var trfInputComplete = document.getElementById('trf_number_complete');
+            
+            if (jenisTugas && trfFieldComplete) {
+                if (jenisTugas.value === 'Negosiasi') {
+                    trfFieldComplete.classList.add('show');
+                    if (trfInputComplete && trfInputComplete.value === '') {
+                        fetch('salesactivity.php?generate_trf=1')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.trf_number) {
+                                    trfInputComplete.value = data.trf_number;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error generating TRF:', error);
+                                var now = new Date();
+                                var month = now.getMonth() + 1;
+                                var year = now.getFullYear();
+                                var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                                var romanMonth = romanMonths[month];
+                                trfInputComplete.value = '0001/GET-TR/JKT/' + romanMonth + '/' + year;
+                            });
+                    }
+                } else {
+                    trfFieldComplete.classList.remove('show');
+                    if (trfInputComplete) {
+                        trfInputComplete.value = '';
+                    }
+                }
+            }
+        }
+
+        // ============================================
         // TOGGLE DEAL FIELDS
         // ============================================
         function toggleDealFields() {
@@ -2719,7 +2817,6 @@ if (isset($_GET['complete'])) {
                     dealFields.classList.remove('show');
                     document.getElementById('customer_deal_add').value = 'No';
                     document.getElementById('leads_number_add').value = '';
-                    document.getElementById('trf_number_add').value = '';
                 }
             }
         }
@@ -2736,7 +2833,6 @@ if (isset($_GET['complete'])) {
                     dealFieldsComplete.classList.remove('show');
                     document.getElementById('customer_deal').value = 'No';
                     document.getElementById('leads_number').value = '';
-                    document.getElementById('trf_number_complete').value = '';
                 }
             }
         }
@@ -2812,8 +2908,14 @@ if (isset($_GET['complete'])) {
             
             var jenisTugas = document.getElementById('jenis_tugas');
             if (jenisTugas) {
-                jenisTugas.addEventListener('change', toggleDealFields);
-                setTimeout(toggleDealFields, 100);
+                jenisTugas.addEventListener('change', function() {
+                    toggleTRFField();
+                    toggleDealFields();
+                });
+                setTimeout(function() {
+                    toggleTRFField();
+                    toggleDealFields();
+                }, 100);
             }
         });
 
@@ -2900,6 +3002,7 @@ if (isset($_GET['complete'])) {
             document.getElementById('attachment_file_add').required = false;
             document.getElementById('customer_deal_add').value = 'No';
             document.getElementById('dealFields').classList.remove('show');
+            document.getElementById('trfField').classList.remove('show');
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
             
@@ -2941,7 +3044,10 @@ if (isset($_GET['complete'])) {
                 document.getElementById('result').value = '';
                 document.getElementById('attachment_files').value = '';
                 
-                setTimeout(toggleDealFieldsComplete, 100);
+                setTimeout(function() {
+                    toggleTRFFieldComplete();
+                    toggleDealFieldsComplete();
+                }, 100);
                 
                 var fileList = document.getElementById('fileList');
                 if (fileList) {
@@ -3209,7 +3315,10 @@ if (isset($_GET['complete'])) {
             document.getElementById('deskripsi').value = data.deskripsi || '';
             document.getElementById('due_date').value = data.due_date || '';
             
-            setTimeout(toggleDealFields, 100);
+            setTimeout(function() {
+                toggleTRFField();
+                toggleDealFields();
+            }, 100);
             
             setTimeout(function() {
                 updateCharCount('deskripsi', 'deskripsiCounter');
