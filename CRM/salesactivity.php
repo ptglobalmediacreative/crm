@@ -2347,7 +2347,7 @@ if (isset($_GET['complete'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Result <span class="text-muted optional">(opsional)</span> <span class="text-muted small">(Minimal 80 karakter jika diisi)</span></label>
+                            <label class="form-label">Result</label>
                             <textarea name="result" id="result_add" class="form-control" rows="3" placeholder="Masukkan hasil aktivitas (kosongkan jika masih in progress)" oninput="updateCharCount('result_add', 'resultCounterAdd')"></textarea>
                             <div class="char-counter">
                                 <span class="count" id="resultCounterAdd">0</span> / 80 karakter (minimal jika diisi)
