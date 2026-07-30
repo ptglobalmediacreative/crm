@@ -2413,7 +2413,6 @@ if (isset($_GET['complete'])) {
                                 <div class="col-md-12 mb-3">
                                     <label class="form-label">Transaction Request Form</label>
                                     <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
                                 </div>
                             </div>
                         </div>
