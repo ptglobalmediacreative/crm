@@ -261,10 +261,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
+        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter! (saat ini: ' . strlen($deskripsi) . ' karakter)';
         
-        // Jika result diisi, maka attachment wajib diupload (karena complete)
-        if (!empty($result) && empty($attachment_file)) {
-            $errors[] = 'Jika mengisi Result, Attachment file wajib diupload!';
+        // Jika result diisi, validasi minimal 80 karakter
+        if (!empty($result)) {
+            if (strlen($result) < 80) {
+                $errors[] = 'Result minimal 80 karakter! (saat ini: ' . strlen($result) . ' karakter)';
+            }
+            if (empty($attachment_file)) {
+                $errors[] = 'Jika mengisi Result, Attachment file wajib diupload!';
+            }
         }
         
         if (empty($errors)) {
@@ -372,6 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Validasi - Result dan Attachment WAJIB diisi
         $errors = [];
         if (empty($result)) $errors[] = 'Result wajib diisi!';
+        if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter! (saat ini: ' . strlen($result) . ' karakter)';
         if (empty($attachment_file)) $errors[] = 'Attachment file wajib diupload!';
         
         if (empty($errors)) {
@@ -441,6 +448,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
+        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter! (saat ini: ' . strlen($deskripsi) . ' karakter)';
         
         if (empty($errors)) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
@@ -1503,6 +1511,40 @@ if (isset($_GET['complete'])) {
             border-color: rgba(214, 48, 49, 0.3);
         }
         
+        /* Character Counter Styles */
+        .char-counter {
+            font-size: 12px;
+            padding: 4px 0;
+        }
+        
+        .char-counter .count {
+            font-weight: 600;
+        }
+        
+        .char-counter .count.valid {
+            color: #27ae60;
+        }
+        
+        .char-counter .count.invalid {
+            color: #e74c3c;
+        }
+        
+        .char-counter .status-text {
+            margin-left: 8px;
+        }
+        
+        .char-counter .status-text.valid {
+            color: #27ae60;
+        }
+        
+        .char-counter .status-text.invalid {
+            color: #e74c3c;
+        }
+        
+        .char-counter .status-text i {
+            margin-right: 4px;
+        }
+        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -2083,7 +2125,7 @@ if (isset($_GET['complete'])) {
                     <h5 class="modal-title" id="modalTitle"><i class="fas fa-plus"></i> Tambah Sales Activity</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" enctype="multipart/form-data" id="formSalesActivity">
+                <form method="POST" enctype="multipart/form-data" id="formSalesActivity" onsubmit="return validateFormAdd()">
                     <div class="modal-body">
                         <input type="hidden" name="action" id="formAction" value="add">
                         <input type="hidden" name="id" id="formId" value="">
@@ -2142,8 +2184,12 @@ if (isset($_GET['complete'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Deskripsi <span class="text-danger">*</span></label>
-                            <textarea name="deskripsi" id="deskripsi" class="form-control" rows="3" placeholder="Masukkan deskripsi" required></textarea>
+                            <label class="form-label">Deskripsi <span class="text-danger">*</span> <span class="text-muted small">(Minimal 80 karakter)</span></label>
+                            <textarea name="deskripsi" id="deskripsi" class="form-control" rows="4" placeholder="Masukkan deskripsi (minimal 80 karakter)" required oninput="updateCharCount('deskripsi', 'deskripsiCounter')"></textarea>
+                            <div class="char-counter">
+                                <span class="count" id="deskripsiCounter">0</span> / 80 karakter (minimal)
+                                <span class="status-text" id="deskripsiStatus"></span>
+                            </div>
                         </div>
                         
                         <hr>
@@ -2153,8 +2199,12 @@ if (isset($_GET['complete'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Result</label>
-                            <textarea name="result" id="result_add" class="form-control" rows="3" placeholder="Masukkan hasil aktivitas (kosongkan jika masih in progress)"></textarea>
+                            <label class="form-label">Result <span class="text-muted optional">(opsional)</span> <span class="text-muted small">(Minimal 80 karakter jika diisi)</span></label>
+                            <textarea name="result" id="result_add" class="form-control" rows="3" placeholder="Masukkan hasil aktivitas (kosongkan jika masih in progress)" oninput="updateCharCount('result_add', 'resultCounterAdd')"></textarea>
+                            <div class="char-counter">
+                                <span class="count" id="resultCounterAdd">0</span> / 80 karakter (minimal jika diisi)
+                                <span class="status-text" id="resultStatusAdd"></span>
+                            </div>
                         </div>
                         
                         <div class="row">
@@ -2201,7 +2251,7 @@ if (isset($_GET['complete'])) {
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" enctype="multipart/form-data" id="formComplete">
+                <form method="POST" enctype="multipart/form-data" id="formComplete" onsubmit="return validateFormComplete()">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="complete">
                         <input type="hidden" name="id" id="completeId" value="">
@@ -2236,8 +2286,12 @@ if (isset($_GET['complete'])) {
                         <hr>
                         
                         <div class="mb-3">
-                            <label class="form-label">Result <span class="text-danger">*</span></label>
-                            <textarea name="result" id="result" class="form-control" rows="3" placeholder="Masukkan hasil dari aktivitas" required></textarea>
+                            <label class="form-label">Result <span class="text-danger">*</span> <span class="text-muted small">(Minimal 80 karakter)</span></label>
+                            <textarea name="result" id="result" class="form-control" rows="4" placeholder="Masukkan hasil dari aktivitas (minimal 80 karakter)" required oninput="updateCharCount('result', 'resultCounter')"></textarea>
+                            <div class="char-counter">
+                                <span class="count" id="resultCounter">0</span> / 80 karakter (minimal)
+                                <span class="status-text" id="resultStatus"></span>
+                            </div>
                         </div>
                         
                         <div class="row">
@@ -2423,14 +2477,219 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
+        // CHARACTER COUNTER - MINIMAL 80 KARAKTER
+        // ============================================
+        function updateCharCount(textareaId, counterId) {
+            var textarea = document.getElementById(textareaId);
+            var counter = document.getElementById(counterId);
+            var status = document.getElementById(counterId.replace('Counter', 'Status'));
+            
+            if (!textarea || !counter) return;
+            
+            var length = textarea.value.length;
+            counter.textContent = length;
+            
+            if (length >= 80) {
+                counter.className = 'count valid';
+                if (status) {
+                    status.className = 'status-text valid';
+                    status.innerHTML = '<i class="fas fa-check-circle"></i> OK';
+                }
+            } else {
+                counter.className = 'count invalid';
+                if (status) {
+                    var remaining = 80 - length;
+                    status.className = 'status-text invalid';
+                    status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang ' + remaining + ' karakter lagi';
+                }
+            }
+        }
+
+        // ============================================
+        // VALIDASI FORM ADD SEBELUM SUBMIT
+        // ============================================
+        function validateFormAdd() {
+            var deskripsi = document.getElementById('deskripsi');
+            var resultAdd = document.getElementById('result_add');
+            var attachmentAdd = document.getElementById('attachment_file_add');
+            var errors = [];
+            
+            // Validasi deskripsi minimal 80 karakter
+            if (deskripsi && deskripsi.value.trim().length < 80) {
+                errors.push('Deskripsi minimal 80 karakter! (saat ini: ' + deskripsi.value.trim().length + ' karakter)');
+                deskripsi.style.borderColor = '#e74c3c';
+            } else if (deskripsi) {
+                deskripsi.style.borderColor = '';
+            }
+            
+            // Validasi result minimal 80 karakter jika diisi
+            if (resultAdd && resultAdd.value.trim().length > 0 && resultAdd.value.trim().length < 80) {
+                errors.push('Result minimal 80 karakter jika diisi! (saat ini: ' + resultAdd.value.trim().length + ' karakter)');
+                resultAdd.style.borderColor = '#e74c3c';
+            } else if (resultAdd) {
+                resultAdd.style.borderColor = '';
+            }
+            
+            // Validasi attachment jika result diisi
+            if (resultAdd && resultAdd.value.trim().length > 0 && (!attachmentAdd || !attachmentAdd.files || attachmentAdd.files.length === 0)) {
+                errors.push('Jika mengisi Result, Attachment file wajib diupload!');
+                if (attachmentAdd) attachmentAdd.style.borderColor = '#e74c3c';
+            } else if (attachmentAdd) {
+                attachmentAdd.style.borderColor = '';
+            }
+            
+            if (errors.length > 0) {
+                alert('⚠️ ' + errors.join('\n'));
+                return false;
+            }
+            return true;
+        }
+
+        // ============================================
+        // VALIDASI FORM COMPLETE SEBELUM SUBMIT
+        // ============================================
+        function validateFormComplete() {
+            var result = document.getElementById('result');
+            var attachment = document.getElementById('attachment_file');
+            var errors = [];
+            
+            // Validasi result minimal 80 karakter
+            if (result && result.value.trim().length < 80) {
+                errors.push('Result minimal 80 karakter! (saat ini: ' + result.value.trim().length + ' karakter)');
+                result.style.borderColor = '#e74c3c';
+            } else if (result) {
+                result.style.borderColor = '';
+            }
+            
+            // Validasi attachment wajib diupload
+            if (attachment && (!attachment.files || attachment.files.length === 0)) {
+                errors.push('Attachment file wajib diupload!');
+                attachment.style.borderColor = '#e74c3c';
+            } else if (attachment) {
+                attachment.style.borderColor = '';
+            }
+            
+            if (errors.length > 0) {
+                alert('⚠️ ' + errors.join('\n'));
+                return false;
+            }
+            return true;
+        }
+
+        // ============================================
+        // RESET FORM ADD
+        // ============================================
+        document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('formSalesActivity').reset();
+            document.getElementById('formAction').value = 'add';
+            document.getElementById('formId').value = '';
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
+            document.getElementById('badan_usaha_field').value = '';
+            document.getElementById('business_segment').value = '';
+            document.getElementById('contact_mobile').value = '';
+            document.getElementById('due_date').value = getDateWIB(7);
+            document.getElementById('result_add').value = '';
+            document.getElementById('attachment_file_add').value = '';
+            document.getElementById('leads_number_add').value = '';
+            document.getElementById('attachment_required').style.display = 'none';
+            document.getElementById('attachment_file_add').required = false;
+            var note = document.getElementById('resultNotification');
+            if (note) note.remove();
+            
+            // Reset counter
+            var deskripsiCounter = document.getElementById('deskripsiCounter');
+            if (deskripsiCounter) {
+                deskripsiCounter.textContent = '0';
+                deskripsiCounter.className = 'count invalid';
+            }
+            var deskripsiStatus = document.getElementById('deskripsiStatus');
+            if (deskripsiStatus) {
+                deskripsiStatus.className = 'status-text invalid';
+                deskripsiStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang 80 karakter lagi';
+            }
+            var resultCounterAdd = document.getElementById('resultCounterAdd');
+            if (resultCounterAdd) {
+                resultCounterAdd.textContent = '0';
+                resultCounterAdd.className = 'count invalid';
+            }
+            var resultStatusAdd = document.getElementById('resultStatusAdd');
+            if (resultStatusAdd) {
+                resultStatusAdd.className = 'status-text invalid';
+                resultStatusAdd.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang 80 karakter lagi';
+            }
+        });
+
+        // ============================================
+        // COMPLETE ACTIVITY - VERSION WITH DATA PARAMETER
+        // ============================================
+        function completeActivity(id, data) {
+            if (data) {
+                document.getElementById('completeId').value = data.id;
+                document.getElementById('completeSubject').value = data.subject;
+                document.getElementById('completeAccount').value = data.nama_pt || '-';
+                document.getElementById('completeJenisTugas').value = data.jenis_tugas;
+                document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+                document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
+                document.getElementById('customer_prospek').value = 'No';
+                document.getElementById('leads_number').value = '';
+                document.getElementById('result').value = '';
+                document.getElementById('attachment_file').value = '';
+                
+                // Reset counter
+                var resultCounter = document.getElementById('resultCounter');
+                if (resultCounter) {
+                    resultCounter.textContent = '0';
+                    resultCounter.className = 'count invalid';
+                }
+                var resultStatus = document.getElementById('resultStatus');
+                if (resultStatus) {
+                    resultStatus.className = 'status-text invalid';
+                    resultStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang 80 karakter lagi';
+                }
+                
+                var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
+                modal.show();
+            } else {
+                alert('Data tidak ditemukan!');
+            }
+        }
+
+        // ============================================
+        // SHOW LEADS NUMBER WHEN PROSPEK = YES
+        // ============================================
+        document.getElementById('customer_prospek').addEventListener('change', function() {
+            var leadsInput = document.getElementById('leads_number');
+            if (this.value === 'Yes') {
+                leadsInput.value = 'Akan digenerate otomatis';
+                leadsInput.style.color = '#27ae60';
+                leadsInput.style.fontWeight = '600';
+            } else {
+                leadsInput.value = '';
+                leadsInput.style.color = '';
+                leadsInput.style.fontWeight = '';
+            }
+        });
+
+        document.getElementById('customer_prospek_add').addEventListener('change', function() {
+            var leadsInput = document.getElementById('leads_number_add');
+            if (this.value === 'Yes') {
+                leadsInput.value = 'Akan digenerate otomatis saat Complete';
+                leadsInput.style.color = '#27ae60';
+                leadsInput.style.fontWeight = '600';
+            } else {
+                leadsInput.value = '';
+                leadsInput.style.color = '';
+                leadsInput.style.fontWeight = '';
+            }
+        });
+
+        // ============================================
         // VALIDASI RESULT - TAMPILKAN PERINGATAN
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             var resultInput = document.getElementById('result_add');
             var attachmentInput = document.getElementById('attachment_file_add');
             var attachmentRequired = document.getElementById('attachment_required');
-            var customerProspek = document.getElementById('customer_prospek_add');
-            var leadsNumber = document.getElementById('leads_number_add');
             
             // Event listener untuk result
             if (resultInput) {
@@ -2455,79 +2714,20 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Event listener untuk customer prospek
-            if (customerProspek) {
-                customerProspek.addEventListener('change', function() {
-                    if (this.value === 'Yes') {
-                        leadsNumber.value = 'Akan digenerate otomatis saat Complete';
-                        leadsNumber.style.color = '#27ae60';
-                        leadsNumber.style.fontWeight = '600';
-                    } else {
-                        leadsNumber.value = '';
-                        leadsNumber.style.color = '';
-                        leadsNumber.style.fontWeight = '';
-                    }
-                });
+            // Init counters
+            var deskripsi = document.getElementById('deskripsi');
+            if (deskripsi) {
+                updateCharCount('deskripsi', 'deskripsiCounter');
             }
-        });
-
-        // ============================================
-        // RESET FORM ADD
-        // ============================================
-        document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
-            document.getElementById('formSalesActivity').reset();
-            document.getElementById('formAction').value = 'add';
-            document.getElementById('formId').value = '';
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
-            document.getElementById('badan_usaha_field').value = '';
-            document.getElementById('business_segment').value = '';
-            document.getElementById('contact_mobile').value = '';
-            document.getElementById('due_date').value = getDateWIB(7);
-            document.getElementById('result_add').value = '';
-            document.getElementById('attachment_file_add').value = '';
-            document.getElementById('leads_number_add').value = '';
-            document.getElementById('attachment_required').style.display = 'none';
-            document.getElementById('attachment_file_add').required = false;
-            var note = document.getElementById('resultNotification');
-            if (note) note.remove();
-        });
-
-        // ============================================
-        // COMPLETE ACTIVITY - VERSION WITH DATA PARAMETER
-        // ============================================
-        function completeActivity(id, data) {
-            if (data) {
-                document.getElementById('completeId').value = data.id;
-                document.getElementById('completeSubject').value = data.subject;
-                document.getElementById('completeAccount').value = data.nama_pt || '-';
-                document.getElementById('completeJenisTugas').value = data.jenis_tugas;
-                document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-                document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
-                document.getElementById('customer_prospek').value = 'No';
-                document.getElementById('leads_number').value = '';
-                document.getElementById('result').value = '';
-                document.getElementById('attachment_file').value = '';
-                
-                var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
-                modal.show();
-            } else {
-                alert('Data tidak ditemukan!');
+            
+            var resultAdd = document.getElementById('result_add');
+            if (resultAdd) {
+                updateCharCount('result_add', 'resultCounterAdd');
             }
-        }
-
-        // ============================================
-        // SHOW LEADS NUMBER WHEN PROSPEK = YES
-        // ============================================
-        document.getElementById('customer_prospek').addEventListener('change', function() {
-            var leadsInput = document.getElementById('leads_number');
-            if (this.value === 'Yes') {
-                leadsInput.value = 'Akan digenerate otomatis';
-                leadsInput.style.color = '#27ae60';
-                leadsInput.style.fontWeight = '600';
-            } else {
-                leadsInput.value = '';
-                leadsInput.style.color = '';
-                leadsInput.style.fontWeight = '';
+            
+            var resultComplete = document.getElementById('result');
+            if (resultComplete) {
+                updateCharCount('result', 'resultCounter');
             }
         });
 
@@ -2667,6 +2867,11 @@ if (isset($_GET['complete'])) {
             document.getElementById('jenis_tugas').value = data.jenis_tugas;
             document.getElementById('deskripsi').value = data.deskripsi || '';
             document.getElementById('due_date').value = data.due_date || '';
+            
+            // Update counter untuk deskripsi
+            setTimeout(function() {
+                updateCharCount('deskripsi', 'deskripsiCounter');
+            }, 300);
             
             var modal = new bootstrap.Modal(document.getElementById('modalSalesActivity'));
             modal.show();
