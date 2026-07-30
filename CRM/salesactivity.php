@@ -2359,8 +2359,6 @@ if (isset($_GET['complete'])) {
                         <div class="deal-fields" id="dealFields">
                             <hr>
                             <div class="alert alert-success mb-3">
-                                <i class="fas fa-handshake"></i> 
-                                <strong>Informasi Deal:</strong> Field ini hanya muncul jika jenis tugas adalah <strong>Negosiasi</strong>.
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
