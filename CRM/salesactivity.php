@@ -2164,7 +2164,7 @@ if (isset($_GET['complete'])) {
                                 <th>Badan Usaha</th>
                                 <th>Contact</th>
                                 <th>Jenis Tugas</th>
-                                <th>TRF Number</th>
+                                <th>TR Number</th>
                                 <th>Due Date</th>
                                 <th>Status Deadline</th>
                                 <th>Sales</th>
@@ -3212,7 +3212,7 @@ if (isset($_GET['complete'])) {
                     </div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">TRF Number</div>
+                    <div class="detail-label">TR Number</div>
                     <div class="detail-value">
                         ${data.trf_number ? `<span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span>` : '-'}
                     </div>
