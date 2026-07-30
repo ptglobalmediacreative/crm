@@ -1788,7 +1788,7 @@ function canSalesEdit($db, $account_id, $userId) {
                                     <small class="text-muted">Sales otomatis sesuai akun Anda</small>
                                 <?php else: ?>
                                     <select name="sales_id" id="sales_id" class="form-select">
-                                        <option value="">-- Pilih Sales / Direktur --</option>
+                                        <option value="">-- Pilih Sales --</option>
                                         <?php 
                                         $roleLabels = [
                                             'it_support' => 'IT Support',
