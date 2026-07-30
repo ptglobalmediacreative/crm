@@ -66,7 +66,6 @@ function compressImage($source_path, $destination_path, $quality = 80) {
             break;
         case 'image/png':
             $image = imagecreatefrompng($source_path);
-            // PNG perlu preserved transparency
             break;
         case 'image/gif':
             $image = imagecreatefromgif($source_path);
@@ -75,7 +74,6 @@ function compressImage($source_path, $destination_path, $quality = 80) {
             $image = imagecreatefromwebp($source_path);
             break;
         default:
-            // Bukan gambar, copy saja
             return copy($source_path, $destination_path);
     }
     
@@ -83,11 +81,9 @@ function compressImage($source_path, $destination_path, $quality = 80) {
         return false;
     }
     
-    // Dapatkan dimensi asli
     $orig_width = imagesx($image);
     $orig_height = imagesy($image);
     
-    // Resize jika lebih besar dari max
     if ($orig_width > $max_width || $orig_height > $max_height) {
         $ratio = min($max_width / $orig_width, $max_height / $orig_height);
         $new_width = round($orig_width * $ratio);
@@ -95,14 +91,12 @@ function compressImage($source_path, $destination_path, $quality = 80) {
         
         $resized_image = imagecreatetruecolor($new_width, $new_height);
         
-        // Untuk PNG, preserve transparansi
         if ($mime_type == 'image/png') {
             imagealphablending($resized_image, false);
             imagesavealpha($resized_image, true);
             $transparent = imagecolorallocatealpha($resized_image, 255, 255, 255, 127);
             imagefilledrectangle($resized_image, 0, 0, $new_width, $new_height, $transparent);
         } elseif ($mime_type == 'image/gif') {
-            // Preserve transparansi untuk GIF
             $transparent = imagecolorallocatealpha($resized_image, 0, 0, 0, 127);
             imagecolortransparent($resized_image, $transparent);
         }
@@ -112,7 +106,6 @@ function compressImage($source_path, $destination_path, $quality = 80) {
         $image = $resized_image;
     }
     
-    // Simpan dengan kompresi
     $result = false;
     switch ($mime_type) {
         case 'image/jpeg':
@@ -120,7 +113,6 @@ function compressImage($source_path, $destination_path, $quality = 80) {
             $result = imagejpeg($image, $destination_path, $quality);
             break;
         case 'image/png':
-            // Untuk PNG, quality 0-9 (0 = no compression, 9 = max)
             $png_quality = round(($quality / 100) * 9);
             $result = imagepng($image, $destination_path, $png_quality);
             break;
@@ -146,38 +138,30 @@ function uploadFileWithCompression($file, $target_dir, $allowed_extensions = [],
         return ['success' => false, 'message' => 'Error upload file'];
     }
     
-    // Validasi ukuran
     if ($file['size'] > $max_file_size) {
         return ['success' => false, 'message' => 'Ukuran file melebihi ' . ($max_file_size / 1024 / 1024) . 'MB'];
     }
     
     $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     
-    // Validasi ekstensi
     if (!in_array($file_extension, $allowed_extensions)) {
         return ['success' => false, 'message' => 'Format file tidak didukung'];
     }
     
-    // Buat direktori jika belum ada
     if (!file_exists($target_dir)) {
         mkdir($target_dir, 0777, true);
     }
     
-    // Generate nama unik
     $new_filename = time() . '_' . uniqid() . '.' . $file_extension;
     $file_path = $target_dir . $new_filename;
     
-    // Cek apakah file adalah gambar yang bisa dikompres
     $image_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     if (in_array($file_extension, $image_types)) {
-        // Kompres gambar
         $compress_result = compressImage($file['tmp_name'], $file_path, $compress_quality);
         if (!$compress_result) {
-            // Jika kompresi gagal, copy original
             copy($file['tmp_name'], $file_path);
         }
     } else {
-        // Bukan gambar, copy langsung
         copy($file['tmp_name'], $file_path);
     }
     
@@ -198,18 +182,14 @@ $userRole = $_SESSION['role'] ?? 'user';
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 
-// Role yang bisa full access (edit, delete)
 $fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
 $hasFullAccess = in_array($userRole, $fullAccessRoles);
-
-// Role yang bisa input untuk sales lain
 $direkturRoles = ['direktur_utama', 'direktur_operasional', 'direktur_sales', 'admin', 'it_support', 'finance', 'business'];
 
 // ============================================
-// FUNGSI CEK DEADLINE (dengan WIB)
+// FUNGSI CEK DEADLINE
 // ============================================
 function getDeadlineStatus($due_date, $status = 'in_progress') {
-    // Jika status sudah completed, return normal tanpa warna/icon
     if ($status == 'completed') {
         if (empty($due_date)) {
             return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
@@ -225,7 +205,6 @@ function getDeadlineStatus($due_date, $status = 'in_progress') {
     
     if (empty($due_date)) return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
     
-    // Gunakan WIB
     $today = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
     $today->setTime(0, 0, 0);
     
@@ -300,54 +279,43 @@ function getSalesIdFromAccount($db, $account_id) {
 }
 
 // ============================================
-// TAMBAHKAN KOLOM KE TABEL (jika belum ada)
+// TAMBAHKAN KOLOM KE TABEL
 // ============================================
 try {
-    // Cek apakah kolom status ada, jika tidak tambahkan
     $stmt = $db->query("SHOW COLUMNS FROM sales_activities LIKE 'status'");
     if ($stmt->rowCount() == 0) {
         $db->exec("ALTER TABLE sales_activities ADD COLUMN status VARCHAR(20) NULL DEFAULT 'in_progress'");
     }
     
-    // Tambahkan kolom lainnya
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS completed_at DATETIME NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS due_date DATE NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS result TEXT NULL");
     
-    // Ubah nama kolom customer_prospek menjadi customer_deal jika ada
     try {
         $db->exec("ALTER TABLE sales_activities CHANGE COLUMN customer_prospek customer_deal VARCHAR(10) NULL");
-    } catch(PDOException $e) {
-        // Kolom mungkin sudah bernama customer_deal atau belum ada
-    }
+    } catch(PDOException $e) {}
     
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_deal VARCHAR(10) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS leads_number VARCHAR(50) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file TEXT NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL");
     
-    // Tambahkan indeks
     $db->exec("ALTER TABLE sales_activities ADD INDEX IF NOT EXISTS idx_status (status)");
     $db->exec("ALTER TABLE sales_activities ADD INDEX IF NOT EXISTS idx_due_date (due_date)");
-} catch(PDOException $e) {
-    // Kolom sudah ada atau error lainnya
-}
+} catch(PDOException $e) {}
 
 // ============================================
 // UPDATE STATUS OVERDUE OTOMATIS
 // ============================================
 try {
-    // Update status menjadi 'overdue' jika melewati due date (in_progress)
     $db->exec("UPDATE sales_activities 
                SET status = 'overdue' 
                WHERE status = 'in_progress' 
                AND due_date < CURDATE()");
-} catch(PDOException $e) {
-    // Error handling
-}
+} catch(PDOException $e) {}
 
 // ============================================
-// AMBIL DATA ACCOUNT UNTUK DROPDOWN (sesuai sales)
+// AMBIL DATA ACCOUNT UNTUK DROPDOWN
 // ============================================
 if ($userRole === 'sales') {
     $stmt = $db->prepare("SELECT id, nama_pt, badan_usaha FROM accounts WHERE sales_id = ? ORDER BY nama_pt");
@@ -378,7 +346,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $result = !empty($_POST['result']) ? bersihkan($_POST['result']) : '';
         $customer_deal = !empty($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : 'No';
         
-        // Ambil data account untuk auto-fill
         $contact_name = '';
         $contact_mobile = '';
         $business_segment = '';
@@ -395,14 +362,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Upload file dengan kompresi jika ada (optional saat add)
         $attachment_file = '';
         if (!empty($_FILES['attachment_file']['name'])) {
             $target_dir = "uploads/salesactivity/";
-            
             $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-            $max_file_size = 5 * 1024 * 1024; // 5MB
-            $compress_quality = 80; // Kualitas kompresi 80%
+            $max_file_size = 5 * 1024 * 1024;
+            $compress_quality = 80;
             
             $upload_result = uploadFileWithCompression(
                 $_FILES['attachment_file'],
@@ -420,19 +385,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Validasi
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
-        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter! (saat ini: ' . strlen($deskripsi) . ' karakter)';
+        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter!';
         
-        // Jika result diisi, validasi minimal 80 karakter
         if (!empty($result)) {
             if (strlen($result) < 80) {
-                $errors[] = 'Result minimal 80 karakter! (saat ini: ' . strlen($result) . ' karakter)';
+                $errors[] = 'Result minimal 80 karakter!';
             }
             if (empty($attachment_file)) {
                 $errors[] = 'Jika mengisi Result, Attachment file wajib diupload!';
@@ -440,19 +403,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            // Tentukan status
             $status = empty($result) ? 'in_progress' : 'completed';
             
-            // Generate leads number jika customer_deal = Yes dan status complete dan jenis tugas = Negosiasi
             $leads_number = NULL;
             if ($status === 'completed' && $customer_deal === 'Yes' && $jenis_tugas === 'Negosiasi') {
                 $leads_number = generateLeadsNumber($db, $due_date);
             }
             
-            // Tentukan sales_id yang akan digunakan
-            $targetSalesId = $userId; // default: user yang login
-            
-            // Jika user adalah direktur/admin/business, gunakan sales_id dari account
+            $targetSalesId = $userId;
             if (in_array($userRole, $direkturRoles) && $account_id) {
                 $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
                 if ($salesIdFromAccount) {
@@ -486,12 +444,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'complete') {
         $id = (int)$_POST['id'];
         
-        // Cek permission
         $canComplete = false;
         if ($hasFullAccess) {
             $canComplete = true;
         } elseif ($userRole === 'sales') {
-            // Sales hanya bisa complete milik sendiri
             $stmt = $db->prepare("SELECT sales_id FROM sales_activities WHERE id = ?");
             $stmt->execute([$id]);
             $ownerId = $stmt->fetchColumn();
@@ -511,7 +467,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $customer_deal = bersihkan($_POST['customer_deal']);
         $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
         
-        // Generate leads number jika customer_deal = Yes dan jenis tugas = Negosiasi
         $leads_number = NULL;
         if ($customer_deal === 'Yes' && $jenis_tugas === 'Negosiasi') {
             $stmt = $db->prepare("SELECT due_date FROM sales_activities WHERE id = ?");
@@ -522,7 +477,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Upload file dengan kompresi - MULTIPLE FILE (WAJIB diisi saat complete)
         $attachment_files = [];
         $attachment_file_names = [];
         
@@ -532,14 +486,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
-        $max_file_size = 5 * 1024 * 1024; // 5MB
-        $compress_quality = 80; // Kualitas kompresi 80%
+        $max_file_size = 5 * 1024 * 1024;
+        $compress_quality = 80;
         
         if (!empty($_FILES['attachment_files']['name'][0])) {
             foreach ($_FILES['attachment_files']['name'] as $key => $name) {
                 if (empty($name)) continue;
                 
-                // Siapkan array file untuk setiap file
                 $file = [
                     'name' => $_FILES['attachment_files']['name'][$key],
                     'type' => $_FILES['attachment_files']['type'][$key],
@@ -571,14 +524,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Validasi - Result dan Attachment WAJIB diisi
         $errors = [];
         if (empty($result)) $errors[] = 'Result wajib diisi!';
-        if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter! (saat ini: ' . strlen($result) . ' karakter)';
+        if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter!';
         if (empty($attachment_files)) $errors[] = 'Minimal 1 file attachment wajib diupload!';
         
         if (empty($errors)) {
-            // Simpan sebagai JSON
             $attachment_json = json_encode([
                 'files' => $attachment_files,
                 'names' => $attachment_file_names
@@ -600,12 +551,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'edit') {
         $id = (int)$_POST['id'];
         
-        // Cek permission
         $canEdit = false;
         if ($hasFullAccess) {
             $canEdit = true;
         } elseif ($userRole === 'sales') {
-            // Sales hanya bisa edit milik sendiri
             $stmt = $db->prepare("SELECT sales_id FROM sales_activities WHERE id = ?");
             $stmt->execute([$id]);
             $ownerId = $stmt->fetchColumn();
@@ -627,7 +576,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $deskripsi = bersihkan($_POST['deskripsi']);
         $due_date = $_POST['due_date'];
         
-        // Ambil data account untuk auto-fill
         $contact_name = '';
         $contact_mobile = '';
         $business_segment = '';
@@ -650,7 +598,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
-        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter! (saat ini: ' . strlen($deskripsi) . ' karakter)';
+        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter!';
         
         if (empty($errors)) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
@@ -670,7 +618,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        // Hanya full access yang bisa hapus
         if (!$hasFullAccess || !canDelete('sales_activity')) {
             setFlash('Anda tidak memiliki akses untuk menghapus sales activity!', 'danger');
             redirect('salesactivity.php');
@@ -682,7 +629,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->execute([$id]);
         $attachment_data = $stmt->fetchColumn();
         
-        // Hapus semua file attachment
         if ($attachment_data) {
             $files = json_decode($attachment_data, true);
             if ($files && isset($files['files']) && is_array($files['files'])) {
@@ -692,7 +638,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 }
             } else if ($attachment_data && file_exists($attachment_data)) {
-                // Fallback untuk single file (format lama)
                 unlink($attachment_data);
             }
         }
@@ -717,14 +662,11 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $where = "WHERE 1=1";
 $params = [];
 
-// Jika user adalah sales, hanya lihat milik sendiri
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
 }
-// Untuk direktur/admin/business, lihat semua data (tidak difilter)
 
-// Filter status
 if ($status_filter !== 'all') {
     if ($status_filter === 'overdue') {
         $where .= " AND sa.status = 'overdue'";
@@ -733,8 +675,6 @@ if ($status_filter !== 'all') {
     } elseif ($status_filter === 'completed') {
         $where .= " AND sa.status = 'completed'";
     } elseif ($status_filter === 'middle_prospek') {
-        // Middle Prospek: Prospecting, semua status (in_progress, overdue, completed)
-        // dan belum ada Negosiasi atau Kontrak di account yang sama
         $where .= " AND sa.jenis_tugas = 'Prospecting' 
                     AND NOT EXISTS (
                         SELECT 1 FROM sales_activities sa2 
@@ -743,17 +683,29 @@ if ($status_filter !== 'all') {
                         AND sa2.id != sa.id
                     )";
     } elseif ($status_filter === 'hot_prospek') {
-        // Hot Prospek: Negosiasi, semua status (in_progress, overdue, completed)
-        // dan belum ada Kontrak di account yang sama
+        // Hot Prospek: Negosiasi, belum ada Kontrak, dan belum lost (customer_deal != 'No' atau belum completed)
         $where .= " AND sa.jenis_tugas = 'Negosiasi' 
                     AND NOT EXISTS (
                         SELECT 1 FROM sales_activities sa2 
                         WHERE sa2.account_id = sa.account_id 
                         AND sa2.jenis_tugas = 'Kontrak'
                         AND sa2.id != sa.id
-                    )";
+                    )
+                    AND NOT EXISTS (
+                        SELECT 1 FROM sales_activities sa3 
+                        WHERE sa3.account_id = sa.account_id 
+                        AND sa3.jenis_tugas = 'Negosiasi'
+                        AND sa3.status = 'completed'
+                        AND sa3.customer_deal = 'No'
+                        AND sa3.id != sa.id
+                    )
+                    AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')";
+    } elseif ($status_filter === 'lost_prospek') {
+        // Lost Prospek: Negosiasi yang completed dengan customer_deal = 'No'
+        $where .= " AND sa.jenis_tugas = 'Negosiasi' 
+                    AND sa.status = 'completed' 
+                    AND sa.customer_deal = 'No'";
     } elseif ($status_filter === 'deal') {
-        // Deal: Kontrak, semua status (in_progress, overdue, completed)
         $where .= " AND sa.jenis_tugas = 'Kontrak'";
     } else {
         $where .= " AND sa.status = ?";
@@ -766,17 +718,16 @@ if (!empty($search)) {
     $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%"]);
 }
 
-// Count total
 $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
 $stmt = $db->prepare($countSql);
 $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Get data - tambahkan subquery untuk cek status pipeline
 $sql = "SELECT sa.*, a.nama_pt, a.badan_usaha as account_badan_usaha, u.full_name as sales_name,
         (SELECT COUNT(*) FROM sales_activities sa2 WHERE sa2.account_id = sa.account_id AND sa2.jenis_tugas IN ('Negosiasi', 'Kontrak') AND sa2.id != sa.id) as has_negosiasi_kontrak,
-        (SELECT COUNT(*) FROM sales_activities sa3 WHERE sa3.account_id = sa.account_id AND sa3.jenis_tugas = 'Kontrak' AND sa3.id != sa.id) as has_kontrak
+        (SELECT COUNT(*) FROM sales_activities sa3 WHERE sa3.account_id = sa.account_id AND sa3.jenis_tugas = 'Kontrak' AND sa3.id != sa.id) as has_kontrak,
+        (SELECT COUNT(*) FROM sales_activities sa4 WHERE sa4.account_id = sa.account_id AND sa4.jenis_tugas = 'Negosiasi' AND sa4.status = 'completed' AND sa4.customer_deal = 'No' AND sa4.id != sa.id) as has_lost_prospek
         FROM sales_activities sa 
         LEFT JOIN accounts a ON sa.account_id = a.id 
         LEFT JOIN users u ON sa.sales_id = u.id 
@@ -788,7 +739,7 @@ $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
 // ============================================
-// STATISTIK BERDASARKAN USER
+// STATISTIK
 // ============================================
 $totalInProgress = 0;
 $totalCompleted = 0;
@@ -796,7 +747,6 @@ $totalOverdue = 0;
 $approachingCount = 0;
 
 if ($userRole === 'sales') {
-    // Sales hanya melihat datanya sendiri
     $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
     $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND status = 'completed'")->fetchColumn();
     $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND status = 'overdue'")->fetchColumn();
@@ -805,10 +755,6 @@ if ($userRole === 'sales') {
                                     AND status = 'in_progress' 
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
-    // ============================================
-    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS) - UNTUK SALES
-    // ============================================
-    // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE sales_id = ? 
                           AND jenis_tugas = 'Prospecting'
@@ -821,7 +767,7 @@ if ($userRole === 'sales') {
     $stmt->execute([$userId, $userId]);
     $totalMiddleProspek = $stmt->fetchColumn();
     
-    // Hot Prospek: Negosiasi, belum ada Kontrak
+    // Hot Prospek: Negosiasi, belum ada Kontrak, dan belum lost
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE sales_id = ? 
                           AND jenis_tugas = 'Negosiasi'
@@ -830,11 +776,27 @@ if ($userRole === 'sales') {
                               WHERE sales_id = ? 
                               AND jenis_tugas = 'Kontrak'
                               AND account_id IS NOT NULL
+                          )
+                          AND account_id NOT IN (
+                              SELECT DISTINCT account_id FROM sales_activities 
+                              WHERE sales_id = ? 
+                              AND jenis_tugas = 'Negosiasi'
+                              AND status = 'completed'
+                              AND customer_deal = 'No'
+                              AND account_id IS NOT NULL
                           )");
-    $stmt->execute([$userId, $userId]);
+    $stmt->execute([$userId, $userId, $userId]);
     $totalHotProspek = $stmt->fetchColumn();
     
-    // Deal: Kontrak
+    // Lost Prospek: Negosiasi completed dengan customer_deal = 'No'
+    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
+                          WHERE sales_id = ? 
+                          AND jenis_tugas = 'Negosiasi'
+                          AND status = 'completed'
+                          AND customer_deal = 'No'");
+    $stmt->execute([$userId]);
+    $totalLostProspek = $stmt->fetchColumn();
+    
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE sales_id = ? 
                           AND jenis_tugas = 'Kontrak'");
@@ -842,7 +804,6 @@ if ($userRole === 'sales') {
     $totalDeal = $stmt->fetchColumn();
     
 } else {
-    // Admin/Direktur/Business melihat semua data
     $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
     $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
     $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'overdue'")->fetchColumn();
@@ -850,10 +811,6 @@ if ($userRole === 'sales') {
                                     WHERE status = 'in_progress' 
                                     AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
     
-    // ============================================
-    // HITUNG STATISTIK PIPELINE PROSPEK (SEMUA STATUS) - UNTUK ADMIN/DIREKTUR
-    // ============================================
-    // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE jenis_tugas = 'Prospecting'
                           AND account_id NOT IN (
@@ -864,18 +821,32 @@ if ($userRole === 'sales') {
     $stmt->execute();
     $totalMiddleProspek = $stmt->fetchColumn();
     
-    // Hot Prospek: Negosiasi, belum ada Kontrak
+    // Hot Prospek: Negosiasi, belum ada Kontrak, dan belum lost
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE jenis_tugas = 'Negosiasi'
                           AND account_id NOT IN (
                               SELECT DISTINCT account_id FROM sales_activities 
                               WHERE jenis_tugas = 'Kontrak'
                               AND account_id IS NOT NULL
+                          )
+                          AND account_id NOT IN (
+                              SELECT DISTINCT account_id FROM sales_activities 
+                              WHERE jenis_tugas = 'Negosiasi'
+                              AND status = 'completed'
+                              AND customer_deal = 'No'
+                              AND account_id IS NOT NULL
                           )");
     $stmt->execute();
     $totalHotProspek = $stmt->fetchColumn();
     
-    // Deal: Kontrak
+    // Lost Prospek: Negosiasi completed dengan customer_deal = 'No'
+    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
+                          WHERE jenis_tugas = 'Negosiasi'
+                          AND status = 'completed'
+                          AND customer_deal = 'No'");
+    $stmt->execute();
+    $totalLostProspek = $stmt->fetchColumn();
+    
     $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
                           WHERE jenis_tugas = 'Kontrak'");
     $stmt->execute();
@@ -885,7 +856,6 @@ if ($userRole === 'sales') {
 $totalActivities = $totalInProgress + $totalCompleted;
 $overdueCount = $totalOverdue;
 
-// Ambil data untuk edit
 $editData = null;
 if (isset($_GET['edit'])) {
     $id = (int)$_GET['edit'];
@@ -894,9 +864,6 @@ if (isset($_GET['edit'])) {
     $editData = $stmt->fetch();
 }
 
-// ============================================
-// API ENDPOINT untuk get account data (AJAX)
-// ============================================
 if (isset($_GET['get_account'])) {
     $account_id = (int)$_GET['get_account'];
     $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
@@ -907,9 +874,6 @@ if (isset($_GET['get_account'])) {
     exit;
 }
 
-// ============================================
-// AMBIL DATA UNTUK MODAL COMPLETE
-// ============================================
 $completeData = null;
 if (isset($_GET['complete'])) {
     $id = (int)$_GET['complete'];
@@ -928,26 +892,16 @@ if (isset($_GET['complete'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sales Activity - PT Ganda Elang Tangguh</title>
     
-    <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f0f2f5;
@@ -1261,7 +1215,7 @@ if (isset($_GET['complete'])) {
         }
         
         .badge-deal-status.Yes { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-deal-status.No { background: rgba(149, 165, 166, 0.12); color: #7f8c8d; }
+        .badge-deal-status.No { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
         
         .badge-status {
             padding: 3px 10px;
@@ -1725,7 +1679,6 @@ if (isset($_GET['complete'])) {
             border-color: rgba(214, 48, 49, 0.3);
         }
         
-        /* Character Counter Styles */
         .char-counter {
             font-size: 12px;
             padding: 4px 0;
@@ -1759,12 +1712,20 @@ if (isset($_GET['complete'])) {
             margin-right: 4px;
         }
         
-        /* Deal Fields - hide by default */
         .deal-fields {
             display: none;
         }
         .deal-fields.show {
             display: block;
+        }
+        
+        .badge-lost {
+            background: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
         }
         
         @media (min-width: 769px) {
@@ -1869,9 +1830,6 @@ if (isset($_GET['complete'])) {
             background: rgba(255,255,255,0.2);
         }
         
-        /* ============================================
-           DEADLINE STYLES
-           ============================================ */
         .deadline-overdue {
             animation: blink 1s infinite;
         }
@@ -1906,7 +1864,6 @@ if (isset($_GET['complete'])) {
             background: #fffbf0;
         }
         
-        /* Row styling untuk overdue */
         .table-overdue {
             background-color: #fff5f5 !important;
         }
@@ -1914,7 +1871,6 @@ if (isset($_GET['complete'])) {
             background-color: #ffe8e8 !important;
         }
 
-        /* Badge untuk Middle Prospek */
         .badge-middle-prospek {
             background: rgba(243, 156, 18, 0.15);
             color: #f39c12;
@@ -1945,9 +1901,7 @@ if (isset($_GET['complete'])) {
 </head>
 <body>
 
-    <!-- ============================================
-    DESKTOP NAVBAR
-    ============================================ -->
+    <!-- DESKTOP NAVBAR -->
     <div class="desktop-nav-wrapper">
         <div class="brand-section">
             <div class="logo-wrapper">
@@ -2007,9 +1961,7 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- ============================================
-    MOBILE HEADER
-    ============================================ -->
+    <!-- MOBILE HEADER -->
     <header class="top-header">
         <div class="header-left">
             <div class="logo-wrapper">
@@ -2031,9 +1983,7 @@ if (isset($_GET['complete'])) {
         </div>
     </header>
 
-    <!-- ============================================
-    MAIN CONTENT
-    ============================================ -->
+    <!-- MAIN CONTENT -->
     <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
 
         <!-- WELCOME BANNER -->
@@ -2060,7 +2010,7 @@ if (isset($_GET['complete'])) {
             </div>
         <?php endif; ?>
 
-        <!-- GRAFIK LINGKARAN 2 CHART -->
+        <!-- CHARTS -->
         <div class="row g-3 mb-4">
             <div class="col-xl-6 col-lg-6 col-md-12">
                 <div class="chart-card">
@@ -2127,6 +2077,9 @@ if (isset($_GET['complete'])) {
                     <a href="?status=hot_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'hot_prospek' ? 'active' : '' ?>">
                         <i class="fas fa-fire fa-fw" style="color:#ff6b6b;"></i> Hot Prospek <span class="count"><?= $totalHotProspek ?></span>
                     </a>
+                    <a href="?status=lost_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'lost_prospek' ? 'active' : '' ?>">
+                        <i class="fas fa-times-circle fa-fw" style="color:#e74c3c;"></i> Lost Prospek <span class="count"><?= $totalLostProspek ?></span>
+                    </a>
                     <a href="?status=deal&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'deal' ? 'active' : '' ?>">
                         <i class="fas fa-handshake fa-fw" style="color:#8e44ad;"></i> Deal <span class="count"><?= $totalDeal ?></span>
                     </a>
@@ -2162,14 +2115,9 @@ if (isset($_GET['complete'])) {
                                     $isCompleted = $activity['status'] == 'completed';
                                     $rowClass = $isOverdue ? 'table-overdue' : ($isApproaching ? 'table-warning' : '');
                                     
-                                    // Cek pipeline prospek berdasarkan account - SEMUA STATUS
-                                    // Middle Prospek: Prospecting, belum ada Negosiasi/Kontrak di account yang sama
                                     $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && $activity['has_negosiasi_kontrak'] == 0);
-                                    
-                                    // Hot Prospek: Negosiasi, belum ada Kontrak di account yang sama
-                                    $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && $activity['has_kontrak'] == 0);
-                                    
-                                    // Deal: Kontrak
+                                    $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && $activity['has_kontrak'] == 0 && $activity['has_lost_prospek'] == 0 && !($activity['status'] == 'completed' && $activity['customer_deal'] == 'No'));
+                                    $isLostProspek = ($activity['jenis_tugas'] == 'Negosiasi' && $activity['status'] == 'completed' && $activity['customer_deal'] == 'No');
                                     $isDeal = ($activity['jenis_tugas'] == 'Kontrak');
                                     ?>
                                     <tr class="<?= $rowClass ?>">
@@ -2181,6 +2129,9 @@ if (isset($_GET['complete'])) {
                                             <?php endif; ?>
                                             <?php if ($isHotProspek): ?>
                                                 <br><span class="badge-hot-prospek"><i class="fas fa-fire"></i> Hot Prospek</span>
+                                            <?php endif; ?>
+                                            <?php if ($isLostProspek): ?>
+                                                <br><span class="badge-lost"><i class="fas fa-times-circle"></i> Lost Prospek</span>
                                             <?php endif; ?>
                                             <?php if ($isDeal): ?>
                                                 <br><span class="badge-deal"><i class="fas fa-handshake"></i> Deal</span>
@@ -2240,25 +2191,18 @@ if (isset($_GET['complete'])) {
                                         <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <!-- DETAIL - Semua user bisa melihat -->
                                                 <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
-                                                <!-- EDIT & COMPLETE - Hanya untuk in_progress/overdue dan user yang berhak -->
                                                 <?php if ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'): ?>
                                                     <?php 
                                                     $canEdit = false;
-                                                    // Admin/Full Access bisa edit semua
                                                     if ($hasFullAccess) {
                                                         $canEdit = true;
-                                                    } 
-                                                    // Sales hanya bisa edit milik sendiri
-                                                    elseif ($userRole === 'sales' && $activity['sales_id'] == $userId) {
+                                                    } elseif ($userRole === 'sales' && $activity['sales_id'] == $userId) {
                                                         $canEdit = true;
-                                                    }
-                                                    // Role lain dengan permission edit
-                                                    elseif (canEdit('sales_activity')) {
+                                                    } elseif (canEdit('sales_activity')) {
                                                         $canEdit = true;
                                                     }
                                                     ?>
@@ -2272,7 +2216,6 @@ if (isset($_GET['complete'])) {
                                                     <?php endif; ?>
                                                 <?php endif; ?>
                                                 
-                                                <!-- DELETE - Hanya untuk Full Access (admin, dll), Sales tidak bisa hapus -->
                                                 <?php if ($hasFullAccess && canDelete('sales_activity')): ?>
                                                     <button class="btn-action delete" onclick="deleteActivity(<?= $activity['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -2283,26 +2226,11 @@ if (isset($_GET['complete'])) {
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <?php if ($userRole === 'sales'): ?>
-                                    <tr>
-                                        <td colspan="10" class="text-center py-5">
-                                            <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
-                                            <h5 class="text-muted">Belum Ada Aktivitas</h5>
-                                            <p class="text-muted">Anda belum menambahkan sales activity. Klik tombol <strong>Tambah</strong> untuk memulai.</p>
-                                            <?php if (canAdd('sales_activity')): ?>
-                                                <button class="btn btn-primary-custom mt-2" data-bs-toggle="modal" data-bs-target="#modalSalesActivity">
-                                                    <i class="fas fa-plus"></i> Tambah Activity
-                                                </button>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="10" class="text-center py-4 text-muted">
-                                            <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
+                                <tr>
+                                    <td colspan="10" class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -2337,9 +2265,7 @@ if (isset($_GET['complete'])) {
     </main>
 
     <!-- MODALS -->
-    <!-- ============================================
-    MODAL TAMBAH / EDIT SALES ACTIVITY
-    ============================================ -->
+    <!-- Modal Tambah / Edit Sales Activity -->
     <div class="modal fade" id="modalSalesActivity" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -2432,6 +2358,10 @@ if (isset($_GET['complete'])) {
                         <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
+                            <div class="alert alert-success mb-3">
+                                <i class="fas fa-handshake"></i> 
+                                <strong>Informasi Deal:</strong> Field ini hanya muncul jika jenis tugas adalah <strong>Negosiasi</strong>.
+                            </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Customer Deal</label>
@@ -2464,9 +2394,7 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- ============================================
-    MODAL COMPLETE - DENGAN MULTIPLE FILE UPLOAD
-    ============================================ -->
+    <!-- Modal Complete -->
     <div class="modal fade" id="modalComplete" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -2561,9 +2489,7 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- ============================================
-    MODAL DETAIL
-    ============================================ -->
+    <!-- Modal Detail -->
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -2581,9 +2507,7 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- ============================================
-    MODAL DELETE
-    ============================================ -->
+    <!-- Modal Delete -->
     <div class="modal fade" id="modalDelete" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
@@ -2607,9 +2531,7 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- ============================================
-    BOTTOM NAVIGATION - MOBILE
-    ============================================ -->
+    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <a href="dashboard.php" class="nav-item">
             <i class="fas fa-th-large nav-icon"></i>
@@ -2657,9 +2579,7 @@ if (isset($_GET['complete'])) {
         </a>
     </nav>
 
-    <!-- ============================================
-    SCRIPTS
-    ============================================ -->
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
@@ -2712,7 +2632,7 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // TOGGLE DEAL FIELDS BERDASARKAN JENIS TUGAS
+        // TOGGLE DEAL FIELDS
         // ============================================
         function toggleDealFields() {
             var jenisTugas = document.getElementById('jenis_tugas');
@@ -2723,16 +2643,12 @@ if (isset($_GET['complete'])) {
                     dealFields.classList.add('show');
                 } else {
                     dealFields.classList.remove('show');
-                    // Reset nilai jika bukan Negosiasi
                     document.getElementById('customer_deal_add').value = 'No';
                     document.getElementById('leads_number_add').value = '';
                 }
             }
         }
 
-        // ============================================
-        // TOGGLE DEAL FIELDS DI MODAL COMPLETE
-        // ============================================
         function toggleDealFieldsComplete() {
             var jenisTugas = document.getElementById('completeJenisTugas');
             var dealFieldsComplete = document.getElementById('dealFieldsComplete');
@@ -2743,7 +2659,6 @@ if (isset($_GET['complete'])) {
                     dealFieldsComplete.classList.add('show');
                 } else {
                     dealFieldsComplete.classList.remove('show');
-                    // Reset nilai jika bukan Negosiasi
                     document.getElementById('customer_deal').value = 'No';
                     document.getElementById('leads_number').value = '';
                 }
@@ -2751,7 +2666,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // CHARACTER COUNTER - MINIMAL 80 KARAKTER
+        // CHARACTER COUNTER
         // ============================================
         function updateCharCount(textareaId, counterId) {
             var textarea = document.getElementById(textareaId);
@@ -2819,17 +2734,15 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Event listener untuk toggle deal fields di Add/Edit
             var jenisTugas = document.getElementById('jenis_tugas');
             if (jenisTugas) {
                 jenisTugas.addEventListener('change', toggleDealFields);
-                // Trigger sekali untuk set initial state
                 setTimeout(toggleDealFields, 100);
             }
         });
 
         // ============================================
-        // VALIDASI FORM ADD SEBELUM SUBMIT
+        // VALIDASI FORM
         // ============================================
         function validateFormAdd() {
             var deskripsi = document.getElementById('deskripsi');
@@ -2837,23 +2750,20 @@ if (isset($_GET['complete'])) {
             var attachmentAdd = document.getElementById('attachment_file_add');
             var errors = [];
             
-            // Validasi deskripsi minimal 80 karakter
             if (deskripsi && deskripsi.value.trim().length < 80) {
-                errors.push('Deskripsi minimal 80 karakter! (saat ini: ' + deskripsi.value.trim().length + ' karakter)');
+                errors.push('Deskripsi minimal 80 karakter!');
                 deskripsi.style.borderColor = '#e74c3c';
             } else if (deskripsi) {
                 deskripsi.style.borderColor = '';
             }
             
-            // Validasi result minimal 80 karakter jika diisi
             if (resultAdd && resultAdd.value.trim().length > 0 && resultAdd.value.trim().length < 80) {
-                errors.push('Result minimal 80 karakter jika diisi! (saat ini: ' + resultAdd.value.trim().length + ' karakter)');
+                errors.push('Result minimal 80 karakter jika diisi!');
                 resultAdd.style.borderColor = '#e74c3c';
             } else if (resultAdd) {
                 resultAdd.style.borderColor = '';
             }
             
-            // Validasi attachment jika result diisi
             if (resultAdd && resultAdd.value.trim().length > 0 && (!attachmentAdd || !attachmentAdd.files || attachmentAdd.files.length === 0)) {
                 errors.push('Jika mengisi Result, Attachment file wajib diupload!');
                 if (attachmentAdd) attachmentAdd.style.borderColor = '#e74c3c';
@@ -2868,23 +2778,18 @@ if (isset($_GET['complete'])) {
             return true;
         }
 
-        // ============================================
-        // VALIDASI FORM COMPLETE SEBELUM SUBMIT
-        // ============================================
         function validateFormComplete() {
             var result = document.getElementById('result');
             var attachment = document.getElementById('attachment_files');
             var errors = [];
             
-            // Validasi result minimal 80 karakter
             if (result && result.value.trim().length < 80) {
-                errors.push('Result minimal 80 karakter! (saat ini: ' + result.value.trim().length + ' karakter)');
+                errors.push('Result minimal 80 karakter!');
                 result.style.borderColor = '#e74c3c';
             } else if (result) {
                 result.style.borderColor = '';
             }
             
-            // Validasi attachment wajib diupload minimal 1 file
             if (attachment && (!attachment.files || attachment.files.length === 0)) {
                 errors.push('Minimal 1 file attachment wajib diupload!');
                 attachment.style.borderColor = '#e74c3c';
@@ -2900,7 +2805,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // RESET FORM ADD
+        // RESET FORM
         // ============================================
         document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
             document.getElementById('formSalesActivity').reset();
@@ -2921,7 +2826,6 @@ if (isset($_GET['complete'])) {
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
             
-            // Reset counter
             var deskripsiCounter = document.getElementById('deskripsiCounter');
             if (deskripsiCounter) {
                 deskripsiCounter.textContent = '0';
@@ -2943,7 +2847,7 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // COMPLETE ACTIVITY - VERSION WITH DATA PARAMETER
+        // COMPLETE ACTIVITY
         // ============================================
         function completeActivity(id, data) {
             if (data) {
@@ -2959,16 +2863,13 @@ if (isset($_GET['complete'])) {
                 document.getElementById('result').value = '';
                 document.getElementById('attachment_files').value = '';
                 
-                // Toggle deal fields berdasarkan jenis tugas
                 setTimeout(toggleDealFieldsComplete, 100);
                 
-                // Reset file list
                 var fileList = document.getElementById('fileList');
                 if (fileList) {
                     fileList.innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
                 }
                 
-                // Reset counter
                 var resultCounter = document.getElementById('resultCounter');
                 if (resultCounter) {
                     resultCounter.textContent = '0';
@@ -3016,20 +2917,18 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // VALIDASI RESULT - TAMPILKAN PERINGATAN
+        // VALIDASI RESULT
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             var resultInput = document.getElementById('result_add');
             var attachmentInput = document.getElementById('attachment_file_add');
             var attachmentRequired = document.getElementById('attachment_required');
             
-            // Event listener untuk result
             if (resultInput) {
                 resultInput.addEventListener('input', function() {
                     if (this.value.trim() !== '') {
                         attachmentRequired.style.display = 'inline';
                         attachmentInput.required = true;
-                        // Tampilkan notifikasi
                         if (!document.getElementById('resultNotification')) {
                             var note = document.createElement('div');
                             note.id = 'resultNotification';
@@ -3046,7 +2945,6 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Init counters
             var deskripsi = document.getElementById('deskripsi');
             if (deskripsi) {
                 updateCharCount('deskripsi', 'deskripsiCounter');
@@ -3072,7 +2970,6 @@ if (isset($_GET['complete'])) {
             
             var deadlineStatus = '';
             if (data.status == 'completed') {
-                // Jika completed, tampilkan normal tanpa emoticon
                 deadlineStatus = `<span class="text-muted">Selesai</span>`;
             } else if ((data.status == 'in_progress' || data.status == 'overdue') && data.due_date) {
                 var dueDate = new Date(data.due_date);
@@ -3087,9 +2984,9 @@ if (isset($_GET['complete'])) {
                 }
             }
             
-            // Cek badge pipeline prospek - SEMUA STATUS
             var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
-            var isHotProspek = data.jenis_tugas == 'Negosiasi' && data.has_kontrak == 0;
+            var isHotProspek = data.jenis_tugas == 'Negosiasi' && data.has_kontrak == 0 && data.has_lost_prospek == 0 && !(data.status == 'completed' && data.customer_deal == 'No');
+            var isLostProspek = data.jenis_tugas == 'Negosiasi' && data.status == 'completed' && data.customer_deal == 'No';
             var isDeal = data.jenis_tugas == 'Kontrak';
             
             var pipelineBadge = '';
@@ -3097,6 +2994,8 @@ if (isset($_GET['complete'])) {
                 pipelineBadge = `<span class="badge-middle-prospek ms-2"><i class="fas fa-user-tie"></i> Middle Prospek</span>`;
             } else if (isHotProspek) {
                 pipelineBadge = `<span class="badge-hot-prospek ms-2"><i class="fas fa-fire"></i> Hot Prospek</span>`;
+            } else if (isLostProspek) {
+                pipelineBadge = `<span class="badge-lost ms-2"><i class="fas fa-times-circle"></i> Lost Prospek</span>`;
             } else if (isDeal) {
                 pipelineBadge = `<span class="badge-deal ms-2"><i class="fas fa-handshake"></i> Deal</span>`;
             }
@@ -3211,7 +3110,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // EDIT ACTIVITY (only for in_progress)
+        // EDIT ACTIVITY
         // ============================================
         function editActivity(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Sales Activity';
@@ -3226,10 +3125,8 @@ if (isset($_GET['complete'])) {
             document.getElementById('deskripsi').value = data.deskripsi || '';
             document.getElementById('due_date').value = data.due_date || '';
             
-            // Trigger toggle deal fields
             setTimeout(toggleDealFields, 100);
             
-            // Update counter untuk deskripsi
             setTimeout(function() {
                 updateCharCount('deskripsi', 'deskripsiCounter');
             }, 300);
@@ -3248,10 +3145,9 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // INIT CHARTS - 2 CHART TERPISAH
+        // INIT CHARTS
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // CHART 1: Status Aktivitas (In Progress, Complete, Overdue)
             var ctx1 = document.getElementById('statusChart').getContext('2d');
             var inProgress = <?= $totalInProgress ?>;
             var completed = <?= $totalCompleted ?>;
@@ -3289,19 +3185,19 @@ if (isset($_GET['complete'])) {
                 }
             });
 
-            // CHART 2: Pipeline Prospek (Middle Prospek, Hot Prospek, Deal)
             var ctx2 = document.getElementById('prospekChart').getContext('2d');
             var middleProspek = <?= $totalMiddleProspek ?>;
             var hotProspek = <?= $totalHotProspek ?>;
+            var lostProspek = <?= $totalLostProspek ?>;
             var deal = <?= $totalDeal ?>;
             
             new Chart(ctx2, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Middle Prospek', 'Hot Prospek', 'Deal'],
+                    labels: ['Middle Prospek', 'Hot Prospek', 'Lost Prospek', 'Deal'],
                     datasets: [{
-                        data: [middleProspek, hotProspek, deal],
-                        backgroundColor: ['#f39c12', '#ff6b6b', '#8e44ad'],
+                        data: [middleProspek, hotProspek, lostProspek, deal],
+                        backgroundColor: ['#f39c12', '#ff6b6b', '#e74c3c', '#8e44ad'],
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
