@@ -516,7 +516,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $result = bersihkan($_POST['result']);
         $customer_deal = bersihkan($_POST['customer_deal']);
         $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
-        $trf_number = !empty($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
+        $trf_number = bersihkan($_POST['trf_number'] ?? '');
+        
+        // AMBIL TRF NUMBER YANG SUDAH ADA DARI DATABASE
+        $stmt = $db->prepare("SELECT trf_number FROM sales_activities WHERE id = ?");
+        $stmt->execute([$id]);
+        $existing_trf = $stmt->fetchColumn();
+        
+        // Gunakan TRF number yang sudah ada, jangan generate ulang
+        if (!empty($existing_trf)) {
+            $trf_number = $existing_trf;
+        } elseif (empty($trf_number) && $jenis_tugas === 'Negosiasi') {
+            // Jika belum ada TRF number dan jenis tugas = Negosiasi, generate
+            $trf_number = generateTRFNumber($db);
+        }
         
         $leads_number = NULL;
         if ($customer_deal === 'Yes' && $jenis_tugas === 'Negosiasi') {
@@ -526,11 +539,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($due_date) {
                 $leads_number = generateLeadsNumber($db, $due_date);
             }
-        }
-        
-        // Generate TRF Number jika jenis tugas = Negosiasi dan belum ada
-        if ($jenis_tugas === 'Negosiasi' && empty($trf_number)) {
-            $trf_number = generateTRFNumber($db);
         }
         
         $attachment_files = [];
@@ -591,11 +599,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'names' => $attachment_file_names
             ]);
             
-            $stmt = $db->prepare("UPDATE sales_activities SET 
-                                  result = ?, customer_deal = ?, leads_number = ?, 
-                                  attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
-                                  WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-            $stmt->execute([$result, $customer_deal, $leads_number, $attachment_json, $trf_number, $id]);
+            // UPDATE TANPA MENGUBAH TRF NUMBER (kecuali jika belum ada)
+            if (!empty($trf_number)) {
+                $stmt = $db->prepare("UPDATE sales_activities SET 
+                                      result = ?, customer_deal = ?, leads_number = ?, 
+                                      attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
+                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
+                $stmt->execute([$result, $customer_deal, $leads_number, $attachment_json, $trf_number, $id]);
+            } else {
+                $stmt = $db->prepare("UPDATE sales_activities SET 
+                                      result = ?, customer_deal = ?, leads_number = ?, 
+                                      attachment_file = ?, status = 'completed', completed_at = NOW() 
+                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
+                $stmt->execute([$result, $customer_deal, $leads_number, $attachment_json, $id]);
+            }
             
             setFlash('Sales Activity berhasil diselesaikan!', 'success');
             redirect('salesactivity.php');
@@ -2508,7 +2525,8 @@ if (isset($_GET['complete'])) {
                             <div class="row">
                                 <div class="col-md-12 mb-3">
                                     <label class="form-label">Transaction Request Form</label>
-                                    <input type="text" name="trf_number" id="trf_number_complete" class="form-control" readonly>
+                                    <input type="text" name="trf_number_display" id="trf_number_complete" class="form-control" readonly>
+                                    <input type="hidden" name="trf_number" id="trf_number_complete_hidden" value="">
                                 </div>
                             </div>
                         </div>
@@ -2758,24 +2776,8 @@ if (isset($_GET['complete'])) {
             if (jenisTugas && trfFieldComplete) {
                 if (jenisTugas.value === 'Negosiasi') {
                     trfFieldComplete.classList.add('show');
-                    if (trfInputComplete && trfInputComplete.value === '') {
-                        fetch('salesactivity.php?generate_trf=1')
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.trf_number) {
-                                    trfInputComplete.value = data.trf_number;
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error generating TRF:', error);
-                                var now = new Date();
-                                var month = now.getMonth() + 1;
-                                var year = now.getFullYear();
-                                var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                                var romanMonth = romanMonths[month];
-                                trfInputComplete.value = '0001/GET-TR/JKT/' + romanMonth + '/' + year;
-                            });
-                    }
+                    // Jangan generate ulang, gunakan yang sudah ada di hidden field
+                    // atau biarkan kosong jika belum ada
                 } else {
                     trfFieldComplete.classList.remove('show');
                     if (trfInputComplete) {
@@ -3022,7 +3024,25 @@ if (isset($_GET['complete'])) {
                 document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
                 document.getElementById('customer_deal').value = 'No';
                 document.getElementById('leads_number').value = '';
-                document.getElementById('trf_number_complete').value = '';
+                
+                // Set TRF Number dari data yang sudah ada (jika ada)
+                var trfNumber = data.trf_number || '';
+                document.getElementById('trf_number_complete').value = trfNumber;
+                document.getElementById('trf_number_complete_hidden').value = trfNumber;
+                
+                // Jika jenis tugas = Negosiasi dan belum ada TRF number, generate
+                if (data.jenis_tugas === 'Negosiasi' && !trfNumber) {
+                    fetch('salesactivity.php?generate_trf=1')
+                        .then(response => response.json())
+                        .then(response => {
+                            if (response.trf_number) {
+                                document.getElementById('trf_number_complete').value = response.trf_number;
+                                document.getElementById('trf_number_complete_hidden').value = response.trf_number;
+                            }
+                        })
+                        .catch(error => console.error('Error generating TRF:', error));
+                }
+                
                 document.getElementById('result').value = '';
                 document.getElementById('attachment_files').value = '';
                 
