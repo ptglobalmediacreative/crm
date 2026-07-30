@@ -16,7 +16,7 @@ requirePermission('account_management', 'view');
 // CEK ROLE DIREKTUR (untuk akses penuh)
 // ============================================
 $userRole = $_SESSION['role'] ?? 'user';
-$direkturRoles = ['direktur_utama', 'direktur_sales'];
+$direkturRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional'];
 $isDirektur = in_array($userRole, $direkturRoles);
 
 // ============================================
@@ -236,11 +236,35 @@ $hasSales = count($salesUsers) > 0;
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 
+// ============================================
+// FUNGSI CEK APAKAH SALES BISA EDIT NPWP
+// ============================================
+function canSalesEditNPWP($db, $account_id, $userId) {
+    // Cek apakah account milik sales ini
+    $stmt = $db->prepare("SELECT sales_id, npwp FROM accounts WHERE id = ?");
+    $stmt->execute([$account_id]);
+    $account = $stmt->fetch();
+    
+    if (!$account) return false;
+    
+    // Jika account bukan milik sales ini
+    if ($account['sales_id'] != $userId) return false;
+    
+    // Jika NPWP sudah terisi (tidak NULL dan tidak kosong), sales tidak bisa edit
+    if (!empty($account['npwp']) && trim($account['npwp']) !== '') {
+        return false;
+    }
+    
+    // Sales hanya bisa edit NPWP jika NPWP masih kosong
+    return true;
+}
+
 // Proses tambah account
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
+        // Sales dan Direktur bisa tambah
         if ($userRole !== 'sales' && !$isDirektur && !canAdd('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menambah account!', 'danger');
             redirect('account_management.php');
@@ -329,93 +353,147 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
-        if (!$isDirektur && !canEdit('account_management')) {
-            setFlash('Anda tidak memiliki akses untuk mengedit account!', 'danger');
-            redirect('account_management.php');
-        }
-        
         $id = (int)$_POST['id'];
-        $badan_usaha = bersihkan($_POST['badan_usaha']);
-        $nama_pt = bersihkan($_POST['nama_pt']);
-        $alamat = bersihkan($_POST['alamat']);
-        $area = bersihkan($_POST['area']);
-        $npwp = bersihkan($_POST['npwp']);
-        $nama_pic = bersihkan($_POST['nama_pic']);
-        $no_hp_pic = bersihkan($_POST['no_hp_pic']);
-        $email_pic = bersihkan($_POST['email_pic']);
-        $lead_source = bersihkan($_POST['lead_source']);
-        $bidang_usaha = bersihkan($_POST['bidang_usaha']);
-        $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
+        $isSales = ($userRole === 'sales');
         
-        $errors = [];
-        if (empty($badan_usaha)) $errors[] = 'Badan Usaha wajib dipilih!';
-        if (empty($nama_pt)) $errors[] = 'Nama PT/Perusahaan wajib diisi!';
-        if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
-        if (empty($area)) $errors[] = 'Area wajib diisi!';
-        if (empty($nama_pic)) $errors[] = 'Nama PIC wajib diisi!';
-        if (empty($no_hp_pic)) $errors[] = 'No Handphone PIC wajib diisi!';
-        if (empty($email_pic)) $errors[] = 'Email PIC wajib diisi!';
-        if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
-        if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
-        
-        // ============================================
-        // CEK DUPLIKAT NAMA PT (Kecuali dirinya sendiri)
-        // ============================================
-        $nama_pt_clean = bersihkanNamaPT($nama_pt);
-        
-        // Ambil semua nama PT dari database (kecuali dirinya sendiri)
-        $stmt = $db->prepare("SELECT id, nama_pt FROM accounts WHERE id != ?");
-        $stmt->execute([$id]);
-        $existingAccounts = $stmt->fetchAll();
-        
-        $isDuplicate = false;
-        foreach ($existingAccounts as $existing) {
-            $existing_clean = bersihkanNamaPT($existing['nama_pt']);
-            if ($nama_pt_clean === $existing_clean) {
-                $isDuplicate = true;
-                break;
-            }
-        }
-        
-        if ($isDuplicate) {
-            $errors[] = 'Nama PT/Perusahaan "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
-        }
-        
-        // Upload file NPWP
-        $npwp_file = '';
-        if (!empty($_FILES['npwp_file']['name'])) {
-            $target_dir = "uploads/npwp/";
-            if (!file_exists($target_dir)) {
-                mkdir($target_dir, 0777, true);
+        // Cek apakah sales bisa edit NPWP saja
+        if ($isSales) {
+            // Sales hanya bisa edit jika NPWP masih kosong
+            if (!canSalesEditNPWP($db, $id, $userId)) {
+                setFlash('Anda tidak memiliki akses untuk mengedit account ini! (NPWP sudah terisi atau bukan milik Anda)', 'danger');
+                redirect('account_management.php');
             }
             
-            $file_extension = strtolower(pathinfo($_FILES['npwp_file']['name'], PATHINFO_EXTENSION));
-            $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf'];
+            // Sales hanya bisa update NPWP saja
+            $npwp = bersihkan($_POST['npwp']);
             
-            if (in_array($file_extension, $allowed_extensions)) {
-                $npwp_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
-                move_uploaded_file($_FILES['npwp_file']['tmp_name'], $npwp_file);
-            } else {
-                $errors[] = 'Format file NPWP tidak didukung! (JPG, PNG, PDF)';
+            // Upload file NPWP
+            $npwp_file = '';
+            if (!empty($_FILES['npwp_file']['name'])) {
+                $target_dir = "uploads/npwp/";
+                if (!file_exists($target_dir)) {
+                    mkdir($target_dir, 0777, true);
+                }
+                
+                $file_extension = strtolower(pathinfo($_FILES['npwp_file']['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf'];
+                
+                if (in_array($file_extension, $allowed_extensions)) {
+                    $npwp_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
+                    move_uploaded_file($_FILES['npwp_file']['tmp_name'], $npwp_file);
+                } else {
+                    setFlash('Format file NPWP tidak didukung! (JPG, PNG, PDF)', 'danger');
+                    redirect('account_management.php');
+                }
             }
-        }
-        
-        if (empty($errors)) {
+            
+            // Update hanya NPWP dan file NPWP
             if (!empty($npwp_file)) {
-                $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET npwp = ?, npwp_file = ? WHERE id = ? AND sales_id = ?");
+                $stmt->execute([$npwp, $npwp_file, $id, $userId]);
             } else {
-                $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                $stmt = $db->prepare("UPDATE accounts SET npwp = ? WHERE id = ? AND sales_id = ?");
+                $stmt->execute([$npwp, $id, $userId]);
             }
-            setFlash('Data account berhasil diupdate!', 'success');
+            
+            setFlash('NPWP berhasil diupdate!', 'success');
             redirect('account_management.php');
+            
         } else {
-            setFlash(implode('<br>', $errors), 'danger');
+            // Direktur / Admin / IT Support bisa edit semua
+            if (!$isDirektur && !canEdit('account_management')) {
+                setFlash('Anda tidak memiliki akses untuk mengedit account!', 'danger');
+                redirect('account_management.php');
+            }
+            
+            $badan_usaha = bersihkan($_POST['badan_usaha']);
+            $nama_pt = bersihkan($_POST['nama_pt']);
+            $alamat = bersihkan($_POST['alamat']);
+            $area = bersihkan($_POST['area']);
+            $npwp = bersihkan($_POST['npwp']);
+            $nama_pic = bersihkan($_POST['nama_pic']);
+            $no_hp_pic = bersihkan($_POST['no_hp_pic']);
+            $email_pic = bersihkan($_POST['email_pic']);
+            $lead_source = bersihkan($_POST['lead_source']);
+            $bidang_usaha = bersihkan($_POST['bidang_usaha']);
+            $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
+            
+            $errors = [];
+            if (empty($badan_usaha)) $errors[] = 'Badan Usaha wajib dipilih!';
+            if (empty($nama_pt)) $errors[] = 'Nama PT/Perusahaan wajib diisi!';
+            if (empty($alamat)) $errors[] = 'Alamat wajib diisi!';
+            if (empty($area)) $errors[] = 'Area wajib diisi!';
+            if (empty($nama_pic)) $errors[] = 'Nama PIC wajib diisi!';
+            if (empty($no_hp_pic)) $errors[] = 'No Handphone PIC wajib diisi!';
+            if (empty($email_pic)) $errors[] = 'Email PIC wajib diisi!';
+            if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
+            if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
+            
+            // ============================================
+            // CEK DUPLIKAT NAMA PT (Kecuali dirinya sendiri)
+            // ============================================
+            $nama_pt_clean = bersihkanNamaPT($nama_pt);
+            
+            // Ambil semua nama PT dari database (kecuali dirinya sendiri)
+            $stmt = $db->prepare("SELECT id, nama_pt FROM accounts WHERE id != ?");
+            $stmt->execute([$id]);
+            $existingAccounts = $stmt->fetchAll();
+            
+            $isDuplicate = false;
+            foreach ($existingAccounts as $existing) {
+                $existing_clean = bersihkanNamaPT($existing['nama_pt']);
+                if ($nama_pt_clean === $existing_clean) {
+                    $isDuplicate = true;
+                    break;
+                }
+            }
+            
+            if ($isDuplicate) {
+                $errors[] = 'Nama PT/Perusahaan "' . $nama_pt . '" sudah terdaftar! Silakan gunakan nama yang berbeda.';
+            }
+            
+            // Upload file NPWP
+            $npwp_file = '';
+            if (!empty($_FILES['npwp_file']['name'])) {
+                $target_dir = "uploads/npwp/";
+                if (!file_exists($target_dir)) {
+                    mkdir($target_dir, 0777, true);
+                }
+                
+                $file_extension = strtolower(pathinfo($_FILES['npwp_file']['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf'];
+                
+                if (in_array($file_extension, $allowed_extensions)) {
+                    $npwp_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
+                    move_uploaded_file($_FILES['npwp_file']['tmp_name'], $npwp_file);
+                } else {
+                    $errors[] = 'Format file NPWP tidak didukung! (JPG, PNG, PDF)';
+                }
+            }
+            
+            if (empty($errors)) {
+                if (!empty($npwp_file)) {
+                    $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                    $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                } else {
+                    $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
+                    $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                }
+                setFlash('Data account berhasil diupdate!', 'success');
+                redirect('account_management.php');
+            } else {
+                setFlash(implode('<br>', $errors), 'danger');
+            }
         }
     }
     
     if ($action === 'delete') {
+        // Sales TIDAK BISA menghapus
+        if ($userRole === 'sales') {
+            setFlash('Anda tidak memiliki akses untuk menghapus account!', 'danger');
+            redirect('account_management.php');
+        }
+        
         if (!$isDirektur && !canDelete('account_management')) {
             setFlash('Anda tidak memiliki akses untuk menghapus account!', 'danger');
             redirect('account_management.php');
@@ -437,6 +515,21 @@ if (isset($_GET['detail'])) {
     $stmt->execute([$id]);
     $detailData = $stmt->fetch();
 }
+
+// ============================================
+// FUNGSI CEK APAKAH SALES BISA EDIT ACCOUNT
+// ============================================
+function canSalesEdit($db, $account_id, $userId) {
+    $stmt = $db->prepare("SELECT sales_id, npwp FROM accounts WHERE id = ?");
+    $stmt->execute([$account_id]);
+    $account = $stmt->fetch();
+    
+    if (!$account) return false;
+    if ($account['sales_id'] != $userId) return false;
+    if (!empty($account['npwp']) && trim($account['npwp']) !== '') return false;
+    
+    return true;
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -457,21 +550,16 @@ if (isset($_GET['detail'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        /* ============================================
+           (SAME STYLES AS BEFORE - KEEP EXISTING)
+           ============================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f0f2f5;
             padding-bottom: 70px;
         }
         
-        /* ============================================
-           TOP HEADER - MOBILE
-           ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 10px 20px;
@@ -569,9 +657,6 @@ if (isset($_GET['detail'])) {
             border-color: #ffd700;
         }
         
-        /* ============================================
-           WELCOME BANNER
-           ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border-radius: 12px;
@@ -606,9 +691,6 @@ if (isset($_GET['detail'])) {
             bottom: 10px;
         }
         
-        /* ============================================
-           SECTION TITLE
-           ============================================ */
         .section-title {
             display: flex;
             justify-content: space-between;
@@ -629,9 +711,6 @@ if (isset($_GET['detail'])) {
             font-size: 14px;
         }
         
-        /* ============================================
-           STAT CARD
-           ============================================ */
         .stat-card {
             background: #fff;
             border-radius: 12px;
@@ -663,9 +742,6 @@ if (isset($_GET['detail'])) {
             opacity: 0.15;
         }
         
-        /* ============================================
-           TABLE
-           ============================================ */
         .card-custom {
             background: #fff;
             border-radius: 12px;
@@ -798,9 +874,12 @@ if (isset($_GET['detail'])) {
         }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
         
-        /* ============================================
-           MODAL
-           ============================================ */
+        .btn-action.edit-npwp {
+            background: rgba(241, 196, 15, 0.12);
+            color: #d4a017;
+        }
+        .btn-action.edit-npwp:hover { background: rgba(241, 196, 15, 0.2); }
+        
         .modal-content {
             border: none;
             border-radius: 12px;
@@ -944,9 +1023,6 @@ if (isset($_GET['detail'])) {
             word-break: break-word;
         }
         
-        /* ============================================
-           BOTTOM NAVIGATION - MOBILE
-           ============================================ */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -1026,9 +1102,6 @@ if (isset($_GET['detail'])) {
             color: #1a1a2e;
         }
         
-        /* ============================================
-           DESKTOP NAVBAR
-           ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 0 30px;
@@ -1193,10 +1266,6 @@ if (isset($_GET['detail'])) {
             border-color: rgba(214, 48, 49, 0.3);
         }
         
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
-        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1206,17 +1275,14 @@ if (isset($_GET['detail'])) {
         @media (max-width: 768px) {
             .desktop-nav-wrapper { display: none !important; }
             body { padding-bottom: 65px; }
-            
             .stat-card .stat-number { font-size: 20px; }
             .welcome-banner { padding: 14px 18px; }
             .welcome-banner .welcome-text h3 { font-size: 16px; }
             .welcome-banner .welcome-icon { display: none; }
             .section-title h5 { font-size: 14px; }
-            
             .table-custom { font-size: 12px; }
             .table-custom th, .table-custom td { padding: 8px 10px; }
             .card-custom .card-header-custom { padding: 12px 16px; }
-            
             .detail-item .detail-label { width: 100px; font-size: 12px; }
             .detail-item .detail-value { font-size: 12px; }
         }
@@ -1224,14 +1290,11 @@ if (isset($_GET['detail'])) {
         @media (max-width: 480px) {
             .stat-card .stat-number { font-size: 17px; }
             .stat-card { padding: 12px 14px; }
-            
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
-            
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
             .btn-action { width: 26px; height: 26px; font-size: 11px; }
-            
             .detail-item { flex-direction: column; padding: 8px 0; }
             .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
@@ -1357,7 +1420,7 @@ if (isset($_GET['detail'])) {
             <i class="fas fa-building welcome-icon"></i>
         </div>
 
-        <!-- STATISTIK - HANYA DATA YANG BISA DILIHAT -->
+        <!-- STATISTIK -->
         <div class="row g-3 mb-4">
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card d-flex justify-content-between align-items-center">
@@ -1442,6 +1505,10 @@ if (isset($_GET['detail'])) {
                             <?php if (count($accounts) > 0): ?>
                                 <?php $no = $offset + 1; ?>
                                 <?php foreach ($accounts as $account): ?>
+                                    <?php 
+                                    $isSalesOwner = ($userRole === 'sales' && $account['sales_id'] == $userId);
+                                    $canEditNPWP = $isSalesOwner && (empty($account['npwp']) || trim($account['npwp']) === '');
+                                    ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
                                         <td>
@@ -1469,12 +1536,15 @@ if (isset($_GET['detail'])) {
                                         </td>
                                         <td><?= htmlspecialchars($account['area'] ?? '-') ?></td>
                                         <td>
-                                            <?php if (!empty($account['npwp_file'])): ?>
-                                                <a href="<?= htmlspecialchars($account['npwp_file']) ?>" target="_blank" class="btn-action detail">
-                                                    <i class="fas fa-file"></i>
-                                                </a>
+                                            <?php if (!empty($account['npwp'])): ?>
+                                                <span class="text-success"><i class="fas fa-check-circle"></i> Terisi</span>
+                                                <?php if (!empty($account['npwp_file'])): ?>
+                                                    <a href="<?= htmlspecialchars($account['npwp_file']) ?>" target="_blank" class="btn-action detail" style="width:20px;height:20px;font-size:10px;">
+                                                        <i class="fas fa-file"></i>
+                                                    </a>
+                                                <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="text-muted">-</span>
+                                                <span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Kosong</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -1483,16 +1553,27 @@ if (isset($_GET['detail'])) {
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
-                                                <?php if ($isDirektur || canEdit('account_management')): ?>
-                                                    <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                                
-                                                <?php if ($isDirektur || canDelete('account_management')): ?>
-                                                    <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                <?php if ($userRole === 'sales'): ?>
+                                                    <?php if ($canEditNPWP): ?>
+                                                        <!-- Sales hanya bisa edit NPWP jika kosong -->
+                                                        <button class="btn-action edit-npwp" onclick="editNPWP(<?= htmlspecialchars(json_encode($account)) ?>)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                    <!-- Sales TIDAK BISA HAPUS -->
+                                                <?php else: ?>
+                                                    <!-- Direktur / Admin / IT Support bisa edit semua -->
+                                                    <?php if ($isDirektur || canEdit('account_management')): ?>
+                                                        <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                    
+                                                    <?php if ($isDirektur || canDelete('account_management')): ?>
+                                                        <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -1538,7 +1619,7 @@ if (isset($_GET['detail'])) {
     </main>
 
     <!-- ============================================
-    MODAL TAMBAH / EDIT
+    MODAL TAMBAH
     ============================================ -->
     <div class="modal fade" id="modalAccount" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1682,6 +1763,55 @@ if (isset($_GET['detail'])) {
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+    MODAL EDIT NPWP (KHUSUS SALES)
+    ============================================ -->
+    <div class="modal fade" id="modalEditNPWP" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                    <h5 class="modal-title" style="color: #fff;">
+                        <i class="fas fa-edit"></i> Edit NPWP
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="id" id="editNPWPId" value="">
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Info:</strong> Anda hanya bisa mengisi NPWP jika belum terisi.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nama PT/Perusahaan</label>
+                            <input type="text" id="editNPWPNama" class="form-control" readonly style="background: #f8f9fa;">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">NPWP <span class="text-danger">*</span></label>
+                            <input type="text" name="npwp" id="editNPWPInput" class="form-control" placeholder="Contoh: 12.345.678.9-012.000" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Upload File NPWP <span class="optional">(Optional)</span></label>
+                            <input type="file" name="npwp_file" id="editNPWPFile" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.pdf">
+                            <small class="text-muted">Format: JPG, PNG, PDF | Maks: 2MB</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Update NPWP
+                        </button>
                     </div>
                 </form>
             </div>
@@ -1879,6 +2009,16 @@ if (isset($_GET['detail'])) {
             document.getElementById('npwp_file').required = false;
             
             var modal = new bootstrap.Modal(document.getElementById('modalAccount'));
+            modal.show();
+        }
+        
+        function editNPWP(data) {
+            document.getElementById('editNPWPId').value = data.id;
+            document.getElementById('editNPWPNama').value = data.nama_pt;
+            document.getElementById('editNPWPInput').value = data.npwp || '';
+            document.getElementById('editNPWPFile').value = '';
+            
+            var modal = new bootstrap.Modal(document.getElementById('modalEditNPWP'));
             modal.show();
         }
         
