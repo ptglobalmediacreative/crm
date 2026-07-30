@@ -480,6 +480,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $trf_number
             ]);
             
+            $salesActivityId = $db->lastInsertId();
+            
+            // ============================================
+            // INSERT KE TRANSACTION REQUESTS
+            // ============================================
+            if (!empty($trf_number) && $jenis_tugas === 'Negosiasi') {
+                try {
+                    $stmt_tr = $db->prepare("INSERT INTO transaction_requests 
+                                              (trf_number, sales_activity_id, account_id, sales_id, 
+                                               subject, jenis_tugas, description, request_date, due_date, 
+                                               customer_deal, leads_number, attachment_file, result, status) 
+                                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
+                    $stmt_tr->execute([
+                        $trf_number,
+                        $salesActivityId,
+                        $account_id,
+                        $targetSalesId,
+                        $subject,
+                        $jenis_tugas,
+                        $deskripsi,
+                        date('Y-m-d'),
+                        $due_date,
+                        $customer_deal,
+                        $leads_number,
+                        $attachment_file,
+                        $result
+                    ]);
+                } catch(PDOException $e) {
+                    error_log("Error inserting transaction_request: " . $e->getMessage());
+                }
+            }
+            
             if ($status === 'completed') {
                 setFlash('Sales Activity berhasil ditambahkan dan diselesaikan!', 'success');
             } else {
@@ -614,6 +646,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([$result, $customer_deal, $leads_number, $attachment_json, $id]);
             }
             
+            // ============================================
+            // UPDATE TRANSACTION REQUESTS
+            // ============================================
+            if (!empty($trf_number)) {
+                try {
+                    $stmt_tr = $db->prepare("UPDATE transaction_requests SET 
+                                              status = 'completed',
+                                              customer_deal = ?,
+                                              leads_number = ?,
+                                              result = ?,
+                                              attachment_file = ?
+                                              WHERE trf_number = ?");
+                    $stmt_tr->execute([$customer_deal, $leads_number, $result, $attachment_json, $trf_number]);
+                } catch(PDOException $e) {
+                    error_log("Error updating transaction_request: " . $e->getMessage());
+                }
+            }
+            
             setFlash('Sales Activity berhasil diselesaikan!', 'success');
             redirect('salesactivity.php');
         } else {
@@ -698,6 +748,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $id = (int)$_POST['id'];
         
+        // Ambil trf_number sebelum delete
+        $stmt = $db->prepare("SELECT trf_number FROM sales_activities WHERE id = ?");
+        $stmt->execute([$id]);
+        $trf_number = $stmt->fetchColumn();
+        
         $stmt = $db->prepare("SELECT attachment_file FROM sales_activities WHERE id = ?");
         $stmt->execute([$id]);
         $attachment_data = $stmt->fetchColumn();
@@ -712,6 +767,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             } else if ($attachment_data && file_exists($attachment_data)) {
                 unlink($attachment_data);
+            }
+        }
+        
+        // ============================================
+        // HAPUS TRANSACTION REQUESTS
+        // ============================================
+        if (!empty($trf_number)) {
+            try {
+                $stmt_tr = $db->prepare("DELETE FROM transaction_requests WHERE trf_number = ?");
+                $stmt_tr->execute([$trf_number]);
+            } catch(PDOException $e) {
+                error_log("Error deleting transaction_request: " . $e->getMessage());
             }
         }
         
@@ -2013,6 +2080,12 @@ if (isset($_GET['complete'])) {
                 </a>
             <?php endif; ?>
             
+            <?php if (canAccessMenu('transaction_request')): ?>
+                <a href="transactionrequest.php" class="nav-link">
+                    <i class="fas fa-file-signature"></i> TR Request
+                </a>
+            <?php endif; ?>
+            
             <?php if (canAccessMenu('produk')): ?>
                 <a href="produk.php" class="nav-link">
                     <i class="fas fa-box"></i> Produk
@@ -2642,6 +2715,13 @@ if (isset($_GET['complete'])) {
             <a href="salesactivity.php" class="nav-item active">
                 <i class="fas fa-chart-bar nav-icon"></i>
                 <span class="nav-label">Sales Activity</span>
+            </a>
+        <?php endif; ?>
+        
+        <?php if (canAccessMenu('transaction_request')): ?>
+            <a href="transactionrequest.php" class="nav-item">
+                <i class="fas fa-file-signature nav-icon"></i>
+                <span class="nav-label">TR Request</span>
             </a>
         <?php endif; ?>
         
