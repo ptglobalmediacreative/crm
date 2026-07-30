@@ -2774,7 +2774,6 @@ if (isset($_GET['complete'])) {
                 if (status) {
                     var remaining = 80 - length;
                     status.className = 'status-text invalid';
-                    status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Kurang ' + remaining + ' karakter lagi';
                 }
             }
         }
