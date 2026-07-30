@@ -87,6 +87,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<th>No Handphone PIC</th>';
     echo '<th>Email PIC</th>';
     echo '<th>Lead Source</th>';
+    echo '<th>Nama Referensi</th>';
     echo '<th>Sales</th>';
     echo '<th>Tanggal Dibuat</th>';
     echo '</tr>';
@@ -107,6 +108,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         echo '<td>' . htmlspecialchars($account['no_hp_pic']) . '</td>';
         echo '<td>' . htmlspecialchars($account['email_pic']) . '</td>';
         echo '<td>' . htmlspecialchars($account['lead_source']) . '</td>';
+        echo '<td>' . htmlspecialchars($account['nama_referensi'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($account['sales_name'] ?? '-') . '</td>';
         echo '<td>' . date('d-m-Y H:i', strtotime($account['created_at'])) . '</td>';
         echo '</tr>';
@@ -149,6 +151,15 @@ try {
 }
 
 // ============================================
+// TAMBAHKAN KOLOM nama_referensi KE TABEL accounts (jika belum ada)
+// ============================================
+try {
+    $db->exec("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS nama_referensi VARCHAR(100) NULL");
+} catch(PDOException $e) {
+    // Kolom sudah ada atau error lainnya
+}
+
+// ============================================
 // FILTER BERDASARKAN SALES (Hanya sales yang bersangkutan bisa melihat datanya)
 // ============================================
 $userId = $_SESSION['user_id'] ?? 0;
@@ -173,8 +184,8 @@ if ($userRole !== 'it_support' && $userRole !== 'admin' && !in_array($userRole, 
 }
 
 if (!empty($search)) {
-    $where .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
+    $where .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
 }
 
 // Get total data
@@ -280,6 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $email_pic = bersihkan($_POST['email_pic']);
         $lead_source = bersihkan($_POST['lead_source']);
         $bidang_usaha = bersihkan($_POST['bidang_usaha']);
+        $nama_referensi = !empty($_POST['nama_referensi']) ? bersihkan($_POST['nama_referensi']) : NULL;
         
         if ($userRole === 'sales') {
             $sales_id = $userId;
@@ -300,6 +312,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($email_pic)) $errors[] = 'Email PIC wajib diisi!';
         if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
         if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
+        
+        // Validasi jika lead source = Referensi, nama_referensi wajib diisi
+        if ($lead_source === 'Referensi' && empty($nama_referensi)) {
+            $errors[] = 'Nama Referensi wajib diisi jika Lead Source = Referensi!';
+        }
         
         // ============================================
         // CEK DUPLIKAT NAMA PT
@@ -343,8 +360,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO accounts (badan_usaha, nama_pt, alamat, area, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha, sales_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id]);
+            $stmt = $db->prepare("INSERT INTO accounts (badan_usaha, nama_pt, alamat, area, npwp, npwp_file, nama_pic, no_hp_pic, email_pic, lead_source, bidang_usaha, sales_id, nama_referensi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $nama_referensi]);
             setFlash('Data account berhasil ditambahkan!', 'success');
             redirect('account_management.php');
         } else {
@@ -417,6 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $lead_source = bersihkan($_POST['lead_source']);
             $bidang_usaha = bersihkan($_POST['bidang_usaha']);
             $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
+            $nama_referensi = !empty($_POST['nama_referensi']) ? bersihkan($_POST['nama_referensi']) : NULL;
             
             $errors = [];
             if (empty($badan_usaha)) $errors[] = 'Badan Usaha wajib dipilih!';
@@ -428,6 +446,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (empty($email_pic)) $errors[] = 'Email PIC wajib diisi!';
             if (empty($lead_source)) $errors[] = 'Lead Source wajib dipilih!';
             if (empty($bidang_usaha)) $errors[] = 'Bidang Usaha wajib dipilih!';
+            
+            // Validasi jika lead source = Referensi, nama_referensi wajib diisi
+            if ($lead_source === 'Referensi' && empty($nama_referensi)) {
+                $errors[] = 'Nama Referensi wajib diisi jika Lead Source = Referensi!';
+            }
             
             // ============================================
             // CEK DUPLIKAT NAMA PT (Kecuali dirinya sendiri)
@@ -473,11 +496,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             if (empty($errors)) {
                 if (!empty($npwp_file)) {
-                    $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                    $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                    $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, npwp_file = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ?, nama_referensi = ? WHERE id = ?");
+                    $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $npwp_file, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $nama_referensi, $id]);
                 } else {
-                    $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ? WHERE id = ?");
-                    $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $id]);
+                    $stmt = $db->prepare("UPDATE accounts SET badan_usaha = ?, nama_pt = ?, alamat = ?, area = ?, npwp = ?, nama_pic = ?, no_hp_pic = ?, email_pic = ?, lead_source = ?, bidang_usaha = ?, sales_id = ?, nama_referensi = ? WHERE id = ?");
+                    $stmt->execute([$badan_usaha, $nama_pt, $alamat, $area, $npwp, $nama_pic, $no_hp_pic, $email_pic, $lead_source, $bidang_usaha, $sales_id, $nama_referensi, $id]);
                 }
                 setFlash('Data account berhasil diupdate!', 'success');
                 redirect('account_management.php');
@@ -1316,6 +1339,14 @@ function canSalesEdit($db, $account_id, $userId) {
         .footer-text a:hover {
             color: #ffd700;
         }
+        
+        .referensi-field {
+            display: none;
+        }
+        
+        .referensi-field.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -1495,6 +1526,7 @@ function canSalesEdit($db, $account_id, $userId) {
                                 <th>No HP</th>
                                 <th>Email</th>
                                 <th>Lead Source</th>
+                                <th>Nama Referensi</th>
                                 <th>Sales</th>
                                 <th>Area</th>
                                 <th>NPWP</th>
@@ -1526,6 +1558,15 @@ function canSalesEdit($db, $account_id, $userId) {
                                             </span>
                                         </td>
                                         <td>
+                                            <?php if ($account['lead_source'] === 'Referensi' && !empty($account['nama_referensi'])): ?>
+                                                <span class="badge-sales">
+                                                    <i class="fas fa-user-friends"></i> <?= htmlspecialchars($account['nama_referensi']) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
                                             <?php if (!empty($account['sales_name'])): ?>
                                                 <span class="badge-sales">
                                                     <i class="fas fa-user-tie"></i> <?= htmlspecialchars($account['sales_name']) ?>
@@ -1544,7 +1585,7 @@ function canSalesEdit($db, $account_id, $userId) {
                                                     </a>
                                                 <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="text-warning"></i> Kosong</span>
+                                                <span class="text-warning">Kosong</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -1581,7 +1622,7 @@ function canSalesEdit($db, $account_id, $userId) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="11" class="text-center py-4 text-muted">
+                                    <td colspan="12" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data account
                                     </td>
                                 </tr>
@@ -1619,7 +1660,7 @@ function canSalesEdit($db, $account_id, $userId) {
     </main>
 
     <!-- ============================================
-    MODAL TAMBAH
+    MODAL TAMBAH / EDIT
     ============================================ -->
     <div class="modal fade" id="modalAccount" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1660,10 +1701,9 @@ function canSalesEdit($db, $account_id, $userId) {
                                     <option value="Forestry">Forestry</option>
                                     <option value="Oil & Gas">Oil & Gas</option>
                                     <option value="Industrial">Industrial</option>
-                                    <option value="Property">Property</option>
+                                    <option value="Rent Company">Rent Company</option>
                                     <option value="Trading">Trading</option>
-                                    <option value="Services">Services</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Logistic">Logistic</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
@@ -1716,6 +1756,15 @@ function canSalesEdit($db, $account_id, $userId) {
                                     <option value="Referensi">Referensi</option>
                                     <option value="Website">Website</option>
                                 </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Field Nama Referensi (muncul jika Lead Source = Referensi) -->
+                        <div class="row referensi-field" id="referensiField">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Nama Referensi <span class="text-danger" id="referensiRequired">*</span></label>
+                                <input type="text" name="nama_referensi" id="nama_referensi" class="form-control" placeholder="Masukkan nama orang yang mereferensikan">
+                                <small class="text-muted">Masukkan nama lengkap orang yang memberikan referensi</small>
                             </div>
                         </div>
                         
@@ -1919,6 +1968,38 @@ function canSalesEdit($db, $account_id, $userId) {
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ============================================
+        // SHOW/HIDE REFERENSI FIELD
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            var leadSource = document.getElementById('lead_source');
+            var referensiField = document.getElementById('referensiField');
+            var referensiRequired = document.getElementById('referensiRequired');
+            var namaReferensi = document.getElementById('nama_referensi');
+            
+            function toggleReferensiField() {
+                if (leadSource.value === 'Referensi') {
+                    referensiField.classList.add('show');
+                    referensiRequired.style.display = 'inline';
+                    namaReferensi.required = true;
+                } else {
+                    referensiField.classList.remove('show');
+                    referensiRequired.style.display = 'none';
+                    namaReferensi.required = false;
+                    namaReferensi.value = '';
+                }
+            }
+            
+            // Jalankan saat pertama kali load
+            toggleReferensiField();
+            
+            // Jalankan saat lead source berubah
+            leadSource.addEventListener('change', toggleReferensiField);
+        });
+
+        // ============================================
+        // DETAIL ACCOUNT
+        // ============================================
         function detailAccount(data) {
             var salesName = data.sales_name || '-';
             var html = `
@@ -1973,6 +2054,10 @@ function canSalesEdit($db, $account_id, $userId) {
                     </div>
                 </div>
                 <div class="detail-item">
+                    <div class="detail-label">Nama Referensi</div>
+                    <div class="detail-value">${data.nama_referensi || '-'}</div>
+                </div>
+                <div class="detail-item">
                     <div class="detail-label">Sales</div>
                     <div class="detail-value">${salesName}</div>
                 </div>
@@ -2005,8 +2090,13 @@ function canSalesEdit($db, $account_id, $userId) {
             document.getElementById('lead_source').value = data.lead_source;
             document.getElementById('bidang_usaha').value = data.bidang_usaha;
             document.getElementById('sales_id').value = data.sales_id || '';
+            document.getElementById('nama_referensi').value = data.nama_referensi || '';
             
             document.getElementById('npwp_file').required = false;
+            
+            // Trigger show/hide referensi field
+            var event = new Event('change');
+            document.getElementById('lead_source').dispatchEvent(event);
             
             var modal = new bootstrap.Modal(document.getElementById('modalAccount'));
             modal.show();
@@ -2028,6 +2118,9 @@ function canSalesEdit($db, $account_id, $userId) {
             document.getElementById('formId').value = '';
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Account';
             document.getElementById('npwp_file').required = false;
+            document.getElementById('nama_referensi').value = '';
+            document.getElementById('nama_referensi').required = false;
+            document.getElementById('referensiField').classList.remove('show');
         });
         
         function deleteAccount(id) {
