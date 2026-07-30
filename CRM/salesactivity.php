@@ -2411,7 +2411,7 @@ if (isset($_GET['complete'])) {
                         <div class="trf-field" id="trfField">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
+                                    <label class="form-label">Transaction Request Form</label>
                                     <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
                                     <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
                                 </div>
@@ -2445,10 +2445,6 @@ if (isset($_GET['complete'])) {
                         <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
-                            <div class="alert alert-success mb-3">
-                                <i class="fas fa-handshake"></i> 
-                                <strong>Informasi Deal:</strong> Field ini hanya muncul jika jenis tugas adalah <strong>Negosiasi</strong>.
-                            </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Customer Deal</label>
@@ -2523,9 +2519,8 @@ if (isset($_GET['complete'])) {
                         <div class="trf-field" id="trfFieldComplete">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form (TRF) Number</label>
+                                    <label class="form-label">Transaction Request Form</label>
                                     <input type="text" name="trf_number" id="trf_number_complete" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis dengan format: 0001/GET-TR/JKT/Bulan/Tahun</small>
                                 </div>
                             </div>
                         </div>
