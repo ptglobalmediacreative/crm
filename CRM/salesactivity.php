@@ -160,7 +160,15 @@ try {
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS completed_at DATETIME NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS due_date DATE NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS result TEXT NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_prospek VARCHAR(10) NULL");
+    
+    // Ubah nama kolom customer_prospek menjadi customer_deal jika ada
+    try {
+        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN customer_prospek customer_deal VARCHAR(10) NULL");
+    } catch(PDOException $e) {
+        // Kolom mungkin sudah bernama customer_deal atau belum ada
+    }
+    
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_deal VARCHAR(10) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS leads_number VARCHAR(50) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file VARCHAR(255) NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL");
@@ -215,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $deskripsi = bersihkan($_POST['deskripsi']);
         $due_date = $_POST['due_date'];
         $result = !empty($_POST['result']) ? bersihkan($_POST['result']) : '';
-        $customer_prospek = !empty($_POST['customer_prospek']) ? bersihkan($_POST['customer_prospek']) : 'No';
+        $customer_deal = !empty($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : 'No';
         
         // Ambil data account untuk auto-fill
         $contact_name = '';
@@ -277,9 +285,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Tentukan status
             $status = empty($result) ? 'in_progress' : 'completed';
             
-            // Generate leads number jika customer prospek = Yes dan status complete
+            // Generate leads number jika customer_deal = Yes dan status complete
             $leads_number = NULL;
-            if ($status === 'completed' && $customer_prospek === 'Yes') {
+            if ($status === 'completed' && $customer_deal === 'Yes') {
                 $leads_number = generateLeadsNumber($db, $due_date);
             }
             
@@ -297,12 +305,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $db->prepare("INSERT INTO sales_activities 
                                   (subject, account_id, contact_name, contact_mobile, business_segment, 
                                    badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id,
-                                   result, customer_prospek, leads_number, attachment_file, completed_at) 
+                                   result, customer_deal, leads_number, attachment_file, completed_at) 
                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
                 $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $status, $targetSalesId,
-                $result, $customer_prospek, $leads_number, $attachment_file,
+                $result, $customer_deal, $leads_number, $attachment_file,
                 $status === 'completed' ? date('Y-m-d H:i:s') : NULL
             ]);
             
@@ -342,11 +350,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         $result = bersihkan($_POST['result']);
-        $customer_prospek = bersihkan($_POST['customer_prospek']);
+        $customer_deal = bersihkan($_POST['customer_deal']);
         
-        // Generate leads number jika customer prospek = Yes
+        // Generate leads number jika customer_deal = Yes
         $leads_number = NULL;
-        if ($customer_prospek === 'Yes') {
+        if ($customer_deal === 'Yes') {
             $stmt = $db->prepare("SELECT due_date FROM sales_activities WHERE id = ?");
             $stmt->execute([$id]);
             $due_date = $stmt->fetchColumn();
@@ -383,10 +391,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (empty($errors)) {
             $stmt = $db->prepare("UPDATE sales_activities SET 
-                                  result = ?, customer_prospek = ?, leads_number = ?, 
+                                  result = ?, customer_deal = ?, leads_number = ?, 
                                   attachment_file = ?, status = 'completed', completed_at = NOW() 
                                   WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-            $stmt->execute([$result, $customer_prospek, $leads_number, $attachment_file, $id]);
+            $stmt->execute([$result, $customer_deal, $leads_number, $attachment_file, $id]);
             
             setFlash('Sales Activity berhasil diselesaikan!', 'success');
             redirect('salesactivity.php');
@@ -728,6 +736,7 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
+        /* CSS styles sama seperti sebelumnya */
         * {
             margin: 0;
             padding: 0;
@@ -1039,15 +1048,15 @@ if (isset($_GET['complete'])) {
         .badge-tugas.Collect_Payment { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
         .badge-tugas.Aftersales { background: rgba(22, 160, 133, 0.12); color: #1abc9c; }
         
-        .badge-prospek {
+        .badge-deal-status {
             padding: 3px 10px;
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
         }
         
-        .badge-prospek.Yes { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-prospek.No { background: rgba(149, 165, 166, 0.12); color: #7f8c8d; }
+        .badge-deal-status.Yes { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .badge-deal-status.No { background: rgba(149, 165, 166, 0.12); color: #7f8c8d; }
         
         .badge-status {
             padding: 3px 10px;
@@ -1724,7 +1733,7 @@ if (isset($_GET['complete'])) {
 <body>
 
     <!-- ============================================
-    DESKTOP NAVBAR
+    DESKTOP NAVBAR (sama seperti sebelumnya)
     ============================================ -->
     <div class="desktop-nav-wrapper">
         <div class="brand-section">
@@ -1786,7 +1795,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MOBILE HEADER
+    MOBILE HEADER (sama seperti sebelumnya)
     ============================================ -->
     <header class="top-header">
         <div class="header-left">
@@ -1810,7 +1819,7 @@ if (isset($_GET['complete'])) {
     </header>
 
     <!-- ============================================
-    MAIN CONTENT
+    MAIN CONTENT (sama seperti sebelumnya, hanya ubah label Customer Prospek menjadi Customer Deal)
     ============================================ -->
     <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
 
@@ -1864,7 +1873,7 @@ if (isset($_GET['complete'])) {
             </div>
         </div>
 
-        <!-- TABLE -->
+        <!-- TABLE (sama seperti sebelumnya) -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i>Daftar Sales Activity</h6>
@@ -2018,24 +2027,19 @@ if (isset($_GET['complete'])) {
                                         <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <!-- DETAIL - Semua user bisa melihat -->
                                                 <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
-                                                <!-- EDIT & COMPLETE - Hanya untuk in_progress/overdue dan user yang berhak -->
                                                 <?php if ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'): ?>
                                                     <?php 
                                                     $canEdit = false;
-                                                    // Admin/Full Access bisa edit semua
                                                     if ($hasFullAccess) {
                                                         $canEdit = true;
                                                     } 
-                                                    // Sales hanya bisa edit milik sendiri
                                                     elseif ($userRole === 'sales' && $activity['sales_id'] == $userId) {
                                                         $canEdit = true;
                                                     }
-                                                    // Role lain dengan permission edit
                                                     elseif (canEdit('sales_activity')) {
                                                         $canEdit = true;
                                                     }
@@ -2050,7 +2054,6 @@ if (isset($_GET['complete'])) {
                                                     <?php endif; ?>
                                                 <?php endif; ?>
                                                 
-                                                <!-- DELETE - Hanya untuk Full Access (admin, dll), Sales tidak bisa hapus -->
                                                 <?php if ($hasFullAccess && canDelete('sales_activity')): ?>
                                                     <button class="btn-action delete" onclick="deleteActivity(<?= $activity['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -2116,7 +2119,7 @@ if (isset($_GET['complete'])) {
 
     <!-- MODALS -->
     <!-- ============================================
-    MODAL TAMBAH / EDIT SALES ACTIVITY
+    MODAL TAMBAH / EDIT SALES ACTIVITY (Ubah Customer Prospek menjadi Customer Deal)
     ============================================ -->
     <div class="modal fade" id="modalSalesActivity" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -2209,8 +2212,8 @@ if (isset($_GET['complete'])) {
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Customer Prospek</label>
-                                <select name="customer_prospek" id="customer_prospek_add" class="form-select">
+                                <label class="form-label">Customer Deal</label>
+                                <select name="customer_deal" id="customer_deal_add" class="form-select">
                                     <option value="No">No</option>
                                     <option value="Yes">Yes</option>
                                 </select>
@@ -2218,7 +2221,7 @@ if (isset($_GET['complete'])) {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Leads Number</label>
                                 <input type="text" name="leads_number" id="leads_number_add" class="form-control" readonly>
-                                <small class="text-muted">Akan digenerate otomatis jika Customer Prospek = Yes</small>
+                                <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
                             </div>
                         </div>
                         
@@ -2240,7 +2243,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MODAL COMPLETE
+    MODAL COMPLETE (Ubah Customer Prospek menjadi Customer Deal)
     ============================================ -->
     <div class="modal fade" id="modalComplete" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -2296,8 +2299,8 @@ if (isset($_GET['complete'])) {
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Customer Prospek</label>
-                                <select name="customer_prospek" id="customer_prospek" class="form-select">
+                                <label class="form-label">Customer Deal</label>
+                                <select name="customer_deal" id="customer_deal" class="form-select">
                                     <option value="No">No</option>
                                     <option value="Yes">Yes</option>
                                 </select>
@@ -2305,7 +2308,7 @@ if (isset($_GET['complete'])) {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Leads Number</label>
                                 <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
-                                <small class="text-muted">Akan digenerate otomatis jika Customer Prospek = Yes</small>
+                                <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
                             </div>
                         </div>
                         
@@ -2327,7 +2330,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MODAL DETAIL
+    MODAL DETAIL (Ubah Customer Prospek menjadi Customer Deal)
     ============================================ -->
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -2347,7 +2350,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MODAL DELETE
+    MODAL DELETE (sama seperti sebelumnya)
     ============================================ -->
     <div class="modal fade" id="modalDelete" tabindex="-1">
         <div class="modal-dialog modal-sm">
@@ -2514,7 +2517,6 @@ if (isset($_GET['complete'])) {
             var attachmentAdd = document.getElementById('attachment_file_add');
             var errors = [];
             
-            // Validasi deskripsi minimal 80 karakter
             if (deskripsi && deskripsi.value.trim().length < 80) {
                 errors.push('Deskripsi minimal 80 karakter! (saat ini: ' + deskripsi.value.trim().length + ' karakter)');
                 deskripsi.style.borderColor = '#e74c3c';
@@ -2522,7 +2524,6 @@ if (isset($_GET['complete'])) {
                 deskripsi.style.borderColor = '';
             }
             
-            // Validasi result minimal 80 karakter jika diisi
             if (resultAdd && resultAdd.value.trim().length > 0 && resultAdd.value.trim().length < 80) {
                 errors.push('Result minimal 80 karakter jika diisi! (saat ini: ' + resultAdd.value.trim().length + ' karakter)');
                 resultAdd.style.borderColor = '#e74c3c';
@@ -2530,7 +2531,6 @@ if (isset($_GET['complete'])) {
                 resultAdd.style.borderColor = '';
             }
             
-            // Validasi attachment jika result diisi
             if (resultAdd && resultAdd.value.trim().length > 0 && (!attachmentAdd || !attachmentAdd.files || attachmentAdd.files.length === 0)) {
                 errors.push('Jika mengisi Result, Attachment file wajib diupload!');
                 if (attachmentAdd) attachmentAdd.style.borderColor = '#e74c3c';
@@ -2553,7 +2553,6 @@ if (isset($_GET['complete'])) {
             var attachment = document.getElementById('attachment_file');
             var errors = [];
             
-            // Validasi result minimal 80 karakter
             if (result && result.value.trim().length < 80) {
                 errors.push('Result minimal 80 karakter! (saat ini: ' + result.value.trim().length + ' karakter)');
                 result.style.borderColor = '#e74c3c';
@@ -2561,7 +2560,6 @@ if (isset($_GET['complete'])) {
                 result.style.borderColor = '';
             }
             
-            // Validasi attachment wajib diupload
             if (attachment && (!attachment.files || attachment.files.length === 0)) {
                 errors.push('Attachment file wajib diupload!');
                 attachment.style.borderColor = '#e74c3c';
@@ -2596,7 +2594,6 @@ if (isset($_GET['complete'])) {
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
             
-            // Reset counter
             var deskripsiCounter = document.getElementById('deskripsiCounter');
             if (deskripsiCounter) {
                 deskripsiCounter.textContent = '0';
@@ -2620,7 +2617,7 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // COMPLETE ACTIVITY - VERSION WITH DATA PARAMETER
+        // COMPLETE ACTIVITY
         // ============================================
         function completeActivity(id, data) {
             if (data) {
@@ -2630,12 +2627,11 @@ if (isset($_GET['complete'])) {
                 document.getElementById('completeJenisTugas').value = data.jenis_tugas;
                 document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
                 document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
-                document.getElementById('customer_prospek').value = 'No';
+                document.getElementById('customer_deal').value = 'No';
                 document.getElementById('leads_number').value = '';
                 document.getElementById('result').value = '';
                 document.getElementById('attachment_file').value = '';
                 
-                // Reset counter
                 var resultCounter = document.getElementById('resultCounter');
                 if (resultCounter) {
                     resultCounter.textContent = '0';
@@ -2655,9 +2651,9 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // SHOW LEADS NUMBER WHEN PROSPEK = YES
+        // SHOW LEADS NUMBER WHEN DEAL = YES
         // ============================================
-        document.getElementById('customer_prospek').addEventListener('change', function() {
+        document.getElementById('customer_deal').addEventListener('change', function() {
             var leadsInput = document.getElementById('leads_number');
             if (this.value === 'Yes') {
                 leadsInput.value = 'Akan digenerate otomatis';
@@ -2670,7 +2666,7 @@ if (isset($_GET['complete'])) {
             }
         });
 
-        document.getElementById('customer_prospek_add').addEventListener('change', function() {
+        document.getElementById('customer_deal_add').addEventListener('change', function() {
             var leadsInput = document.getElementById('leads_number_add');
             if (this.value === 'Yes') {
                 leadsInput.value = 'Akan digenerate otomatis saat Complete';
@@ -2691,13 +2687,11 @@ if (isset($_GET['complete'])) {
             var attachmentInput = document.getElementById('attachment_file_add');
             var attachmentRequired = document.getElementById('attachment_required');
             
-            // Event listener untuk result
             if (resultInput) {
                 resultInput.addEventListener('input', function() {
                     if (this.value.trim() !== '') {
                         attachmentRequired.style.display = 'inline';
                         attachmentInput.required = true;
-                        // Tampilkan notifikasi
                         if (!document.getElementById('resultNotification')) {
                             var note = document.createElement('div');
                             note.id = 'resultNotification';
@@ -2714,7 +2708,6 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Init counters
             var deskripsi = document.getElementById('deskripsi');
             if (deskripsi) {
                 updateCharCount('deskripsi', 'deskripsiCounter');
@@ -2732,7 +2725,7 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // DETAIL ACTIVITY
+        // DETAIL ACTIVITY (Ubah Customer Prospek menjadi Customer Deal)
         // ============================================
         function detailActivity(data) {
             var statusLabel = data.status == 'in_progress' ? 'In Progress' : (data.status == 'overdue' ? 'Overdue' : 'Completed');
@@ -2740,7 +2733,6 @@ if (isset($_GET['complete'])) {
             
             var deadlineStatus = '';
             if (data.status == 'completed') {
-                // Jika completed, tampilkan normal tanpa emoticon
                 deadlineStatus = `<span class="text-muted">Selesai</span>`;
             } else if ((data.status == 'in_progress' || data.status == 'overdue') && data.due_date) {
                 var dueDate = new Date(data.due_date);
@@ -2755,7 +2747,6 @@ if (isset($_GET['complete'])) {
                 }
             }
             
-            // Cek badge pipeline prospek - SEMUA STATUS
             var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
             var isHotProspek = data.jenis_tugas == 'Negosiasi' && data.has_kontrak == 0;
             var isDeal = data.jenis_tugas == 'Kontrak';
@@ -2822,9 +2813,9 @@ if (isset($_GET['complete'])) {
                     <div class="detail-value">${data.result || '-'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Customer Prospek</div>
+                    <div class="detail-label">Customer Deal</div>
                     <div class="detail-value">
-                        <span class="badge-prospek ${data.customer_prospek}">${data.customer_prospek}</span>
+                        <span class="badge-deal-status ${data.customer_deal}">${data.customer_deal}</span>
                     </div>
                 </div>
                 <div class="detail-item">
@@ -2853,7 +2844,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // EDIT ACTIVITY (only for in_progress)
+        // EDIT ACTIVITY
         // ============================================
         function editActivity(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Sales Activity';
@@ -2868,7 +2859,6 @@ if (isset($_GET['complete'])) {
             document.getElementById('deskripsi').value = data.deskripsi || '';
             document.getElementById('due_date').value = data.due_date || '';
             
-            // Update counter untuk deskripsi
             setTimeout(function() {
                 updateCharCount('deskripsi', 'deskripsiCounter');
             }, 300);
@@ -2876,20 +2866,6 @@ if (isset($_GET['complete'])) {
             var modal = new bootstrap.Modal(document.getElementById('modalSalesActivity'));
             modal.show();
         }
-
-        // ============================================
-        // RESET FORM
-        // ============================================
-        document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
-            document.getElementById('formSalesActivity').reset();
-            document.getElementById('formAction').value = 'add';
-            document.getElementById('formId').value = '';
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
-            document.getElementById('badan_usaha_field').value = '';
-            document.getElementById('business_segment').value = '';
-            document.getElementById('contact_mobile').value = '';
-            document.getElementById('due_date').value = getDateWIB(7);
-        });
 
         // ============================================
         // DELETE ACTIVITY
@@ -2904,7 +2880,6 @@ if (isset($_GET['complete'])) {
         // INIT CHARTS - 2 CHART TERPISAH
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // CHART 1: Status Aktivitas (In Progress, Complete, Overdue)
             var ctx1 = document.getElementById('statusChart').getContext('2d');
             var inProgress = <?= $totalInProgress ?>;
             var completed = <?= $totalCompleted ?>;
@@ -2942,7 +2917,6 @@ if (isset($_GET['complete'])) {
                 }
             });
 
-            // CHART 2: Pipeline Prospek (Middle Prospek, Hot Prospek, Deal)
             var ctx2 = document.getElementById('prospekChart').getContext('2d');
             var middleProspek = <?= $totalMiddleProspek ?>;
             var hotProspek = <?= $totalHotProspek ?>;
