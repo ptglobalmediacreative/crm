@@ -2474,7 +2474,6 @@ if (isset($_GET['complete'])) {
                         <div class="mb-3">
                             <label class="form-label">Attachment Files <span class="text-danger">*</span></label>
                             <input type="file" name="attachment_files[]" id="attachment_files" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple required>
-                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF, DOC, DOCX, XLS, XLSX, ZIP, RAR (Max 5MB per file) - Bisa upload banyak file</small>
                             <div id="fileList" class="mt-2"><span class="text-muted">Belum ada file dipilih</span></div>
                         </div>
                     </div>
