@@ -443,9 +443,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Tentukan status
             $status = empty($result) ? 'in_progress' : 'completed';
             
-            // Generate leads number jika customer_deal = Yes dan status complete
+            // Generate leads number jika customer_deal = Yes dan status complete dan jenis tugas = Negosiasi
             $leads_number = NULL;
-            if ($status === 'completed' && $customer_deal === 'Yes') {
+            if ($status === 'completed' && $customer_deal === 'Yes' && $jenis_tugas === 'Negosiasi') {
                 $leads_number = generateLeadsNumber($db, $due_date);
             }
             
@@ -509,10 +509,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $result = bersihkan($_POST['result']);
         $customer_deal = bersihkan($_POST['customer_deal']);
+        $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
         
-        // Generate leads number jika customer_deal = Yes
+        // Generate leads number jika customer_deal = Yes dan jenis tugas = Negosiasi
         $leads_number = NULL;
-        if ($customer_deal === 'Yes') {
+        if ($customer_deal === 'Yes' && $jenis_tugas === 'Negosiasi') {
             $stmt = $db->prepare("SELECT due_date FROM sales_activities WHERE id = ?");
             $stmt->execute([$id]);
             $due_date = $stmt->fetchColumn();
@@ -1758,6 +1759,14 @@ if (isset($_GET['complete'])) {
             margin-right: 4px;
         }
         
+        /* Deal Fields - hide by default */
+        .deal-fields {
+            display: none;
+        }
+        .deal-fields.show {
+            display: block;
+        }
+        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -2420,24 +2429,33 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Customer Deal</label>
-                                <select name="customer_deal" id="customer_deal_add" class="form-select">
-                                    <option value="No">No</option>
-                                    <option value="Yes">Yes</option>
-                                </select>
+                        <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
+                        <div class="deal-fields" id="dealFields">
+                            <hr>
+                            <div class="alert alert-success mb-3">
+                                <i class="fas fa-handshake"></i> 
+                                <strong>Informasi Deal:</strong> Field ini hanya muncul jika jenis tugas adalah <strong>Negosiasi</strong>.
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Leads Number</label>
-                                <input type="text" name="leads_number" id="leads_number_add" class="form-control" readonly>
-                                <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Customer Deal</label>
+                                    <select name="customer_deal" id="customer_deal_add" class="form-select">
+                                        <option value="No">No</option>
+                                        <option value="Yes">Yes</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Leads Number</label>
+                                    <input type="text" name="leads_number" id="leads_number_add" class="form-control" readonly>
+                                    <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
+                                </div>
                             </div>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Attachment File <span id="attachment_required" style="display:none;color:red;">*</span></label>
                             <input type="file" name="attachment_file" id="attachment_file_add" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF (Max 5MB) - Wajib jika mengisi Result</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -2467,6 +2485,7 @@ if (isset($_GET['complete'])) {
                     <div class="modal-body">
                         <input type="hidden" name="action" value="complete">
                         <input type="hidden" name="id" id="completeId" value="">
+                        <input type="hidden" name="jenis_tugas_hidden" id="jenis_tugas_hidden" value="">
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -2506,23 +2525,33 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Customer Deal</label>
-                                <select name="customer_deal" id="customer_deal" class="form-select">
-                                    <option value="No">No</option>
-                                    <option value="Yes">Yes</option>
-                                </select>
+                        <!-- Customer Deal & Leads Number - Hanya muncul jika jenis tugas = Negosiasi -->
+                        <div class="deal-fields" id="dealFieldsComplete">
+                            <hr>
+                            <div class="alert alert-success mb-3">
+                                <i class="fas fa-handshake"></i> 
+                                <strong>Informasi Deal:</strong> Field ini hanya muncul jika jenis tugas adalah <strong>Negosiasi</strong>.
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Leads Number</label>
-                                <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Customer Deal</label>
+                                    <select name="customer_deal" id="customer_deal" class="form-select">
+                                        <option value="No">No</option>
+                                        <option value="Yes">Yes</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Leads Number</label>
+                                    <input type="text" name="leads_number" id="leads_number" class="form-control" readonly>
+                                    <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
+                                </div>
                             </div>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Attachment Files <span class="text-danger">*</span></label>
                             <input type="file" name="attachment_files[]" id="attachment_files" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple required>
+                            <small class="text-muted">Format: JPG, PNG, GIF, WEBP, PDF, DOC, DOCX, XLS, XLSX, ZIP, RAR (Max 5MB per file) - Bisa upload banyak file</small>
                             <div id="fileList" class="mt-2"><span class="text-muted">Belum ada file dipilih</span></div>
                         </div>
                     </div>
@@ -2688,6 +2717,45 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
+        // TOGGLE DEAL FIELDS BERDASARKAN JENIS TUGAS
+        // ============================================
+        function toggleDealFields() {
+            var jenisTugas = document.getElementById('jenis_tugas');
+            var dealFields = document.getElementById('dealFields');
+            
+            if (jenisTugas && dealFields) {
+                if (jenisTugas.value === 'Negosiasi') {
+                    dealFields.classList.add('show');
+                } else {
+                    dealFields.classList.remove('show');
+                    // Reset nilai jika bukan Negosiasi
+                    document.getElementById('customer_deal_add').value = 'No';
+                    document.getElementById('leads_number_add').value = '';
+                }
+            }
+        }
+
+        // ============================================
+        // TOGGLE DEAL FIELDS DI MODAL COMPLETE
+        // ============================================
+        function toggleDealFieldsComplete() {
+            var jenisTugas = document.getElementById('completeJenisTugas');
+            var dealFieldsComplete = document.getElementById('dealFieldsComplete');
+            
+            if (jenisTugas && dealFieldsComplete) {
+                var jenisTugasValue = jenisTugas.value;
+                if (jenisTugasValue === 'Negosiasi') {
+                    dealFieldsComplete.classList.add('show');
+                } else {
+                    dealFieldsComplete.classList.remove('show');
+                    // Reset nilai jika bukan Negosiasi
+                    document.getElementById('customer_deal').value = 'No';
+                    document.getElementById('leads_number').value = '';
+                }
+            }
+        }
+
+        // ============================================
         // CHARACTER COUNTER - MINIMAL 80 KARAKTER
         // ============================================
         function updateCharCount(textareaId, counterId) {
@@ -2755,6 +2823,14 @@ if (isset($_GET['complete'])) {
                     html += '</div>';
                     fileList.innerHTML = html;
                 });
+            }
+            
+            // Event listener untuk toggle deal fields di Add/Edit
+            var jenisTugas = document.getElementById('jenis_tugas');
+            if (jenisTugas) {
+                jenisTugas.addEventListener('change', toggleDealFields);
+                // Trigger sekali untuk set initial state
+                setTimeout(toggleDealFields, 100);
             }
         });
 
@@ -2846,6 +2922,8 @@ if (isset($_GET['complete'])) {
             document.getElementById('leads_number_add').value = '';
             document.getElementById('attachment_required').style.display = 'none';
             document.getElementById('attachment_file_add').required = false;
+            document.getElementById('customer_deal_add').value = 'No';
+            document.getElementById('dealFields').classList.remove('show');
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
             
@@ -2881,12 +2959,16 @@ if (isset($_GET['complete'])) {
                 document.getElementById('completeSubject').value = data.subject;
                 document.getElementById('completeAccount').value = data.nama_pt || '-';
                 document.getElementById('completeJenisTugas').value = data.jenis_tugas;
+                document.getElementById('jenis_tugas_hidden').value = data.jenis_tugas;
                 document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
                 document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
                 document.getElementById('customer_deal').value = 'No';
                 document.getElementById('leads_number').value = '';
                 document.getElementById('result').value = '';
                 document.getElementById('attachment_files').value = '';
+                
+                // Toggle deal fields berdasarkan jenis tugas
+                setTimeout(toggleDealFieldsComplete, 100);
                 
                 // Reset file list
                 var fileList = document.getElementById('fileList');
@@ -3152,6 +3234,9 @@ if (isset($_GET['complete'])) {
             document.getElementById('jenis_tugas').value = data.jenis_tugas;
             document.getElementById('deskripsi').value = data.deskripsi || '';
             document.getElementById('due_date').value = data.due_date || '';
+            
+            // Trigger toggle deal fields
+            setTimeout(toggleDealFields, 100);
             
             // Update counter untuk deskripsi
             setTimeout(function() {
