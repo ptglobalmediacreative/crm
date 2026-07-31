@@ -3271,13 +3271,6 @@ function addTRLinkStyle() {
                 var dueDate = new Date(data.due_date);
                 var today = new Date();
                 var diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-                if (diffDays < 0 || data.status == 'overdue') {
-                    deadlineStatus = `<span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> LEWAT JATUH TEMPO! (${Math.abs(diffDays)} hari)</span>`;
-                } else if (diffDays <= 3) {
-                    deadlineStatus = `<span class="text-warning fw-bold"><i class="fas fa-clock"></i> ${diffDays} hari lagi</span>`;
-                } else {
-                    deadlineStatus = `<span class="text-success"><i class="fas fa-check-circle"></i> On Track (${diffDays} hari)</span>`;
-                }
             }
             
             var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
