@@ -113,6 +113,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $ppn = $price * ($ppn_percent / 100);
                     $grand_total_unit = ($price + $ppn) * $qty;
                     
+                    // Ambil transaction type
+                    $transaction_type = $_POST['transaction_type'][$i] ?? '';
+                    if ($transaction_type === 'Other' && !empty($_POST['transaction_type_other'][$i])) {
+                        $transaction_type = 'Other - ' . $_POST['transaction_type_other'][$i];
+                    }
+                    
                     $units[] = [
                         'unit_name' => $_POST['unit_name'][$i],
                         'qty' => $qty,
@@ -126,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         'machine_location' => $_POST['machine_location'][$i] ?? '',
                         'delivery_terms' => $_POST['delivery_terms'][$i] ?? '',
                         'delivery_schedule' => $_POST['delivery_schedule'][$i] ?? '',
-                        'transaction_type' => $_POST['transaction_type'][$i] ?? ''
+                        'transaction_type' => $transaction_type
                     ];
                 }
             }
@@ -159,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
                     $top['installments'][] = [
                         'name' => $_POST['installment_name'][$i],
-                        'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i])
+                        'value' => (float)str_replace(['.', ',''], '', $_POST['installment_value'][$i])
                     ];
                 }
             }
@@ -1175,31 +1181,17 @@ $requests = $stmt->fetchAll();
                                     <div class="col-md-12 mb-2">
                                         <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
                                         <div class="row">
-                                            <div class="col-md-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                                    <label class="form-check-label">Cash On Delivery</label>
-                                                </div>
+                                            <div class="col-md-4">
+                                                <select name="transaction_type[]" class="form-select transaction-type-select" required onchange="showOtherInput(this)">
+                                                    <option value="">-- Pilih Transaction Type --</option>
+                                                    <option value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'selected' : '' ?>>Cash On Delivery</option>
+                                                    <option value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'selected' : '' ?>>Leasing</option>
+                                                    <option value="Direct Credit" <?= ($unit['transaction_type'] == 'Direct Credit') ? 'selected' : '' ?>>Direct Credit</option>
+                                                    <option value="Other" <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'selected' : '' ?>>Other</option>
+                                                </select>
                                             </div>
-                                            <div class="col-md-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                                    <label class="form-check-label">Leasing</label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Direct Credit" <?= ($unit['transaction_type'] == 'Direct Credit') ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                                    <label class="form-check-label">Direct Credit</label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Other" <?= ($unit['transaction_type'] == 'Other' || strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                                    <label class="form-check-label">Other</label>
-                                                </div>
-                                                <input type="text" name="transaction_type_other_<?= $unitIndex ?>" class="form-control form-control-sm mt-1 transaction-type-other" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>" style="display: <?= ($unit['transaction_type'] == 'Other' || strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
-                                                <input type="hidden" name="transaction_type[]" class="transaction-type-hidden" value="<?= htmlspecialchars($unit['transaction_type'] ?? '') ?>">
+                                            <div class="col-md-4" id="otherInputContainer_<?= $unitIndex ?>" style="display: <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
+                                                <input type="text" name="transaction_type_other[]" class="form-control" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>">
                                             </div>
                                         </div>
                                     </div>
@@ -1534,31 +1526,17 @@ $requests = $stmt->fetchAll();
                     <div class="col-md-12 mb-2">
                         <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
                         <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_${unitIndex}" value="Cash On Delivery" onchange="setTransactionType(this)">
-                                    <label class="form-check-label">Cash On Delivery</label>
-                                </div>
+                            <div class="col-md-4">
+                                <select name="transaction_type[]" class="form-select transaction-type-select" required onchange="showOtherInput(this)">
+                                    <option value="">-- Pilih Transaction Type --</option>
+                                    <option value="Cash On Delivery">Cash On Delivery</option>
+                                    <option value="Leasing">Leasing</option>
+                                    <option value="Direct Credit">Direct Credit</option>
+                                    <option value="Other">Other</option>
+                                </select>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_${unitIndex}" value="Leasing" onchange="setTransactionType(this)">
-                                    <label class="form-check-label">Leasing</label>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_${unitIndex}" value="Direct Credit" onchange="setTransactionType(this)">
-                                    <label class="form-check-label">Direct Credit</label>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_${unitIndex}" value="Other" onchange="setTransactionType(this)">
-                                    <label class="form-check-label">Other</label>
-                                </div>
-                                <input type="text" name="transaction_type_other_${unitIndex}" class="form-control form-control-sm mt-1 transaction-type-other" placeholder="Spesifikasi Other" style="display:none">
-                                <input type="hidden" name="transaction_type[]" class="transaction-type-hidden" value="">
+                            <div class="col-md-4" id="otherInputContainer_${unitIndex}" style="display:none">
+                                <input type="text" name="transaction_type_other[]" class="form-control" placeholder="Spesifikasi Other">
                             </div>
                         </div>
                     </div>
@@ -1590,29 +1568,25 @@ $requests = $stmt->fetchAll();
             row.querySelector('.grand-total-unit').value = formatNumber(grandTotal);
         }
 
-        function setTransactionType(radio) {
-            const row = radio.closest('.unit-row');
-            const otherInput = row.querySelector('.transaction-type-other');
-            const hiddenInput = row.querySelector('.transaction-type-hidden');
+        // ============================================
+        // TRANSACTION TYPE FUNCTIONS
+        // ============================================
+        function showOtherInput(select) {
+            const row = select.closest('.unit-row');
+            const index = row.dataset.index;
+            const otherContainer = document.getElementById('otherInputContainer_' + index);
             
-            if (radio.value === 'Other') {
-                otherInput.style.display = 'block';
+            if (select.value === 'Other') {
+                otherContainer.style.display = 'block';
+                const otherInput = otherContainer.querySelector('input');
                 otherInput.required = true;
-                hiddenInput.value = 'Other - ' + otherInput.value;
             } else {
-                otherInput.style.display = 'none';
+                otherContainer.style.display = 'none';
+                const otherInput = otherContainer.querySelector('input');
                 otherInput.required = false;
-                hiddenInput.value = radio.value;
+                otherInput.value = '';
             }
         }
-
-        document.addEventListener('input', function(e) {
-            if (e.target.classList.contains('transaction-type-other')) {
-                const row = e.target.closest('.unit-row');
-                const hiddenInput = row.querySelector('.transaction-type-hidden');
-                hiddenInput.value = 'Other - ' + e.target.value;
-            }
-        });
 
         // ============================================
         // TERM OF PAYMENT FUNCTIONS
@@ -1737,6 +1711,13 @@ $requests = $stmt->fetchAll();
             calculateTOP();
             calculateAdditional();
             updateMediatorAmount();
+            
+            // Tampilkan input Other jika sudah terpilih
+            document.querySelectorAll('.transaction-type-select').forEach(select => {
+                if (select.value === 'Other') {
+                    showOtherInput(select);
+                }
+            });
             
             document.querySelectorAll('input[name="delivery_schedule[]"]').forEach(input => {
                 if (!input.value) {
