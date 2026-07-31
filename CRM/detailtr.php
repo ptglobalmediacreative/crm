@@ -428,7 +428,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ]);
             setFlash('Data Detail TR berhasil disimpan!', 'success');
         }
-        redirect('detailtr.php?trf=' . $trf_number . '&tab=' . ($_POST['active_tab'] ?? 'summary'));
+        
+        // Redirect dengan tab dan edit mode yang benar
+        $redirect_tab = isset($_POST['active_tab']) ? $_POST['active_tab'] : 'summary';
+        $edit_param = '';
+        if ($redirect_tab !== 'summary') {
+            $edit_param = '&edit=' . $redirect_tab;
+        }
+        redirect('detailtr.php?trf=' . $trf_number . '&tab=' . $redirect_tab . $edit_param);
     }
     
     if ($action === 'approve') {
@@ -1070,7 +1077,7 @@ if (!is_array($mediator)) {
         }
         
         /* ============================================
-           NAV TABS
+           NAV TABS - DIPERBAIKI
            ============================================ */
         .nav-tabs-custom {
             border-bottom: 2px solid #e8edf2;
@@ -1087,6 +1094,8 @@ if (!is_array($mediator)) {
             color: #999;
             transition: all 0.3s ease;
             position: relative;
+            text-decoration: none;
+            display: inline-block;
         }
         
         .nav-tabs-custom .nav-link:hover {
@@ -1449,6 +1458,7 @@ if (!is_array($mediator)) {
             <input type="hidden" name="status" id="formStatus" value="<?= $detailData['status'] ?? 'draft' ?>">
             <input type="hidden" name="approval_level" id="formApprovalLevel" value="<?= $detailData['approval_level'] ?? 0 ?>">
             <input type="hidden" name="active_tab" id="activeTabInput" value="<?= $activeTab ?>">
+            <input type="hidden" name="edit_mode" id="editMode" value="<?= $editMode ?>">
             
             <!-- HIDDEN FIELDS UNTUK MENYIMPAN SEMUA DATA -->
             <input type="hidden" name="units_data" id="units_data" value='<?= htmlspecialchars(json_encode($units)) ?>'>
@@ -1456,34 +1466,34 @@ if (!is_array($mediator)) {
             <input type="hidden" name="additional_data" id="additional_data" value='<?= htmlspecialchars(json_encode($additional)) ?>'>
             <input type="hidden" name="mediator_data" id="mediator_data" value='<?= htmlspecialchars(json_encode($mediator)) ?>'>
 
-            <!-- TAB NAVIGATION -->
+            <!-- TAB NAVIGATION - DIPERBAIKI DENGAN LINK YANG BENAR -->
             <div class="card-custom" style="padding: 0; overflow: hidden;">
                 <div class="nav-tabs-custom">
                     <ul class="nav nav-tabs" id="detailTab" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= $activeTab == 'summary' ? 'active' : '' ?>" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" onclick="setActiveTab('summary')">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=summary" class="nav-link <?= $activeTab == 'summary' ? 'active' : '' ?>">
                                 <i class="fas fa-info-circle"></i> Summary
-                            </button>
+                            </a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= $activeTab == 'unit' ? 'active' : '' ?>" id="unit-tab" data-bs-toggle="tab" data-bs-target="#unit" type="button" role="tab" onclick="setActiveTab('unit')">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="nav-link <?= $activeTab == 'unit' ? 'active' : '' ?>">
                                 <i class="fas fa-box"></i> Detail Unit
-                            </button>
+                            </a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= $activeTab == 'top' ? 'active' : '' ?>" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button" role="tab" onclick="setActiveTab('top')">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="nav-link <?= $activeTab == 'top' ? 'active' : '' ?>">
                                 <i class="fas fa-money-bill-wave"></i> Term Of Payment
-                            </button>
+                            </a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= $activeTab == 'additional' ? 'active' : '' ?>" id="additional-tab" data-bs-toggle="tab" data-bs-target="#additional" type="button" role="tab" onclick="setActiveTab('additional')">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="nav-link <?= $activeTab == 'additional' ? 'active' : '' ?>">
                                 <i class="fas fa-plus-circle"></i> Additional Cost
-                            </button>
+                            </a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>" id="mediator-tab" data-bs-toggle="tab" data-bs-target="#mediator" type="button" role="tab" onclick="setActiveTab('mediator')">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>">
                                 <i class="fas fa-user-tie"></i> Mediator Fee
-                            </button>
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -1760,7 +1770,7 @@ if (!is_array($mediator)) {
                                     <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan Unit
                                     </button>
-                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom ms-2">
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-secondary-custom ms-2">
                                         <i class="fas fa-times"></i> Batal
                                     </a>
                                 </div>
@@ -1931,7 +1941,7 @@ if (!is_array($mediator)) {
                                     <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan TOP
                                     </button>
-                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom ms-2">
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-secondary-custom ms-2">
                                         <i class="fas fa-times"></i> Batal
                                     </a>
                                 </div>
@@ -2124,7 +2134,7 @@ if (!is_array($mediator)) {
                                     <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan Additional Cost
                                     </button>
-                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom ms-2">
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-secondary-custom ms-2">
                                         <i class="fas fa-times"></i> Batal
                                     </a>
                                 </div>
@@ -2251,7 +2261,7 @@ if (!is_array($mediator)) {
                                     <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan Mediator
                                     </button>
-                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom ms-2">
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-secondary-custom ms-2">
                                         <i class="fas fa-times"></i> Batal
                                     </a>
                                 </div>
@@ -2409,10 +2419,22 @@ if (!is_array($mediator)) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // TAB FUNCTIONS
+        // TAB FUNCTIONS - DIPERBAIKI
         // ============================================
         function setActiveTab(tab) {
             document.getElementById('activeTabInput').value = tab;
+            
+            // Update URL dengan parameter yang benar
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', tab);
+            
+            if (tab === 'summary') {
+                url.searchParams.delete('edit');
+            } else {
+                url.searchParams.set('edit', tab);
+            }
+            
+            window.history.pushState({}, '', url);
         }
 
         // ============================================
