@@ -167,9 +167,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $no_hp_pic = isset($_POST['no_hp_pic']) ? bersihkan($_POST['no_hp_pic']) : '';
         $email_pic = isset($_POST['email_pic']) ? bersihkan($_POST['email_pic']) : '';
         
-        // Detail Unit
-        $units = [];
-        if (isset($_POST['unit_name']) && is_array($_POST['unit_name'])) {
+        // ============================================
+        // CEK DATA DARI HIDDEN FIELDS ATAU POST
+        // ============================================
+        
+        // Detail Unit - cek dari hidden fields atau POST
+        if (isset($_POST['units_data']) && !empty($_POST['units_data'])) {
+            $units = json_decode($_POST['units_data'], true);
+            if (!is_array($units)) $units = [];
+        } elseif (isset($_POST['unit_name']) && is_array($_POST['unit_name'])) {
+            $units = [];
             for ($i = 0; $i < count($_POST['unit_name']); $i++) {
                 if (!empty($_POST['unit_name'][$i])) {
                     $qty = (int)$_POST['qty'][$i];
@@ -200,91 +207,148 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ];
                 }
             }
+        } else {
+            // Gunakan data yang sudah ada dari detailData
+            $units = json_decode($detailData['units'] ?? '[]', true);
+            if (!is_array($units)) $units = [];
         }
         
-        // Term Of Payment dengan Remark
-        $top = [
-            'booking_fee' => (float)str_replace(['.', ','], '', isset($_POST['booking_fee']) ? $_POST['booking_fee'] : 0),
-            'booking_fee_remark' => isset($_POST['booking_fee_remark']) ? bersihkan($_POST['booking_fee_remark']) : '',
-            'nominal_po_leasing' => (float)str_replace(['.', ','], '', isset($_POST['nominal_po_leasing']) ? $_POST['nominal_po_leasing'] : 0),
-            'nominal_po_leasing_remark' => isset($_POST['nominal_po_leasing_remark']) ? bersihkan($_POST['nominal_po_leasing_remark']) : '',
-            'down_payments' => [],
-            'installments' => [],
-            'grand_total_top' => 0
-        ];
-        
-        // Down Payments dengan Remark
-        if (isset($_POST['dp_name']) && is_array($_POST['dp_name'])) {
-            for ($i = 0; $i < count($_POST['dp_name']); $i++) {
-                if (!empty($_POST['dp_name'][$i]) && !empty($_POST['dp_value'][$i])) {
-                    $top['down_payments'][] = [
-                        'name' => $_POST['dp_name'][$i],
-                        'value' => (float)str_replace(['.', ','], '', $_POST['dp_value'][$i]),
-                        'remark' => isset($_POST['dp_remark'][$i]) ? bersihkan($_POST['dp_remark'][$i]) : ''
-                    ];
+        // Term Of Payment - cek dari hidden fields atau POST
+        if (isset($_POST['top_data']) && !empty($_POST['top_data'])) {
+            $top = json_decode($_POST['top_data'], true);
+            if (!is_array($top)) {
+                $top = [
+                    'booking_fee' => 0,
+                    'booking_fee_remark' => '',
+                    'nominal_po_leasing' => 0,
+                    'nominal_po_leasing_remark' => '',
+                    'down_payments' => [],
+                    'installments' => [],
+                    'grand_total_top' => 0
+                ];
+            }
+        } else {
+            // Proses dari POST
+            $top = [
+                'booking_fee' => (float)str_replace(['.', ','], '', isset($_POST['booking_fee']) ? $_POST['booking_fee'] : 0),
+                'booking_fee_remark' => isset($_POST['booking_fee_remark']) ? bersihkan($_POST['booking_fee_remark']) : '',
+                'nominal_po_leasing' => (float)str_replace(['.', ','], '', isset($_POST['nominal_po_leasing']) ? $_POST['nominal_po_leasing'] : 0),
+                'nominal_po_leasing_remark' => isset($_POST['nominal_po_leasing_remark']) ? bersihkan($_POST['nominal_po_leasing_remark']) : '',
+                'down_payments' => [],
+                'installments' => [],
+                'grand_total_top' => 0
+            ];
+            
+            // Down Payments dengan Remark
+            if (isset($_POST['dp_name']) && is_array($_POST['dp_name'])) {
+                for ($i = 0; $i < count($_POST['dp_name']); $i++) {
+                    if (!empty($_POST['dp_name'][$i]) && !empty($_POST['dp_value'][$i])) {
+                        $top['down_payments'][] = [
+                            'name' => $_POST['dp_name'][$i],
+                            'value' => (float)str_replace(['.', ','], '', $_POST['dp_value'][$i]),
+                            'remark' => isset($_POST['dp_remark'][$i]) ? bersihkan($_POST['dp_remark'][$i]) : ''
+                        ];
+                    }
                 }
             }
-        }
-        
-        // Installments dengan Remark
-        if (isset($_POST['installment_name']) && is_array($_POST['installment_name'])) {
-            for ($i = 0; $i < count($_POST['installment_name']); $i++) {
-                if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
-                    $top['installments'][] = [
-                        'name' => $_POST['installment_name'][$i],
-                        'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i]),
-                        'remark' => isset($_POST['installment_remark'][$i]) ? bersihkan($_POST['installment_remark'][$i]) : ''
-                    ];
+            
+            // Installments dengan Remark
+            if (isset($_POST['installment_name']) && is_array($_POST['installment_name'])) {
+                for ($i = 0; $i < count($_POST['installment_name']); $i++) {
+                    if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
+                        $top['installments'][] = [
+                            'name' => $_POST['installment_name'][$i],
+                            'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i]),
+                            'remark' => isset($_POST['installment_remark'][$i]) ? bersihkan($_POST['installment_remark'][$i]) : ''
+                        ];
+                    }
                 }
             }
+            
+            $top_grand_total = $top['booking_fee'] + $top['nominal_po_leasing'];
+            foreach ($top['down_payments'] as $dp) {
+                $top_grand_total += $dp['value'];
+            }
+            foreach ($top['installments'] as $inst) {
+                $top_grand_total += $inst['value'];
+            }
+            $top['grand_total_top'] = $top_grand_total;
         }
         
-        $top_grand_total = $top['booking_fee'] + $top['nominal_po_leasing'];
-        foreach ($top['down_payments'] as $dp) {
-            $top_grand_total += $dp['value'];
+        // Additional Cost - cek dari hidden fields atau POST
+        if (isset($_POST['additional_data']) && !empty($_POST['additional_data'])) {
+            $additional_cost = json_decode($_POST['additional_data'], true);
+            if (!is_array($additional_cost)) {
+                $additional_cost = [
+                    'insurance_ops' => 0,
+                    'insurance_ops_remark' => '',
+                    'insurance_cargo' => 0,
+                    'insurance_cargo_remark' => '',
+                    'delivery_cost' => 0,
+                    'delivery_cost_remark' => '',
+                    'free_part' => 0,
+                    'free_part_remark' => '',
+                    'free_service' => 0,
+                    'free_service_remark' => '',
+                    'mediator_fee' => 0,
+                    'mediator_fee_remark' => '',
+                    'others' => 0,
+                    'others_remark' => '',
+                    'total_additional' => 0
+                ];
+            }
+        } else {
+            $additional_cost = [
+                'insurance_ops' => (float)str_replace(['.', ','], '', isset($_POST['insurance_ops']) ? $_POST['insurance_ops'] : 0),
+                'insurance_ops_remark' => isset($_POST['insurance_ops_remark']) ? bersihkan($_POST['insurance_ops_remark']) : '',
+                'insurance_cargo' => (float)str_replace(['.', ','], '', isset($_POST['insurance_cargo']) ? $_POST['insurance_cargo'] : 0),
+                'insurance_cargo_remark' => isset($_POST['insurance_cargo_remark']) ? bersihkan($_POST['insurance_cargo_remark']) : '',
+                'delivery_cost' => (float)str_replace(['.', ','], '', isset($_POST['delivery_cost']) ? $_POST['delivery_cost'] : 0),
+                'delivery_cost_remark' => isset($_POST['delivery_cost_remark']) ? bersihkan($_POST['delivery_cost_remark']) : '',
+                'free_part' => (float)str_replace(['.', ','], '', isset($_POST['free_part']) ? $_POST['free_part'] : 0),
+                'free_part_remark' => isset($_POST['free_part_remark']) ? bersihkan($_POST['free_part_remark']) : '',
+                'free_service' => (float)str_replace(['.', ','], '', isset($_POST['free_service']) ? $_POST['free_service'] : 0),
+                'free_service_remark' => isset($_POST['free_service_remark']) ? bersihkan($_POST['free_service_remark']) : '',
+                'mediator_fee' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0),
+                'mediator_fee_remark' => isset($_POST['mediator_fee_remark']) ? bersihkan($_POST['mediator_fee_remark']) : '',
+                'others' => (float)str_replace(['.', ','], '', isset($_POST['others_cost']) ? $_POST['others_cost'] : 0),
+                'others_remark' => isset($_POST['others_remark']) ? bersihkan($_POST['others_remark']) : '',
+                'total_additional' => 0
+            ];
+            
+            $additional_cost['total_additional'] = 
+                $additional_cost['insurance_ops'] + 
+                $additional_cost['insurance_cargo'] + 
+                $additional_cost['delivery_cost'] + 
+                $additional_cost['free_part'] + 
+                $additional_cost['free_service'] + 
+                $additional_cost['mediator_fee'] + 
+                $additional_cost['others'];
         }
-        foreach ($top['installments'] as $inst) {
-            $top_grand_total += $inst['value'];
+        
+        // Mediator Fee - cek dari hidden fields atau POST
+        if (isset($_POST['mediator_data']) && !empty($_POST['mediator_data'])) {
+            $mediator_fee = json_decode($_POST['mediator_data'], true);
+            if (!is_array($mediator_fee)) {
+                $mediator_fee = [
+                    'name' => '',
+                    'id_card_no' => '',
+                    'npwp_no' => '',
+                    'bank_name' => '',
+                    'bank_account' => '',
+                    'amount' => 0
+                ];
+            }
+        } else {
+            $mediator_fee = [
+                'name' => isset($_POST['mediator_name']) ? bersihkan($_POST['mediator_name']) : '',
+                'id_card_no' => isset($_POST['mediator_id_card']) ? bersihkan($_POST['mediator_id_card']) : '',
+                'npwp_no' => isset($_POST['mediator_npwp']) ? bersihkan($_POST['mediator_npwp']) : '',
+                'bank_name' => isset($_POST['mediator_bank']) ? bersihkan($_POST['mediator_bank']) : '',
+                'bank_account' => isset($_POST['mediator_bank_account']) ? bersihkan($_POST['mediator_bank_account']) : '',
+                'amount' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0)
+            ];
         }
-        $top['grand_total_top'] = $top_grand_total;
-        
-        // Additional Cost dengan Remark
-        $additional_cost = [
-            'insurance_ops' => (float)str_replace(['.', ','], '', isset($_POST['insurance_ops']) ? $_POST['insurance_ops'] : 0),
-            'insurance_ops_remark' => isset($_POST['insurance_ops_remark']) ? bersihkan($_POST['insurance_ops_remark']) : '',
-            'insurance_cargo' => (float)str_replace(['.', ','], '', isset($_POST['insurance_cargo']) ? $_POST['insurance_cargo'] : 0),
-            'insurance_cargo_remark' => isset($_POST['insurance_cargo_remark']) ? bersihkan($_POST['insurance_cargo_remark']) : '',
-            'delivery_cost' => (float)str_replace(['.', ','], '', isset($_POST['delivery_cost']) ? $_POST['delivery_cost'] : 0),
-            'delivery_cost_remark' => isset($_POST['delivery_cost_remark']) ? bersihkan($_POST['delivery_cost_remark']) : '',
-            'free_part' => (float)str_replace(['.', ','], '', isset($_POST['free_part']) ? $_POST['free_part'] : 0),
-            'free_part_remark' => isset($_POST['free_part_remark']) ? bersihkan($_POST['free_part_remark']) : '',
-            'free_service' => (float)str_replace(['.', ','], '', isset($_POST['free_service']) ? $_POST['free_service'] : 0),
-            'free_service_remark' => isset($_POST['free_service_remark']) ? bersihkan($_POST['free_service_remark']) : '',
-            'mediator_fee' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0),
-            'mediator_fee_remark' => isset($_POST['mediator_fee_remark']) ? bersihkan($_POST['mediator_fee_remark']) : '',
-            'others' => (float)str_replace(['.', ','], '', isset($_POST['others_cost']) ? $_POST['others_cost'] : 0),
-            'others_remark' => isset($_POST['others_remark']) ? bersihkan($_POST['others_remark']) : '',
-            'total_additional' => 0
-        ];
-        
-        $additional_cost['total_additional'] = 
-            $additional_cost['insurance_ops'] + 
-            $additional_cost['insurance_cargo'] + 
-            $additional_cost['delivery_cost'] + 
-            $additional_cost['free_part'] + 
-            $additional_cost['free_service'] + 
-            $additional_cost['mediator_fee'] + 
-            $additional_cost['others'];
-        
-        // Mediator Fee
-        $mediator_fee = [
-            'name' => isset($_POST['mediator_name']) ? bersihkan($_POST['mediator_name']) : '',
-            'id_card_no' => isset($_POST['mediator_id_card']) ? bersihkan($_POST['mediator_id_card']) : '',
-            'npwp_no' => isset($_POST['mediator_npwp']) ? bersihkan($_POST['mediator_npwp']) : '',
-            'bank_name' => isset($_POST['mediator_bank']) ? bersihkan($_POST['mediator_bank']) : '',
-            'bank_account' => isset($_POST['mediator_bank_account']) ? bersihkan($_POST['mediator_bank_account']) : '',
-            'amount' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0)
-        ];
         
         $grand_total = 0;
         foreach ($units as $unit) {
@@ -1317,6 +1381,12 @@ if ($editMode == 'unit' && !empty($units)) {
             <input type="hidden" name="status" id="formStatus" value="<?= $detailData['status'] ?? 'draft' ?>">
             <input type="hidden" name="approval_level" id="formApprovalLevel" value="<?= $detailData['approval_level'] ?? 0 ?>">
             <input type="hidden" name="active_tab" id="activeTabInput" value="<?= $activeTab ?>">
+            
+            <!-- HIDDEN FIELDS UNTUK MENYIMPAN SEMUA DATA -->
+            <input type="hidden" name="units_data" id="units_data" value='<?= htmlspecialchars(json_encode($units)) ?>'>
+            <input type="hidden" name="top_data" id="top_data" value='<?= htmlspecialchars(json_encode($top)) ?>'>
+            <input type="hidden" name="additional_data" id="additional_data" value='<?= htmlspecialchars(json_encode($additional)) ?>'>
+            <input type="hidden" name="mediator_data" id="mediator_data" value='<?= htmlspecialchars(json_encode($mediator)) ?>'>
 
             <!-- TAB NAVIGATION -->
             <div class="card-custom" style="padding: 0; overflow: hidden;">
@@ -1489,6 +1559,13 @@ if ($editMode == 'unit' && !empty($units)) {
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Tombol Simpan Semua di Summary -->
+                        <div class="text-end mt-3">
+                            <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
+                                <i class="fas fa-save"></i> Simpan Semua Data
+                            </button>
+                        </div>
                     </div>
 
                     <!-- TAB 2: DETAIL UNIT -->
@@ -1612,7 +1689,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                 </div>
                                 <!-- TOMBOL TAMBAH UNIT DIHAPUS -->
                                 <div class="text-end mt-2">
-                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                    <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan Unit
                                     </button>
                                     <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom ms-2">
@@ -1783,7 +1860,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     </button>
                                 </div>
                                 <div class="text-end mt-2">
-                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                    <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan TOP
                                     </button>
                                     <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom ms-2">
@@ -1976,7 +2053,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                 </div>
 
                                 <div class="text-end mt-3">
-                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                    <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan Additional Cost
                                     </button>
                                     <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom ms-2">
@@ -2103,7 +2180,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     </div>
                                 </div>
                                 <div class="text-end mt-2">
-                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                    <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan Mediator
                                     </button>
                                     <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom ms-2">
@@ -2408,6 +2485,112 @@ if ($editMode == 'unit' && !empty($units)) {
             const mediatorFee = parseFloat(document.getElementById('mediatorFeeInput').value.replace(/\./g, '').replace(/,/g, '')) || 0;
             document.getElementById('mediatorAmount').value = formatNumber(mediatorFee);
         }
+
+        // ============================================
+        // SAVE DATA TO HIDDEN FIELDS BEFORE SUBMIT
+        // ============================================
+        function saveDataToHidden() {
+            // Ambil data unit dari form
+            const unitRows = document.querySelectorAll('.unit-row');
+            const units = [];
+            unitRows.forEach(row => {
+                const unitData = {
+                    unit_name: row.querySelector('select[name="unit_name[]"]')?.value || '',
+                    qty: parseInt(row.querySelector('input[name="qty[]"]')?.value) || 0,
+                    price: parseFloat(row.querySelector('input[name="price[]"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    ppn_percent: 11,
+                    ppn: parseFloat(row.querySelector('input[name="ppn[]"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    grand_total: parseFloat(row.querySelector('input[name="grand_total_unit[]"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    specification: row.querySelector('input[name="specification[]"]')?.value || '',
+                    additional_attachment: row.querySelector('input[name="additional_attachment[]"]')?.value || '',
+                    warranty: row.querySelector('input[name="warranty[]"]')?.value || '',
+                    machine_location: row.querySelector('input[name="machine_location[]"]')?.value || '',
+                    delivery_terms: row.querySelector('input[name="delivery_terms[]"]')?.value || '',
+                    delivery_schedule: row.querySelector('input[name="delivery_schedule[]"]')?.value || '',
+                    transaction_type: row.querySelector('select[name="transaction_type[]"]')?.value || ''
+                };
+                if (unitData.unit_name) {
+                    units.push(unitData);
+                }
+            });
+            document.getElementById('units_data').value = JSON.stringify(units);
+            
+            // Ambil data TOP
+            const topData = {
+                booking_fee: parseFloat(document.querySelector('input[name="booking_fee"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                booking_fee_remark: document.querySelector('input[name="booking_fee_remark"]')?.value || '',
+                nominal_po_leasing: parseFloat(document.querySelector('input[name="nominal_po_leasing"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                nominal_po_leasing_remark: document.querySelector('input[name="nominal_po_leasing_remark"]')?.value || '',
+                down_payments: [],
+                installments: [],
+                grand_total_top: parseFloat(document.getElementById('grandTotalTOPHidden')?.value) || 0
+            };
+            
+            // DP
+            const dpNames = document.querySelectorAll('input[name="dp_name[]"]');
+            const dpValues = document.querySelectorAll('input[name="dp_value[]"]');
+            const dpRemarks = document.querySelectorAll('input[name="dp_remark[]"]');
+            for (let i = 0; i < dpNames.length; i++) {
+                if (dpNames[i].value && dpValues[i].value) {
+                    topData.down_payments.push({
+                        name: dpNames[i].value,
+                        value: parseFloat(dpValues[i].value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                        remark: dpRemarks[i]?.value || ''
+                    });
+                }
+            }
+            
+            // Installments
+            const instNames = document.querySelectorAll('input[name="installment_name[]"]');
+            const instValues = document.querySelectorAll('input[name="installment_value[]"]');
+            const instRemarks = document.querySelectorAll('input[name="installment_remark[]"]');
+            for (let i = 0; i < instNames.length; i++) {
+                if (instNames[i].value && instValues[i].value) {
+                    topData.installments.push({
+                        name: instNames[i].value,
+                        value: parseFloat(instValues[i].value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                        remark: instRemarks[i]?.value || ''
+                    });
+                }
+            }
+            document.getElementById('top_data').value = JSON.stringify(topData);
+            
+            // Ambil data Additional Cost
+            const additionalData = {
+                insurance_ops: parseFloat(document.querySelector('input[name="insurance_ops"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                insurance_ops_remark: document.querySelector('input[name="insurance_ops_remark"]')?.value || '',
+                insurance_cargo: parseFloat(document.querySelector('input[name="insurance_cargo"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                insurance_cargo_remark: document.querySelector('input[name="insurance_cargo_remark"]')?.value || '',
+                delivery_cost: parseFloat(document.querySelector('input[name="delivery_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                delivery_cost_remark: document.querySelector('input[name="delivery_cost_remark"]')?.value || '',
+                free_part: parseFloat(document.querySelector('input[name="free_part"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                free_part_remark: document.querySelector('input[name="free_part_remark"]')?.value || '',
+                free_service: parseFloat(document.querySelector('input[name="free_service"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                free_service_remark: document.querySelector('input[name="free_service_remark"]')?.value || '',
+                mediator_fee: parseFloat(document.querySelector('input[name="mediator_fee"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                mediator_fee_remark: document.querySelector('input[name="mediator_fee_remark"]')?.value || '',
+                others: parseFloat(document.querySelector('input[name="others_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                others_remark: document.querySelector('input[name="others_remark"]')?.value || '',
+                total_additional: parseFloat(document.getElementById('totalAdditionalHidden')?.value) || 0
+            };
+            document.getElementById('additional_data').value = JSON.stringify(additionalData);
+            
+            // Ambil data Mediator
+            const mediatorData = {
+                name: document.querySelector('input[name="mediator_name"]')?.value || '',
+                id_card_no: document.querySelector('input[name="mediator_id_card"]')?.value || '',
+                npwp_no: document.querySelector('input[name="mediator_npwp"]')?.value || '',
+                bank_name: document.querySelector('input[name="mediator_bank"]')?.value || '',
+                bank_account: document.querySelector('input[name="mediator_bank_account"]')?.value || '',
+                amount: parseFloat(document.querySelector('input[name="mediator_amount"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0
+            };
+            document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
+        }
+
+        // Event listener sebelum form submit
+        document.getElementById('formDetailTR')?.addEventListener('submit', function(e) {
+            saveDataToHidden();
+        });
 
         // ============================================
         // APPROVAL FUNCTIONS
