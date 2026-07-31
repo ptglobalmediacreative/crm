@@ -526,48 +526,6 @@ function hasDetailTR($db, $trf_number) {
             font-weight: 600;
         }
         
-        .btn-action {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            transition: all 0.3s ease;
-            font-size: 13px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        
-        .btn-action:hover {
-            transform: scale(1.1);
-        }
-        
-        .btn-action.detail {
-            background: rgba(46, 204, 113, 0.1);
-            color: #27ae60;
-        }
-        .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
-        
-        .btn-action.approve {
-            background: rgba(52, 152, 219, 0.1);
-            color: #2980b9;
-        }
-        .btn-action.approve:hover { background: rgba(52, 152, 219, 0.2); }
-        
-        .btn-action.reject {
-            background: rgba(231, 76, 60, 0.1);
-            color: #c0392b;
-        }
-        .btn-action.reject:hover { background: rgba(231, 76, 60, 0.2); }
-        
-        .btn-action.complete-tr {
-            background: rgba(46, 204, 113, 0.1);
-            color: #27ae60;
-        }
-        .btn-action.complete-tr:hover { background: rgba(46, 204, 113, 0.2); }
-        
         .modal-content {
             border: none;
             border-radius: 12px;
@@ -1021,6 +979,7 @@ function hasDetailTR($db, $trf_number) {
             color: #2980b9;
             text-decoration: none;
             font-weight: 600;
+            display: inline-block;
         }
         
         .trf-link:hover {
@@ -1056,10 +1015,10 @@ function hasDetailTR($db, $trf_number) {
             .modal-header { padding: 14px 16px; }
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
-            .btn-action { width: 26px; height: 26px; font-size: 11px; }
             .detail-item { flex-direction: column; padding: 8px 0; }
             .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
+            .trf-link { font-size: 11px; }
         }
         
         .footer-text {
@@ -1285,9 +1244,11 @@ function hasDetailTR($db, $trf_number) {
                                     <tr>
                                         <td><?= $no++ ?></td>
                                         <td>
-                                            <span class="badge-trf">
-                                                <i class="fas fa-file-signature"></i> <?= htmlspecialchars($request['trf_number']) ?>
-                                            </span>
+                                            <a href="detailtr.php?trf=<?= urlencode($request['trf_number']) ?>" class="trf-link" target="_blank">
+                                                <span class="badge-trf">
+                                                    <i class="fas fa-file-signature"></i> <?= htmlspecialchars($request['trf_number']) ?>
+                                                </span>
+                                            </a>
                                         </td>
                                         <td><strong><?= htmlspecialchars($request['subject']) ?></strong></td>
                                         <td><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></td>
