@@ -83,6 +83,72 @@ try {
 }
 
 // ============================================
+// FUNGSI UNTUK MENDAPATKAN STATUS APPROVAL
+// ============================================
+function getApprovalStatus($detailData) {
+    if (!$detailData) return 'pending';
+    
+    $status = $detailData['status'] ?? 'draft';
+    
+    // Jika status sudah completed atau rejected
+    if ($status === 'completed') return 'success';
+    if ($status === 'rejected') return 'rejected';
+    
+    // Cek approval level
+    $approval_level = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
+    
+    if ($approval_level >= 5) return 'success';
+    if ($approval_level > 0) return 'in_progress';
+    
+    return 'pending';
+}
+
+// ============================================
+// FUNGSI UNTUK MENDAPATKAN CURRENT APPROVER
+// ============================================
+function getCurrentApprover($approval_level) {
+    $approvers = [
+        1 => ['job_title' => 'Sales Manager', 'role' => 'sales_manager'],
+        2 => ['job_title' => 'Direktur Sales', 'role' => 'direktur_sales'],
+        3 => ['job_title' => 'Business', 'role' => 'business'],
+        4 => ['job_title' => 'Direktur Operasional', 'role' => 'direktur_operasional'],
+        5 => ['job_title' => 'Direktur Utama', 'role' => 'direktur_utama']
+    ];
+    
+    return $approvers[$approval_level] ?? null;
+}
+
+// ============================================
+// FUNGSI UNTUK MENDAPATKAN NEXT APPROVER
+// ============================================
+function getNextApprover($approval_level) {
+    $next_level = $approval_level + 1;
+    $approvers = [
+        1 => ['job_title' => 'Sales Manager', 'role' => 'sales_manager'],
+        2 => ['job_title' => 'Direktur Sales', 'role' => 'direktur_sales'],
+        3 => ['job_title' => 'Business', 'role' => 'business'],
+        4 => ['job_title' => 'Direktur Operasional', 'role' => 'direktur_operasional'],
+        5 => ['job_title' => 'Direktur Utama', 'role' => 'direktur_utama']
+    ];
+    
+    return $approvers[$next_level] ?? null;
+}
+
+// ============================================
+// FUNGSI UNTUK MENDAPATKAN NAMA APPROVER
+// ============================================
+function getApproverName($db, $role) {
+    try {
+        $stmt = $db->prepare("SELECT full_name FROM users WHERE role = ? AND status = 'active' LIMIT 1");
+        $stmt->execute([$role]);
+        $result = $stmt->fetch();
+        return $result ? $result['full_name'] : '-';
+    } catch(PDOException $e) {
+        return '-';
+    }
+}
+
+// ============================================
 // PROSES SIMPAN / UPDATE
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -221,6 +287,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Status
         $status = isset($_POST['status']) ? $_POST['status'] : 'draft';
         
+        // Approval Level
+        $approval_level = isset($_POST['approval_level']) ? (int)$_POST['approval_level'] : 0;
+        
         // Cek apakah sudah ada
         $stmt = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
         $stmt->execute([$trf_number]);
@@ -243,7 +312,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                   additional_cost = ?,
                                   mediator_fee = ?,
                                   grand_total = ?,
-                                  status = ?
+                                  status = ?,
+                                  approval_level = ?
                                   WHERE trf_number = ?");
             $stmt->execute([
                 $transaction_request_id,
@@ -261,6 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 json_encode($mediator_fee),
                 $grand_total,
                 $status,
+                $approval_level,
                 $trf_number
             ]);
             setFlash('Data Detail TR berhasil diupdate!', 'success');
@@ -269,8 +340,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $db->prepare("INSERT INTO detail_transaction_requests 
                                   (trf_number, transaction_request_id, account_id, 
                                    nama_pt, npwp, alamat, nama_pic, jabatan_pic, no_hp_pic, email_pic,
-                                   units, term_of_payment, additional_cost, mediator_fee, grand_total, status) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                   units, term_of_payment, additional_cost, mediator_fee, grand_total, status, approval_level) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $trf_number,
                 $transaction_request_id,
@@ -287,18 +358,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 json_encode($additional_cost),
                 json_encode($mediator_fee),
                 $grand_total,
-                $status
+                $status,
+                $approval_level
             ]);
             setFlash('Data Detail TR berhasil disimpan!', 'success');
         }
         redirect('detailtr.php?trf=' . $trf_number);
     }
     
-    if ($action === 'submit') {
+    // ============================================
+    // PROSES APPROVAL
+    // ============================================
+    if ($action === 'approve') {
         $id = (int)$_POST['id'];
-        $stmt = $db->prepare("UPDATE detail_transaction_requests SET status = 'submitted' WHERE id = ?");
+        $current_level = isset($_POST['approval_level']) ? (int)$_POST['approval_level'] : 0;
+        $new_level = $current_level + 1;
+        
+        // Cek role user apakah sesuai dengan level approval
+        $role_mapping = [
+            1 => 'sales_manager',
+            2 => 'direktur_sales',
+            3 => 'business',
+            4 => 'direktur_operasional',
+            5 => 'direktur_utama'
+        ];
+        
+        $required_role = $role_mapping[$new_level] ?? null;
+        
+        if ($required_role && $userRole !== $required_role && !$hasFullAccess) {
+            setFlash('Anda tidak memiliki akses untuk approve di level ini!', 'danger');
+            redirect('detailtr.php');
+        }
+        
+        // Jika sudah mencapai level 5, set status menjadi completed
+        if ($new_level >= 5) {
+            $stmt = $db->prepare("UPDATE detail_transaction_requests SET approval_level = ?, status = 'completed' WHERE id = ?");
+            $stmt->execute([$new_level, $id]);
+            setFlash('TR berhasil di-approve dan selesai!', 'success');
+        } else {
+            $stmt = $db->prepare("UPDATE detail_transaction_requests SET approval_level = ? WHERE id = ?");
+            $stmt->execute([$new_level, $id]);
+            setFlash('TR berhasil di-approve ke level ' . $new_level . '!', 'success');
+        }
+        redirect('detailtr.php?trf=' . $_POST['trf_number']);
+    }
+    
+    if ($action === 'reject') {
+        $id = (int)$_POST['id'];
+        $stmt = $db->prepare("UPDATE detail_transaction_requests SET status = 'rejected' WHERE id = ?");
         $stmt->execute([$id]);
-        setFlash('Detail TR berhasil disubmit!', 'success');
+        setFlash('TR ditolak!', 'danger');
         redirect('detailtr.php');
     }
 }
@@ -352,6 +461,7 @@ if (!empty($trf_number)) {
                 'mediator_fee' => '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}',
                 'grand_total' => 0,
                 'status' => 'draft',
+                'approval_level' => 0,
                 'subject' => $trData['subject'],
                 'jenis_tugas' => $trData['jenis_tugas'],
                 'description' => $trData['description'],
@@ -604,10 +714,9 @@ $requests = $stmt->fetchAll();
         }
         
         .badge-status.draft { background: rgba(149, 165, 166, 0.15); color: #7f8c8d; }
-        .badge-status.submitted { background: rgba(241, 196, 15, 0.15); color: #d4a017; }
-        .badge-status.approved { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
+        .badge-status.in_progress { background: rgba(241, 196, 15, 0.15); color: #d4a017; }
+        .badge-status.success { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
         .badge-status.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
-        .badge-status.completed { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
         
         .badge-trf {
             background: rgba(52, 152, 219, 0.12);
@@ -812,7 +921,7 @@ $requests = $stmt->fetchAll();
         .info-row .info-label {
             font-weight: 600;
             color: #555;
-            width: 180px;
+            width: 200px;
             flex-shrink: 0;
             font-size: 13px;
         }
@@ -848,6 +957,7 @@ $requests = $stmt->fetchAll();
             .modal-header { padding: 14px 16px; }
             .unit-row { padding: 10px; }
             .nav-tabs-custom .nav-link { padding: 8px 10px; font-size: 11px; }
+            .info-row .info-label { width: 100%; }
         }
     </style>
 </head>
@@ -963,6 +1073,7 @@ $requests = $stmt->fetchAll();
             <input type="hidden" name="transaction_request_id" value="<?= $detailData['transaction_request_id'] ?? '' ?>">
             <input type="hidden" name="account_id" value="<?= $detailData['account_id'] ?? '' ?>">
             <input type="hidden" name="status" id="formStatus" value="<?= $detailData['status'] ?? 'draft' ?>">
+            <input type="hidden" name="approval_level" id="formApprovalLevel" value="<?= $detailData['approval_level'] ?? 0 ?>">
 
             <!-- TAB NAVIGATION -->
             <div class="card-custom" style="padding: 0; overflow: hidden;">
@@ -1045,14 +1156,107 @@ $requests = $stmt->fetchAll();
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- STATUS & APPROVAL INFORMATION -->
                         <div class="row mt-3">
                             <div class="col-md-12">
+                                <?php
+                                $approvalLevel = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
+                                $status = $detailData['status'] ?? 'draft';
+                                $approvalStatus = getApprovalStatus($detailData);
+                                ?>
+                                
                                 <div class="info-row">
                                     <span class="info-label">Status</span>
                                     <span class="info-value">
-                                        <span class="badge-status <?= $detailData['status'] ?? 'draft' ?>">
-                                            <?= ucfirst($detailData['status'] ?? 'Draft') ?>
+                                        <span class="badge-status <?= $approvalStatus ?>">
+                                            <?php 
+                                            if ($status === 'rejected') {
+                                                echo 'Rejected';
+                                            } elseif ($approvalStatus === 'success') {
+                                                echo 'Success';
+                                            } elseif ($approvalStatus === 'in_progress') {
+                                                echo 'In Progress';
+                                            } else {
+                                                echo 'Pending';
+                                            }
+                                            ?>
                                         </span>
+                                    </span>
+                                </div>
+                                
+                                <?php if ($status !== 'rejected' && $status !== 'completed'): ?>
+                                <!-- Current Approver -->
+                                <div class="info-row">
+                                    <span class="info-label">Current Approver Job Title</span>
+                                    <span class="info-value">
+                                        <?php 
+                                        if ($approvalLevel >= 5) {
+                                            echo 'Completed';
+                                        } else {
+                                            $current = getCurrentApprover($approvalLevel + 1);
+                                            if ($current) {
+                                                echo $current['job_title'];
+                                            } else {
+                                                echo '-';
+                                            }
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                                
+                                <div class="info-row">
+                                    <span class="info-label">Current Approver Resource Name</span>
+                                    <span class="info-value">
+                                        <?php 
+                                        if ($approvalLevel >= 5) {
+                                            echo 'Completed';
+                                        } else {
+                                            $current = getCurrentApprover($approvalLevel + 1);
+                                            if ($current) {
+                                                echo getApproverName($db, $current['role']);
+                                            } else {
+                                                echo '-';
+                                            }
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                                
+                                <!-- Next Approver -->
+                                <div class="info-row">
+                                    <span class="info-label">Next Approver Job Title</span>
+                                    <span class="info-value">
+                                        <?php 
+                                        if ($approvalLevel >= 5) {
+                                            echo 'Completed';
+                                        } else {
+                                            $next = getNextApprover($approvalLevel);
+                                            if ($next) {
+                                                echo $next['job_title'];
+                                            } else {
+                                                echo '-';
+                                            }
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <!-- Approval Level Info -->
+                                <div class="info-row">
+                                    <span class="info-label">Approval Level</span>
+                                    <span class="info-value">
+                                        <?= $approvalLevel ?> / 5
+                                        <?php if ($approvalLevel > 0 && $approvalLevel < 5): ?>
+                                            <span class="badge bg-warning text-dark ms-2">In Progress</span>
+                                        <?php elseif ($approvalLevel >= 5): ?>
+                                            <span class="badge bg-success ms-2">Completed</span>
+                                        <?php elseif ($status === 'rejected'): ?>
+                                            <span class="badge bg-danger ms-2">Rejected</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary ms-2">Pending</span>
+                                        <?php endif; ?>
                                     </span>
                                 </div>
                             </div>
@@ -1335,24 +1539,39 @@ $requests = $stmt->fetchAll();
                         <i class="fas fa-save"></i> Simpan Draft
                     </button>
                     
-                    <?php if ($detailData['status'] == 'draft'): ?>
-                        <button type="submit" class="btn btn-warning-custom" onclick="document.getElementById('formStatus').value='submitted'">
-                            <i class="fas fa-paper-plane"></i> Submit
-                        </button>
-                    <?php endif; ?>
+                    <?php 
+                    $approvalLevel = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
+                    $status = $detailData['status'] ?? 'draft';
                     
-                    <?php if ($detailData['status'] == 'submitted' && ($isDirektur || $hasFullAccess)): ?>
-                        <button type="submit" class="btn btn-success-custom" onclick="document.getElementById('formStatus').value='approved'">
+                    // Cek apakah user bisa approve
+                    $canApprove = false;
+                    $nextRole = null;
+                    $role_mapping = [
+                        1 => 'sales_manager',
+                        2 => 'direktur_sales',
+                        3 => 'business',
+                        4 => 'direktur_operasional',
+                        5 => 'direktur_utama'
+                    ];
+                    
+                    $nextLevel = $approvalLevel + 1;
+                    if ($nextLevel <= 5 && $status !== 'rejected' && $status !== 'completed') {
+                        $nextRole = $role_mapping[$nextLevel] ?? null;
+                        if ($nextRole && ($userRole === $nextRole || $hasFullAccess)) {
+                            $canApprove = true;
+                        }
+                    }
+                    ?>
+                    
+                    <?php if ($canApprove && $approvalLevel < 5 && $status !== 'rejected' && $status !== 'completed'): ?>
+                        <button type="button" class="btn btn-success-custom" onclick="approveTR(<?= $detailData['id'] ?>, '<?= $detailData['trf_number'] ?>', <?= $approvalLevel ?>)">
                             <i class="fas fa-check"></i> Approve
                         </button>
-                        <button type="submit" class="btn btn-danger-custom" onclick="document.getElementById('formStatus').value='rejected'">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
                     <?php endif; ?>
                     
-                    <?php if ($detailData['status'] == 'approved' && ($userRole === 'sales' || $hasFullAccess)): ?>
-                        <button type="submit" class="btn btn-success-custom" onclick="document.getElementById('formStatus').value='completed'">
-                            <i class="fas fa-check-double"></i> Complete
+                    <?php if ($approvalLevel < 5 && $status !== 'rejected' && $status !== 'completed' && ($hasFullAccess || $userRole === 'sales')): ?>
+                        <button type="button" class="btn btn-danger-custom" onclick="rejectTR(<?= $detailData['id'] ?>, '<?= $detailData['trf_number'] ?>')">
+                            <i class="fas fa-times"></i> Reject
                         </button>
                     <?php endif; ?>
                     
@@ -1362,6 +1581,22 @@ $requests = $stmt->fetchAll();
                 </div>
             </div>
         </form>
+        
+        <!-- Form Approve -->
+        <form method="POST" id="formApprove" style="display:none;">
+            <input type="hidden" name="action" value="approve">
+            <input type="hidden" name="id" id="approveId">
+            <input type="hidden" name="trf_number" id="approveTrfNumber">
+            <input type="hidden" name="approval_level" id="approveLevel">
+        </form>
+        
+        <!-- Form Reject -->
+        <form method="POST" id="formReject" style="display:none;">
+            <input type="hidden" name="action" value="reject">
+            <input type="hidden" name="id" id="rejectId">
+            <input type="hidden" name="trf_number" id="rejectTrfNumber">
+        </form>
+        
         <?php else: ?>
             <div class="alert alert-info">
                 <i class="fas fa-info-circle"></i> Silakan pilih TRF Number terlebih dahulu.
@@ -1653,6 +1888,26 @@ $requests = $stmt->fetchAll();
         function updateMediatorAmount() {
             const mediatorFee = parseFloat(document.getElementById('mediatorFeeInput').value.replace(/\./g, '').replace(/,/g, '')) || 0;
             document.getElementById('mediatorAmount').value = formatNumber(mediatorFee);
+        }
+
+        // ============================================
+        // APPROVAL FUNCTIONS
+        // ============================================
+        function approveTR(id, trfNumber, currentLevel) {
+            if (confirm('Apakah Anda yakin ingin menyetujui TR ini?')) {
+                document.getElementById('approveId').value = id;
+                document.getElementById('approveTrfNumber').value = trfNumber;
+                document.getElementById('approveLevel').value = currentLevel;
+                document.getElementById('formApprove').submit();
+            }
+        }
+
+        function rejectTR(id, trfNumber) {
+            if (confirm('Apakah Anda yakin ingin menolak TR ini?')) {
+                document.getElementById('rejectId').value = id;
+                document.getElementById('rejectTrfNumber').value = trfNumber;
+                document.getElementById('formReject').submit();
+            }
         }
 
         // ============================================
