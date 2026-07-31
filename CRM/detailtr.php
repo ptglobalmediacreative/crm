@@ -248,15 +248,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         $top['grand_total_top'] = $top_grand_total;
         
-        // Additional Cost
+        // Additional Cost dengan Remark
         $additional_cost = [
             'insurance_ops' => (float)str_replace(['.', ','], '', isset($_POST['insurance_ops']) ? $_POST['insurance_ops'] : 0),
+            'insurance_ops_remark' => isset($_POST['insurance_ops_remark']) ? bersihkan($_POST['insurance_ops_remark']) : '',
             'insurance_cargo' => (float)str_replace(['.', ','], '', isset($_POST['insurance_cargo']) ? $_POST['insurance_cargo'] : 0),
+            'insurance_cargo_remark' => isset($_POST['insurance_cargo_remark']) ? bersihkan($_POST['insurance_cargo_remark']) : '',
             'delivery_cost' => (float)str_replace(['.', ','], '', isset($_POST['delivery_cost']) ? $_POST['delivery_cost'] : 0),
+            'delivery_cost_remark' => isset($_POST['delivery_cost_remark']) ? bersihkan($_POST['delivery_cost_remark']) : '',
             'free_part' => (float)str_replace(['.', ','], '', isset($_POST['free_part']) ? $_POST['free_part'] : 0),
+            'free_part_remark' => isset($_POST['free_part_remark']) ? bersihkan($_POST['free_part_remark']) : '',
             'free_service' => (float)str_replace(['.', ','], '', isset($_POST['free_service']) ? $_POST['free_service'] : 0),
+            'free_service_remark' => isset($_POST['free_service_remark']) ? bersihkan($_POST['free_service_remark']) : '',
             'mediator_fee' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0),
+            'mediator_fee_remark' => isset($_POST['mediator_fee_remark']) ? bersihkan($_POST['mediator_fee_remark']) : '',
             'others' => (float)str_replace(['.', ','], '', isset($_POST['others_cost']) ? $_POST['others_cost'] : 0),
+            'others_remark' => isset($_POST['others_remark']) ? bersihkan($_POST['others_remark']) : '',
             'total_additional' => 0
         ];
         
@@ -444,7 +451,7 @@ if (!empty($trf_number)) {
                 'email_pic' => $trData['email_pic'] ?? '',
                 'units' => '[]',
                 'term_of_payment' => '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}',
-                'additional_cost' => '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}',
+                'additional_cost' => '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}',
                 'mediator_fee' => '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}',
                 'grand_total' => 0,
                 'status' => 'draft',
@@ -492,7 +499,7 @@ $editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
 $units = json_decode($detailData['units'] ?? '[]', true);
 $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
-$additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}', true);
+$additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
 $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
 ?>
 <!DOCTYPE html>
@@ -1659,37 +1666,67 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Insurance Ops</label>
-                                        <input type="text" name="insurance_ops" class="form-control additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                        <input type="text" name="insurance_ops" class="form-control additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Insurance Ops</label>
+                                        <input type="text" name="insurance_ops_remark" class="form-control" value="<?= htmlspecialchars($additional['insurance_ops_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Insurance Cargo <span class="text-danger">*</span></label>
-                                        <input type="text" name="insurance_cargo" class="form-control additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required>
+                                        <input type="text" name="insurance_cargo" class="form-control additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required placeholder="Nominal">
                                     </div>
                                     <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Insurance Cargo</label>
+                                        <input type="text" name="insurance_cargo_remark" class="form-control" value="<?= htmlspecialchars($additional['insurance_cargo_remark'] ?? '') ?>" placeholder="Keterangan">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
                                         <label class="form-label">Delivery Cost</label>
-                                        <input type="text" name="delivery_cost" class="form-control additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                        <input type="text" name="delivery_cost" class="form-control additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3 mb-3">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Delivery Cost</label>
+                                        <input type="text" name="delivery_cost_remark" class="form-control" value="<?= htmlspecialchars($additional['delivery_cost_remark'] ?? '') ?>" placeholder="Keterangan">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
                                         <label class="form-label">Free Part</label>
-                                        <input type="text" name="free_part" class="form-control additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                        <input type="text" name="free_part" class="form-control additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
                                     </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Free Service</label>
-                                        <input type="text" name="free_service" class="form-control additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Mediator Fee</label>
-                                        <input type="text" name="mediator_fee" class="form-control additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()">
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Others</label>
-                                        <input type="text" name="others_cost" class="form-control additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Free Part</label>
+                                        <input type="text" name="free_part_remark" class="form-control" value="<?= htmlspecialchars($additional['free_part_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-12 text-end">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Free Service</label>
+                                        <input type="text" name="free_service" class="form-control additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Free Service</label>
+                                        <input type="text" name="free_service_remark" class="form-control" value="<?= htmlspecialchars($additional['free_service_remark'] ?? '') ?>" placeholder="Keterangan">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Mediator Fee</label>
+                                        <input type="text" name="mediator_fee" class="form-control additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()" placeholder="Nominal">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Mediator Fee</label>
+                                        <input type="text" name="mediator_fee_remark" class="form-control" value="<?= htmlspecialchars($additional['mediator_fee_remark'] ?? '') ?>" placeholder="Keterangan">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Others</label>
+                                        <input type="text" name="others_cost" class="form-control additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Others</label>
+                                        <input type="text" name="others_remark" class="form-control" value="<?= htmlspecialchars($additional['others_remark'] ?? '') ?>" placeholder="Keterangan">
+                                    </div>
+                                    <div class="col-md-4 mb-3 text-end">
                                         <label class="form-label">Total Additional Cost</label>
                                         <h4 class="text-primary" id="totalAdditional">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
                                         <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
@@ -1707,30 +1744,51 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <div class="summary-item">
                                 <span class="label">Insurance Ops</span>
                                 <span class="value">Rp <?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($additional['insurance_ops_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_ops_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item">
                                 <span class="label">Insurance Cargo</span>
                                 <span class="value">Rp <?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($additional['insurance_cargo_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_cargo_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item">
                                 <span class="label">Delivery Cost</span>
                                 <span class="value">Rp <?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($additional['delivery_cost_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($additional['delivery_cost_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item">
                                 <span class="label">Free Part</span>
                                 <span class="value">Rp <?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($additional['free_part_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($additional['free_part_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item">
                                 <span class="label">Free Service</span>
                                 <span class="value">Rp <?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($additional['free_service_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($additional['free_service_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item">
                                 <span class="label">Mediator Fee</span>
                                 <span class="value">Rp <?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($additional['mediator_fee_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($additional['mediator_fee_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item">
                                 <span class="label">Others</span>
                                 <span class="value">Rp <?= number_format($additional['others'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($additional['others_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($additional['others_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item" style="background: #cce5ff; border-radius: 6px;">
                                 <span class="label" style="font-weight: 700; color: #004085;">Total Additional Cost</span>
