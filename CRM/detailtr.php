@@ -955,37 +955,6 @@ $requests = $stmt->fetchAll();
 
         <?= showFlash() ?>
 
-        <!-- SELECT TRF NUMBER -->
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-search"></i> Pilih Transaction Request</h6>
-            </div>
-            <div class="card-body-custom">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-8">
-                        <select name="trf" class="form-select" onchange="this.form.submit()">
-                            <option value="">-- Pilih TRF Number --</option>
-                            <?php foreach ($trRequests as $tr): ?>
-                                <option value="<?= htmlspecialchars($tr['trf_number']) ?>" <?= ($trf_number == $tr['trf_number']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($tr['trf_number']) ?> - <?= htmlspecialchars($tr['subject']) ?> (<?= htmlspecialchars($tr['nama_pt'] ?? '-') ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <?php if (!empty($trf_number)): ?>
-                            <a href="detailtr.php" class="btn btn-secondary-custom w-100">Reset</a>
-                        <?php endif; ?>
-                    </div>
-                </form>
-                <?php if (empty($trRequests)): ?>
-                    <div class="alert alert-info mt-3 mb-0">
-                        <i class="fas fa-info-circle"></i> Belum ada Transaction Request yang di-approve. Silakan buat di Sales Activity terlebih dahulu.
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
         <?php if ($detailData): ?>
         <form method="POST" id="formDetailTR">
             <input type="hidden" name="action" value="save">
@@ -1394,6 +1363,10 @@ $requests = $stmt->fetchAll();
                 </div>
             </div>
         </form>
+        <?php else: ?>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Silakan pilih TRF Number terlebih dahulu.
+            </div>
         <?php endif; ?>
 
         <!-- FOOTER -->
