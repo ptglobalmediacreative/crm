@@ -501,6 +501,11 @@ $units = json_decode($detailData['units'] ?? '[]', true);
 $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
 $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
 $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
+
+// Pastikan data tidak hilang jika ada edit mode
+if ($editMode == 'unit' && !empty($units)) {
+    // Data unit sudah ada, tetap gunakan
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -517,6 +522,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* ============================================
+           GLOBAL STYLES
+           ============================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -524,6 +532,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             padding-bottom: 70px;
         }
         
+        /* ============================================
+           HEADER
+           ============================================ */
         .top-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 10px 20px;
@@ -548,6 +559,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
         .top-header .header-right .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 13px; text-decoration: none; border: 2px solid rgba(255, 215, 0, 0.2); transition: border-color 0.3s ease; }
         .top-header .header-right .user-avatar:hover { border-color: #ffd700; }
         
+        /* ============================================
+           WELCOME BANNER
+           ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border-radius: 12px;
@@ -563,6 +577,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
         .welcome-banner .welcome-text h3 span { color: #ffd700; }
         .welcome-banner .welcome-icon { font-size: 32px; color: rgba(255, 215, 0, 0.05); position: absolute; right: 15px; bottom: 10px; }
         
+        /* ============================================
+           CARD STYLES
+           ============================================ */
         .card-custom {
             background: #fff;
             border-radius: 12px;
@@ -597,42 +614,58 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             padding: 20px;
         }
         
+        /* ============================================
+           FORM STYLES - RAPIH
+           ============================================ */
         .form-label {
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .form-label .required {
+            color: #e74c3c;
         }
         
         .form-label .optional {
             font-weight: 400;
             color: #999;
-            font-size: 11px;
+            font-size: 10px;
         }
         
         .form-control, .form-select {
             border-radius: 8px;
-            padding: 10px 14px;
-            border: 2px solid #c0c8d4 !important;
+            padding: 8px 12px;
+            border: 2px solid #e0e4ea;
             transition: all 0.3s ease;
             font-size: 13px;
             background: #ffffff;
         }
         
         .form-control:focus, .form-select:focus {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15) !important;
+            border-color: #ffd700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
         
         .form-control[readonly] {
             background: #f8f9fa;
-            border-color: #d0d5dc !important;
+            border-color: #d0d5dc;
         }
         
+        .form-control-sm {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        
+        /* ============================================
+           BUTTONS
+           ============================================ */
         .btn-primary-custom {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             border: none;
             border-radius: 8px;
-            padding: 10px 24px;
+            padding: 8px 20px;
             font-weight: 600;
             font-size: 13px;
             transition: all 0.3s ease;
@@ -645,11 +678,13 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             color: #fff;
         }
         
+        .btn-primary-custom i { margin-right: 6px; }
+        
         .btn-secondary-custom {
             background: #f0f2f5;
             border: none;
             border-radius: 8px;
-            padding: 10px 24px;
+            padding: 8px 20px;
             font-weight: 600;
             font-size: 13px;
             transition: all 0.3s ease;
@@ -713,7 +748,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             background: #3498db;
             border: none;
             border-radius: 8px;
-            padding: 6px 14px;
+            padding: 5px 12px;
             font-weight: 600;
             font-size: 12px;
             transition: all 0.3s ease;
@@ -725,6 +760,15 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             color: #fff;
         }
         
+        .btn-sm-custom {
+            padding: 4px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+        
+        /* ============================================
+           BADGES
+           ============================================ */
         .badge-status {
             padding: 3px 10px;
             border-radius: 20px;
@@ -746,12 +790,15 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             font-weight: 600;
         }
         
+        /* ============================================
+           UNIT ROW
+           ============================================ */
         .unit-row {
             background: #f8f9fa;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
-            border: 2px solid #d0d5dc;
+            border: 1px solid #e0e4ea;
         }
         
         .unit-row .btn-remove-unit {
@@ -766,31 +813,143 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             color: #c0392b;
         }
         
+        .unit-row .form-control, .unit-row .form-select {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        
+        /* ============================================
+           DP & INSTALLMENT ROW
+           ============================================ */
         .dp-row, .installment-row {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             padding: 6px;
-            background: #f8f9fa;
+            background: #fafafa;
             border-radius: 6px;
-            border: 1px solid #e0e4ea;
+            border: 1px solid #e8edf2;
         }
         
         .dp-row .form-control, .installment-row .form-control {
             flex: 1;
+            font-size: 12px;
+            padding: 6px 10px;
         }
         
+        .dp-row .btn, .installment-row .btn {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        
+        /* ============================================
+           SUMMARY ITEM
+           ============================================ */
+        .summary-item {
+            display: flex;
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            border: 1px solid #e8edf2;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .summary-item .label {
+            font-weight: 600;
+            color: #555;
+            width: 160px;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+        
+        .summary-item .value {
+            color: #1a1a2e;
+            font-size: 12px;
+            word-break: break-word;
+        }
+        
+        .summary-item .value .badge {
+            font-size: 11px;
+        }
+        
+        .summary-item .text-muted {
+            font-size: 11px;
+        }
+        
+        /* ============================================
+           EMPTY STATE
+           ============================================ */
+        .empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            color: #999;
+        }
+        
+        .empty-state i {
+            font-size: 36px;
+            color: #ddd;
+            margin-bottom: 8px;
+        }
+        
+        .empty-state p {
+            font-size: 13px;
+            margin: 0;
+        }
+        
+        /* ============================================
+           EDIT FORM CONTAINER
+           ============================================ */
+        .edit-form-container {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e0e4ea;
+        }
+        
+        /* ============================================
+           INFO ROW
+           ============================================ */
+        .info-row {
+            display: flex;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f2f5;
+            flex-wrap: wrap;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-row .info-label {
+            font-weight: 600;
+            color: #555;
+            width: 180px;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        
+        .info-row .info-value {
+            color: #1a1a2e;
+            font-size: 13px;
+            word-break: break-word;
+        }
+        
+        /* ============================================
+           NAV TABS
+           ============================================ */
         .nav-tabs-custom {
             border-bottom: 2px solid #e8edf2;
-            padding: 0 20px;
+            padding: 0 16px;
             background: #f8f9fa;
             border-radius: 12px 12px 0 0;
         }
         
         .nav-tabs-custom .nav-link {
             border: none;
-            padding: 12px 20px;
+            padding: 10px 16px;
             font-weight: 600;
             font-size: 13px;
             color: #999;
@@ -824,13 +983,43 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
         }
         
         .tab-content-custom {
-            padding: 20px;
+            padding: 16px 20px 20px;
             background: #fff;
             border-radius: 0 0 12px 12px;
             border: 1px solid #e8edf2;
             border-top: none;
         }
         
+        /* ============================================
+           SECTION TITLE
+           ============================================ */
+        .section-title {
+            font-weight: 700;
+            color: #1a1a2e;
+            font-size: 15px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+        
+        .section-title i {
+            color: #ffd700;
+            margin-right: 8px;
+        }
+        
+        /* ============================================
+           ALERT
+           ============================================ */
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+        
+        /* ============================================
+           BOTTOM NAV
+           ============================================ */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -864,6 +1053,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
         .bottom-nav .nav-item.active .nav-label { color: #1a1a2e; font-weight: 600; }
         .bottom-nav .nav-item.active::before { content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 18px; height: 2px; background: #ffd700; border-radius: 0 0 2px 2px; }
         
+        /* ============================================
+           DESKTOP NAV
+           ============================================ */
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 0 30px;
@@ -899,6 +1091,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
         .desktop-nav-wrapper .nav-right .logout-btn { color: rgba(255, 255, 255, 0.5); padding: 5px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; transition: all 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.1); }
         .desktop-nav-wrapper .nav-right .logout-btn:hover { color: #ff6b6b; background: rgba(214, 48, 49, 0.1); border-color: rgba(214, 48, 49, 0.3); }
         
+        /* ============================================
+           FOOTER
+           ============================================ */
         .footer-text {
             text-align: center;
             padding: 16px 0 8px;
@@ -909,97 +1104,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
         .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
         .footer-text a:hover { color: #ffd700; }
         
-        .section-title {
-            font-weight: 700;
-            color: #1a1a2e;
-            font-size: 16px;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f2f5;
-        }
-        
-        .section-title i {
-            color: #ffd700;
-            margin-right: 8px;
-        }
-        
-        .alert {
-            border-radius: 10px;
-            border: none;
-            padding: 12px 16px;
-            font-size: 14px;
-        }
-        
-        .info-row {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f2f5;
-        }
-        
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        
-        .info-row .info-label {
-            font-weight: 600;
-            color: #555;
-            width: 200px;
-            flex-shrink: 0;
-            font-size: 13px;
-        }
-        
-        .info-row .info-value {
-            color: #1a1a2e;
-            font-size: 13px;
-            word-break: break-word;
-        }
-        
-        .summary-item {
-            display: flex;
-            padding: 8px 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            margin-bottom: 6px;
-            border: 1px solid #e0e4ea;
-        }
-        
-        .summary-item .label {
-            font-weight: 600;
-            color: #555;
-            width: 180px;
-            flex-shrink: 0;
-            font-size: 12px;
-        }
-        
-        .summary-item .value {
-            color: #1a1a2e;
-            font-size: 12px;
-            word-break: break-word;
-        }
-        
-        .summary-item .value .badge {
-            font-size: 11px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 30px 20px;
-            color: #999;
-        }
-        
-        .empty-state i {
-            font-size: 40px;
-            color: #ddd;
-            margin-bottom: 10px;
-        }
-        
-        .edit-form-container {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            border: 2px solid #d0d5dc;
-        }
-        
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1015,20 +1122,90 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             .card-custom .card-header-custom { padding: 12px 16px; }
             .card-custom .card-body-custom { padding: 15px; }
             .dp-row, .installment-row { flex-wrap: wrap; }
-            .nav-tabs-custom .nav-link { padding: 10px 12px; font-size: 12px; }
+            .nav-tabs-custom .nav-link { padding: 8px 12px; font-size: 12px; }
             .info-row { flex-wrap: wrap; }
             .info-row .info-label { width: 100%; }
             .summary-item { flex-wrap: wrap; }
             .summary-item .label { width: 100%; }
+            .tab-content-custom { padding: 12px 14px; }
+            .unit-row { padding: 10px; }
         }
         
         @media (max-width: 480px) {
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
-            .unit-row { padding: 10px; }
-            .nav-tabs-custom .nav-link { padding: 8px 10px; font-size: 11px; }
+            .unit-row { padding: 8px; }
+            .nav-tabs-custom .nav-link { padding: 6px 10px; font-size: 11px; }
             .info-row .info-label { width: 100%; }
             .summary-item .label { width: 100%; }
+            .dp-row .form-control, .installment-row .form-control { font-size: 11px; }
+            .dp-row { flex-wrap: wrap; }
+            .installment-row { flex-wrap: wrap; }
+        }
+        
+        /* ============================================
+           CURRENCY INPUT
+           ============================================ */
+        .currency-input {
+            position: relative;
+        }
+        
+        .currency-input .currency-prefix {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .currency-input .form-control {
+            padding-left: 32px;
+        }
+        
+        /* ============================================
+           CHAR COUNTER
+           ============================================ */
+        .char-counter {
+            font-size: 11px;
+            padding: 2px 0;
+            color: #999;
+        }
+        
+        .char-counter .count {
+            font-weight: 600;
+        }
+        
+        .char-counter .count.valid { color: #27ae60; }
+        .char-counter .count.invalid { color: #e74c3c; }
+        .char-counter .status-text { margin-left: 6px; }
+        .char-counter .status-text.valid { color: #27ae60; }
+        .char-counter .status-text.invalid { color: #e74c3c; }
+        
+        /* ============================================
+           DEAL FIELDS & TRF FIELD
+           ============================================ */
+        .deal-fields { display: none; }
+        .deal-fields.show { display: block; }
+        
+        .trf-field { display: none; }
+        .trf-field.show { display: block; }
+        
+        /* ============================================
+           ALERT INFO
+           ============================================ */
+        .alert-info-custom {
+            background: #e8f4fd;
+            border: 1px solid #c5e0f7;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #2c7fb8;
+        }
+        
+        .alert-info-custom i {
+            margin-right: 6px;
         }
     </style>
 </head>
@@ -1117,7 +1294,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
     </header>
 
     <!-- MAIN CONTENT -->
-    <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
+    <main style="padding: 12px 16px 0; max-width: 1400px; margin: 0 auto;">
 
         <!-- WELCOME BANNER -->
         <div class="welcome-banner">
@@ -1224,7 +1401,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                         </div>
                         
                         <!-- STATUS & APPROVAL INFORMATION -->
-                        <div class="row mt-3">
+                        <div class="row mt-2">
                             <div class="col-md-12">
                                 <?php
                                 $approvalLevel = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
@@ -1317,8 +1494,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <!-- TAB 2: DETAIL UNIT -->
                     <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
                             <?php if ($editMode != 'unit'): ?>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-primary-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Unit
                                 </a>
                             <?php endif; ?>
@@ -1347,8 +1525,8 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         </div>
                                         <div class="row">
                                             <div class="col-md-6 mb-2">
-                                                <label class="form-label">Unit <span class="text-danger">*</span></label>
-                                                <select name="unit_name[]" class="form-select" required>
+                                                <label class="form-label">Unit <span class="required">*</span></label>
+                                                <select name="unit_name[]" class="form-select form-select-sm" required>
                                                     <option value="">-- Pilih Unit --</option>
                                                     <?php foreach ($produkList as $produk): ?>
                                                         <option value="<?= htmlspecialchars($produk['nama_produk']) ?>" <?= ($unit['unit_name'] == $produk['nama_produk']) ? 'selected' : '' ?>>
@@ -1358,58 +1536,61 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                                 </select>
                                             </div>
                                             <div class="col-md-2 mb-2">
-                                                <label class="form-label">QTY <span class="text-danger">*</span></label>
-                                                <input type="number" name="qty[]" class="form-control qty" value="<?= $unit['qty'] ?? 1 ?>" min="1" required onchange="calculateUnit(this)">
+                                                <label class="form-label">QTY <span class="required">*</span></label>
+                                                <input type="number" name="qty[]" class="form-control form-control-sm qty" value="<?= $unit['qty'] ?? 1 ?>" min="1" required onchange="calculateUnit(this)">
                                             </div>
                                             <div class="col-md-4 mb-2">
-                                                <label class="form-label">Price (Non PPN) <span class="text-danger">*</span></label>
-                                                <input type="text" name="price[]" class="form-control price" value="<?= number_format($unit['price'] ?? 0, 0, ',', '.') ?>" required oninput="calculateUnit(this)">
+                                                <label class="form-label">Price (Non PPN) <span class="required">*</span></label>
+                                                <div class="currency-input">
+                                                    <span class="currency-prefix">Rp</span>
+                                                    <input type="text" name="price[]" class="form-control form-control-sm price" value="<?= number_format($unit['price'] ?? 0, 0, ',', '.') ?>" required oninput="calculateUnit(this)">
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-3 mb-2">
                                                 <label class="form-label">PPN (11%)</label>
-                                                <input type="text" name="ppn[]" class="form-control ppn" value="<?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?>" readonly>
+                                                <input type="text" name="ppn[]" class="form-control form-control-sm ppn" value="<?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?>" readonly>
                                             </div>
                                             <div class="col-md-3 mb-2">
                                                 <label class="form-label">Grand Total (Include PPN)</label>
-                                                <input type="text" name="grand_total_unit[]" class="form-control grand-total-unit" value="<?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?>" readonly>
+                                                <input type="text" name="grand_total_unit[]" class="form-control form-control-sm grand-total-unit" value="<?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?>" readonly>
                                             </div>
                                             <div class="col-md-6 mb-2">
-                                                <label class="form-label">Spesification <span class="text-danger">*</span></label>
-                                                <input type="text" name="specification[]" class="form-control" value="<?= htmlspecialchars($unit['specification'] ?? '') ?>" required>
+                                                <label class="form-label">Spesification <span class="required">*</span></label>
+                                                <input type="text" name="specification[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['specification'] ?? '') ?>" required>
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">Additional Attachment / Safety Devices</label>
-                                                <input type="text" name="additional_attachment[]" class="form-control" value="<?= htmlspecialchars($unit['additional_attachment'] ?? '') ?>">
+                                                <input type="text" name="additional_attachment[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['additional_attachment'] ?? '') ?>">
                                             </div>
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">Warranty</label>
-                                                <input type="text" name="warranty[]" class="form-control" value="<?= htmlspecialchars($unit['warranty'] ?? '') ?>">
+                                                <input type="text" name="warranty[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['warranty'] ?? '') ?>">
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-4 mb-2">
-                                                <label class="form-label">Machine Location Works <span class="text-danger">*</span></label>
-                                                <input type="text" name="machine_location[]" class="form-control" value="<?= htmlspecialchars($unit['machine_location'] ?? '') ?>" required>
+                                                <label class="form-label">Machine Location Works <span class="required">*</span></label>
+                                                <input type="text" name="machine_location[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['machine_location'] ?? '') ?>" required>
                                             </div>
                                             <div class="col-md-4 mb-2">
-                                                <label class="form-label">Delivery Terms <span class="text-danger">*</span></label>
-                                                <input type="text" name="delivery_terms[]" class="form-control" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" value="<?= htmlspecialchars($unit['delivery_terms'] ?? '') ?>" required>
+                                                <label class="form-label">Delivery Terms <span class="required">*</span></label>
+                                                <input type="text" name="delivery_terms[]" class="form-control form-control-sm" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" value="<?= htmlspecialchars($unit['delivery_terms'] ?? '') ?>" required>
                                             </div>
                                             <div class="col-md-4 mb-2">
-                                                <label class="form-label">Delivery Schedule Plan <span class="text-danger">*</span></label>
-                                                <input type="date" name="delivery_schedule[]" class="form-control" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? '') ?>" required>
+                                                <label class="form-label">Delivery Schedule Plan <span class="required">*</span></label>
+                                                <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? '') ?>" required>
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-12 mb-2">
-                                                <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
+                                                <label class="form-label">Transaction Type <span class="required">*</span></label>
                                                 <div class="row">
                                                     <div class="col-md-4">
-                                                        <select name="transaction_type[]" class="form-select transaction-type-select" required onchange="showOtherInput(this)">
+                                                        <select name="transaction_type[]" class="form-select form-select-sm transaction-type-select" required onchange="showOtherInput(this)">
                                                             <option value="">-- Pilih Transaction Type --</option>
                                                             <option value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'selected' : '' ?>>Cash On Delivery</option>
                                                             <option value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'selected' : '' ?>>Leasing</option>
@@ -1418,7 +1599,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4" id="otherInputContainer_<?= $unitIndex ?>" style="display: <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
-                                                        <input type="text" name="transaction_type_other[]" class="form-control" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>">
+                                                        <input type="text" name="transaction_type_other[]" class="form-control form-control-sm" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1437,6 +1618,9 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                     <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom ms-2">
                                         <i class="fas fa-times"></i> Batal
                                     </a>
+                                </div>
+                                <div class="alert-info-custom mt-2">
+                                    <i class="fas fa-info-circle"></i> Jumlah unit sudah ditentukan dan tidak dapat ditambahkan.
                                 </div>
                             </div>
                         <?php elseif (!empty($units)): ?>
@@ -1490,7 +1674,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <span class="label">Transaction Type</span>
                                 <span class="value"><span class="badge bg-info"><?= htmlspecialchars($unit['transaction_type'] ?? '-') ?></span></span>
                             </div>
-                            <hr>
+                            <hr class="my-2">
                             <?php endforeach; ?>
                         <?php else: ?>
                             <div class="empty-state">
@@ -1505,7 +1689,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
                             <?php if ($editMode != 'top'): ?>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-primary-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit TOP
                                 </a>
                             <?php endif; ?>
@@ -1515,29 +1699,35 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <!-- EDIT MODE TOP -->
                             <div class="edit-form-container">
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Booking Fee</label>
-                                        <input type="text" name="booking_fee" class="form-control top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="booking_fee" class="form-control form-control-sm top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Booking Fee</label>
-                                        <input type="text" name="booking_fee_remark" class="form-control" value="<?= htmlspecialchars($top['booking_fee_remark'] ?? '') ?>" placeholder="Keterangan booking fee">
+                                        <input type="text" name="booking_fee_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($top['booking_fee_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-3 text-end">
+                                    <div class="col-md-4 mb-2 text-end">
                                         <label class="form-label">Grand Total TOP</label>
-                                        <h4 class="text-success" id="grandTotalTOP">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
+                                        <h4 class="text-success" id="grandTotalTOP" style="font-size: 18px; margin: 0;">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
                                         <input type="hidden" name="grand_total_top" id="grandTotalTOPHidden" value="<?= $top['grand_total_top'] ?? 0 ?>">
                                     </div>
                                 </div>
                                 
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Nominal PO Leasing</label>
-                                        <input type="text" name="nominal_po_leasing" class="form-control top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="nominal_po_leasing" class="form-control form-control-sm top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark PO Leasing</label>
-                                        <input type="text" name="nominal_po_leasing_remark" class="form-control" value="<?= htmlspecialchars($top['nominal_po_leasing_remark'] ?? '') ?>" placeholder="Keterangan PO leasing">
+                                        <input type="text" name="nominal_po_leasing_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($top['nominal_po_leasing_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
 
@@ -1549,9 +1739,12 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         foreach ($top['down_payments'] ?? [] as $dp): 
                                         ?>
                                         <div class="dp-row">
-                                            <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
-                                            <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                            <input type="text" name="dp_remark[]" class="form-control" placeholder="Remark" value="<?= htmlspecialchars($dp['remark'] ?? '') ?>">
+                                            <input type="text" name="dp_name[]" class="form-control form-control-sm" placeholder="Nama DP" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
+                                            <div class="currency-input" style="flex:1;">
+                                                <span class="currency-prefix">Rp</span>
+                                                <input type="text" name="dp_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                            </div>
+                                            <input type="text" name="dp_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($dp['remark'] ?? '') ?>">
                                             <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
                                         </div>
                                         <?php 
@@ -1559,7 +1752,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         endforeach; 
                                         ?>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addDP()">
+                                    <button type="button" class="btn btn-sm btn-primary-custom mt-1" onclick="addDP()">
                                         <i class="fas fa-plus"></i> Tambah DP
                                     </button>
                                 </div>
@@ -1572,9 +1765,12 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         foreach ($top['installments'] ?? [] as $inst): 
                                         ?>
                                         <div class="installment-row">
-                                            <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
-                                            <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                            <input type="text" name="installment_remark[]" class="form-control" placeholder="Remark" value="<?= htmlspecialchars($inst['remark'] ?? '') ?>">
+                                            <input type="text" name="installment_name[]" class="form-control form-control-sm" placeholder="Nama Angsuran" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
+                                            <div class="currency-input" style="flex:1;">
+                                                <span class="currency-prefix">Rp</span>
+                                                <input type="text" name="installment_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                            </div>
+                                            <input type="text" name="installment_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($inst['remark'] ?? '') ?>">
                                             <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
                                         </div>
                                         <?php 
@@ -1582,16 +1778,18 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         endforeach; 
                                         ?>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addInstallment()">
+                                    <button type="button" class="btn btn-sm btn-primary-custom mt-1" onclick="addInstallment()">
                                         <i class="fas fa-plus"></i> Tambah Angsuran
                                     </button>
                                 </div>
-                                <button type="submit" class="btn btn-sm btn-success-custom mt-2">
-                                    <i class="fas fa-save"></i> Simpan TOP
-                                </button>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                    <i class="fas fa-times"></i> Batal
-                                </a>
+                                <div class="text-end mt-2">
+                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                        <i class="fas fa-save"></i> Simpan TOP
+                                    </button>
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom ms-2">
+                                        <i class="fas fa-times"></i> Batal
+                                    </a>
+                                </div>
                             </div>
                         <?php elseif (!empty($top['down_payments']) || !empty($top['installments']) || $top['booking_fee'] > 0 || $top['nominal_po_leasing'] > 0): ?>
                             <!-- VIEW MODE TOP -->
@@ -1644,7 +1842,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
                             <?php if ($editMode != 'additional'): ?>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-primary-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Additional Cost
                                 </a>
                             <?php endif; ?>
@@ -1664,80 +1862,103 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <!-- EDIT MODE ADDITIONAL -->
                             <div class="edit-form-container">
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Insurance Ops</label>
-                                        <input type="text" name="insurance_ops" class="form-control additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="insurance_ops" class="form-control form-control-sm additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Insurance Ops</label>
-                                        <input type="text" name="insurance_ops_remark" class="form-control" value="<?= htmlspecialchars($additional['insurance_ops_remark'] ?? '') ?>" placeholder="Keterangan">
+                                        <input type="text" name="insurance_ops_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['insurance_ops_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Insurance Cargo <span class="text-danger">*</span></label>
-                                        <input type="text" name="insurance_cargo" class="form-control additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required placeholder="Nominal">
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Insurance Cargo <span class="required">*</span></label>
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="insurance_cargo" class="form-control form-control-sm additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Insurance Cargo</label>
-                                        <input type="text" name="insurance_cargo_remark" class="form-control" value="<?= htmlspecialchars($additional['insurance_cargo_remark'] ?? '') ?>" placeholder="Keterangan">
+                                        <input type="text" name="insurance_cargo_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['insurance_cargo_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Delivery Cost</label>
-                                        <input type="text" name="delivery_cost" class="form-control additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="delivery_cost" class="form-control form-control-sm additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Delivery Cost</label>
-                                        <input type="text" name="delivery_cost_remark" class="form-control" value="<?= htmlspecialchars($additional['delivery_cost_remark'] ?? '') ?>" placeholder="Keterangan">
+                                        <input type="text" name="delivery_cost_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['delivery_cost_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Free Part</label>
-                                        <input type="text" name="free_part" class="form-control additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="free_part" class="form-control form-control-sm additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Free Part</label>
-                                        <input type="text" name="free_part_remark" class="form-control" value="<?= htmlspecialchars($additional['free_part_remark'] ?? '') ?>" placeholder="Keterangan">
+                                        <input type="text" name="free_part_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['free_part_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Free Service</label>
-                                        <input type="text" name="free_service" class="form-control additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="free_service" class="form-control form-control-sm additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Free Service</label>
-                                        <input type="text" name="free_service_remark" class="form-control" value="<?= htmlspecialchars($additional['free_service_remark'] ?? '') ?>" placeholder="Keterangan">
+                                        <input type="text" name="free_service_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['free_service_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Mediator Fee</label>
-                                        <input type="text" name="mediator_fee" class="form-control additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="mediator_fee" class="form-control form-control-sm additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Mediator Fee</label>
-                                        <input type="text" name="mediator_fee_remark" class="form-control" value="<?= htmlspecialchars($additional['mediator_fee_remark'] ?? '') ?>" placeholder="Keterangan">
+                                        <input type="text" name="mediator_fee_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['mediator_fee_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Others</label>
-                                        <input type="text" name="others_cost" class="form-control additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="others_cost" class="form-control form-control-sm additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-2">
                                         <label class="form-label">Remark Others</label>
-                                        <input type="text" name="others_remark" class="form-control" value="<?= htmlspecialchars($additional['others_remark'] ?? '') ?>" placeholder="Keterangan">
+                                        <input type="text" name="others_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['others_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-3 text-end">
+                                    <div class="col-md-4 mb-2 text-end">
                                         <label class="form-label">Total Additional Cost</label>
-                                        <h4 class="text-primary" id="totalAdditional">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
+                                        <h4 class="text-primary" id="totalAdditional" style="font-size: 18px; margin: 0;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
                                         <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-sm btn-success-custom mt-2">
-                                    <i class="fas fa-save"></i> Simpan Additional Cost
-                                </button>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                    <i class="fas fa-times"></i> Batal
-                                </a>
+                                <div class="text-end mt-2">
+                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                        <i class="fas fa-save"></i> Simpan Additional Cost
+                                    </button>
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom ms-2">
+                                        <i class="fas fa-times"></i> Batal
+                                    </a>
+                                </div>
                             </div>
                         <?php elseif ($hasAdditional): ?>
                             <!-- VIEW MODE ADDITIONAL -->
@@ -1807,7 +2028,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
                             <?php if ($editMode != 'mediator'): ?>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-primary-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Mediator
                                 </a>
                             <?php endif; ?>
@@ -1817,41 +2038,46 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <!-- EDIT MODE MEDIATOR -->
                             <div class="edit-form-container">
                                 <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="mediator_name" class="form-control" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Name <span class="required">*</span></label>
+                                        <input type="text" name="mediator_name" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">ID Card No <span class="text-danger">*</span></label>
-                                        <input type="text" name="mediator_id_card" class="form-control" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>" required>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">NPWP No <span class="text-danger">*</span></label>
-                                        <input type="text" name="mediator_npwp" class="form-control" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Bank Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="mediator_bank" class="form-control" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>" required>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">ID Card No <span class="required">*</span></label>
+                                        <input type="text" name="mediator_id_card" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>" required>
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Bank Account <span class="text-danger">*</span></label>
-                                        <input type="text" name="mediator_bank_account" class="form-control" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">NPWP No <span class="required">*</span></label>
+                                        <input type="text" name="mediator_npwp" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>" required>
                                     </div>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Bank Name <span class="required">*</span></label>
+                                        <input type="text" name="mediator_bank" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Bank Account <span class="required">*</span></label>
+                                        <input type="text" name="mediator_bank_account" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
                                         <label class="form-label">Amount</label>
-                                        <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" readonly>
+                                        <div class="currency-input">
+                                            <span class="currency-prefix">Rp</span>
+                                            <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control form-control-sm" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" readonly>
+                                        </div>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-sm btn-success-custom mt-2">
-                                    <i class="fas fa-save"></i> Simpan Mediator
-                                </button>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                    <i class="fas fa-times"></i> Batal
-                                </a>
+                                <div class="text-end mt-2">
+                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                        <i class="fas fa-save"></i> Simpan Mediator
+                                    </button>
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom ms-2">
+                                        <i class="fas fa-times"></i> Batal
+                                    </a>
+                                </div>
                             </div>
                         <?php elseif (!empty($mediator['name']) && !empty($mediator['id_card_no'])): ?>
                             <!-- VIEW MODE MEDIATOR -->
@@ -2068,9 +2294,12 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             const container = document.getElementById('dpContainer');
             const template = `
             <div class="dp-row">
-                <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)">
-                <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" oninput="calculateTOP()">
-                <input type="text" name="dp_remark[]" class="form-control" placeholder="Remark">
+                <input type="text" name="dp_name[]" class="form-control form-control-sm" placeholder="Nama DP">
+                <div class="currency-input" style="flex:1;">
+                    <span class="currency-prefix">Rp</span>
+                    <input type="text" name="dp_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" oninput="calculateTOP()">
+                </div>
+                <input type="text" name="dp_remark[]" class="form-control form-control-sm" placeholder="Remark">
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
             </div>
             `;
@@ -2089,9 +2318,12 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             const container = document.getElementById('installmentContainer');
             const template = `
             <div class="installment-row">
-                <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)">
-                <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" oninput="calculateTOP()">
-                <input type="text" name="installment_remark[]" class="form-control" placeholder="Remark">
+                <input type="text" name="installment_name[]" class="form-control form-control-sm" placeholder="Nama Angsuran">
+                <div class="currency-input" style="flex:1;">
+                    <span class="currency-prefix">Rp</span>
+                    <input type="text" name="installment_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" oninput="calculateTOP()">
+                </div>
+                <input type="text" name="installment_remark[]" class="form-control form-control-sm" placeholder="Remark">
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
             </div>
             `;
