@@ -202,32 +202,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Term Of Payment
+        // Term Of Payment dengan Remark
         $top = [
             'booking_fee' => (float)str_replace(['.', ','], '', isset($_POST['booking_fee']) ? $_POST['booking_fee'] : 0),
+            'booking_fee_remark' => isset($_POST['booking_fee_remark']) ? bersihkan($_POST['booking_fee_remark']) : '',
+            'nominal_po_leasing' => (float)str_replace(['.', ','], '', isset($_POST['nominal_po_leasing']) ? $_POST['nominal_po_leasing'] : 0),
+            'nominal_po_leasing_remark' => isset($_POST['nominal_po_leasing_remark']) ? bersihkan($_POST['nominal_po_leasing_remark']) : '',
             'down_payments' => [],
             'installments' => [],
-            'nominal_po_leasing' => (float)str_replace(['.', ','], '', isset($_POST['nominal_po_leasing']) ? $_POST['nominal_po_leasing'] : 0),
             'grand_total_top' => 0
         ];
         
+        // Down Payments dengan Remark
         if (isset($_POST['dp_name']) && is_array($_POST['dp_name'])) {
             for ($i = 0; $i < count($_POST['dp_name']); $i++) {
                 if (!empty($_POST['dp_name'][$i]) && !empty($_POST['dp_value'][$i])) {
                     $top['down_payments'][] = [
                         'name' => $_POST['dp_name'][$i],
-                        'value' => (float)str_replace(['.', ','], '', $_POST['dp_value'][$i])
+                        'value' => (float)str_replace(['.', ','], '', $_POST['dp_value'][$i]),
+                        'remark' => isset($_POST['dp_remark'][$i]) ? bersihkan($_POST['dp_remark'][$i]) : ''
                     ];
                 }
             }
         }
         
+        // Installments dengan Remark
         if (isset($_POST['installment_name']) && is_array($_POST['installment_name'])) {
             for ($i = 0; $i < count($_POST['installment_name']); $i++) {
                 if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
                     $top['installments'][] = [
                         'name' => $_POST['installment_name'][$i],
-                        'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i])
+                        'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i]),
+                        'remark' => isset($_POST['installment_remark'][$i]) ? bersihkan($_POST['installment_remark'][$i]) : ''
                     ];
                 }
             }
@@ -437,7 +443,7 @@ if (!empty($trf_number)) {
                 'no_hp_pic' => $trData['no_hp_pic'] ?? '',
                 'email_pic' => $trData['email_pic'] ?? '',
                 'units' => '[]',
-                'term_of_payment' => '{"booking_fee":0,"down_payments":[],"installments":[],"nominal_po_leasing":0,"grand_total_top":0}',
+                'term_of_payment' => '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}',
                 'additional_cost' => '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}',
                 'mediator_fee' => '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}',
                 'grand_total' => 0,
@@ -485,7 +491,7 @@ $requests = $stmt->fetchAll();
 $editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
 $units = json_decode($detailData['units'] ?? '[]', true);
-$top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"down_payments":[],"installments":[],"nominal_po_leasing":0,"grand_total_top":0}', true);
+$top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
 $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}', true);
 $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
 ?>
@@ -1490,6 +1496,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <!-- TAB 3: TERM OF PAYMENT -->
                     <div class="tab-pane fade <?= $activeTab == 'top' ? 'show active' : '' ?>" id="top" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
                             <?php if ($editMode != 'top'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-primary-custom">
                                     <i class="fas fa-edit"></i> Edit TOP
@@ -1501,18 +1508,29 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <!-- EDIT MODE TOP -->
                             <div class="edit-form-container">
                                 <div class="row">
-                                    <div class="col-md-3 mb-3">
+                                    <div class="col-md-4 mb-3">
                                         <label class="form-label">Booking Fee</label>
-                                        <input type="text" name="booking_fee" class="form-control top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                        <input type="text" name="booking_fee" class="form-control top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal">
                                     </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Nominal PO Leasing</label>
-                                        <input type="text" name="nominal_po_leasing" class="form-control top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark Booking Fee</label>
+                                        <input type="text" name="booking_fee_remark" class="form-control" value="<?= htmlspecialchars($top['booking_fee_remark'] ?? '') ?>" placeholder="Keterangan booking fee">
                                     </div>
-                                    <div class="col-md-6 mb-3 text-end">
+                                    <div class="col-md-4 mb-3 text-end">
                                         <label class="form-label">Grand Total TOP</label>
                                         <h4 class="text-success" id="grandTotalTOP">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
                                         <input type="hidden" name="grand_total_top" id="grandTotalTOPHidden" value="<?= $top['grand_total_top'] ?? 0 ?>">
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Nominal PO Leasing</label>
+                                        <input type="text" name="nominal_po_leasing" class="form-control top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Remark PO Leasing</label>
+                                        <input type="text" name="nominal_po_leasing_remark" class="form-control" value="<?= htmlspecialchars($top['nominal_po_leasing_remark'] ?? '') ?>" placeholder="Keterangan PO leasing">
                                     </div>
                                 </div>
 
@@ -1526,6 +1544,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         <div class="dp-row">
                                             <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
                                             <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                            <input type="text" name="dp_remark[]" class="form-control" placeholder="Remark" value="<?= htmlspecialchars($dp['remark'] ?? '') ?>">
                                             <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
                                         </div>
                                         <?php 
@@ -1548,6 +1567,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         <div class="installment-row">
                                             <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
                                             <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                            <input type="text" name="installment_remark[]" class="form-control" placeholder="Remark" value="<?= htmlspecialchars($inst['remark'] ?? '') ?>">
                                             <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
                                         </div>
                                         <?php 
@@ -1571,21 +1591,33 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <div class="summary-item">
                                 <span class="label">Booking Fee</span>
                                 <span class="value">Rp <?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($top['booking_fee_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($top['booking_fee_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="summary-item">
                                 <span class="label">Nominal PO Leasing</span>
                                 <span class="value">Rp <?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($top['nominal_po_leasing_remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($top['nominal_po_leasing_remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <?php foreach ($top['down_payments'] ?? [] as $dp): ?>
                             <div class="summary-item">
                                 <span class="label"><?= htmlspecialchars($dp['name'] ?? 'Down Payment') ?></span>
                                 <span class="value">Rp <?= number_format($dp['value'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($dp['remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($dp['remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <?php endforeach; ?>
                             <?php foreach ($top['installments'] ?? [] as $inst): ?>
                             <div class="summary-item">
                                 <span class="label"><?= htmlspecialchars($inst['name'] ?? 'Angsuran') ?></span>
                                 <span class="value">Rp <?= number_format($inst['value'] ?? 0, 0, ',', '.') ?></span>
+                                <?php if (!empty($inst['remark'])): ?>
+                                    <span class="text-muted ms-2">(<?= htmlspecialchars($inst['remark']) ?>)</span>
+                                <?php endif; ?>
                             </div>
                             <?php endforeach; ?>
                             <div class="summary-item" style="background: #d4edda; border-radius: 6px;">
@@ -1603,6 +1635,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <!-- TAB 4: ADDITIONAL COST -->
                     <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
                             <?php if ($editMode != 'additional'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-primary-custom">
                                     <i class="fas fa-edit"></i> Edit Additional Cost
@@ -1714,6 +1747,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <!-- TAB 5: MEDIATOR FEE -->
                     <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
                             <?php if ($editMode != 'mediator'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-primary-custom">
                                     <i class="fas fa-edit"></i> Edit Mediator
@@ -1978,6 +2012,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             <div class="dp-row">
                 <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)">
                 <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" oninput="calculateTOP()">
+                <input type="text" name="dp_remark[]" class="form-control" placeholder="Remark">
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
             </div>
             `;
@@ -1998,6 +2033,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             <div class="installment-row">
                 <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)">
                 <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" oninput="calculateTOP()">
+                <input type="text" name="installment_remark[]" class="form-control" placeholder="Remark">
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
             </div>
             `;
