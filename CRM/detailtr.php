@@ -1419,7 +1419,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                         <i class="fas fa-times"></i> Batal
                                     </a>
                                 </div>
-                                <p class="text-muted small mt-2"><i class="fas fa-info-circle"></i> Jumlah unit sudah ditentukan dan tidak dapat ditambahkan.</p>
                             </div>
                         <?php elseif (!empty($units)): ?>
                             <!-- VIEW MODE UNIT -->
