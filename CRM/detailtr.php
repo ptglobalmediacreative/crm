@@ -583,21 +583,26 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             font-size: 11px;
         }
         
+        /* ============================================
+           PERBAIKAN INPUT BOX AGAR LEBIH JELAS
+           ============================================ */
         .form-control, .form-select {
             border-radius: 8px;
             padding: 10px 14px;
-            border: 2px solid #e8edf2;
+            border: 2px solid #c0c8d4 !important;
             transition: all 0.3s ease;
             font-size: 13px;
+            background: #ffffff;
         }
         
         .form-control:focus, .form-select:focus {
-            border-color: #ffd700;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15) !important;
         }
         
         .form-control[readonly] {
             background: #f8f9fa;
+            border-color: #d0d5dc !important;
         }
         
         .btn-primary-custom {
@@ -718,12 +723,15 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             font-weight: 600;
         }
         
+        /* ============================================
+           BOX UNIT ROW LEBIH JELAS
+           ============================================ */
         .unit-row {
             background: #f8f9fa;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
-            border: 1px solid #e8edf2;
+            border: 2px solid #d0d5dc;
         }
         
         .unit-row .btn-remove-unit {
@@ -738,17 +746,27 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             color: #c0392b;
         }
         
+        /* ============================================
+           DP DAN INSTALLMENT ROW LEBIH JELAS
+           ============================================ */
         .dp-row, .installment-row {
             display: flex;
             gap: 10px;
             align-items: center;
             margin-bottom: 8px;
+            padding: 6px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e0e4ea;
         }
         
         .dp-row .form-control, .installment-row .form-control {
             flex: 1;
         }
         
+        /* ============================================
+           NAV TABS
+           ============================================ */
         .nav-tabs-custom {
             border-bottom: 2px solid #e8edf2;
             padding: 0 20px;
@@ -922,12 +940,16 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             word-break: break-word;
         }
         
+        /* ============================================
+           SUMMARY ITEM LEBIH JELAS
+           ============================================ */
         .summary-item {
             display: flex;
             padding: 8px 12px;
             background: #f8f9fa;
             border-radius: 6px;
             margin-bottom: 6px;
+            border: 1px solid #e0e4ea;
         }
         
         .summary-item .label {
@@ -960,11 +982,14 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             margin-bottom: 10px;
         }
         
+        /* ============================================
+           EDIT FORM CONTAINER LEBIH JELAS
+           ============================================ */
         .edit-form-container {
-            background: #fff;
+            background: #ffffff;
             border-radius: 8px;
             padding: 20px;
-            border: 1px solid #e8edf2;
+            border: 2px solid #d0d5dc;
         }
         
         @media (min-width: 769px) {
@@ -1304,7 +1329,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <div id="unitContainer">
                                     <?php 
                                     $unitIndex = 0;
-                                    // Jika tidak ada unit, buat satu default
                                     if (empty($units)) {
                                         $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => '', 'transaction_type' => '']];
                                     }
