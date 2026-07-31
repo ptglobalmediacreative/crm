@@ -338,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ]);
             setFlash('Data Detail TR berhasil disimpan!', 'success');
         }
-        redirect('detailtr.php?trf=' . $trf_number);
+        redirect('detailtr.php?trf=' . $trf_number . '&tab=' . ($_POST['active_tab'] ?? 'summary'));
     }
     
     if ($action === 'approve') {
@@ -470,6 +470,7 @@ $requests = $stmt->fetchAll();
 // FUNGSI UNTUK MENAMPILKAN DATA DENGAN VIEW/EDIT MODE
 // ============================================
 $editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
+$activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
 $units = json_decode($detailData['units'] ?? '[]', true);
 $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"down_payments":[],"installments":[],"nominal_po_leasing":0,"grand_total_top":0}', true);
 $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}', true);
@@ -490,6 +491,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* ===== STYLES SAMA SEPERTI SEBELUMNYA ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1104,33 +1106,34 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             <input type="hidden" name="account_id" value="<?= $detailData['account_id'] ?? '' ?>">
             <input type="hidden" name="status" id="formStatus" value="<?= $detailData['status'] ?? 'draft' ?>">
             <input type="hidden" name="approval_level" id="formApprovalLevel" value="<?= $detailData['approval_level'] ?? 0 ?>">
+            <input type="hidden" name="active_tab" id="activeTabInput" value="<?= $activeTab ?>">
 
             <!-- TAB NAVIGATION -->
             <div class="card-custom" style="padding: 0; overflow: hidden;">
                 <div class="nav-tabs-custom">
                     <ul class="nav nav-tabs" id="detailTab" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">
+                            <button class="nav-link <?= $activeTab == 'summary' ? 'active' : '' ?>" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" onclick="setActiveTab('summary')">
                                 <i class="fas fa-info-circle"></i> Summary
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="unit-tab" data-bs-toggle="tab" data-bs-target="#unit" type="button" role="tab">
+                            <button class="nav-link <?= $activeTab == 'unit' ? 'active' : '' ?>" id="unit-tab" data-bs-toggle="tab" data-bs-target="#unit" type="button" role="tab" onclick="setActiveTab('unit')">
                                 <i class="fas fa-box"></i> Detail Unit
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button" role="tab">
+                            <button class="nav-link <?= $activeTab == 'top' ? 'active' : '' ?>" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button" role="tab" onclick="setActiveTab('top')">
                                 <i class="fas fa-money-bill-wave"></i> Term Of Payment
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="additional-tab" data-bs-toggle="tab" data-bs-target="#additional" type="button" role="tab">
+                            <button class="nav-link <?= $activeTab == 'additional' ? 'active' : '' ?>" id="additional-tab" data-bs-toggle="tab" data-bs-target="#additional" type="button" role="tab" onclick="setActiveTab('additional')">
                                 <i class="fas fa-plus-circle"></i> Additional Cost
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="mediator-tab" data-bs-toggle="tab" data-bs-target="#mediator" type="button" role="tab">
+                            <button class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>" id="mediator-tab" data-bs-toggle="tab" data-bs-target="#mediator" type="button" role="tab" onclick="setActiveTab('mediator')">
                                 <i class="fas fa-user-tie"></i> Mediator Fee
                             </button>
                         </li>
@@ -1139,7 +1142,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
 
                 <div class="tab-content tab-content-custom" id="detailTabContent">
                     <!-- TAB 1: SUMMARY -->
-                    <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                    <div class="tab-pane fade <?= $activeTab == 'summary' ? 'show active' : '' ?>" id="summary" role="tabpanel">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="info-row">
@@ -1279,20 +1282,20 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     </div>
 
                     <!-- TAB 2: DETAIL UNIT -->
-                    <div class="tab-pane fade" id="unit" role="tabpanel">
+                    <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
-                            <?php if (empty($units) || count($units) == 0 || ($editMode == 'unit')): ?>
-                                <button type="button" class="btn btn-sm btn-primary-custom" onclick="enableEdit('unit')">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
+                            <?php if (empty($units) || count($units) == 0): ?>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-primary-custom">
+                                    <i class="fas fa-plus"></i> Tambah Unit
+                                </a>
                             <?php endif; ?>
                         </div>
                         
                         <?php if (empty($units) || count($units) == 0): ?>
                             <div class="empty-state">
                                 <i class="fas fa-box-open"></i>
-                                <p>Belum ada data unit. Klik Edit untuk menambahkan.</p>
+                                <p>Belum ada data unit. Klik Tambah Unit untuk menambahkan.</p>
                             </div>
                         <?php elseif ($editMode == 'unit'): ?>
                             <!-- Edit Mode Unit -->
@@ -1401,7 +1404,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <button type="submit" class="btn btn-sm btn-success-custom mt-2 ms-2">
                                 <i class="fas fa-save"></i> Simpan Unit
                             </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
                                 <i class="fas fa-times"></i> Batal
                             </a>
                         <?php else: ?>
@@ -1458,7 +1461,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <hr>
                             <?php endforeach; ?>
                             <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit" class="btn btn-edit-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Unit
                                 </a>
                             </div>
@@ -1466,20 +1469,20 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     </div>
 
                     <!-- TAB 3: TERM OF PAYMENT -->
-                    <div class="tab-pane fade" id="top" role="tabpanel">
+                    <div class="tab-pane fade <?= $activeTab == 'top' ? 'show active' : '' ?>" id="top" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
                             <?php if (empty($top['down_payments']) && empty($top['installments']) && $top['booking_fee'] == 0 && $top['nominal_po_leasing'] == 0): ?>
-                                <button type="button" class="btn btn-sm btn-primary-custom" onclick="enableEdit('top')">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-primary-custom">
+                                    <i class="fas fa-plus"></i> Tambah TOP
+                                </a>
                             <?php endif; ?>
                         </div>
                         
                         <?php if (empty($top['down_payments']) && empty($top['installments']) && $top['booking_fee'] == 0 && $top['nominal_po_leasing'] == 0): ?>
                             <div class="empty-state">
                                 <i class="fas fa-file-invoice-dollar"></i>
-                                <p>Belum ada data Term Of Payment. Klik Edit untuk menambahkan.</p>
+                                <p>Belum ada data Term Of Payment. Klik Tambah TOP untuk menambahkan.</p>
                             </div>
                         <?php elseif ($editMode == 'top'): ?>
                             <!-- Edit Mode TOP -->
@@ -1545,7 +1548,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <button type="submit" class="btn btn-sm btn-success-custom mt-2">
                                 <i class="fas fa-save"></i> Simpan TOP
                             </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
                                 <i class="fas fa-times"></i> Batal
                             </a>
                         <?php else: ?>
@@ -1575,7 +1578,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <span class="value" style="font-weight: 700; color: #155724;">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></span>
                             </div>
                             <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top" class="btn btn-edit-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit TOP
                                 </a>
                             </div>
@@ -1583,7 +1586,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     </div>
 
                     <!-- TAB 4: ADDITIONAL COST -->
-                    <div class="tab-pane fade" id="additional" role="tabpanel">
+                    <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
                             <?php 
@@ -1596,16 +1599,16 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             }
                             if (!$hasAdditional): 
                             ?>
-                                <button type="button" class="btn btn-sm btn-primary-custom" onclick="enableEdit('additional')">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-primary-custom">
+                                    <i class="fas fa-plus"></i> Tambah Additional Cost
+                                </a>
                             <?php endif; ?>
                         </div>
                         
                         <?php if (!$hasAdditional): ?>
                             <div class="empty-state">
                                 <i class="fas fa-coins"></i>
-                                <p>Belum ada data Additional Cost. Klik Edit untuk menambahkan.</p>
+                                <p>Belum ada data Additional Cost. Klik Tambah Additional Cost untuk menambahkan.</p>
                             </div>
                         <?php elseif ($editMode == 'additional'): ?>
                             <!-- Edit Mode Additional -->
@@ -1651,7 +1654,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <button type="submit" class="btn btn-sm btn-success-custom mt-2">
                                 <i class="fas fa-save"></i> Simpan Additional Cost
                             </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
                                 <i class="fas fa-times"></i> Batal
                             </a>
                         <?php else: ?>
@@ -1689,7 +1692,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <span class="value" style="font-weight: 700; color: #004085;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span>
                             </div>
                             <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional" class="btn btn-edit-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Additional Cost
                                 </a>
                             </div>
@@ -1697,20 +1700,20 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     </div>
 
                     <!-- TAB 5: MEDIATOR FEE -->
-                    <div class="tab-pane fade" id="mediator" role="tabpanel">
+                    <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
                             <?php if (empty($mediator['name']) && empty($mediator['id_card_no'])): ?>
-                                <button type="button" class="btn btn-sm btn-primary-custom" onclick="enableEdit('mediator')">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-primary-custom">
+                                    <i class="fas fa-plus"></i> Tambah Mediator
+                                </a>
                             <?php endif; ?>
                         </div>
                         
                         <?php if (empty($mediator['name']) && empty($mediator['id_card_no'])): ?>
                             <div class="empty-state">
                                 <i class="fas fa-user"></i>
-                                <p>Belum ada data Mediator Fee. Klik Edit untuk menambahkan.</p>
+                                <p>Belum ada data Mediator Fee. Klik Tambah Mediator untuk menambahkan.</p>
                             </div>
                         <?php elseif ($editMode == 'mediator'): ?>
                             <!-- Edit Mode Mediator -->
@@ -1747,7 +1750,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <button type="submit" class="btn btn-sm btn-success-custom mt-2">
                                 <i class="fas fa-save"></i> Simpan Mediator
                             </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
                                 <i class="fas fa-times"></i> Batal
                             </a>
                         <?php else: ?>
@@ -1777,7 +1780,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <span class="value" style="font-weight: 700; color: #856404;">Rp <?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?></span>
                             </div>
                             <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator" class="btn btn-edit-custom">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Mediator
                                 </a>
                             </div>
@@ -1903,12 +1906,10 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // EDIT MODE FUNCTIONS
+        // TAB FUNCTIONS
         // ============================================
-        function enableEdit(mode) {
-            let url = new URL(window.location.href);
-            url.searchParams.set('edit', mode);
-            window.location.href = url.toString();
+        function setActiveTab(tab) {
+            document.getElementById('activeTabInput').value = tab;
         }
 
         // ============================================
