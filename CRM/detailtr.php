@@ -583,9 +583,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             font-size: 11px;
         }
         
-        /* ============================================
-           PERBAIKAN INPUT BOX AGAR LEBIH JELAS
-           ============================================ */
         .form-control, .form-select {
             border-radius: 8px;
             padding: 10px 14px;
@@ -723,9 +720,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             font-weight: 600;
         }
         
-        /* ============================================
-           BOX UNIT ROW LEBIH JELAS
-           ============================================ */
         .unit-row {
             background: #f8f9fa;
             border-radius: 8px;
@@ -746,9 +740,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             color: #c0392b;
         }
         
-        /* ============================================
-           DP DAN INSTALLMENT ROW LEBIH JELAS
-           ============================================ */
         .dp-row, .installment-row {
             display: flex;
             gap: 10px;
@@ -764,9 +755,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             flex: 1;
         }
         
-        /* ============================================
-           NAV TABS
-           ============================================ */
         .nav-tabs-custom {
             border-bottom: 2px solid #e8edf2;
             padding: 0 20px;
@@ -940,9 +928,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             word-break: break-word;
         }
         
-        /* ============================================
-           SUMMARY ITEM LEBIH JELAS
-           ============================================ */
         .summary-item {
             display: flex;
             padding: 8px 12px;
@@ -982,9 +967,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             margin-bottom: 10px;
         }
         
-        /* ============================================
-           EDIT FORM CONTAINER LEBIH JELAS
-           ============================================ */
         .edit-form-container {
             background: #ffffff;
             border-radius: 8px;
@@ -1428,15 +1410,16 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                     endforeach; 
                                     ?>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addUnit()">
-                                    <i class="fas fa-plus"></i> Tambah Unit
-                                </button>
-                                <button type="submit" class="btn btn-sm btn-success-custom mt-2 ms-2">
-                                    <i class="fas fa-save"></i> Simpan Unit
-                                </button>
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                    <i class="fas fa-times"></i> Batal
-                                </a>
+                                <!-- TOMBOL TAMBAH UNIT DIHAPUS -->
+                                <div class="text-end mt-2">
+                                    <button type="submit" class="btn btn-sm btn-success-custom">
+                                        <i class="fas fa-save"></i> Simpan Unit
+                                    </button>
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom ms-2">
+                                        <i class="fas fa-times"></i> Batal
+                                    </a>
+                                </div>
+                                <p class="text-muted small mt-2"><i class="fas fa-info-circle"></i> Jumlah unit sudah ditentukan dan tidak dapat ditambahkan.</p>
                             </div>
                         <?php elseif (!empty($units)): ?>
                             <!-- VIEW MODE UNIT -->
@@ -1940,106 +1923,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
         // ============================================
         let unitIndex = <?= isset($unitIndex) ? $unitIndex : 0 ?>;
 
-        function addUnit() {
-            const container = document.getElementById('unitContainer');
-            const template = `
-            <div class="unit-row" data-index="${unitIndex}">
-                <div class="row">
-                    <div class="col-md-12 text-end">
-                        <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit">
-                            <i class="fas fa-times-circle"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-2">
-                        <label class="form-label">Unit <span class="text-danger">*</span></label>
-                        <select name="unit_name[]" class="form-select" required>
-                            <option value="">-- Pilih Unit --</option>
-                            <?php foreach ($produkList as $produk): ?>
-                                <option value="<?= htmlspecialchars($produk['nama_produk']) ?>">
-                                    <?= htmlspecialchars($produk['nama_produk']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-2 mb-2">
-                        <label class="form-label">QTY <span class="text-danger">*</span></label>
-                        <input type="number" name="qty[]" class="form-control qty" value="1" min="1" required onchange="calculateUnit(this)">
-                    </div>
-                    <div class="col-md-4 mb-2">
-                        <label class="form-label">Price (Non PPN) <span class="text-danger">*</span></label>
-                        <input type="text" name="price[]" class="form-control price" value="0" required oninput="calculateUnit(this)">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-3 mb-2">
-                        <label class="form-label">PPN (11%)</label>
-                        <input type="text" name="ppn[]" class="form-control ppn" value="0" readonly>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <label class="form-label">Grand Total (Include PPN)</label>
-                        <input type="text" name="grand_total_unit[]" class="form-control grand-total-unit" value="0" readonly>
-                    </div>
-                    <div class="col-md-6 mb-2">
-                        <label class="form-label">Spesification <span class="text-danger">*</span></label>
-                        <input type="text" name="specification[]" class="form-control" required>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-2">
-                        <label class="form-label">Additional Attachment / Safety Devices</label>
-                        <input type="text" name="additional_attachment[]" class="form-control">
-                    </div>
-                    <div class="col-md-6 mb-2">
-                        <label class="form-label">Warranty</label>
-                        <input type="text" name="warranty[]" class="form-control">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4 mb-2">
-                        <label class="form-label">Machine Location Works <span class="text-danger">*</span></label>
-                        <input type="text" name="machine_location[]" class="form-control" required>
-                    </div>
-                    <div class="col-md-4 mb-2">
-                        <label class="form-label">Delivery Terms <span class="text-danger">*</span></label>
-                        <input type="text" name="delivery_terms[]" class="form-control" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" required>
-                    </div>
-                    <div class="col-md-4 mb-2">
-                        <label class="form-label">Delivery Schedule Plan <span class="text-danger">*</span></label>
-                        <input type="date" name="delivery_schedule[]" class="form-control" required>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-12 mb-2">
-                        <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <select name="transaction_type[]" class="form-select transaction-type-select" required onchange="showOtherInput(this)">
-                                    <option value="">-- Pilih Transaction Type --</option>
-                                    <option value="Cash On Delivery">Cash On Delivery</option>
-                                    <option value="Leasing">Leasing</option>
-                                    <option value="Direct Credit">Direct Credit</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4" id="otherInputContainer_${unitIndex}" style="display:none">
-                                <input type="text" name="transaction_type_other[]" class="form-control" placeholder="Spesifikasi Other">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            `;
-            container.insertAdjacentHTML('beforeend', template);
-            unitIndex++;
-            
-            document.querySelectorAll('.transaction-type-select').forEach(select => {
-                if (select.value === 'Other') {
-                    showOtherInput(select);
-                }
-            });
-        }
+        // FUNGSI addUnit() TELAH DIHAPUS
 
         function removeUnit(btn) {
             const row = btn.closest('.unit-row');
