@@ -1018,6 +1018,27 @@ if (isset($_GET['complete'])) {
     $stmt->execute([$id]);
     $completeData = $stmt->fetch();
 }
+
+// Tambahkan CSS untuk link TR Number
+function addTRLinkStyle() {
+    echo '<style>
+        .trf-link {
+            color: #2980b9;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .trf-link:hover {
+            color: #1a6d9e;
+            text-decoration: underline;
+        }
+        .trf-link .badge-trf {
+            transition: all 0.3s ease;
+        }
+        .trf-link:hover .badge-trf {
+            background: rgba(52, 152, 219, 0.25);
+        }
+    </style>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -1878,6 +1899,22 @@ if (isset($_GET['complete'])) {
             font-weight: 600;
         }
         
+        .trf-link {
+            color: #2980b9;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .trf-link:hover {
+            color: #1a6d9e;
+            text-decoration: underline;
+        }
+        .trf-link .badge-trf {
+            transition: all 0.3s ease;
+        }
+        .trf-link:hover .badge-trf {
+            background: rgba(52, 152, 219, 0.25);
+        }
+        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1915,6 +1952,7 @@ if (isset($_GET['complete'])) {
             .detail-item .detail-value { font-size: 12px; }
             .chart-wrapper { height: 200px; max-width: 200px; }
             .chart-wrapper canvas { max-height: 200px; max-width: 200px; }
+            .trf-link { font-size: 11px; }
         }
         
         .footer-text {
@@ -3233,6 +3271,13 @@ if (isset($_GET['complete'])) {
                 var dueDate = new Date(data.due_date);
                 var today = new Date();
                 var diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                if (diffDays < 0 || data.status == 'overdue') {
+                    deadlineStatus = `<span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> LEWAT JATUH TEMPO! (${Math.abs(diffDays)} hari)</span>`;
+                } else if (diffDays <= 3) {
+                    deadlineStatus = `<span class="text-warning fw-bold"><i class="fas fa-clock"></i> ${diffDays} hari lagi</span>`;
+                } else {
+                    deadlineStatus = `<span class="text-success"><i class="fas fa-check-circle"></i> On Track (${diffDays} hari)</span>`;
+                }
             }
             
             var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
@@ -3289,7 +3334,7 @@ if (isset($_GET['complete'])) {
                 <div class="detail-item">
                     <div class="detail-label">TR Number</div>
                     <div class="detail-value">
-                        ${data.trf_number ? `<span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span>` : '-'}
+                        ${data.trf_number ? `<a href="detailtr.php?trf=${encodeURIComponent(data.trf_number)}" target="_blank" class="trf-link"><span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span></a>` : '-'}
                     </div>
                 </div>
                 <div class="detail-item">
