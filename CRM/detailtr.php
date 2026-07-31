@@ -1368,52 +1368,6 @@ $requests = $stmt->fetchAll();
                 </div>
             </div>
 
-            <!-- GRAND TOTAL KESELURUHAN -->
-            <div class="card-custom">
-                <div class="card-header-custom" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
-                    <h6 style="color: #ffd700;"><i class="fas fa-calculator"></i> Grand Total Keseluruhan</h6>
-                </div>
-                <div class="card-body-custom">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h5>Grand Total Unit (Include PPN)</h5>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <h3 class="text-success" id="grandTotalUnitDisplay">Rp 0</h3>
-                            <input type="hidden" name="grand_total_units" id="grandTotalUnits" value="0">
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h5>Grand Total TOP</h5>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <h3 class="text-primary" id="grandTotalTOPDisplay">Rp 0</h3>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h5>Grand Total Additional Cost</h5>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <h3 class="text-warning" id="grandTotalAdditionalDisplay">Rp 0</h3>
-                        </div>
-                    </div>
-                    <hr class="border-2 border-dark">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h2><strong>GRAND TOTAL</strong></h2>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <h2 class="text-danger" id="grandTotalAll">Rp 0</h2>
-                            <input type="hidden" name="grand_total" id="grandTotalAllHidden" value="0">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- ACTION BUTTONS -->
             <div class="card-custom">
                 <div class="card-body-custom text-center">
@@ -1613,14 +1567,12 @@ $requests = $stmt->fetchAll();
             `;
             container.insertAdjacentHTML('beforeend', template);
             unitIndex++;
-            calculateAllGrandTotals();
         }
 
         function removeUnit(btn) {
             const row = btn.closest('.unit-row');
             if (document.querySelectorAll('.unit-row').length > 1) {
                 row.remove();
-                calculateAllGrandTotals();
             } else {
                 alert('Minimal 1 unit harus ada!');
             }
@@ -1636,8 +1588,6 @@ $requests = $stmt->fetchAll();
             
             row.querySelector('.ppn').value = formatNumber(ppn);
             row.querySelector('.grand-total-unit').value = formatNumber(grandTotal);
-            
-            calculateAllGrandTotals();
         }
 
         function setTransactionType(radio) {
@@ -1726,9 +1676,6 @@ $requests = $stmt->fetchAll();
             
             document.getElementById('grandTotalTOP').textContent = 'Rp ' + formatNumber(total);
             document.getElementById('grandTotalTOPHidden').value = total;
-            document.getElementById('grandTotalTOPDisplay').textContent = 'Rp ' + formatNumber(total);
-            
-            calculateGrandTotalAll();
         }
 
         // ============================================
@@ -1744,41 +1691,11 @@ $requests = $stmt->fetchAll();
             
             document.getElementById('totalAdditional').textContent = 'Rp ' + formatNumber(total);
             document.getElementById('totalAdditionalHidden').value = total;
-            document.getElementById('grandTotalAdditionalDisplay').textContent = 'Rp ' + formatNumber(total);
-            
-            calculateGrandTotalAll();
         }
 
         function updateMediatorAmount() {
             const mediatorFee = parseFloat(document.getElementById('mediatorFeeInput').value.replace(/\./g, '').replace(/,/g, '')) || 0;
             document.getElementById('mediatorAmount').value = formatNumber(mediatorFee);
-        }
-
-        // ============================================
-        // GRAND TOTAL ALL
-        // ============================================
-        function calculateAllGrandTotals() {
-            let unitTotal = 0;
-            document.querySelectorAll('.grand-total-unit').forEach(input => {
-                const val = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-                unitTotal += val;
-            });
-            
-            document.getElementById('grandTotalUnitDisplay').textContent = 'Rp ' + formatNumber(unitTotal);
-            document.getElementById('grandTotalUnits').value = unitTotal;
-            
-            calculateGrandTotalAll();
-        }
-
-        function calculateGrandTotalAll() {
-            const unitTotal = parseFloat(document.getElementById('grandTotalUnits').value) || 0;
-            const topTotal = parseFloat(document.getElementById('grandTotalTOPHidden').value) || 0;
-            const additionalTotal = parseFloat(document.getElementById('totalAdditionalHidden').value) || 0;
-            
-            const grandTotal = unitTotal + topTotal + additionalTotal;
-            
-            document.getElementById('grandTotalAll').textContent = 'Rp ' + formatNumber(grandTotal);
-            document.getElementById('grandTotalAllHidden').value = grandTotal;
         }
 
         // ============================================
