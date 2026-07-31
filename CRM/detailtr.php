@@ -999,7 +999,6 @@ $requests = $stmt->fetchAll();
                 <div class="tab-content tab-content-custom" id="detailTabContent">
                     <!-- TAB 1: SUMMARY -->
                     <div class="tab-pane fade show active" id="summary" role="tabpanel">
-                        <h5 class="section-title"><i class="fas fa-info-circle"></i> Summary</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="info-row">
