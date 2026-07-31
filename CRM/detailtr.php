@@ -114,8 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $grand_total_unit = ($price + $ppn) * $qty;
                     
                     // Ambil transaction type
-                    $transaction_type = $_POST['transaction_type'][$i] ?? '';
-                    if ($transaction_type === 'Other' && !empty($_POST['transaction_type_other'][$i])) {
+                    $transaction_type = isset($_POST['transaction_type'][$i]) ? $_POST['transaction_type'][$i] : '';
+                    if ($transaction_type === 'Other' && isset($_POST['transaction_type_other'][$i]) && !empty($_POST['transaction_type_other'][$i])) {
                         $transaction_type = 'Other - ' . $_POST['transaction_type_other'][$i];
                     }
                     
@@ -126,12 +126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         'ppn_percent' => $ppn_percent,
                         'ppn' => $ppn,
                         'grand_total' => $grand_total_unit,
-                        'specification' => $_POST['specification'][$i] ?? '',
-                        'additional_attachment' => $_POST['additional_attachment'][$i] ?? '',
-                        'warranty' => $_POST['warranty'][$i] ?? '',
-                        'machine_location' => $_POST['machine_location'][$i] ?? '',
-                        'delivery_terms' => $_POST['delivery_terms'][$i] ?? '',
-                        'delivery_schedule' => $_POST['delivery_schedule'][$i] ?? '',
+                        'specification' => isset($_POST['specification'][$i]) ? $_POST['specification'][$i] : '',
+                        'additional_attachment' => isset($_POST['additional_attachment'][$i]) ? $_POST['additional_attachment'][$i] : '',
+                        'warranty' => isset($_POST['warranty'][$i]) ? $_POST['warranty'][$i] : '',
+                        'machine_location' => isset($_POST['machine_location'][$i]) ? $_POST['machine_location'][$i] : '',
+                        'delivery_terms' => isset($_POST['delivery_terms'][$i]) ? $_POST['delivery_terms'][$i] : '',
+                        'delivery_schedule' => isset($_POST['delivery_schedule'][$i]) ? $_POST['delivery_schedule'][$i] : '',
                         'transaction_type' => $transaction_type
                     ];
                 }
@@ -140,10 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         // Term Of Payment
         $top = [
-            'booking_fee' => (float)str_replace(['.', ','], '', $_POST['booking_fee'] ?? 0),
+            'booking_fee' => (float)str_replace(['.', ','], '', isset($_POST['booking_fee']) ? $_POST['booking_fee'] : 0),
             'down_payments' => [],
             'installments' => [],
-            'nominal_po_leasing' => (float)str_replace(['.', ','], '', $_POST['nominal_po_leasing'] ?? 0),
+            'nominal_po_leasing' => (float)str_replace(['.', ','], '', isset($_POST['nominal_po_leasing']) ? $_POST['nominal_po_leasing'] : 0),
             'grand_total_top' => 0
         ];
         
@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
                     $top['installments'][] = [
                         'name' => $_POST['installment_name'][$i],
-                        'value' => (float)str_replace(['.', ',''], '', $_POST['installment_value'][$i])
+                        'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i])
                     ];
                 }
             }
@@ -183,13 +183,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         // Additional Cost
         $additional_cost = [
-            'insurance_ops' => (float)str_replace(['.', ','], '', $_POST['insurance_ops'] ?? 0),
-            'insurance_cargo' => (float)str_replace(['.', ','], '', $_POST['insurance_cargo'] ?? 0),
-            'delivery_cost' => (float)str_replace(['.', ','], '', $_POST['delivery_cost'] ?? 0),
-            'free_part' => (float)str_replace(['.', ','], '', $_POST['free_part'] ?? 0),
-            'free_service' => (float)str_replace(['.', ','], '', $_POST['free_service'] ?? 0),
-            'mediator_fee' => (float)str_replace(['.', ','], '', $_POST['mediator_fee'] ?? 0),
-            'others' => (float)str_replace(['.', ','], '', $_POST['others_cost'] ?? 0),
+            'insurance_ops' => (float)str_replace(['.', ','], '', isset($_POST['insurance_ops']) ? $_POST['insurance_ops'] : 0),
+            'insurance_cargo' => (float)str_replace(['.', ','], '', isset($_POST['insurance_cargo']) ? $_POST['insurance_cargo'] : 0),
+            'delivery_cost' => (float)str_replace(['.', ','], '', isset($_POST['delivery_cost']) ? $_POST['delivery_cost'] : 0),
+            'free_part' => (float)str_replace(['.', ','], '', isset($_POST['free_part']) ? $_POST['free_part'] : 0),
+            'free_service' => (float)str_replace(['.', ','], '', isset($_POST['free_service']) ? $_POST['free_service'] : 0),
+            'mediator_fee' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0),
+            'others' => (float)str_replace(['.', ','], '', isset($_POST['others_cost']) ? $_POST['others_cost'] : 0),
             'total_additional' => 0
         ];
         
@@ -204,12 +204,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         // Mediator Fee
         $mediator_fee = [
-            'name' => bersihkan($_POST['mediator_name'] ?? ''),
-            'id_card_no' => bersihkan($_POST['mediator_id_card'] ?? ''),
-            'npwp_no' => bersihkan($_POST['mediator_npwp'] ?? ''),
-            'bank_name' => bersihkan($_POST['mediator_bank'] ?? ''),
-            'bank_account' => bersihkan($_POST['mediator_bank_account'] ?? ''),
-            'amount' => (float)str_replace(['.', ','], '', $_POST['mediator_fee'] ?? 0)
+            'name' => isset($_POST['mediator_name']) ? bersihkan($_POST['mediator_name']) : '',
+            'id_card_no' => isset($_POST['mediator_id_card']) ? bersihkan($_POST['mediator_id_card']) : '',
+            'npwp_no' => isset($_POST['mediator_npwp']) ? bersihkan($_POST['mediator_npwp']) : '',
+            'bank_name' => isset($_POST['mediator_bank']) ? bersihkan($_POST['mediator_bank']) : '',
+            'bank_account' => isset($_POST['mediator_bank_account']) ? bersihkan($_POST['mediator_bank_account']) : '',
+            'amount' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0)
         ];
         
         // Grand Total (dari units)
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         // Status
-        $status = $_POST['status'] ?? 'draft';
+        $status = isset($_POST['status']) ? $_POST['status'] : 'draft';
         
         // Cek apakah sudah ada
         $stmt = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
@@ -1545,6 +1545,13 @@ $requests = $stmt->fetchAll();
             `;
             container.insertAdjacentHTML('beforeend', template);
             unitIndex++;
+            
+            // Tampilkan input Other jika sudah terpilih
+            document.querySelectorAll('.transaction-type-select').forEach(select => {
+                if (select.value === 'Other') {
+                    showOtherInput(select);
+                }
+            });
         }
 
         function removeUnit(btn) {
@@ -1576,15 +1583,19 @@ $requests = $stmt->fetchAll();
             const index = row.dataset.index;
             const otherContainer = document.getElementById('otherInputContainer_' + index);
             
-            if (select.value === 'Other') {
-                otherContainer.style.display = 'block';
-                const otherInput = otherContainer.querySelector('input');
-                otherInput.required = true;
-            } else {
-                otherContainer.style.display = 'none';
-                const otherInput = otherContainer.querySelector('input');
-                otherInput.required = false;
-                otherInput.value = '';
+            if (otherContainer) {
+                if (select.value === 'Other') {
+                    otherContainer.style.display = 'block';
+                    const otherInput = otherContainer.querySelector('input');
+                    if (otherInput) otherInput.required = true;
+                } else {
+                    otherContainer.style.display = 'none';
+                    const otherInput = otherContainer.querySelector('input');
+                    if (otherInput) {
+                        otherInput.required = false;
+                        otherInput.value = '';
+                    }
+                }
             }
         }
 
