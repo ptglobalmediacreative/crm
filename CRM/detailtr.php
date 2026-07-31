@@ -491,7 +491,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        /* ===== STYLES SAMA SEPERTI SEBELUMNYA ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -961,6 +960,13 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             margin-bottom: 10px;
         }
         
+        .edit-form-container {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e8edf2;
+        }
+        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1285,130 +1291,131 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
-                            <?php if (empty($units) || count($units) == 0): ?>
+                            <?php if ($editMode != 'unit'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-primary-custom">
-                                    <i class="fas fa-plus"></i> Tambah Unit
+                                    <i class="fas fa-edit"></i> Edit Unit
                                 </a>
                             <?php endif; ?>
                         </div>
                         
-                        <?php if (empty($units) || count($units) == 0): ?>
-                            <div class="empty-state">
-                                <i class="fas fa-box-open"></i>
-                                <p>Belum ada data unit. Klik Tambah Unit untuk menambahkan.</p>
-                            </div>
-                        <?php elseif ($editMode == 'unit'): ?>
-                            <!-- Edit Mode Unit -->
-                            <div id="unitContainer">
-                                <?php 
-                                $unitIndex = 0;
-                                foreach ($units as $unit):
-                                ?>
-                                <div class="unit-row" data-index="<?= $unitIndex ?>">
-                                    <div class="row">
-                                        <div class="col-md-12 text-end">
-                                            <?php if (count($units) > 1): ?>
-                                                <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit">
-                                                    <i class="fas fa-times-circle"></i>
-                                                </button>
-                                            <?php endif; ?>
+                        <?php if ($editMode == 'unit'): ?>
+                            <!-- EDIT MODE UNIT -->
+                            <div class="edit-form-container">
+                                <div id="unitContainer">
+                                    <?php 
+                                    $unitIndex = 0;
+                                    // Jika tidak ada unit, buat satu default
+                                    if (empty($units)) {
+                                        $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => '', 'transaction_type' => '']];
+                                    }
+                                    foreach ($units as $unit):
+                                    ?>
+                                    <div class="unit-row" data-index="<?= $unitIndex ?>">
+                                        <div class="row">
+                                            <div class="col-md-12 text-end">
+                                                <?php if (count($units) > 1): ?>
+                                                    <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit">
+                                                        <i class="fas fa-times-circle"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Unit <span class="text-danger">*</span></label>
-                                            <select name="unit_name[]" class="form-select" required>
-                                                <option value="">-- Pilih Unit --</option>
-                                                <?php foreach ($produkList as $produk): ?>
-                                                    <option value="<?= htmlspecialchars($produk['nama_produk']) ?>" <?= ($unit['unit_name'] == $produk['nama_produk']) ? 'selected' : '' ?>>
-                                                        <?= htmlspecialchars($produk['kode_produk'] ?? '') ?> - <?= htmlspecialchars($produk['nama_produk']) ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Unit <span class="text-danger">*</span></label>
+                                                <select name="unit_name[]" class="form-select" required>
+                                                    <option value="">-- Pilih Unit --</option>
+                                                    <?php foreach ($produkList as $produk): ?>
+                                                        <option value="<?= htmlspecialchars($produk['nama_produk']) ?>" <?= ($unit['unit_name'] == $produk['nama_produk']) ? 'selected' : '' ?>>
+                                                            <?= htmlspecialchars($produk['kode_produk'] ?? '') ?> - <?= htmlspecialchars($produk['nama_produk']) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 mb-2">
+                                                <label class="form-label">QTY <span class="text-danger">*</span></label>
+                                                <input type="number" name="qty[]" class="form-control qty" value="<?= $unit['qty'] ?? 1 ?>" min="1" required onchange="calculateUnit(this)">
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Price (Non PPN) <span class="text-danger">*</span></label>
+                                                <input type="text" name="price[]" class="form-control price" value="<?= number_format($unit['price'] ?? 0, 0, ',', '.') ?>" required oninput="calculateUnit(this)">
+                                            </div>
                                         </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">QTY <span class="text-danger">*</span></label>
-                                            <input type="number" name="qty[]" class="form-control qty" value="<?= $unit['qty'] ?? 1 ?>" min="1" required onchange="calculateUnit(this)">
+                                        <div class="row">
+                                            <div class="col-md-3 mb-2">
+                                                <label class="form-label">PPN (11%)</label>
+                                                <input type="text" name="ppn[]" class="form-control ppn" value="<?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?>" readonly>
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <label class="form-label">Grand Total (Include PPN)</label>
+                                                <input type="text" name="grand_total_unit[]" class="form-control grand-total-unit" value="<?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?>" readonly>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Spesification <span class="text-danger">*</span></label>
+                                                <input type="text" name="specification[]" class="form-control" value="<?= htmlspecialchars($unit['specification'] ?? '') ?>" required>
+                                            </div>
                                         </div>
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Price (Non PPN) <span class="text-danger">*</span></label>
-                                            <input type="text" name="price[]" class="form-control price" value="<?= number_format($unit['price'] ?? 0, 0, ',', '.') ?>" required oninput="calculateUnit(this)">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Additional Attachment / Safety Devices</label>
+                                                <input type="text" name="additional_attachment[]" class="form-control" value="<?= htmlspecialchars($unit['additional_attachment'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Warranty</label>
+                                                <input type="text" name="warranty[]" class="form-control" value="<?= htmlspecialchars($unit['warranty'] ?? '') ?>">
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">PPN (11%)</label>
-                                            <input type="text" name="ppn[]" class="form-control ppn" value="<?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?>" readonly>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Machine Location Works <span class="text-danger">*</span></label>
+                                                <input type="text" name="machine_location[]" class="form-control" value="<?= htmlspecialchars($unit['machine_location'] ?? '') ?>" required>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Delivery Terms <span class="text-danger">*</span></label>
+                                                <input type="text" name="delivery_terms[]" class="form-control" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" value="<?= htmlspecialchars($unit['delivery_terms'] ?? '') ?>" required>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Delivery Schedule Plan <span class="text-danger">*</span></label>
+                                                <input type="date" name="delivery_schedule[]" class="form-control" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? '') ?>" required>
+                                            </div>
                                         </div>
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">Grand Total (Include PPN)</label>
-                                            <input type="text" name="grand_total_unit[]" class="form-control grand-total-unit" value="<?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?>" readonly>
-                                        </div>
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Spesification <span class="text-danger">*</span></label>
-                                            <input type="text" name="specification[]" class="form-control" value="<?= htmlspecialchars($unit['specification'] ?? '') ?>" required>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Additional Attachment / Safety Devices</label>
-                                            <input type="text" name="additional_attachment[]" class="form-control" value="<?= htmlspecialchars($unit['additional_attachment'] ?? '') ?>">
-                                        </div>
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Warranty</label>
-                                            <input type="text" name="warranty[]" class="form-control" value="<?= htmlspecialchars($unit['warranty'] ?? '') ?>">
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Machine Location Works <span class="text-danger">*</span></label>
-                                            <input type="text" name="machine_location[]" class="form-control" value="<?= htmlspecialchars($unit['machine_location'] ?? '') ?>" required>
-                                        </div>
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Delivery Terms <span class="text-danger">*</span></label>
-                                            <input type="text" name="delivery_terms[]" class="form-control" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" value="<?= htmlspecialchars($unit['delivery_terms'] ?? '') ?>" required>
-                                        </div>
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Delivery Schedule Plan <span class="text-danger">*</span></label>
-                                            <input type="date" name="delivery_schedule[]" class="form-control" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? '') ?>" required>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-12 mb-2">
-                                            <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
-                                            <div class="row">
-                                                <div class="col-md-4">
-                                                    <select name="transaction_type[]" class="form-select transaction-type-select" required onchange="showOtherInput(this)">
-                                                        <option value="">-- Pilih Transaction Type --</option>
-                                                        <option value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'selected' : '' ?>>Cash On Delivery</option>
-                                                        <option value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'selected' : '' ?>>Leasing</option>
-                                                        <option value="Direct Credit" <?= ($unit['transaction_type'] == 'Direct Credit') ? 'selected' : '' ?>>Direct Credit</option>
-                                                        <option value="Other" <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'selected' : '' ?>>Other</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-4" id="otherInputContainer_<?= $unitIndex ?>" style="display: <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
-                                                    <input type="text" name="transaction_type_other[]" class="form-control" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>">
+                                        <div class="row">
+                                            <div class="col-md-12 mb-2">
+                                                <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
+                                                <div class="row">
+                                                    <div class="col-md-4">
+                                                        <select name="transaction_type[]" class="form-select transaction-type-select" required onchange="showOtherInput(this)">
+                                                            <option value="">-- Pilih Transaction Type --</option>
+                                                            <option value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'selected' : '' ?>>Cash On Delivery</option>
+                                                            <option value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'selected' : '' ?>>Leasing</option>
+                                                            <option value="Direct Credit" <?= ($unit['transaction_type'] == 'Direct Credit') ? 'selected' : '' ?>>Direct Credit</option>
+                                                            <option value="Other" <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'selected' : '' ?>>Other</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4" id="otherInputContainer_<?= $unitIndex ?>" style="display: <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
+                                                        <input type="text" name="transaction_type_other[]" class="form-control" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>">
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <?php 
+                                    $unitIndex++;
+                                    endforeach; 
+                                    ?>
                                 </div>
-                                <?php 
-                                $unitIndex++;
-                                endforeach; 
-                                ?>
+                                <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addUnit()">
+                                    <i class="fas fa-plus"></i> Tambah Unit
+                                </button>
+                                <button type="submit" class="btn btn-sm btn-success-custom mt-2 ms-2">
+                                    <i class="fas fa-save"></i> Simpan Unit
+                                </button>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                                    <i class="fas fa-times"></i> Batal
+                                </a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addUnit()">
-                                <i class="fas fa-plus"></i> Tambah Unit
-                            </button>
-                            <button type="submit" class="btn btn-sm btn-success-custom mt-2 ms-2">
-                                <i class="fas fa-save"></i> Simpan Unit
-                            </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                <i class="fas fa-times"></i> Batal
-                            </a>
-                        <?php else: ?>
-                            <!-- View Mode Unit -->
+                        <?php elseif (!empty($units)): ?>
+                            <!-- VIEW MODE UNIT -->
                             <?php foreach ($units as $unit): ?>
                             <div class="summary-item">
                                 <span class="label">Unit</span>
@@ -1460,10 +1467,10 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             </div>
                             <hr>
                             <?php endforeach; ?>
-                            <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-edit-custom">
-                                    <i class="fas fa-edit"></i> Edit Unit
-                                </a>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-box-open"></i>
+                                <p>Belum ada data unit. Klik Edit Unit untuk menambahkan.</p>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -1472,87 +1479,84 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <div class="tab-pane fade <?= $activeTab == 'top' ? 'show active' : '' ?>" id="top" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
-                            <?php if (empty($top['down_payments']) && empty($top['installments']) && $top['booking_fee'] == 0 && $top['nominal_po_leasing'] == 0): ?>
+                            <?php if ($editMode != 'top'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-primary-custom">
-                                    <i class="fas fa-plus"></i> Tambah TOP
+                                    <i class="fas fa-edit"></i> Edit TOP
                                 </a>
                             <?php endif; ?>
                         </div>
                         
-                        <?php if (empty($top['down_payments']) && empty($top['installments']) && $top['booking_fee'] == 0 && $top['nominal_po_leasing'] == 0): ?>
-                            <div class="empty-state">
-                                <i class="fas fa-file-invoice-dollar"></i>
-                                <p>Belum ada data Term Of Payment. Klik Tambah TOP untuk menambahkan.</p>
-                            </div>
-                        <?php elseif ($editMode == 'top'): ?>
-                            <!-- Edit Mode TOP -->
-                            <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Booking Fee</label>
-                                    <input type="text" name="booking_fee" class="form-control top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Nominal PO Leasing</label>
-                                    <input type="text" name="nominal_po_leasing" class="form-control top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                </div>
-                                <div class="col-md-6 mb-3 text-end">
-                                    <label class="form-label">Grand Total TOP</label>
-                                    <h4 class="text-success" id="grandTotalTOP">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
-                                    <input type="hidden" name="grand_total_top" id="grandTotalTOPHidden" value="<?= $top['grand_total_top'] ?? 0 ?>">
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Down Payment</label>
-                                <div id="dpContainer">
-                                    <?php 
-                                    $dpIndex = 0;
-                                    foreach ($top['down_payments'] ?? [] as $dp): 
-                                    ?>
-                                    <div class="dp-row">
-                                        <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
-                                        <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                        <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
+                        <?php if ($editMode == 'top'): ?>
+                            <!-- EDIT MODE TOP -->
+                            <div class="edit-form-container">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Booking Fee</label>
+                                        <input type="text" name="booking_fee" class="form-control top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
                                     </div>
-                                    <?php 
-                                    $dpIndex++;
-                                    endforeach; 
-                                    ?>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addDP()">
-                                    <i class="fas fa-plus"></i> Tambah DP
-                                </button>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Angsuran</label>
-                                <div id="installmentContainer">
-                                    <?php 
-                                    $instIndex = 0;
-                                    foreach ($top['installments'] ?? [] as $inst): 
-                                    ?>
-                                    <div class="installment-row">
-                                        <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
-                                        <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                        <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Nominal PO Leasing</label>
+                                        <input type="text" name="nominal_po_leasing" class="form-control top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
                                     </div>
-                                    <?php 
-                                    $instIndex++;
-                                    endforeach; 
-                                    ?>
+                                    <div class="col-md-6 mb-3 text-end">
+                                        <label class="form-label">Grand Total TOP</label>
+                                        <h4 class="text-success" id="grandTotalTOP">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
+                                        <input type="hidden" name="grand_total_top" id="grandTotalTOPHidden" value="<?= $top['grand_total_top'] ?? 0 ?>">
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addInstallment()">
-                                    <i class="fas fa-plus"></i> Tambah Angsuran
+
+                                <div class="mb-3">
+                                    <label class="form-label">Down Payment</label>
+                                    <div id="dpContainer">
+                                        <?php 
+                                        $dpIndex = 0;
+                                        foreach ($top['down_payments'] ?? [] as $dp): 
+                                        ?>
+                                        <div class="dp-row">
+                                            <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
+                                            <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
+                                        </div>
+                                        <?php 
+                                        $dpIndex++;
+                                        endforeach; 
+                                        ?>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addDP()">
+                                        <i class="fas fa-plus"></i> Tambah DP
+                                    </button>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Angsuran</label>
+                                    <div id="installmentContainer">
+                                        <?php 
+                                        $instIndex = 0;
+                                        foreach ($top['installments'] ?? [] as $inst): 
+                                        ?>
+                                        <div class="installment-row">
+                                            <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
+                                            <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
+                                        </div>
+                                        <?php 
+                                        $instIndex++;
+                                        endforeach; 
+                                        ?>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addInstallment()">
+                                        <i class="fas fa-plus"></i> Tambah Angsuran
+                                    </button>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success-custom mt-2">
+                                    <i class="fas fa-save"></i> Simpan TOP
                                 </button>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                                    <i class="fas fa-times"></i> Batal
+                                </a>
                             </div>
-                            <button type="submit" class="btn btn-sm btn-success-custom mt-2">
-                                <i class="fas fa-save"></i> Simpan TOP
-                            </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                <i class="fas fa-times"></i> Batal
-                            </a>
-                        <?php else: ?>
-                            <!-- View Mode TOP -->
+                        <?php elseif (!empty($top['down_payments']) || !empty($top['installments']) || $top['booking_fee'] > 0 || $top['nominal_po_leasing'] > 0): ?>
+                            <!-- VIEW MODE TOP -->
                             <div class="summary-item">
                                 <span class="label">Booking Fee</span>
                                 <span class="value">Rp <?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?></span>
@@ -1577,10 +1581,10 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <span class="label" style="font-weight: 700; color: #155724;">Grand Total TOP</span>
                                 <span class="value" style="font-weight: 700; color: #155724;">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></span>
                             </div>
-                            <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-edit-custom">
-                                    <i class="fas fa-edit"></i> Edit TOP
-                                </a>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <p>Belum ada data Term Of Payment. Klik Edit TOP untuk menambahkan.</p>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -1589,76 +1593,74 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
-                            <?php 
-                            $hasAdditional = false;
-                            foreach ($additional as $key => $val) {
-                                if ($key != 'total_additional' && $val > 0) {
-                                    $hasAdditional = true;
-                                    break;
-                                }
-                            }
-                            if (!$hasAdditional): 
-                            ?>
+                            <?php if ($editMode != 'additional'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-primary-custom">
-                                    <i class="fas fa-plus"></i> Tambah Additional Cost
+                                    <i class="fas fa-edit"></i> Edit Additional Cost
                                 </a>
                             <?php endif; ?>
                         </div>
                         
-                        <?php if (!$hasAdditional): ?>
-                            <div class="empty-state">
-                                <i class="fas fa-coins"></i>
-                                <p>Belum ada data Additional Cost. Klik Tambah Additional Cost untuk menambahkan.</p>
+                        <?php 
+                        $hasAdditional = false;
+                        foreach ($additional as $key => $val) {
+                            if ($key != 'total_additional' && $val > 0) {
+                                $hasAdditional = true;
+                                break;
+                            }
+                        }
+                        ?>
+                        
+                        <?php if ($editMode == 'additional'): ?>
+                            <!-- EDIT MODE ADDITIONAL -->
+                            <div class="edit-form-container">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Insurance Ops</label>
+                                        <input type="text" name="insurance_ops" class="form-control additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Insurance Cargo <span class="text-danger">*</span></label>
+                                        <input type="text" name="insurance_cargo" class="form-control additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Delivery Cost</label>
+                                        <input type="text" name="delivery_cost" class="form-control additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Free Part</label>
+                                        <input type="text" name="free_part" class="form-control additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Free Service</label>
+                                        <input type="text" name="free_service" class="form-control additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Mediator Fee</label>
+                                        <input type="text" name="mediator_fee" class="form-control additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Others</label>
+                                        <input type="text" name="others_cost" class="form-control additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12 text-end">
+                                        <label class="form-label">Total Additional Cost</label>
+                                        <h4 class="text-primary" id="totalAdditional">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
+                                        <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success-custom mt-2">
+                                    <i class="fas fa-save"></i> Simpan Additional Cost
+                                </button>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                                    <i class="fas fa-times"></i> Batal
+                                </a>
                             </div>
-                        <?php elseif ($editMode == 'additional'): ?>
-                            <!-- Edit Mode Additional -->
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Insurance Ops</label>
-                                    <input type="text" name="insurance_ops" class="form-control additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Insurance Cargo <span class="text-danger">*</span></label>
-                                    <input type="text" name="insurance_cargo" class="form-control additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Delivery Cost</label>
-                                    <input type="text" name="delivery_cost" class="form-control additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Free Part</label>
-                                    <input type="text" name="free_part" class="form-control additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Free Service</label>
-                                    <input type="text" name="free_service" class="form-control additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Mediator Fee</label>
-                                    <input type="text" name="mediator_fee" class="form-control additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()">
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Others</label>
-                                    <input type="text" name="others_cost" class="form-control additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12 text-end">
-                                    <label class="form-label">Total Additional Cost</label>
-                                    <h4 class="text-primary" id="totalAdditional">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
-                                    <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-success-custom mt-2">
-                                <i class="fas fa-save"></i> Simpan Additional Cost
-                            </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                <i class="fas fa-times"></i> Batal
-                            </a>
-                        <?php else: ?>
-                            <!-- View Mode Additional -->
+                        <?php elseif ($hasAdditional): ?>
+                            <!-- VIEW MODE ADDITIONAL -->
                             <div class="summary-item">
                                 <span class="label">Insurance Ops</span>
                                 <span class="value">Rp <?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?></span>
@@ -1691,10 +1693,10 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <span class="label" style="font-weight: 700; color: #004085;">Total Additional Cost</span>
                                 <span class="value" style="font-weight: 700; color: #004085;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span>
                             </div>
-                            <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-edit-custom">
-                                    <i class="fas fa-edit"></i> Edit Additional Cost
-                                </a>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-coins"></i>
+                                <p>Belum ada data Additional Cost. Klik Edit Additional Cost untuk menambahkan.</p>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -1703,58 +1705,55 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
-                            <?php if (empty($mediator['name']) && empty($mediator['id_card_no'])): ?>
+                            <?php if ($editMode != 'mediator'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-primary-custom">
-                                    <i class="fas fa-plus"></i> Tambah Mediator
+                                    <i class="fas fa-edit"></i> Edit Mediator
                                 </a>
                             <?php endif; ?>
                         </div>
                         
-                        <?php if (empty($mediator['name']) && empty($mediator['id_card_no'])): ?>
-                            <div class="empty-state">
-                                <i class="fas fa-user"></i>
-                                <p>Belum ada data Mediator Fee. Klik Tambah Mediator untuk menambahkan.</p>
+                        <?php if ($editMode == 'mediator'): ?>
+                            <!-- EDIT MODE MEDIATOR -->
+                            <div class="edit-form-container">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="mediator_name" class="form-control" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">ID Card No <span class="text-danger">*</span></label>
+                                        <input type="text" name="mediator_id_card" class="form-control" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">NPWP No <span class="text-danger">*</span></label>
+                                        <input type="text" name="mediator_npwp" class="form-control" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Bank Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="mediator_bank" class="form-control" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Bank Account <span class="text-danger">*</span></label>
+                                        <input type="text" name="mediator_bank_account" class="form-control" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Amount</label>
+                                        <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" readonly>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success-custom mt-2">
+                                    <i class="fas fa-save"></i> Simpan Mediator
+                                </button>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
+                                    <i class="fas fa-times"></i> Batal
+                                </a>
                             </div>
-                        <?php elseif ($editMode == 'mediator'): ?>
-                            <!-- Edit Mode Mediator -->
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Name <span class="text-danger">*</span></label>
-                                    <input type="text" name="mediator_name" class="form-control" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">ID Card No <span class="text-danger">*</span></label>
-                                    <input type="text" name="mediator_id_card" class="form-control" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">NPWP No <span class="text-danger">*</span></label>
-                                    <input type="text" name="mediator_npwp" class="form-control" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Bank Name <span class="text-danger">*</span></label>
-                                    <input type="text" name="mediator_bank" class="form-control" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Bank Account <span class="text-danger">*</span></label>
-                                    <input type="text" name="mediator_bank_account" class="form-control" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Amount</label>
-                                    <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" readonly>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-success-custom mt-2">
-                                <i class="fas fa-save"></i> Simpan Mediator
-                            </button>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom mt-2 ms-2">
-                                <i class="fas fa-times"></i> Batal
-                            </a>
-                        <?php else: ?>
-                            <!-- View Mode Mediator -->
+                        <?php elseif (!empty($mediator['name']) && !empty($mediator['id_card_no'])): ?>
+                            <!-- VIEW MODE MEDIATOR -->
                             <div class="summary-item">
                                 <span class="label">Name</span>
                                 <span class="value"><?= htmlspecialchars($mediator['name'] ?? '-') ?></span>
@@ -1779,10 +1778,10 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                 <span class="label" style="font-weight: 700; color: #856404;">Amount</span>
                                 <span class="value" style="font-weight: 700; color: #856404;">Rp <?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?></span>
                             </div>
-                            <div class="text-end mt-2">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-edit-custom">
-                                    <i class="fas fa-edit"></i> Edit Mediator
-                                </a>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-user"></i>
+                                <p>Belum ada data Mediator Fee. Klik Edit Mediator untuk menambahkan.</p>
                             </div>
                         <?php endif; ?>
                     </div>
