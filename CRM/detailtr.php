@@ -70,21 +70,13 @@ if ($userRole === 'sales') {
 $trRequests = $stmt->fetchAll();
 
 // ============================================
-// AMBIL DATA PRODUK UNTUK DROPDOWN UNIT (MENGGUNAKAN TABEL products)
+// AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
 // ============================================
 try {
-    // Cek apakah kolom status ada di tabel products
-    $stmt = $db->query("SHOW COLUMNS FROM products LIKE 'status'");
-    if ($stmt->rowCount() > 0) {
-        $stmt = $db->query("SELECT id, nama_produk, kode_produk FROM products WHERE status = 'active' ORDER BY nama_produk");
-    } else {
-        // Jika tidak ada kolom status, ambil semua
-        $stmt = $db->query("SELECT id, nama_produk, kode_produk FROM products ORDER BY nama_produk");
-    }
+    $stmt = $db->query("SELECT id, nama_produk, kode_produk FROM products ORDER BY nama_produk");
     $produkList = $stmt->fetchAll();
 } catch(PDOException $e) {
     $produkList = [];
-    // Jika tabel tidak ada, tampilkan pesan
     if (strpos($e->getMessage(), 'Base table or view not found') !== false) {
         setFlash('Tabel products belum dibuat. Silakan buat tabel products terlebih dahulu.', 'warning');
     }
@@ -116,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             for ($i = 0; $i < count($_POST['unit_name']); $i++) {
                 if (!empty($_POST['unit_name'][$i])) {
                     $qty = (int)$_POST['qty'][$i];
-                    $price = (float)str_replace(',', '', $_POST['price'][$i]);
+                    $price = (float)str_replace(['.', ','], '', $_POST['price'][$i]);
                     $ppn_percent = 11;
                     $ppn = $price * ($ppn_percent / 100);
                     $grand_total_unit = ($price + $ppn) * $qty;
@@ -142,10 +134,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         // Term Of Payment
         $top = [
-            'booking_fee' => (float)str_replace(',', '', $_POST['booking_fee'] ?? 0),
+            'booking_fee' => (float)str_replace(['.', ','], '', $_POST['booking_fee'] ?? 0),
             'down_payments' => [],
             'installments' => [],
-            'nominal_po_leasing' => (float)str_replace(',', '', $_POST['nominal_po_leasing'] ?? 0),
+            'nominal_po_leasing' => (float)str_replace(['.', ','], '', $_POST['nominal_po_leasing'] ?? 0),
             'grand_total_top' => 0
         ];
         
@@ -155,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (!empty($_POST['dp_name'][$i]) && !empty($_POST['dp_value'][$i])) {
                     $top['down_payments'][] = [
                         'name' => $_POST['dp_name'][$i],
-                        'value' => (float)str_replace(',', '', $_POST['dp_value'][$i])
+                        'value' => (float)str_replace(['.', ','], '', $_POST['dp_value'][$i])
                     ];
                 }
             }
@@ -167,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
                     $top['installments'][] = [
                         'name' => $_POST['installment_name'][$i],
-                        'value' => (float)str_replace(',', '', $_POST['installment_value'][$i])
+                        'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i])
                     ];
                 }
             }
@@ -185,13 +177,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         // Additional Cost
         $additional_cost = [
-            'insurance_ops' => (float)str_replace(',', '', $_POST['insurance_ops'] ?? 0),
-            'insurance_cargo' => (float)str_replace(',', '', $_POST['insurance_cargo'] ?? 0),
-            'delivery_cost' => (float)str_replace(',', '', $_POST['delivery_cost'] ?? 0),
-            'free_part' => (float)str_replace(',', '', $_POST['free_part'] ?? 0),
-            'free_service' => (float)str_replace(',', '', $_POST['free_service'] ?? 0),
-            'mediator_fee' => (float)str_replace(',', '', $_POST['mediator_fee'] ?? 0),
-            'others' => (float)str_replace(',', '', $_POST['others_cost'] ?? 0),
+            'insurance_ops' => (float)str_replace(['.', ','], '', $_POST['insurance_ops'] ?? 0),
+            'insurance_cargo' => (float)str_replace(['.', ','], '', $_POST['insurance_cargo'] ?? 0),
+            'delivery_cost' => (float)str_replace(['.', ','], '', $_POST['delivery_cost'] ?? 0),
+            'free_part' => (float)str_replace(['.', ','], '', $_POST['free_part'] ?? 0),
+            'free_service' => (float)str_replace(['.', ','], '', $_POST['free_service'] ?? 0),
+            'mediator_fee' => (float)str_replace(['.', ','], '', $_POST['mediator_fee'] ?? 0),
+            'others' => (float)str_replace(['.', ','], '', $_POST['others_cost'] ?? 0),
             'total_additional' => 0
         ];
         
@@ -211,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'npwp_no' => bersihkan($_POST['mediator_npwp'] ?? ''),
             'bank_name' => bersihkan($_POST['mediator_bank'] ?? ''),
             'bank_account' => bersihkan($_POST['mediator_bank_account'] ?? ''),
-            'amount' => (float)str_replace(',', '', $_POST['mediator_fee'] ?? 0)
+            'amount' => (float)str_replace(['.', ','], '', $_POST['mediator_fee'] ?? 0)
         ];
         
         // Grand Total (dari units)
@@ -392,21 +384,6 @@ if ($userRole === 'sales') {
     $stmt->execute();
 }
 $requests = $stmt->fetchAll();
-
-// ============================================
-// FUNGSI UNTUK MENDAPATKAN NAMA PRODUK DARI ID
-// ============================================
-function getProductName($db, $product_id) {
-    if (empty($product_id)) return '';
-    try {
-        $stmt = $db->prepare("SELECT nama_produk FROM products WHERE id = ?");
-        $stmt->execute([$product_id]);
-        $result = $stmt->fetch();
-        return $result ? $result['nama_produk'] : '';
-    } catch(PDOException $e) {
-        return '';
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -423,9 +400,6 @@ function getProductName($db, $product_id) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        /* ============================================
-           STYLES (SAME AS BEFORE)
-           ============================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -444,91 +418,18 @@ function getProductName($db, $product_id) {
             align-items: center;
         }
         
-        .top-header .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .top-header .header-left { display: flex; align-items: center; gap: 10px; }
+        .top-header .header-left .logo-wrapper { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+        .top-header .header-left .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .top-header .header-left .brand-text .brand-name { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
+        .top-header .header-left .brand-text .brand-name span { color: #ffd700; }
+        .top-header .header-left .brand-text .brand-sub { font-size: 8px; color: rgba(255, 255, 255, 0.4); letter-spacing: 0.5px; text-transform: uppercase; }
         
-        .top-header .header-left .logo-wrapper {
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        
-        .top-header .header-left .logo-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        
-        .top-header .header-left .brand-text .brand-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: #fff;
-            line-height: 1.2;
-        }
-        
-        .top-header .header-left .brand-text .brand-name span {
-            color: #ffd700;
-        }
-        
-        .top-header .header-left .brand-text .brand-sub {
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-        
-        .top-header .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .top-header .header-right .notif-icon {
-            position: relative;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 16px;
-            cursor: pointer;
-        }
-        
-        .top-header .header-right .notif-icon .badge-notif {
-            position: absolute;
-            top: -5px;
-            right: -6px;
-            background: #d63031;
-            color: #fff;
-            font-size: 8px;
-            padding: 1px 5px;
-            border-radius: 50%;
-            min-width: 16px;
-            text-align: center;
-        }
-        
-        .top-header .header-right .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(255, 215, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffd700;
-            font-weight: 700;
-            font-size: 13px;
-            text-decoration: none;
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            transition: border-color 0.3s ease;
-        }
-        
-        .top-header .header-right .user-avatar:hover {
-            border-color: #ffd700;
-        }
+        .top-header .header-right { display: flex; align-items: center; gap: 12px; }
+        .top-header .header-right .notif-icon { position: relative; color: rgba(255, 255, 255, 0.6); font-size: 16px; cursor: pointer; }
+        .top-header .header-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
+        .top-header .header-right .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 13px; text-decoration: none; border: 2px solid rgba(255, 215, 0, 0.2); transition: border-color 0.3s ease; }
+        .top-header .header-right .user-avatar:hover { border-color: #ffd700; }
         
         .welcome-banner {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -540,29 +441,10 @@ function getProductName($db, $product_id) {
             overflow: hidden;
         }
         
-        .welcome-banner .welcome-text .greeting {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
-            font-weight: 400;
-        }
-        
-        .welcome-banner .welcome-text h3 {
-            font-weight: 700;
-            font-size: 18px;
-            margin: 2px 0 0;
-        }
-        
-        .welcome-banner .welcome-text h3 span {
-            color: #ffd700;
-        }
-        
-        .welcome-banner .welcome-icon {
-            font-size: 32px;
-            color: rgba(255, 215, 0, 0.05);
-            position: absolute;
-            right: 15px;
-            bottom: 10px;
-        }
+        .welcome-banner .welcome-text .greeting { font-size: 12px; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
+        .welcome-banner .welcome-text h3 { font-weight: 700; font-size: 18px; margin: 2px 0 0; }
+        .welcome-banner .welcome-text h3 span { color: #ffd700; }
+        .welcome-banner .welcome-icon { font-size: 32px; color: rgba(255, 215, 0, 0.05); position: absolute; right: 15px; bottom: 10px; }
         
         .card-custom {
             background: #fff;
@@ -761,6 +643,57 @@ function getProductName($db, $product_id) {
             flex: 1;
         }
         
+        /* TAB STYLES */
+        .nav-tabs-custom {
+            border-bottom: 2px solid #e8edf2;
+            padding: 0 20px;
+            background: #f8f9fa;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .nav-tabs-custom .nav-link {
+            border: none;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #999;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-tabs-custom .nav-link:hover {
+            color: #1a1a2e;
+            background: transparent;
+        }
+        
+        .nav-tabs-custom .nav-link.active {
+            color: #ffd700;
+            background: transparent;
+        }
+        
+        .nav-tabs-custom .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #ffd700;
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .nav-tabs-custom .nav-link i {
+            margin-right: 6px;
+        }
+        
+        .tab-content-custom {
+            padding: 20px;
+            background: #fff;
+            border-radius: 0 0 12px 12px;
+            border: 1px solid #e8edf2;
+            border-top: none;
+        }
+        
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -788,40 +721,11 @@ function getProductName($db, $product_id) {
             min-width: 45px;
         }
         
-        .bottom-nav .nav-item .nav-icon {
-            font-size: 17px;
-            color: #999;
-            transition: all 0.3s ease;
-        }
-        
-        .bottom-nav .nav-item .nav-label {
-            font-size: 8px;
-            color: #999;
-            font-weight: 500;
-            margin-top: 2px;
-            transition: all 0.3s ease;
-        }
-        
-        .bottom-nav .nav-item.active .nav-icon {
-            color: #ffd700;
-        }
-        
-        .bottom-nav .nav-item.active .nav-label {
-            color: #1a1a2e;
-            font-weight: 600;
-        }
-        
-        .bottom-nav .nav-item.active::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 18px;
-            height: 2px;
-            background: #ffd700;
-            border-radius: 0 0 2px 2px;
-        }
+        .bottom-nav .nav-item .nav-icon { font-size: 17px; color: #999; transition: all 0.3s ease; }
+        .bottom-nav .nav-item .nav-label { font-size: 8px; color: #999; font-weight: 500; margin-top: 2px; transition: all 0.3s ease; }
+        .bottom-nav .nav-item.active .nav-icon { color: #ffd700; }
+        .bottom-nav .nav-item.active .nav-label { color: #1a1a2e; font-weight: 600; }
+        .bottom-nav .nav-item.active::before { content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 18px; height: 2px; background: #ffd700; border-radius: 0 0 2px 2px; }
         
         .desktop-nav-wrapper {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -834,158 +738,29 @@ function getProductName($db, $product_id) {
             align-items: center;
         }
         
-        .desktop-nav-wrapper .brand-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 0;
-        }
+        .desktop-nav-wrapper .brand-section { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+        .desktop-nav-wrapper .brand-section .logo-wrapper { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+        .desktop-nav-wrapper .brand-section .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .desktop-nav-wrapper .brand-section .brand-text .brand-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
+        .desktop-nav-wrapper .brand-section .brand-text .brand-name span { color: #ffd700; }
+        .desktop-nav-wrapper .brand-section .brand-text .brand-sub { font-size: 8px; color: rgba(255, 255, 255, 0.4); letter-spacing: 1px; text-transform: uppercase; }
         
-        .desktop-nav-wrapper .brand-section .logo-wrapper {
-            width: 38px;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
+        .desktop-nav-wrapper .desktop-menu { display: flex; align-items: center; gap: 4px; }
+        .desktop-nav-wrapper .desktop-menu .nav-link { color: rgba(255, 255, 255, 0.6); padding: 8px 16px; display: flex; align-items: center; gap: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border-radius: 8px; transition: all 0.3s ease; }
+        .desktop-nav-wrapper .desktop-menu .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+        .desktop-nav-wrapper .desktop-menu .nav-link.active { color: #ffd700; background: rgba(255, 215, 0, 0.08); }
+        .desktop-nav-wrapper .desktop-menu .nav-link i { font-size: 14px; }
         
-        .desktop-nav-wrapper .brand-section .logo-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name {
-            font-size: 15px;
-            font-weight: 700;
-            color: #fff;
-            line-height: 1.2;
-        }
-        
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name span {
-            color: #ffd700;
-        }
-        
-        .desktop-nav-wrapper .brand-section .brand-text .brand-sub {
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        
-        .desktop-nav-wrapper .desktop-menu {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link {
-            color: rgba(255, 255, 255, 0.6);
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link.active {
-            color: #ffd700;
-            background: rgba(255, 215, 0, 0.08);
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link i {
-            font-size: 14px;
-        }
-        
-        .desktop-nav-wrapper .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        
-        .desktop-nav-wrapper .nav-right .notif-icon {
-            position: relative;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 17px;
-            cursor: pointer;
-        }
-        
-        .desktop-nav-wrapper .nav-right .notif-icon .badge-notif {
-            position: absolute;
-            top: -5px;
-            right: -6px;
-            background: #d63031;
-            color: #fff;
-            font-size: 8px;
-            padding: 1px 5px;
-            border-radius: 50%;
-            min-width: 16px;
-            text-align: center;
-        }
-        
-        .desktop-nav-wrapper .nav-right .user-info {
-            text-align: right;
-            color: #fff;
-        }
-        
-        .desktop-nav-wrapper .nav-right .user-info .name {
-            font-weight: 600;
-            font-size: 13px;
-            line-height: 1.2;
-        }
-        
-        .desktop-nav-wrapper .nav-right .user-info .role {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.4);
-        }
-        
-        .desktop-nav-wrapper .nav-right .user-avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: rgba(255, 215, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffd700;
-            font-weight: 700;
-            font-size: 14px;
-            text-decoration: none;
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            transition: border-color 0.3s ease;
-        }
-        
-        .desktop-nav-wrapper .nav-right .user-avatar:hover {
-            border-color: #ffd700;
-        }
-        
-        .desktop-nav-wrapper .nav-right .logout-btn {
-            color: rgba(255, 255, 255, 0.5);
-            padding: 5px 14px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .desktop-nav-wrapper .nav-right .logout-btn:hover {
-            color: #ff6b6b;
-            background: rgba(214, 48, 49, 0.1);
-            border-color: rgba(214, 48, 49, 0.3);
-        }
+        .desktop-nav-wrapper .nav-right { display: flex; align-items: center; gap: 16px; }
+        .desktop-nav-wrapper .nav-right .notif-icon { position: relative; color: rgba(255, 255, 255, 0.6); font-size: 17px; cursor: pointer; }
+        .desktop-nav-wrapper .nav-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
+        .desktop-nav-wrapper .nav-right .user-info { text-align: right; color: #fff; }
+        .desktop-nav-wrapper .nav-right .user-info .name { font-weight: 600; font-size: 13px; line-height: 1.2; }
+        .desktop-nav-wrapper .nav-right .user-info .role { font-size: 10px; color: rgba(255, 255, 255, 0.4); }
+        .desktop-nav-wrapper .nav-right .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 14px; text-decoration: none; border: 2px solid rgba(255, 215, 0, 0.2); transition: border-color 0.3s ease; }
+        .desktop-nav-wrapper .nav-right .user-avatar:hover { border-color: #ffd700; }
+        .desktop-nav-wrapper .nav-right .logout-btn { color: rgba(255, 255, 255, 0.5); padding: 5px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; transition: all 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .desktop-nav-wrapper .nav-right .logout-btn:hover { color: #ff6b6b; background: rgba(214, 48, 49, 0.1); border-color: rgba(214, 48, 49, 0.3); }
         
         .footer-text {
             text-align: center;
@@ -994,15 +769,8 @@ function getProductName($db, $product_id) {
             font-size: 11px;
         }
         
-        .footer-text a {
-            color: #16213e;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .footer-text a:hover {
-            color: #ffd700;
-        }
+        .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
+        .footer-text a:hover { color: #ffd700; }
         
         .section-title {
             font-weight: 700;
@@ -1025,6 +793,30 @@ function getProductName($db, $product_id) {
             font-size: 14px;
         }
         
+        .info-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-row .info-label {
+            font-weight: 600;
+            color: #555;
+            width: 180px;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        
+        .info-row .info-value {
+            color: #1a1a2e;
+            font-size: 13px;
+            word-break: break-word;
+        }
+        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1040,12 +832,16 @@ function getProductName($db, $product_id) {
             .card-custom .card-header-custom { padding: 12px 16px; }
             .card-custom .card-body-custom { padding: 15px; }
             .dp-row, .installment-row { flex-wrap: wrap; }
+            .nav-tabs-custom .nav-link { padding: 10px 12px; font-size: 12px; }
+            .info-row { flex-wrap: wrap; }
+            .info-row .info-label { width: 100%; }
         }
         
         @media (max-width: 480px) {
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
             .unit-row { padding: 10px; }
+            .nav-tabs-custom .nav-link { padding: 8px 10px; font-size: 11px; }
         }
     </style>
 </head>
@@ -1185,7 +981,6 @@ function getProductName($db, $product_id) {
         </div>
 
         <?php if ($detailData): ?>
-        <!-- FORM DETAIL TR -->
         <form method="POST" id="formDetailTR">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?= $detailData['id'] ?? '' ?>">
@@ -1194,344 +989,386 @@ function getProductName($db, $product_id) {
             <input type="hidden" name="account_id" value="<?= $detailData['account_id'] ?? '' ?>">
             <input type="hidden" name="status" id="formStatus" value="<?= $detailData['status'] ?? 'draft' ?>">
 
-            <!-- DATA CUSTOMER -->
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h6><i class="fas fa-user"></i> Data Customer</h6>
-                    <span class="badge-trf"><i class="fas fa-file-signature"></i> <?= htmlspecialchars($detailData['trf_number']) ?></span>
+            <!-- TAB NAVIGATION -->
+            <div class="card-custom" style="padding: 0; overflow: hidden;">
+                <div class="nav-tabs-custom">
+                    <ul class="nav nav-tabs" id="detailTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">
+                                <i class="fas fa-info-circle"></i> Summary
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="unit-tab" data-bs-toggle="tab" data-bs-target="#unit" type="button" role="tab">
+                                <i class="fas fa-box"></i> Detail Unit
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="top-tab" data-bs-toggle="tab" data-bs-target="#top" type="button" role="tab">
+                                <i class="fas fa-money-bill-wave"></i> Term Of Payment
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="additional-tab" data-bs-toggle="tab" data-bs-target="#additional" type="button" role="tab">
+                                <i class="fas fa-plus-circle"></i> Additional Cost
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="mediator-tab" data-bs-toggle="tab" data-bs-target="#mediator" type="button" role="tab">
+                                <i class="fas fa-user-tie"></i> Mediator Fee
+                            </button>
+                        </li>
+                    </ul>
                 </div>
-                <div class="card-body-custom">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nama PT/Perusahaan</label>
-                            <input type="text" name="nama_pt" class="form-control" value="<?= htmlspecialchars($detailData['account_nama_pt'] ?? $detailData['nama_pt'] ?? '') ?>" readonly>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">NPWP</label>
-                            <input type="text" name="npwp" class="form-control" value="<?= htmlspecialchars($detailData['account_npwp'] ?? $detailData['npwp'] ?? '') ?>" readonly>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Alamat</label>
-                        <textarea name="alamat" class="form-control" rows="2" readonly><?= htmlspecialchars($detailData['account_alamat'] ?? $detailData['alamat'] ?? '') ?></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Nama PIC</label>
-                            <input type="text" name="nama_pic" class="form-control" value="<?= htmlspecialchars($detailData['account_nama_pic'] ?? $detailData['nama_pic'] ?? '') ?>" readonly>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Jabatan PIC</label>
-                            <input type="text" name="jabatan_pic" class="form-control" value="<?= htmlspecialchars($detailData['account_jabatan_pic'] ?? $detailData['jabatan_pic'] ?? '') ?>" readonly>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">No Telepon PIC</label>
-                            <input type="text" name="no_hp_pic" class="form-control" value="<?= htmlspecialchars($detailData['account_no_hp_pic'] ?? $detailData['no_hp_pic'] ?? '') ?>" readonly>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email PIC</label>
-                        <input type="email" name="email_pic" class="form-control" value="<?= htmlspecialchars($detailData['account_email_pic'] ?? $detailData['email_pic'] ?? '') ?>" readonly>
-                    </div>
-                </div>
-            </div>
 
-            <!-- DETAIL UNIT -->
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h6><i class="fas fa-box"></i> Detail Unit</h6>
-                    <div>
-                        <button type="button" class="btn btn-sm btn-primary-custom" onclick="addUnit()">
-                            <i class="fas fa-plus"></i> Tambah Unit
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body-custom" id="unitContainer">
-                    <?php 
-                    $units = json_decode($detailData['units'] ?? '[]', true);
-                    if (empty($units)) {
-                        $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => '', 'transaction_type' => '']];
-                    }
-                    $unitIndex = 0;
-                    foreach ($units as $unit):
-                    ?>
-                    <div class="unit-row" data-index="<?= $unitIndex ?>">
+                <div class="tab-content tab-content-custom" id="detailTabContent">
+                    <!-- TAB 1: SUMMARY -->
+                    <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                        <h5 class="section-title"><i class="fas fa-info-circle"></i> Summary</h5>
                         <div class="row">
-                            <div class="col-md-12 text-end">
-                                <?php if (count($units) > 1): ?>
-                                    <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit">
-                                        <i class="fas fa-times-circle"></i>
-                                    </button>
-                                <?php endif; ?>
+                            <div class="col-md-6">
+                                <div class="info-row">
+                                    <span class="info-label">TR Number</span>
+                                    <span class="info-value"><span class="badge-trf"><i class="fas fa-file-signature"></i> <?= htmlspecialchars($detailData['trf_number']) ?></span></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Nama PT</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['account_nama_pt'] ?? $detailData['nama_pt'] ?? '-') ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">No NPWP</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['account_npwp'] ?? $detailData['npwp'] ?? '-') ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Alamat</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['account_alamat'] ?? $detailData['alamat'] ?? '-') ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Nama PIC</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['account_nama_pic'] ?? $detailData['nama_pic'] ?? '-') ?></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-row">
+                                    <span class="info-label">Jabatan PIC</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['account_jabatan_pic'] ?? $detailData['jabatan_pic'] ?? '-') ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">No Telepon PIC</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['account_no_hp_pic'] ?? $detailData['no_hp_pic'] ?? '-') ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Email PIC</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['account_email_pic'] ?? $detailData['email_pic'] ?? '-') ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Subject</span>
+                                    <span class="info-value"><?= htmlspecialchars($detailData['subject'] ?? '-') ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Due Date</span>
+                                    <span class="info-value"><?= !empty($detailData['due_date']) ? date('d/m/Y', strtotime($detailData['due_date'])) : '-' ?></span>
+                                </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Unit <span class="text-danger">*</span></label>
-                                <select name="unit_name[]" class="form-select" required>
-                                    <option value="">-- Pilih Unit --</option>
-                                    <?php foreach ($produkList as $produk): ?>
-                                        <option value="<?= htmlspecialchars($produk['nama_produk']) ?>" <?= ($unit['unit_name'] == $produk['nama_produk']) ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($produk['kode_produk'] ?? '') ?> - <?= htmlspecialchars($produk['nama_produk']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-2 mb-2">
-                                <label class="form-label">QTY <span class="text-danger">*</span></label>
-                                <input type="number" name="qty[]" class="form-control qty" value="<?= $unit['qty'] ?? 1 ?>" min="1" required onchange="calculateUnit(this)">
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Price (Non PPN) <span class="text-danger">*</span></label>
-                                <input type="text" name="price[]" class="form-control price" value="<?= number_format($unit['price'] ?? 0, 0, ',', '.') ?>" required oninput="calculateUnit(this)">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-3 mb-2">
-                                <label class="form-label">PPN (11%)</label>
-                                <input type="text" name="ppn[]" class="form-control ppn" value="<?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?>" readonly>
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <label class="form-label">Grand Total (Include PPN)</label>
-                                <input type="text" name="grand_total_unit[]" class="form-control grand-total-unit" value="<?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?>" readonly>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Spesification <span class="text-danger">*</span></label>
-                                <input type="text" name="specification[]" class="form-control" value="<?= htmlspecialchars($unit['specification'] ?? '') ?>" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Additional Attachment / Safety Devices</label>
-                                <input type="text" name="additional_attachment[]" class="form-control" value="<?= htmlspecialchars($unit['additional_attachment'] ?? '') ?>">
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Warranty</label>
-                                <input type="text" name="warranty[]" class="form-control" value="<?= htmlspecialchars($unit['warranty'] ?? '') ?>">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Machine Location Works <span class="text-danger">*</span></label>
-                                <input type="text" name="machine_location[]" class="form-control" value="<?= htmlspecialchars($unit['machine_location'] ?? '') ?>" required>
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Delivery Terms <span class="text-danger">*</span></label>
-                                <input type="text" name="delivery_terms[]" class="form-control" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" value="<?= htmlspecialchars($unit['delivery_terms'] ?? '') ?>" required>
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Delivery Schedule Plan <span class="text-danger">*</span></label>
-                                <input type="date" name="delivery_schedule[]" class="form-control" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? '') ?>" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12 mb-2">
-                                <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                            <label class="form-check-label">Cash On Delivery</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                            <label class="form-check-label">Leasing</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Direct Credit" <?= ($unit['transaction_type'] == 'Direct Credit') ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                            <label class="form-check-label">Direct Credit</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Other" <?= ($unit['transaction_type'] == 'Other') ? 'checked' : '' ?> onchange="setTransactionType(this)">
-                                            <label class="form-check-label">Other</label>
-                                        </div>
-                                        <input type="text" name="transaction_type_other_<?= $unitIndex ?>" class="form-control form-control-sm mt-1 transaction-type-other" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>" style="display: <?= ($unit['transaction_type'] == 'Other' || strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
-                                        <input type="hidden" name="transaction_type[]" class="transaction-type-hidden" value="<?= htmlspecialchars($unit['transaction_type'] ?? '') ?>">
-                                    </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="info-row">
+                                    <span class="info-label">Status</span>
+                                    <span class="info-value">
+                                        <span class="badge-status <?= $detailData['status'] ?? 'draft' ?>">
+                                            <?= ucfirst($detailData['status'] ?? 'Draft') ?>
+                                        </span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <?php 
-                    $unitIndex++;
-                    endforeach; 
-                    ?>
-                </div>
-            </div>
 
-            <!-- TERM OF PAYMENT -->
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h6><i class="fas fa-money-bill-wave"></i> Term Of Payment</h6>
-                </div>
-                <div class="card-body-custom">
-                    <?php 
-                    $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"down_payments":[],"installments":[],"nominal_po_leasing":0,"grand_total_top":0}', true);
-                    ?>
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Booking Fee</label>
-                            <input type="text" name="booking_fee" class="form-control top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                    <!-- TAB 2: DETAIL UNIT -->
+                    <div class="tab-pane fade" id="unit" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
+                            <button type="button" class="btn btn-sm btn-primary-custom" onclick="addUnit()">
+                                <i class="fas fa-plus"></i> Tambah Unit
+                            </button>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Nominal PO Leasing</label>
-                            <input type="text" name="nominal_po_leasing" class="form-control top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                        </div>
-                        <div class="col-md-6 mb-3 text-end">
-                            <label class="form-label">Grand Total TOP</label>
-                            <h4 class="text-success" id="grandTotalTOP">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
-                            <input type="hidden" name="grand_total_top" id="grandTotalTOPHidden" value="<?= $top['grand_total_top'] ?? 0 ?>">
-                        </div>
-                    </div>
-
-                    <!-- Down Payments -->
-                    <div class="mb-3">
-                        <label class="form-label">Down Payment</label>
-                        <div id="dpContainer">
+                        <div id="unitContainer">
                             <?php 
-                            $dpIndex = 0;
-                            foreach ($top['down_payments'] ?? [] as $dp): 
+                            $units = json_decode($detailData['units'] ?? '[]', true);
+                            if (empty($units)) {
+                                $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => '', 'transaction_type' => '']];
+                            }
+                            $unitIndex = 0;
+                            foreach ($units as $unit):
                             ?>
-                            <div class="dp-row">
-                                <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
-                                <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
+                            <div class="unit-row" data-index="<?= $unitIndex ?>">
+                                <div class="row">
+                                    <div class="col-md-12 text-end">
+                                        <?php if (count($units) > 1): ?>
+                                            <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit">
+                                                <i class="fas fa-times-circle"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Unit <span class="text-danger">*</span></label>
+                                        <select name="unit_name[]" class="form-select" required>
+                                            <option value="">-- Pilih Unit --</option>
+                                            <?php foreach ($produkList as $produk): ?>
+                                                <option value="<?= htmlspecialchars($produk['nama_produk']) ?>" <?= ($unit['unit_name'] == $produk['nama_produk']) ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($produk['kode_produk'] ?? '') ?> - <?= htmlspecialchars($produk['nama_produk']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <label class="form-label">QTY <span class="text-danger">*</span></label>
+                                        <input type="number" name="qty[]" class="form-control qty" value="<?= $unit['qty'] ?? 1 ?>" min="1" required onchange="calculateUnit(this)">
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Price (Non PPN) <span class="text-danger">*</span></label>
+                                        <input type="text" name="price[]" class="form-control price" value="<?= number_format($unit['price'] ?? 0, 0, ',', '.') ?>" required oninput="calculateUnit(this)">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-2">
+                                        <label class="form-label">PPN (11%)</label>
+                                        <input type="text" name="ppn[]" class="form-control ppn" value="<?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?>" readonly>
+                                    </div>
+                                    <div class="col-md-3 mb-2">
+                                        <label class="form-label">Grand Total (Include PPN)</label>
+                                        <input type="text" name="grand_total_unit[]" class="form-control grand-total-unit" value="<?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?>" readonly>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Spesification <span class="text-danger">*</span></label>
+                                        <input type="text" name="specification[]" class="form-control" value="<?= htmlspecialchars($unit['specification'] ?? '') ?>" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Additional Attachment / Safety Devices</label>
+                                        <input type="text" name="additional_attachment[]" class="form-control" value="<?= htmlspecialchars($unit['additional_attachment'] ?? '') ?>">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Warranty</label>
+                                        <input type="text" name="warranty[]" class="form-control" value="<?= htmlspecialchars($unit['warranty'] ?? '') ?>">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Machine Location Works <span class="text-danger">*</span></label>
+                                        <input type="text" name="machine_location[]" class="form-control" value="<?= htmlspecialchars($unit['machine_location'] ?? '') ?>" required>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Delivery Terms <span class="text-danger">*</span></label>
+                                        <input type="text" name="delivery_terms[]" class="form-control" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" value="<?= htmlspecialchars($unit['delivery_terms'] ?? '') ?>" required>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <label class="form-label">Delivery Schedule Plan <span class="text-danger">*</span></label>
+                                        <input type="date" name="delivery_schedule[]" class="form-control" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? '') ?>" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12 mb-2">
+                                        <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'checked' : '' ?> onchange="setTransactionType(this)">
+                                                    <label class="form-check-label">Cash On Delivery</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'checked' : '' ?> onchange="setTransactionType(this)">
+                                                    <label class="form-check-label">Leasing</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Direct Credit" <?= ($unit['transaction_type'] == 'Direct Credit') ? 'checked' : '' ?> onchange="setTransactionType(this)">
+                                                    <label class="form-check-label">Direct Credit</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input transaction-type" type="radio" name="transaction_type_<?= $unitIndex ?>" value="Other" <?= ($unit['transaction_type'] == 'Other' || strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'checked' : '' ?> onchange="setTransactionType(this)">
+                                                    <label class="form-check-label">Other</label>
+                                                </div>
+                                                <input type="text" name="transaction_type_other_<?= $unitIndex ?>" class="form-control form-control-sm mt-1 transaction-type-other" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>" style="display: <?= ($unit['transaction_type'] == 'Other' || strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
+                                                <input type="hidden" name="transaction_type[]" class="transaction-type-hidden" value="<?= htmlspecialchars($unit['transaction_type'] ?? '') ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <?php 
-                            $dpIndex++;
+                            $unitIndex++;
                             endforeach; 
                             ?>
                         </div>
-                        <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addDP()">
-                            <i class="fas fa-plus"></i> Tambah DP
-                        </button>
                     </div>
 
-                    <!-- Installments -->
-                    <div class="mb-3">
-                        <label class="form-label">Angsuran</label>
-                        <div id="installmentContainer">
-                            <?php 
-                            $instIndex = 0;
-                            foreach ($top['installments'] ?? [] as $inst): 
-                            ?>
-                            <div class="installment-row">
-                                <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
-                                <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
-                                <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
+                    <!-- TAB 3: TERM OF PAYMENT -->
+                    <div class="tab-pane fade" id="top" role="tabpanel">
+                        <h5 class="section-title"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
+                        <?php 
+                        $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"down_payments":[],"installments":[],"nominal_po_leasing":0,"grand_total_top":0}', true);
+                        ?>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Booking Fee</label>
+                                <input type="text" name="booking_fee" class="form-control top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
                             </div>
-                            <?php 
-                            $instIndex++;
-                            endforeach; 
-                            ?>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Nominal PO Leasing</label>
+                                <input type="text" name="nominal_po_leasing" class="form-control top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                            </div>
+                            <div class="col-md-6 mb-3 text-end">
+                                <label class="form-label">Grand Total TOP</label>
+                                <h4 class="text-success" id="grandTotalTOP">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
+                                <input type="hidden" name="grand_total_top" id="grandTotalTOPHidden" value="<?= $top['grand_total_top'] ?? 0 ?>">
+                            </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addInstallment()">
-                            <i class="fas fa-plus"></i> Tambah Angsuran
-                        </button>
+
+                        <!-- Down Payments -->
+                        <div class="mb-3">
+                            <label class="form-label">Down Payment</label>
+                            <div id="dpContainer">
+                                <?php 
+                                $dpIndex = 0;
+                                foreach ($top['down_payments'] ?? [] as $dp): 
+                                ?>
+                                <div class="dp-row">
+                                    <input type="text" name="dp_name[]" class="form-control" placeholder="Nama DP (contoh: DP 1)" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
+                                    <input type="text" name="dp_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
+                                </div>
+                                <?php 
+                                $dpIndex++;
+                                endforeach; 
+                                ?>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addDP()">
+                                <i class="fas fa-plus"></i> Tambah DP
+                            </button>
+                        </div>
+
+                        <!-- Installments -->
+                        <div class="mb-3">
+                            <label class="form-label">Angsuran</label>
+                            <div id="installmentContainer">
+                                <?php 
+                                $instIndex = 0;
+                                foreach ($top['installments'] ?? [] as $inst): 
+                                ?>
+                                <div class="installment-row">
+                                    <input type="text" name="installment_name[]" class="form-control" placeholder="Nama Angsuran (contoh: Angsuran 1)" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
+                                    <input type="text" name="installment_value[]" class="form-control top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()">
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
+                                </div>
+                                <?php 
+                                $instIndex++;
+                                endforeach; 
+                                ?>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary-custom mt-2" onclick="addInstallment()">
+                                <i class="fas fa-plus"></i> Tambah Angsuran
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: ADDITIONAL COST -->
+                    <div class="tab-pane fade" id="additional" role="tabpanel">
+                        <h5 class="section-title"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
+                        <?php 
+                        $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}', true);
+                        ?>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Insurance Ops</label>
+                                <input type="text" name="insurance_ops" class="form-control additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Insurance Cargo <span class="text-danger">*</span></label>
+                                <input type="text" name="insurance_cargo" class="form-control additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Delivery Cost</label>
+                                <input type="text" name="delivery_cost" class="form-control additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Free Part</label>
+                                <input type="text" name="free_part" class="form-control additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Free Service</label>
+                                <input type="text" name="free_service" class="form-control additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Mediator Fee</label>
+                                <input type="text" name="mediator_fee" class="form-control additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Others</label>
+                                <input type="text" name="others_cost" class="form-control additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 text-end">
+                                <label class="form-label">Total Additional Cost</label>
+                                <h4 class="text-primary" id="totalAdditional">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
+                                <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: MEDIATOR FEE -->
+                    <div class="tab-pane fade" id="mediator" role="tabpanel">
+                        <h5 class="section-title"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
+                        <?php 
+                        $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
+                        ?>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Name <span class="text-danger">*</span></label>
+                                <input type="text" name="mediator_name" class="form-control" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ID Card No <span class="text-danger">*</span></label>
+                                <input type="text" name="mediator_id_card" class="form-control" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">NPWP No <span class="text-danger">*</span></label>
+                                <input type="text" name="mediator_npwp" class="form-control" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Bank Name <span class="text-danger">*</span></label>
+                                <input type="text" name="mediator_bank" class="form-control" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Bank Account <span class="text-danger">*</span></label>
+                                <input type="text" name="mediator_bank_account" class="form-control" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Amount</label>
+                                <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" readonly>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ADDITIONAL COST -->
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h6><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h6>
-                </div>
-                <div class="card-body-custom">
-                    <?php 
-                    $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}', true);
-                    ?>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Insurance Ops</label>
-                            <input type="text" name="insurance_ops" class="form-control additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Insurance Cargo <span class="text-danger">*</span></label>
-                            <input type="text" name="insurance_cargo" class="form-control additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Delivery Cost</label>
-                            <input type="text" name="delivery_cost" class="form-control additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Free Part</label>
-                            <input type="text" name="free_part" class="form-control additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Free Service</label>
-                            <input type="text" name="free_service" class="form-control additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Mediator Fee</label>
-                            <input type="text" name="mediator_fee" class="form-control additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Others</label>
-                            <input type="text" name="others_cost" class="form-control additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12 text-end">
-                            <label class="form-label">Total Additional Cost</label>
-                            <h4 class="text-primary" id="totalAdditional">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
-                            <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DATA MEDIATOR FEE -->
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
-                </div>
-                <div class="card-body-custom">
-                    <?php 
-                    $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
-                    ?>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Name <span class="text-danger">*</span></label>
-                            <input type="text" name="mediator_name" class="form-control" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">ID Card No <span class="text-danger">*</span></label>
-                            <input type="text" name="mediator_id_card" class="form-control" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>" required>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">NPWP No <span class="text-danger">*</span></label>
-                            <input type="text" name="mediator_npwp" class="form-control" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Bank Name <span class="text-danger">*</span></label>
-                            <input type="text" name="mediator_bank" class="form-control" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>" required>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Bank Account <span class="text-danger">*</span></label>
-                            <input type="text" name="mediator_bank_account" class="form-control" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Amount</label>
-                            <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" readonly>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- GRAND TOTAL -->
+            <!-- GRAND TOTAL KESELURUHAN -->
             <div class="card-custom">
                 <div class="card-header-custom" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
                     <h6 style="color: #ffd700;"><i class="fas fa-calculator"></i> Grand Total Keseluruhan</h6>
@@ -1611,39 +1448,6 @@ function getProductName($db, $product_id) {
                 </div>
             </div>
         </form>
-
-        <!-- STATUS INFORMATION -->
-        <div class="card-custom">
-            <div class="card-body-custom">
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>Status:</strong> 
-                        <span class="badge-status <?= $detailData['status'] ?? 'draft' ?>">
-                            <?= ucfirst($detailData['status'] ?? 'Draft') ?>
-                        </span>
-                    </div>
-                    <div class="col-md-6 text-md-end">
-                        <strong>TRF Number:</strong> 
-                        <span class="badge-trf"><i class="fas fa-file-signature"></i> <?= htmlspecialchars($detailData['trf_number']) ?></span>
-                    </div>
-                </div>
-                <?php if (!empty($detailData['subject'])): ?>
-                <div class="row mt-2">
-                    <div class="col-md-12">
-                        <strong>Subject:</strong> <?= htmlspecialchars($detailData['subject']) ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-                <?php if (!empty($detailData['due_date'])): ?>
-                <div class="row mt-1">
-                    <div class="col-md-12">
-                        <strong>Due Date:</strong> <?= date('d/m/Y', strtotime($detailData['due_date'])) ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
         <?php endif; ?>
 
         <!-- FOOTER -->
@@ -1852,7 +1656,6 @@ function getProductName($db, $product_id) {
             }
         }
 
-        // Event listener untuk other input
         document.addEventListener('input', function(e) {
             if (e.target.classList.contains('transaction-type-other')) {
                 const row = e.target.closest('.unit-row');
