@@ -1042,13 +1042,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                     <i class="fas fa-file-signature"></i> TR Request
                 </a>
             <?php endif; ?>
-            
-            <?php if (canAccessMenu('detail_transaction_request')): ?>
-                <a href="detailtr.php" class="nav-link active">
-                    <i class="fas fa-file-alt"></i> Detail TR
-                </a>
-            <?php endif; ?>
-            
+                        
             <?php if (canAccessMenu('produk')): ?>
                 <a href="produk.php" class="nav-link">
                     <i class="fas fa-box"></i> Produk
