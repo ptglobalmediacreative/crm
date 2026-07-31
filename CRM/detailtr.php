@@ -1861,97 +1861,121 @@ if ($editMode == 'unit' && !empty($units)) {
                         <?php if ($editMode == 'additional'): ?>
                             <!-- EDIT MODE ADDITIONAL -->
                             <div class="edit-form-container">
-                                <div class="row">
-                                    <div class="col-md-4 mb-2">
+                                <!-- Insurance Ops -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Insurance Ops</label>
                                         <div class="currency-input">
                                             <span class="currency-prefix">Rp</span>
                                             <input type="text" name="insurance_ops" class="form-control form-control-sm additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Remark Insurance Ops</label>
                                         <input type="text" name="insurance_ops_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['insurance_ops_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                </div>
+
+                                <!-- Insurance Cargo -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Insurance Cargo <span class="required">*</span></label>
                                         <div class="currency-input">
                                             <span class="currency-prefix">Rp</span>
                                             <input type="text" name="insurance_cargo" class="form-control form-control-sm additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required placeholder="Nominal">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Remark Insurance Cargo</label>
                                         <input type="text" name="insurance_cargo_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['insurance_cargo_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-4 mb-2">
+
+                                <!-- Delivery Cost -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Delivery Cost</label>
                                         <div class="currency-input">
                                             <span class="currency-prefix">Rp</span>
                                             <input type="text" name="delivery_cost" class="form-control form-control-sm additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Remark Delivery Cost</label>
                                         <input type="text" name="delivery_cost_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['delivery_cost_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                </div>
+
+                                <!-- Free Part -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Free Part</label>
                                         <div class="currency-input">
                                             <span class="currency-prefix">Rp</span>
                                             <input type="text" name="free_part" class="form-control form-control-sm additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Remark Free Part</label>
                                         <input type="text" name="free_part_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['free_part_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-4 mb-2">
+
+                                <!-- Free Service -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Free Service</label>
                                         <div class="currency-input">
                                             <span class="currency-prefix">Rp</span>
                                             <input type="text" name="free_service" class="form-control form-control-sm additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Remark Free Service</label>
                                         <input type="text" name="free_service_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['free_service_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                </div>
+
+                                <!-- Mediator Fee -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Mediator Fee</label>
                                         <div class="currency-input">
                                             <span class="currency-prefix">Rp</span>
                                             <input type="text" name="mediator_fee" class="form-control form-control-sm additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()" placeholder="Nominal">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Remark Mediator Fee</label>
                                         <input type="text" name="mediator_fee_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['mediator_fee_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-4 mb-2">
+
+                                <!-- Others -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Others</label>
                                         <div class="currency-input">
                                             <span class="currency-prefix">Rp</span>
                                             <input type="text" name="others_cost" class="form-control form-control-sm additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal">
                                         </div>
                                     </div>
-                                    <div class="col-md-4 mb-2">
+                                    <div class="col-md-6">
                                         <label class="form-label">Remark Others</label>
                                         <input type="text" name="others_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['others_remark'] ?? '') ?>" placeholder="Keterangan">
                                     </div>
-                                    <div class="col-md-4 mb-2 text-end">
-                                        <label class="form-label">Total Additional Cost</label>
-                                        <h4 class="text-primary" id="totalAdditional" style="font-size: 18px; margin: 0;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
+                                </div>
+
+                                <!-- Total Additional Cost -->
+                                <div class="row mt-3">
+                                    <div class="col-md-12 text-end">
+                                        <label class="form-label" style="font-weight: 700;">Total Additional Cost</label>
+                                        <h4 class="text-primary" id="totalAdditional" style="font-size: 20px; margin: 0;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
                                         <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
                                     </div>
                                 </div>
-                                <div class="text-end mt-2">
+
+                                <div class="text-end mt-3">
                                     <button type="submit" class="btn btn-sm btn-success-custom">
                                         <i class="fas fa-save"></i> Simpan Additional Cost
                                     </button>
@@ -1962,6 +1986,7 @@ if ($editMode == 'unit' && !empty($units)) {
                             </div>
                         <?php elseif ($hasAdditional): ?>
                             <!-- VIEW MODE ADDITIONAL -->
+                            <!-- Insurance Ops -->
                             <div class="summary-item">
                                 <span class="label">Insurance Ops</span>
                                 <span class="value">Rp <?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?></span>
@@ -1969,6 +1994,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     <span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_ops_remark']) ?>)</span>
                                 <?php endif; ?>
                             </div>
+                            <!-- Insurance Cargo -->
                             <div class="summary-item">
                                 <span class="label">Insurance Cargo</span>
                                 <span class="value">Rp <?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?></span>
@@ -1976,6 +2002,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     <span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_cargo_remark']) ?>)</span>
                                 <?php endif; ?>
                             </div>
+                            <!-- Delivery Cost -->
                             <div class="summary-item">
                                 <span class="label">Delivery Cost</span>
                                 <span class="value">Rp <?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?></span>
@@ -1983,6 +2010,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     <span class="text-muted ms-2">(<?= htmlspecialchars($additional['delivery_cost_remark']) ?>)</span>
                                 <?php endif; ?>
                             </div>
+                            <!-- Free Part -->
                             <div class="summary-item">
                                 <span class="label">Free Part</span>
                                 <span class="value">Rp <?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?></span>
@@ -1990,6 +2018,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     <span class="text-muted ms-2">(<?= htmlspecialchars($additional['free_part_remark']) ?>)</span>
                                 <?php endif; ?>
                             </div>
+                            <!-- Free Service -->
                             <div class="summary-item">
                                 <span class="label">Free Service</span>
                                 <span class="value">Rp <?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?></span>
@@ -1997,6 +2026,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     <span class="text-muted ms-2">(<?= htmlspecialchars($additional['free_service_remark']) ?>)</span>
                                 <?php endif; ?>
                             </div>
+                            <!-- Mediator Fee -->
                             <div class="summary-item">
                                 <span class="label">Mediator Fee</span>
                                 <span class="value">Rp <?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?></span>
@@ -2004,6 +2034,7 @@ if ($editMode == 'unit' && !empty($units)) {
                                     <span class="text-muted ms-2">(<?= htmlspecialchars($additional['mediator_fee_remark']) ?>)</span>
                                 <?php endif; ?>
                             </div>
+                            <!-- Others -->
                             <div class="summary-item">
                                 <span class="label">Others</span>
                                 <span class="value">Rp <?= number_format($additional['others'] ?? 0, 0, ',', '.') ?></span>
@@ -2011,7 +2042,8 @@ if ($editMode == 'unit' && !empty($units)) {
                                     <span class="text-muted ms-2">(<?= htmlspecialchars($additional['others_remark']) ?>)</span>
                                 <?php endif; ?>
                             </div>
-                            <div class="summary-item" style="background: #cce5ff; border-radius: 6px;">
+                            <!-- Total Additional Cost -->
+                            <div class="summary-item" style="background: #cce5ff; border-radius: 6px; margin-top: 8px;">
                                 <span class="label" style="font-weight: 700; color: #004085;">Total Additional Cost</span>
                                 <span class="value" style="font-weight: 700; color: #004085;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span>
                             </div>
@@ -2242,8 +2274,6 @@ if ($editMode == 'unit' && !empty($units)) {
         // UNIT FUNCTIONS
         // ============================================
         let unitIndex = <?= isset($unitIndex) ? $unitIndex : 0 ?>;
-
-        // FUNGSI addUnit() TELAH DIHAPUS
 
         function removeUnit(btn) {
             const row = btn.closest('.unit-row');
