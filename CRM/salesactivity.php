@@ -3239,7 +3239,7 @@ if (isset($_GET['complete'])) {
                 if (diffDays < 0 || data.status == 'overdue') {
                     deadlineStatus = `<span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> LEWAT JATUH TEMPO! (${Math.abs(diffDays)} hari)</span>`;
                 } else if (diffDays <= 3) {
-                    deadlineStatus = `<span class="text-warning fw-bold"><i class="fas fa-clock"></i> ${diffDays} hari lagi</span>`;
+                    deadlineStatus = `<span class="text-warning fw-bold"> ${diffDays} hari lagi</span>`;
                 } else {
                     deadlineStatus = `<span class="text-success"><i class="fas fa-check-circle"></i> On Track (${diffDays} hari)</span>`;
                 }
