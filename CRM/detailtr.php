@@ -561,14 +561,82 @@ $requests = $stmt->fetchAll();
 // ============================================
 $editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
+
+// AMBIL DATA DARI DATABASE
 $units = json_decode($detailData['units'] ?? '[]', true);
 $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
 $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
 $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
 
-// Pastikan data tidak hilang jika ada edit mode
-if ($editMode == 'unit' && !empty($units)) {
-    // Data unit sudah ada, tetap gunakan
+// Jika ada data POST (setelah submit), gunakan data POST untuk ditampilkan di form
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save') {
+    if (isset($_POST['units_data']) && !empty($_POST['units_data'])) {
+        $temp_units = json_decode($_POST['units_data'], true);
+        if (is_array($temp_units) && !empty($temp_units)) {
+            $units = $temp_units;
+        }
+    }
+    if (isset($_POST['top_data']) && !empty($_POST['top_data'])) {
+        $temp_top = json_decode($_POST['top_data'], true);
+        if (is_array($temp_top)) {
+            $top = $temp_top;
+        }
+    }
+    if (isset($_POST['additional_data']) && !empty($_POST['additional_data'])) {
+        $temp_additional = json_decode($_POST['additional_data'], true);
+        if (is_array($temp_additional)) {
+            $additional = $temp_additional;
+        }
+    }
+    if (isset($_POST['mediator_data']) && !empty($_POST['mediator_data'])) {
+        $temp_mediator = json_decode($_POST['mediator_data'], true);
+        if (is_array($temp_mediator)) {
+            $mediator = $temp_mediator;
+        }
+    }
+}
+
+// Pastikan data tidak null
+if (!is_array($units)) $units = [];
+if (!is_array($top)) {
+    $top = [
+        'booking_fee' => 0,
+        'booking_fee_remark' => '',
+        'nominal_po_leasing' => 0,
+        'nominal_po_leasing_remark' => '',
+        'down_payments' => [],
+        'installments' => [],
+        'grand_total_top' => 0
+    ];
+}
+if (!is_array($additional)) {
+    $additional = [
+        'insurance_ops' => 0,
+        'insurance_ops_remark' => '',
+        'insurance_cargo' => 0,
+        'insurance_cargo_remark' => '',
+        'delivery_cost' => 0,
+        'delivery_cost_remark' => '',
+        'free_part' => 0,
+        'free_part_remark' => '',
+        'free_service' => 0,
+        'free_service_remark' => '',
+        'mediator_fee' => 0,
+        'mediator_fee_remark' => '',
+        'others' => 0,
+        'others_remark' => '',
+        'total_additional' => 0
+    ];
+}
+if (!is_array($mediator)) {
+    $mediator = [
+        'name' => '',
+        'id_card_no' => '',
+        'npwp_no' => '',
+        'bank_name' => '',
+        'bank_account' => '',
+        'amount' => 0
+    ];
 }
 ?>
 <!DOCTYPE html>
@@ -1571,6 +1639,7 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 2: DETAIL UNIT -->
                     <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
                             <?php if ($editMode != 'unit'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Unit
@@ -1763,6 +1832,7 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 3: TERM OF PAYMENT -->
                     <div class="tab-pane fade <?= $activeTab == 'top' ? 'show active' : '' ?>" id="top" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
                             <?php if ($editMode != 'top'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit TOP
@@ -1915,6 +1985,7 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 4: ADDITIONAL COST -->
                     <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
                             <?php if ($editMode != 'additional'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Additional Cost
@@ -2132,6 +2203,7 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 5: MEDIATOR FEE -->
                     <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
                             <?php if ($editMode != 'mediator'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Mediator
@@ -2583,9 +2655,14 @@ if ($editMode == 'unit' && !empty($units)) {
             document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
         }
 
-        // Event listener sebelum form submit
-        document.getElementById('formDetailTR')?.addEventListener('submit', function(e) {
-            saveDataToHidden();
+        // Event listener untuk form submit
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('formDetailTR');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    saveDataToHidden();
+                });
+            }
         });
 
         // ============================================
