@@ -136,23 +136,36 @@ function getApproverName($db, $role) {
 }
 
 // ============================================
+// TAMBAHKAN KOLOM APPROVAL_LEVEL JIKA BELUM ADA
+// ============================================
+try {
+    $stmt = $db->query("SHOW COLUMNS FROM detail_transaction_requests LIKE 'approval_level'");
+    if ($stmt->rowCount() == 0) {
+        $db->exec("ALTER TABLE detail_transaction_requests ADD COLUMN approval_level INT DEFAULT 0");
+    }
+} catch(PDOException $e) {
+    // Tabel mungkin belum ada
+}
+
+// ============================================
 // PROSES SIMPAN / UPDATE
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'save') {
-        $trf_number = bersihkan($_POST['trf_number']);
-        $transaction_request_id = (int)$_POST['transaction_request_id'];
-        $account_id = (int)$_POST['account_id'];
+        $trf_number = isset($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
+        $transaction_request_id = isset($_POST['transaction_request_id']) ? (int)$_POST['transaction_request_id'] : 0;
+        $account_id = isset($_POST['account_id']) ? (int)$_POST['account_id'] : 0;
         
-        $nama_pt = bersihkan($_POST['nama_pt']);
-        $npwp = bersihkan($_POST['npwp']);
-        $alamat = bersihkan($_POST['alamat']);
-        $nama_pic = bersihkan($_POST['nama_pic']);
-        $jabatan_pic = bersihkan($_POST['jabatan_pic']);
-        $no_hp_pic = bersihkan($_POST['no_hp_pic']);
-        $email_pic = bersihkan($_POST['email_pic']);
+        // Data Customer - dengan pengecekan isset
+        $nama_pt = isset($_POST['nama_pt']) ? bersihkan($_POST['nama_pt']) : '';
+        $npwp = isset($_POST['npwp']) ? bersihkan($_POST['npwp']) : '';
+        $alamat = isset($_POST['alamat']) ? bersihkan($_POST['alamat']) : '';
+        $nama_pic = isset($_POST['nama_pic']) ? bersihkan($_POST['nama_pic']) : '';
+        $jabatan_pic = isset($_POST['jabatan_pic']) ? bersihkan($_POST['jabatan_pic']) : '';
+        $no_hp_pic = isset($_POST['no_hp_pic']) ? bersihkan($_POST['no_hp_pic']) : '';
+        $email_pic = isset($_POST['email_pic']) ? bersihkan($_POST['email_pic']) : '';
         
         // Detail Unit
         $units = [];
@@ -416,13 +429,13 @@ if (!empty($trf_number)) {
                 'trf_number' => $trData['trf_number'],
                 'transaction_request_id' => $trData['id'],
                 'account_id' => $trData['account_id'],
-                'nama_pt' => $trData['nama_pt'],
-                'npwp' => $trData['npwp'],
-                'alamat' => $trData['alamat'],
-                'nama_pic' => $trData['nama_pic'],
-                'jabatan_pic' => $trData['jabatan_pic'],
-                'no_hp_pic' => $trData['no_hp_pic'],
-                'email_pic' => $trData['email_pic'],
+                'nama_pt' => $trData['nama_pt'] ?? '',
+                'npwp' => $trData['npwp'] ?? '',
+                'alamat' => $trData['alamat'] ?? '',
+                'nama_pic' => $trData['nama_pic'] ?? '',
+                'jabatan_pic' => $trData['jabatan_pic'] ?? '',
+                'no_hp_pic' => $trData['no_hp_pic'] ?? '',
+                'email_pic' => $trData['email_pic'] ?? '',
                 'units' => '[]',
                 'term_of_payment' => '{"booking_fee":0,"down_payments":[],"installments":[],"nominal_po_leasing":0,"grand_total_top":0}',
                 'additional_cost' => '{"insurance_ops":0,"insurance_cargo":0,"delivery_cost":0,"free_part":0,"free_service":0,"mediator_fee":0,"others":0,"total_additional":0}',
@@ -430,18 +443,18 @@ if (!empty($trf_number)) {
                 'grand_total' => 0,
                 'status' => 'draft',
                 'approval_level' => 0,
-                'subject' => $trData['subject'],
-                'jenis_tugas' => $trData['jenis_tugas'],
-                'description' => $trData['description'],
-                'due_date' => $trData['due_date'],
-                'account_nama_pt' => $trData['nama_pt'],
-                'account_npwp' => $trData['npwp'],
-                'account_alamat' => $trData['alamat'],
-                'account_nama_pic' => $trData['nama_pic'],
-                'account_jabatan_pic' => $trData['jabatan_pic'],
-                'account_no_hp_pic' => $trData['no_hp_pic'],
-                'account_email_pic' => $trData['email_pic'],
-                'badan_usaha' => $trData['badan_usaha']
+                'subject' => $trData['subject'] ?? '',
+                'jenis_tugas' => $trData['jenis_tugas'] ?? '',
+                'description' => $trData['description'] ?? '',
+                'due_date' => $trData['due_date'] ?? '',
+                'account_nama_pt' => $trData['nama_pt'] ?? '',
+                'account_npwp' => $trData['npwp'] ?? '',
+                'account_alamat' => $trData['alamat'] ?? '',
+                'account_nama_pic' => $trData['nama_pic'] ?? '',
+                'account_jabatan_pic' => $trData['jabatan_pic'] ?? '',
+                'account_no_hp_pic' => $trData['no_hp_pic'] ?? '',
+                'account_email_pic' => $trData['email_pic'] ?? '',
+                'badan_usaha' => $trData['badan_usaha'] ?? ''
             ];
         }
     }
