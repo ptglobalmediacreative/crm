@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Additional Cost
         $additional_cost = [
             'insurance_ops' => (float)str_replace(['.', ','], '', isset($_POST['insurance_ops']) ? $_POST['insurance_ops'] : 0),
-            'insurance_cargo' => (float)str_replace(['.', ',''], '', isset($_POST['insurance_cargo']) ? $_POST['insurance_cargo'] : 0),
+            'insurance_cargo' => (float)str_replace(['.', ','], '', isset($_POST['insurance_cargo']) ? $_POST['insurance_cargo'] : 0),
             'delivery_cost' => (float)str_replace(['.', ','], '', isset($_POST['delivery_cost']) ? $_POST['delivery_cost'] : 0),
             'free_part' => (float)str_replace(['.', ','], '', isset($_POST['free_part']) ? $_POST['free_part'] : 0),
             'free_service' => (float)str_replace(['.', ','], '', isset($_POST['free_service']) ? $_POST['free_service'] : 0),
@@ -748,7 +748,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             flex: 1;
         }
         
-        /* TAB STYLES */
         .nav-tabs-custom {
             border-bottom: 2px solid #e8edf2;
             padding: 0 20px;
@@ -922,7 +921,6 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
             word-break: break-word;
         }
         
-        /* Summary Card Styles */
         .summary-item {
             display: flex;
             padding: 8px 12px;
@@ -1658,15 +1656,34 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             </a>
                         <?php else: ?>
                             <!-- View Mode Additional -->
-                            <?php foreach ($additional as $key => $val): 
-                                if ($key == 'total_additional') continue;
-                                $label = ucwords(str_replace('_', ' ', $key));
-                            ?>
                             <div class="summary-item">
-                                <span class="label"><?= $label ?></span>
-                                <span class="value">Rp <?= number_format($val, 0, ',', '.') ?></span>
+                                <span class="label">Insurance Ops</span>
+                                <span class="value">Rp <?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?></span>
                             </div>
-                            <?php endforeach; ?>
+                            <div class="summary-item">
+                                <span class="label">Insurance Cargo</span>
+                                <span class="value">Rp <?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?></span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Delivery Cost</span>
+                                <span class="value">Rp <?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?></span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Free Part</span>
+                                <span class="value">Rp <?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?></span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Free Service</span>
+                                <span class="value">Rp <?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?></span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Mediator Fee</span>
+                                <span class="value">Rp <?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?></span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Others</span>
+                                <span class="value">Rp <?= number_format($additional['others'] ?? 0, 0, ',', '.') ?></span>
+                            </div>
                             <div class="summary-item" style="background: #cce5ff; border-radius: 6px;">
                                 <span class="label" style="font-weight: 700; color: #004085;">Total Additional Cost</span>
                                 <span class="value" style="font-weight: 700; color: #004085;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span>
