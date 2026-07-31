@@ -1571,7 +1571,6 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 2: DETAIL UNIT -->
                     <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
                             <?php if ($editMode != 'unit'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Unit
@@ -1764,7 +1763,6 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 3: TERM OF PAYMENT -->
                     <div class="tab-pane fade <?= $activeTab == 'top' ? 'show active' : '' ?>" id="top" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
                             <?php if ($editMode != 'top'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit TOP
@@ -1917,7 +1915,6 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 4: ADDITIONAL COST -->
                     <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
                             <?php if ($editMode != 'additional'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Additional Cost
@@ -2135,7 +2132,6 @@ if ($editMode == 'unit' && !empty($units)) {
                     <!-- TAB 5: MEDIATOR FEE -->
                     <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
                             <?php if ($editMode != 'mediator'): ?>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Mediator
