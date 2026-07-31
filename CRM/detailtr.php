@@ -73,7 +73,7 @@ $trRequests = $stmt->fetchAll();
 // AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
 // ============================================
 try {
-    $stmt = $db->query("SELECT id, nama_produk, kode_produk FROM products ORDER BY nama_produk");
+    $stmt = $db->query("SELECT id, nama_produk FROM products ORDER BY nama_produk");
     $produkList = $stmt->fetchAll();
 } catch(PDOException $e) {
     $produkList = [];
@@ -1327,7 +1327,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                                                     <option value="">-- Pilih Unit --</option>
                                                     <?php foreach ($produkList as $produk): ?>
                                                         <option value="<?= htmlspecialchars($produk['nama_produk']) ?>" <?= ($unit['unit_name'] == $produk['nama_produk']) ? 'selected' : '' ?>>
-                                                            <?= htmlspecialchars($produk['kode_produk'] ?? '') ?> - <?= htmlspecialchars($produk['nama_produk']) ?>
+                                                            <?= htmlspecialchars($produk['nama_produk']) ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -1934,7 +1934,7 @@ $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":
                             <option value="">-- Pilih Unit --</option>
                             <?php foreach ($produkList as $produk): ?>
                                 <option value="<?= htmlspecialchars($produk['nama_produk']) ?>">
-                                    <?= htmlspecialchars($produk['kode_produk'] ?? '') ?> - <?= htmlspecialchars($produk['nama_produk']) ?>
+                                    <?= htmlspecialchars($produk['nama_produk']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
