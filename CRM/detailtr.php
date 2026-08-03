@@ -264,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
                         $top['installments'][] = [
                             'name' => $_POST['installment_name'][$i],
-                            'value' => (float)str_replace(['.', ',''], '', $_POST['installment_value'][$i]),
+                            'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i]),
                             'remark' => isset($_POST['installment_remark'][$i]) ? bersihkan($_POST['installment_remark'][$i]) : ''
                         ];
                     }
