@@ -264,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
                         $top['installments'][] = [
                             'name' => $_POST['installment_name'][$i],
-                            'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i]),
+                            'value' => (float)str_replace(['.', ',''], '', $_POST['installment_value'][$i]),
                             'remark' => isset($_POST['installment_remark'][$i]) ? bersihkan($_POST['installment_remark'][$i]) : ''
                         ];
                     }
@@ -1274,13 +1274,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <input type="hidden" name="active_tab" id="activeTabInput" value="<?= $activeTab ?>">
         <input type="hidden" name="edit_mode" id="editMode" value="<?= $editMode ?>">
         
-        <!-- HIDDEN FIELDS UNTUK MENYIMPAN SEMUA DATA - DIISI DARI DATABASE -->
+        <!-- HIDDEN FIELDS UNTUK MENYIMPAN SEMUA DATA -->
         <input type="hidden" name="units_data" id="units_data" value='<?= htmlspecialchars($units_json) ?>'>
         <input type="hidden" name="top_data" id="top_data" value='<?= htmlspecialchars($top_json) ?>'>
         <input type="hidden" name="additional_data" id="additional_data" value='<?= htmlspecialchars($additional_json) ?>'>
         <input type="hidden" name="mediator_data" id="mediator_data" value='<?= htmlspecialchars($mediator_json) ?>'>
 
-        <!-- TAB NAVIGATION - TANPA PARAMETER EDIT -->
+        <!-- TAB NAVIGATION -->
         <div class="card-custom" style="padding: 0; overflow: hidden;">
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs" id="detailTab" role="tablist">
@@ -1351,14 +1351,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                 </div>
 
-                <!-- TAB 2: DETAIL UNIT - DENGAN TOMBOL TAMBAH UNIT (TAMPIL SELALU DI MODE EDIT) -->
+                <!-- TAB 2: DETAIL UNIT -->
                 <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
                         <?php if ($editMode == 'unit'): ?>
                             <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
                         <?php else: ?>
-                            <!-- TOMBOL EDIT UNIT SELALU TAMPIL -->
                             <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
                                 <i class="fas fa-edit"></i> <?= empty($units) ? 'Tambah Unit' : 'Edit Unit' ?>
                             </a>
@@ -1366,12 +1365,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                     
                     <?php if ($editMode == 'unit'): ?>
-                        <!-- EDIT MODE UNIT - DENGAN TOMBOL TAMBAH UNIT -->
                         <div class="edit-form-container">
                             <div id="unitContainer">
                                 <?php 
                                 $unitIndex = 0;
-                                // Jika units kosong, buat 1 unit default
                                 if (empty($units)) {
                                     $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => date('Y-m-d', strtotime('+30 days')), 'transaction_type' => '']];
                                 }
@@ -1471,7 +1468,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 ?>
                             </div>
                             
-                            <!-- TOMBOL TAMBAH UNIT - SELALU TAMPIL DI MODE EDIT -->
+                            <!-- TOMBOL TAMBAH UNIT -->
                             <div class="text-start mt-3 mb-3">
                                 <button type="button" class="btn btn-sm btn-primary-custom" onclick="addUnit()">
                                     <i class="fas fa-plus-circle"></i> Tambah Unit
@@ -1484,7 +1481,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </div>
                         </div>
                     <?php elseif (!empty($units)): ?>
-                        <!-- VIEW MODE UNIT - TAMPILKAN DATA -->
                         <?php foreach ($units as $unit): ?>
                         <div class="summary-item"><span class="label">Unit</span><span class="value"><strong><?= htmlspecialchars($unit['unit_name']) ?></strong></span></div>
                         <div class="summary-item"><span class="label">QTY</span><span class="value"><?= $unit['qty'] ?? 0 ?></span></div>
@@ -1500,22 +1496,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <div class="summary-item"><span class="label">Transaction Type</span><span class="value"><span class="badge bg-info"><?= htmlspecialchars($unit['transaction_type'] ?? '-') ?></span></span></div>
                         <hr class="my-2">
                         <?php endforeach; ?>
-                        
-                        <!-- TOMBOL EDIT UNIT - TAMPIL DI VIEW MODE -->
                         <div class="text-center mt-3">
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
-                                <i class="fas fa-edit"></i> Edit Unit
-                            </a>
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Unit</a>
                         </div>
                     <?php else: ?>
-                        <!-- KETIKA BELUM ADA DATA UNIT -->
                         <div class="empty-state">
                             <i class="fas fa-box-open"></i>
                             <p>Belum ada data unit. Klik tombol di bawah untuk menambahkan unit.</p>
                             <div class="mt-3">
-                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
-                                    <i class="fas fa-plus-circle"></i> Tambah Unit
-                                </a>
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah Unit</a>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -1527,13 +1516,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
                         <?php if ($editMode == 'top'): ?>
                             <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php elseif ($isDataExists && (!empty($top['down_payments']) || !empty($top['installments']) || $top['booking_fee'] > 0 || $top['nominal_po_leasing'] > 0)): ?>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit TOP</a>
+                        <?php else: ?>
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom">
+                                <i class="fas fa-edit"></i> <?= (empty($top['down_payments']) && empty($top['installments']) && $top['booking_fee'] == 0 && $top['nominal_po_leasing'] == 0) ? 'Tambah TOP' : 'Edit TOP' ?>
+                            </a>
                         <?php endif; ?>
                     </div>
                     
                     <?php if ($editMode == 'top'): ?>
-                        <!-- EDIT MODE TOP -->
                         <div class="edit-form-container">
                             <div class="row">
                                 <div class="col-md-4 mb-2">
@@ -1563,28 +1553,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <div class="mb-3">
                                 <label class="form-label">Down Payment</label>
                                 <div id="dpContainer">
-                                    <?php foreach ($top['down_payments'] ?? [] as $dp): ?>
-                                    <div class="dp-row">
-                                        <input type="text" name="dp_name[]" class="form-control form-control-sm" placeholder="Nama DP" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
-                                        <div class="currency-input" style="flex:1;"><span class="currency-prefix">Rp</span><input type="text" name="dp_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()"></div>
-                                        <input type="text" name="dp_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($dp['remark'] ?? '') ?>">
-                                        <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
-                                    </div>
-                                    <?php endforeach; ?>
+                                    <?php if (!empty($top['down_payments'])): ?>
+                                        <?php foreach ($top['down_payments'] as $dp): ?>
+                                        <div class="dp-row">
+                                            <input type="text" name="dp_name[]" class="form-control form-control-sm" placeholder="Nama DP" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
+                                            <div class="currency-input" style="flex:1;"><span class="currency-prefix">Rp</span><input type="text" name="dp_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()"></div>
+                                            <input type="text" name="dp_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($dp['remark'] ?? '') ?>">
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-primary-custom mt-1" onclick="addDP()"><i class="fas fa-plus"></i> Tambah DP</button>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Angsuran</label>
                                 <div id="installmentContainer">
-                                    <?php foreach ($top['installments'] ?? [] as $inst): ?>
-                                    <div class="installment-row">
-                                        <input type="text" name="installment_name[]" class="form-control form-control-sm" placeholder="Nama Angsuran" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
-                                        <div class="currency-input" style="flex:1;"><span class="currency-prefix">Rp</span><input type="text" name="installment_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()"></div>
-                                        <input type="text" name="installment_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($inst['remark'] ?? '') ?>">
-                                        <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
-                                    </div>
-                                    <?php endforeach; ?>
+                                    <?php if (!empty($top['installments'])): ?>
+                                        <?php foreach ($top['installments'] as $inst): ?>
+                                        <div class="installment-row">
+                                            <input type="text" name="installment_name[]" class="form-control form-control-sm" placeholder="Nama Angsuran" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
+                                            <div class="currency-input" style="flex:1;"><span class="currency-prefix">Rp</span><input type="text" name="installment_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()"></div>
+                                            <input type="text" name="installment_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($inst['remark'] ?? '') ?>">
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-primary-custom mt-1" onclick="addInstallment()"><i class="fas fa-plus"></i> Tambah Angsuran</button>
                             </div>
@@ -1594,7 +1588,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </div>
                         </div>
                     <?php elseif (!empty($top['down_payments']) || !empty($top['installments']) || $top['booking_fee'] > 0 || $top['nominal_po_leasing'] > 0): ?>
-                        <!-- VIEW MODE TOP -->
                         <div class="summary-item"><span class="label">Booking Fee</span><span class="value">Rp <?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($top['booking_fee_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($top['booking_fee_remark']) ?>)</span><?php endif; ?></div>
                         <div class="summary-item"><span class="label">Nominal PO Leasing</span><span class="value">Rp <?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($top['nominal_po_leasing_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($top['nominal_po_leasing_remark']) ?>)</span><?php endif; ?></div>
                         <?php foreach ($top['down_payments'] ?? [] as $dp): ?>
@@ -1604,8 +1597,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <div class="summary-item"><span class="label"><?= htmlspecialchars($inst['name'] ?? 'Angsuran') ?></span><span class="value">Rp <?= number_format($inst['value'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($inst['remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($inst['remark']) ?>)</span><?php endif; ?></div>
                         <?php endforeach; ?>
                         <div class="summary-item" style="background: #d4edda; border-radius: 6px;"><span class="label" style="font-weight: 700; color: #155724;">Grand Total TOP</span><span class="value" style="font-weight: 700; color: #155724;">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="text-center mt-3">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit TOP</a>
+                        </div>
                     <?php else: ?>
-                        <div class="empty-state"><i class="fas fa-file-invoice-dollar"></i><p>Belum ada data Term Of Payment. Klik Edit TOP untuk menambahkan.</p></div>
+                        <div class="empty-state">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <p>Belum ada data Term Of Payment. Klik tombol di bawah untuk menambahkan.</p>
+                            <div class="mt-3">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah TOP</a>
+                            </div>
+                        </div>
                     <?php endif; ?>
                 </div>
 
@@ -1615,15 +1617,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
                         <?php if ($editMode == 'additional'): ?>
                             <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php elseif ($isDataExists && $hasAdditional): ?>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Additional Cost</a>
-                        <?php elseif ($isDataExists): ?>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Additional Cost</a>
+                        <?php else: ?>
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom">
+                                <i class="fas fa-edit"></i> <?= !$hasAdditional ? 'Tambah Additional Cost' : 'Edit Additional Cost' ?>
+                            </a>
                         <?php endif; ?>
                     </div>
                     
                     <?php if ($editMode == 'additional'): ?>
-                        <!-- EDIT MODE ADDITIONAL -->
                         <div class="edit-form-container">
                             <div class="row mb-2">
                                 <div class="col-md-6"><label class="form-label">Insurance Ops</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="insurance_ops" class="form-control form-control-sm additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal"></div></div>
@@ -1666,7 +1667,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </div>
                         </div>
                     <?php elseif ($hasAdditional): ?>
-                        <!-- VIEW MODE ADDITIONAL -->
                         <div class="summary-item"><span class="label">Insurance Ops</span><span class="value">Rp <?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['insurance_ops_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_ops_remark']) ?>)</span><?php endif; ?></div>
                         <div class="summary-item"><span class="label">Insurance Cargo</span><span class="value">Rp <?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['insurance_cargo_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_cargo_remark']) ?>)</span><?php endif; ?></div>
                         <div class="summary-item"><span class="label">Delivery Cost</span><span class="value">Rp <?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['delivery_cost_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['delivery_cost_remark']) ?>)</span><?php endif; ?></div>
@@ -1675,14 +1675,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <div class="summary-item"><span class="label">Mediator Fee</span><span class="value">Rp <?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['mediator_fee_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['mediator_fee_remark']) ?>)</span><?php endif; ?></div>
                         <div class="summary-item"><span class="label">Others</span><span class="value">Rp <?= number_format($additional['others'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['others_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['others_remark']) ?>)</span><?php endif; ?></div>
                         <div class="summary-item" style="background: #cce5ff; border-radius: 6px; margin-top: 8px;"><span class="label" style="font-weight: 700; color: #004085;">Total Additional Cost</span><span class="value" style="font-weight: 700; color: #004085;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="text-center mt-3">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Additional Cost</a>
+                        </div>
                     <?php else: ?>
-                        <div class="empty-state"><i class="fas fa-coins"></i>
+                        <div class="empty-state">
+                            <i class="fas fa-coins"></i>
                             <p>Belum ada data Additional Cost.</p>
-                            <?php if ($isDataExists): ?>
-                                <div class="mt-2">
-                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Additional Cost</a>
-                                </div>
-                            <?php endif; ?>
+                            <div class="mt-2">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah Additional Cost</a>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1693,15 +1695,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
                         <?php if ($editMode == 'mediator'): ?>
                             <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php elseif ($isDataExists && !empty($mediator['name']) && !empty($mediator['id_card_no'])): ?>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Mediator</a>
-                        <?php elseif ($isDataExists): ?>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Mediator</a>
+                        <?php else: ?>
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom">
+                                <i class="fas fa-edit"></i> <?= (empty($mediator['name']) && empty($mediator['id_card_no'])) ? 'Tambah Mediator' : 'Edit Mediator' ?>
+                            </a>
                         <?php endif; ?>
                     </div>
                     
                     <?php if ($editMode == 'mediator'): ?>
-                        <!-- EDIT MODE MEDIATOR -->
                         <div class="edit-form-container">
                             <div class="row">
                                 <div class="col-md-6 mb-2"><label class="form-label">Name <span class="required">*</span></label><input type="text" name="mediator_name" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required></div>
@@ -1726,21 +1727,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </div>
                         </div>
                     <?php elseif (!empty($mediator['name']) && !empty($mediator['id_card_no'])): ?>
-                        <!-- VIEW MODE MEDIATOR -->
                         <div class="summary-item"><span class="label">Name</span><span class="value"><?= htmlspecialchars($mediator['name'] ?? '-') ?></span></div>
                         <div class="summary-item"><span class="label">ID Card No</span><span class="value"><?= htmlspecialchars($mediator['id_card_no'] ?? '-') ?></span></div>
                         <div class="summary-item"><span class="label">NPWP No</span><span class="value"><?= htmlspecialchars($mediator['npwp_no'] ?? '-') ?></span></div>
                         <div class="summary-item"><span class="label">Bank Name</span><span class="value"><?= htmlspecialchars($mediator['bank_name'] ?? '-') ?></span></div>
                         <div class="summary-item"><span class="label">Bank Account</span><span class="value"><?= htmlspecialchars($mediator['bank_account'] ?? '-') ?></span></div>
                         <div class="summary-item" style="background: #fff3cd; border-radius: 6px;"><span class="label" style="font-weight: 700; color: #856404;">Amount</span><span class="value" style="font-weight: 700; color: #856404;">Rp <?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="text-center mt-3">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Mediator</a>
+                        </div>
                     <?php else: ?>
-                        <div class="empty-state"><i class="fas fa-user"></i>
+                        <div class="empty-state">
+                            <i class="fas fa-user"></i>
                             <p>Belum ada data Mediator Fee.</p>
-                            <?php if ($isDataExists): ?>
-                                <div class="mt-2">
-                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Mediator</a>
-                                </div>
-                            <?php endif; ?>
+                            <div class="mt-2">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah Mediator</a>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1845,7 +1847,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     // ============================================
-    // UNIT FUNCTIONS - DENGAN TOMBOL TAMBAH UNIT
+    // UNIT FUNCTIONS
     // ============================================
     let unitIndex = <?= isset($unitIndex) ? $unitIndex : 0 ?>;
 
@@ -1862,7 +1864,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         const container = document.getElementById('unitContainer');
         const index = document.querySelectorAll('.unit-row').length;
         
-        // Ambil tanggal default (30 hari dari sekarang)
         const today = new Date();
         today.setDate(today.getDate() + 30);
         const defaultDate = today.toISOString().split('T')[0];
@@ -1959,7 +1960,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         container.insertAdjacentHTML('beforeend', template);
         unitIndex++;
         
-        // Hitung ulang semua unit
         document.querySelectorAll('.qty, .price').forEach(input => {
             calculateUnit(input);
         });
@@ -2052,11 +2052,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     function calculateTOP() {
         let total = 0;
         
-        const bookingFee = parseFloat(document.querySelector('input[name="booking_fee"]').value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        total += bookingFee;
+        const bookingFeeInput = document.querySelector('input[name="booking_fee"]');
+        if (bookingFeeInput) {
+            total += parseFloat(bookingFeeInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
+        }
         
-        const poLeasing = parseFloat(document.querySelector('input[name="nominal_po_leasing"]').value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        total += poLeasing;
+        const poLeasingInput = document.querySelector('input[name="nominal_po_leasing"]');
+        if (poLeasingInput) {
+            total += parseFloat(poLeasingInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
+        }
         
         document.querySelectorAll('input[name="dp_value[]"]').forEach(input => {
             total += parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
@@ -2066,8 +2070,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             total += parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
         });
         
-        document.getElementById('grandTotalTOP').textContent = 'Rp ' + formatNumber(total);
-        document.getElementById('grandTotalTOPHidden').value = total;
+        const grandTotalElement = document.getElementById('grandTotalTOP');
+        const grandTotalHidden = document.getElementById('grandTotalTOPHidden');
+        
+        if (grandTotalElement) {
+            grandTotalElement.textContent = 'Rp ' + formatNumber(total);
+        }
+        if (grandTotalHidden) {
+            grandTotalHidden.value = total;
+        }
     }
 
     // ============================================
@@ -2081,13 +2092,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             total += val;
         });
         
-        document.getElementById('totalAdditional').textContent = 'Rp ' + formatNumber(total);
-        document.getElementById('totalAdditionalHidden').value = total;
+        const totalElement = document.getElementById('totalAdditional');
+        const totalHidden = document.getElementById('totalAdditionalHidden');
+        
+        if (totalElement) {
+            totalElement.textContent = 'Rp ' + formatNumber(total);
+        }
+        if (totalHidden) {
+            totalHidden.value = total;
+        }
     }
 
     function updateMediatorAmount() {
-        const mediatorFee = parseFloat(document.getElementById('mediatorFeeInput').value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        document.getElementById('mediatorAmount').value = formatNumber(mediatorFee);
+        const mediatorFeeInput = document.getElementById('mediatorFeeInput');
+        const mediatorAmount = document.getElementById('mediatorAmount');
+        
+        if (mediatorFeeInput && mediatorAmount) {
+            const val = parseFloat(mediatorFeeInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
+            mediatorAmount.value = formatNumber(val);
+        }
     }
 
     // ============================================
@@ -2163,16 +2186,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
         
         // 2. SAVE TOP DATA
-        const hasTopData = document.querySelector('input[name="booking_fee"]') || 
-                           document.querySelector('input[name="nominal_po_leasing"]') ||
-                           document.querySelectorAll('input[name="dp_name[]"]').length > 0 ||
-                           document.querySelectorAll('input[name="installment_name[]"]').length > 0;
+        const bookingFeeInput = document.querySelector('input[name="booking_fee"]');
+        const poLeasingInput = document.querySelector('input[name="nominal_po_leasing"]');
         
-        if (hasTopData) {
+        if (bookingFeeInput || poLeasingInput || document.querySelectorAll('input[name="dp_name[]"]').length > 0 || document.querySelectorAll('input[name="installment_name[]"]').length > 0) {
             const topData = {
-                booking_fee: parseFloat(document.querySelector('input[name="booking_fee"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                booking_fee: parseFloat(bookingFeeInput?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
                 booking_fee_remark: document.querySelector('input[name="booking_fee_remark"]')?.value || '',
-                nominal_po_leasing: parseFloat(document.querySelector('input[name="nominal_po_leasing"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                nominal_po_leasing: parseFloat(poLeasingInput?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
                 nominal_po_leasing_remark: document.querySelector('input[name="nominal_po_leasing_remark"]')?.value || '',
                 down_payments: [],
                 installments: [],
@@ -2234,7 +2255,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // 4. SAVE MEDIATOR DATA
         const mediatorName = document.querySelector('input[name="mediator_name"]');
         const mediatorIdCard = document.querySelector('input[name="mediator_id_card"]');
-        const mediatorAmount = document.querySelector('input[name="mediator_amount"]');
         if (mediatorName || mediatorIdCard) {
             const mediatorData = {
                 name: mediatorName?.value || '',
@@ -2242,7 +2262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 npwp_no: document.querySelector('input[name="mediator_npwp"]')?.value || '',
                 bank_name: document.querySelector('input[name="mediator_bank"]')?.value || '',
                 bank_account: document.querySelector('input[name="mediator_bank_account"]')?.value || '',
-                amount: parseFloat(mediatorAmount?.value.replace(/\./g, '').replace(/,/g, '')) || 0
+                amount: parseFloat(document.querySelector('input[name="mediator_amount"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0
             };
             document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
         }
