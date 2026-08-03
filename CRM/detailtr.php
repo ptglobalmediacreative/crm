@@ -616,7 +616,7 @@ if (!empty($trf_number)) {
                 'account_alamat' => $trData['alamat'] ?? '',
                 'account_nama_pic' => $trData['nama_pic'] ?? '',
                 'account_jabatan_pic' => $trData['jabatan_pic'] ?? '',
-                'account_no_hp_pic' => $trData['no_hp_pic'] ?? '',
+                'account_no_hp_pic' => $trData['no_hp_pic]' ?? '',
                 'account_email_pic' => $trData['email_pic'] ?? '',
                 'badan_usaha' => $trData['badan_usaha'] ?? ''
             ];
@@ -666,6 +666,17 @@ $units = json_decode($detailData['units'] ?? '[]', true);
 $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
 $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
 $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
+
+// CEK APAKAH ADA ADDITIONAL COST - DIPINDAHKAN KE SINI
+$hasAdditional = false;
+if (is_array($additional)) {
+    foreach ($additional as $key => $val) {
+        if ($key != 'total_additional' && $val > 0) {
+            $hasAdditional = true;
+            break;
+        }
+    }
+}
 
 // Pastikan data tidak null
 if (!is_array($units)) $units = [];
@@ -1571,7 +1582,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <?php endif; ?>
                 </div>
 
-                <!-- TAB 4: ADDITIONAL COST -->
+                <!-- TAB 4: ADDITIONAL COST - DIPERBAIKI -->
                 <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
@@ -1579,18 +1590,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
                         <?php elseif ($isDataExists && $hasAdditional): ?>
                             <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Additional Cost</a>
+                        <?php elseif ($isDataExists): ?>
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Additional Cost</a>
                         <?php endif; ?>
                     </div>
-                    
-                    <?php 
-                    $hasAdditional = false;
-                    foreach ($additional as $key => $val) {
-                        if ($key != 'total_additional' && $val > 0) {
-                            $hasAdditional = true;
-                            break;
-                        }
-                    }
-                    ?>
                     
                     <?php if ($editMode == 'additional'): ?>
                         <!-- EDIT MODE ADDITIONAL -->
@@ -1646,11 +1649,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <div class="summary-item"><span class="label">Others</span><span class="value">Rp <?= number_format($additional['others'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['others_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['others_remark']) ?>)</span><?php endif; ?></div>
                         <div class="summary-item" style="background: #cce5ff; border-radius: 6px; margin-top: 8px;"><span class="label" style="font-weight: 700; color: #004085;">Total Additional Cost</span><span class="value" style="font-weight: 700; color: #004085;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span></div>
                     <?php else: ?>
-                        <div class="empty-state"><i class="fas fa-coins"></i><p>Belum ada data Additional Cost. Klik Edit Additional Cost untuk menambahkan.</p></div>
+                        <div class="empty-state"><i class="fas fa-coins"></i>
+                            <p>Belum ada data Additional Cost.</p>
+                            <?php if ($isDataExists): ?>
+                                <div class="mt-2">
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Additional Cost</a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 </div>
 
-                <!-- TAB 5: MEDIATOR FEE -->
+                <!-- TAB 5: MEDIATOR FEE - DIPERBAIKI -->
                 <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
@@ -1658,6 +1668,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
                         <?php elseif ($isDataExists && !empty($mediator['name']) && !empty($mediator['id_card_no'])): ?>
                             <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Mediator</a>
+                        <?php elseif ($isDataExists): ?>
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Mediator</a>
                         <?php endif; ?>
                     </div>
                     
@@ -1690,7 +1702,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <div class="summary-item"><span class="label">Bank Account</span><span class="value"><?= htmlspecialchars($mediator['bank_account'] ?? '-') ?></span></div>
                         <div class="summary-item" style="background: #fff3cd; border-radius: 6px;"><span class="label" style="font-weight: 700; color: #856404;">Amount</span><span class="value" style="font-weight: 700; color: #856404;">Rp <?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?></span></div>
                     <?php else: ?>
-                        <div class="empty-state"><i class="fas fa-user"></i><p>Belum ada data Mediator Fee. Klik Edit Mediator untuk menambahkan.</p></div>
+                        <div class="empty-state"><i class="fas fa-user"></i>
+                            <p>Belum ada data Mediator Fee.</p>
+                            <?php if ($isDataExists): ?>
+                                <div class="mt-2">
+                                    <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Tambah Mediator</a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
