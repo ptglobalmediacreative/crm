@@ -616,7 +616,7 @@ if (!empty($trf_number)) {
                 'account_alamat' => $trData['alamat'] ?? '',
                 'account_nama_pic' => $trData['nama_pic'] ?? '',
                 'account_jabatan_pic' => $trData['jabatan_pic'] ?? '',
-                'account_no_hp_pic' => $trData['no_hp_pic]' ?? '',
+                'account_no_hp_pic' => $trData['no_hp_pic'] ?? '',
                 'account_email_pic' => $trData['email_pic'] ?? '',
                 'badan_usaha' => $trData['badan_usaha'] ?? ''
             ];
@@ -667,7 +667,7 @@ $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_
 $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
 $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
 
-// CEK APAKAH ADA ADDITIONAL COST - DIPINDAHKAN KE SINI
+// CEK APAKAH ADA ADDITIONAL COST
 $hasAdditional = false;
 if (is_array($additional)) {
     foreach ($additional as $key => $val) {
@@ -773,6 +773,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* CSS sama seperti sebelumnya - tidak diubah */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
