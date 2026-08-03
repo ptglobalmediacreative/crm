@@ -401,7 +401,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'npwp_no' => isset($_POST['mediator_npwp']) ? bersihkan($_POST['mediator_npwp']) : '',
                 'bank_name' => isset($_POST['mediator_bank']) ? bersihkan($_POST['mediator_bank']) : '',
                 'bank_account' => isset($_POST['mediator_bank_account']) ? bersihkan($_POST['mediator_bank_account']) : '',
-                'amount' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0)
+                'amount' => (float)str_replace(['.', ','], '', isset($_POST['mediator_amount']) ? $_POST['mediator_amount'] : 0)
             ];
         }
         
@@ -773,7 +773,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        /* CSS sama seperti sebelumnya - tidak diubah */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1583,7 +1582,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <?php endif; ?>
                 </div>
 
-                <!-- TAB 4: ADDITIONAL COST - DIPERBAIKI -->
+                <!-- TAB 4: ADDITIONAL COST -->
                 <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
@@ -1661,7 +1660,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <?php endif; ?>
                 </div>
 
-                <!-- TAB 5: MEDIATOR FEE - DIPERBAIKI -->
+                <!-- TAB 5: MEDIATOR FEE - DENGAN AMOUNT YANG DAPAT DIINPUT -->
                 <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
@@ -1687,7 +1686,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-2"><label class="form-label">Bank Account <span class="required">*</span></label><input type="text" name="mediator_bank_account" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required></div>
-                                <div class="col-md-6 mb-2"><label class="form-label">Amount</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="mediator_amount" id="mediatorAmount" class="form-control form-control-sm" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" readonly></div></div>
+                                <div class="col-md-6 mb-2"><label class="form-label">Amount <span class="required">*</span></label>
+                                    <div class="currency-input">
+                                        <span class="currency-prefix">Rp</span>
+                                        <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control form-control-sm mediator-amount-input" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" required>
+                                    </div>
+                                </div>
                             </div>
                             <div class="text-end mt-2">
                                 <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()"><i class="fas fa-save"></i> Simpan Mediator</button>
@@ -1954,7 +1958,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     // ============================================
-    // SAVE DATA TO HIDDEN FIELDS BEFORE SUBMIT - DIPERBAIKI
+    // MEDIATOR AMOUNT FORMAT
+    // ============================================
+    function formatMediatorAmount(input) {
+        let val = input.value.replace(/\./g, '').replace(/,/g, '');
+        if (!isNaN(val) && val !== '') {
+            input.value = formatNumber(parseFloat(val) || 0);
+        }
+        // Update hidden mediator data
+        updateMediatorData();
+    }
+
+    function updateMediatorData() {
+        const mediatorAmount = document.getElementById('mediatorAmount');
+        if (mediatorAmount) {
+            const val = parseFloat(mediatorAmount.value.replace(/\./g, '').replace(/,/g, '')) || 0;
+            try {
+                const mediatorData = JSON.parse(document.getElementById('mediator_data').value || '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}');
+                mediatorData.amount = val;
+                document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
+            } catch(e) {
+                // Jika error, buat baru
+                const mediatorData = {
+                    name: document.querySelector('input[name="mediator_name"]')?.value || '',
+                    id_card_no: document.querySelector('input[name="mediator_id_card"]')?.value || '',
+                    npwp_no: document.querySelector('input[name="mediator_npwp"]')?.value || '',
+                    bank_name: document.querySelector('input[name="mediator_bank"]')?.value || '',
+                    bank_account: document.querySelector('input[name="mediator_bank_account"]')?.value || '',
+                    amount: val
+                };
+                document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
+            }
+        }
+    }
+
+    // ============================================
+    // SAVE DATA TO HIDDEN FIELDS BEFORE SUBMIT
     // ============================================
     function saveDataToHidden() {
         // 1. SAVE UNITS DATA - hanya jika ada unit di form
@@ -2060,6 +2099,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // 4. SAVE MEDIATOR DATA - hanya jika ada data Mediator di form
         const mediatorName = document.querySelector('input[name="mediator_name"]');
         const mediatorIdCard = document.querySelector('input[name="mediator_id_card"]');
+        const mediatorAmount = document.querySelector('input[name="mediator_amount"]');
         if (mediatorName || mediatorIdCard) {
             const mediatorData = {
                 name: mediatorName?.value || '',
@@ -2067,7 +2107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 npwp_no: document.querySelector('input[name="mediator_npwp"]')?.value || '',
                 bank_name: document.querySelector('input[name="mediator_bank"]')?.value || '',
                 bank_account: document.querySelector('input[name="mediator_bank_account"]')?.value || '',
-                amount: parseFloat(document.querySelector('input[name="mediator_amount"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0
+                amount: parseFloat(mediatorAmount?.value.replace(/\./g, '').replace(/,/g, '')) || 0
             };
             document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
         }
@@ -2110,6 +2150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (e.target.classList.contains('price') || 
             e.target.classList.contains('top-input') || 
             e.target.classList.contains('additional-input') ||
+            e.target.classList.contains('mediator-amount-input') ||
             e.target.id === 'mediatorFeeInput') {
             let val = e.target.value.replace(/\./g, '').replace(/,/g, '');
             if (!isNaN(val) && val !== '') {
@@ -2131,6 +2172,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     url.searchParams.delete('edit');
                     this.href = url.toString();
                 }
+            });
+        });
+        
+        // Auto format mediator amount
+        document.querySelectorAll('.mediator-amount-input').forEach(function(input) {
+            input.addEventListener('input', function() {
+                formatMediatorAmount(this);
             });
         });
         
