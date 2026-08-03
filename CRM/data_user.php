@@ -747,6 +747,7 @@ if (isset($_GET['edit'])) {
             display: flex;
             align-items: center;
             gap: 4px;
+            flex-wrap: wrap;
         }
         
         .desktop-nav-wrapper .desktop-menu .nav-link {
@@ -901,7 +902,7 @@ if (isset($_GET['edit'])) {
 </head>
 <body>
 
-    <!-- DESKTOP NAVBAR - DIPERBAIKI -->
+    <!-- DESKTOP NAVBAR -->
     <div class="desktop-nav-wrapper">
         <div class="brand-section">
             <div class="logo-wrapper">
@@ -916,26 +917,40 @@ if (isset($_GET['edit'])) {
         <div class="desktop-menu">
             <a href="dashboard.php" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a>
             
-            <!-- Account Management - hanya tampil jika user punya akses -->
+            <!-- Account Management -->
             <?php if (canAccessMenu('account_management')): ?>
                 <a href="account_management.php" class="nav-link"><i class="fas fa-building"></i> Account</a>
             <?php endif; ?>
             
-            <!-- Sales Activity - hanya tampil jika user punya akses -->
+            <!-- Sales Activity -->
             <?php if (canAccessMenu('sales_activity')): ?>
-                <a href="#" class="nav-link"><i class="fas fa-chart-bar"></i> Sales Activity</a>
+                <a href="salesactivity.php" class="nav-link"><i class="fas fa-chart-bar"></i> Sales Activity</a>
             <?php endif; ?>
             
-            <!-- Produk - hanya tampil jika user punya akses -->
+            <!-- Transaction Request -->
+            <?php if (canAccessMenu('transaction_request')): ?>
+                <a href="transactionrequest.php" class="nav-link"><i class="fas fa-file-signature"></i> TR Request</a>
+            <?php endif; ?>
+            
+            <!-- Detail Transaction Request -->
+            <?php if (canAccessMenu('detail_transaction_request')): ?>
+                <a href="detailtr.php" class="nav-link"><i class="fas fa-file-alt"></i> Detail TR</a>
+            <?php endif; ?>
+            
+            <!-- Produk -->
             <?php if (canAccessMenu('produk')): ?>
-                <a href="#" class="nav-link"><i class="fas fa-box"></i> Produk</a>
+                <a href="produk.php" class="nav-link"><i class="fas fa-box"></i> Produk</a>
             <?php endif; ?>
             
-            <!-- Delivery Order - hanya tampil jika user punya akses -->
+            <!-- Delivery Order -->
             <?php if (canAccessMenu('delivery_order')): ?>
                 <a href="#" class="nav-link"><i class="fas fa-tractor"></i> Delivery</a>
             <?php endif; ?>
             
+            <!-- Data User -->
+            <?php if (canAccessMenu('data_user')): ?>
+                <a href="data_user.php" class="nav-link active"><i class="fas fa-users"></i> User</a>
+            <?php endif; ?>
         </div>
         
         <div class="nav-right">
@@ -1250,9 +1265,25 @@ if (isset($_GET['edit'])) {
         
         <!-- Sales Activity -->
         <?php if (canAccessMenu('sales_activity')): ?>
-            <a href="#" class="nav-item">
+            <a href="salesactivity.php" class="nav-item">
                 <i class="fas fa-chart-bar nav-icon"></i>
                 <span class="nav-label">Sales Activity</span>
+            </a>
+        <?php endif; ?>
+        
+        <!-- Transaction Request -->
+        <?php if (canAccessMenu('transaction_request')): ?>
+            <a href="transactionrequest.php" class="nav-item">
+                <i class="fas fa-file-signature nav-icon"></i>
+                <span class="nav-label">TR Request</span>
+            </a>
+        <?php endif; ?>
+        
+        <!-- Detail Transaction Request -->
+        <?php if (canAccessMenu('detail_transaction_request')): ?>
+            <a href="detailtr.php" class="nav-item">
+                <i class="fas fa-file-alt nav-icon"></i>
+                <span class="nav-label">Detail TR</span>
             </a>
         <?php endif; ?>
         
