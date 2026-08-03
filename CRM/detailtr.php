@@ -561,14 +561,11 @@ $requests = $stmt->fetchAll();
 // ============================================
 // FUNGSI UNTUK MENAMPILKAN DATA DENGAN VIEW/EDIT MODE
 // ============================================
-// Hapus parameter edit jika data sudah ada di database
 $editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
 
 // Jika data sudah ada di database (id tidak null), maka set editMode = null
 if ($detailData && isset($detailData['id']) && $detailData['id'] !== null) {
-    // Jika tidak ada parameter edit di URL, maka mode view
-    // Jika ada parameter edit, tetap gunakan mode edit untuk tab tersebut
     if (!isset($_GET['edit'])) {
         $editMode = null;
     }
@@ -1057,7 +1054,7 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
         }
         
         /* ============================================
-           NAV TABS - DIPERBAIKI
+           NAV TABS
            ============================================ */
         .nav-tabs-custom {
             border-bottom: 2px solid #e8edf2;
@@ -1618,7 +1615,7 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
                             </div>
                         </div>
                         
-                        <!-- Tombol Edit Data (akan muncul jika data sudah ada) -->
+                        <!-- Tombol Edit Data -->
                         <?php if ($isDataExists && !$editMode): ?>
                         <div class="text-end mt-3">
                             <a href="detailtr.php?trf=<?= $trf_number ?>&edit=summary&tab=summary" class="btn btn-sm btn-edit-custom">
@@ -1633,12 +1630,10 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
                             <?php if ($editMode == 'unit'): ?>
-                                <!-- Tombol Kembali ke View -->
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom">
                                     <i class="fas fa-arrow-left"></i> Kembali
                                 </a>
                             <?php elseif ($isDataExists): ?>
-                                <!-- Tombol Edit Unit -->
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
                                     <i class="fas fa-edit"></i> Edit Unit
                                 </a>
@@ -1646,7 +1641,7 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
                         </div>
                         
                         <?php if ($editMode == 'unit'): ?>
-                            <!-- EDIT MODE UNIT -->
+                            <!-- EDIT MODE UNIT - SAMA SEPERTI SEBELUMNYA -->
                             <div class="edit-form-container">
                                 <div id="unitContainer">
                                     <?php 
@@ -1753,7 +1748,6 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
                                     endforeach; 
                                     ?>
                                 </div>
-                                <!-- TOMBOL TAMBAH UNIT DIHAPUS -->
                                 <div class="text-end mt-2">
                                     <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()">
                                         <i class="fas fa-save"></i> Simpan Unit
@@ -2419,21 +2413,17 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // TAB FUNCTIONS - DIPERBAIKI
+        // TAB FUNCTIONS
         // ============================================
         function setActiveTab(tab) {
             document.getElementById('activeTabInput').value = tab;
-            
-            // Update URL dengan parameter yang benar
             const url = new URL(window.location.href);
             url.searchParams.set('tab', tab);
-            
             if (tab === 'summary') {
                 url.searchParams.delete('edit');
             } else {
                 url.searchParams.set('edit', tab);
             }
-            
             window.history.pushState({}, '', url);
         }
 
@@ -2577,10 +2567,12 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
         }
 
         // ============================================
-        // SAVE DATA TO HIDDEN FIELDS BEFORE SUBMIT
+        // SAVE DATA TO HIDDEN FIELDS BEFORE SUBMIT - DIPERBAIKI
         // ============================================
         function saveDataToHidden() {
-            // Ambil data unit dari form
+            console.log('saveDataToHidden dipanggil');
+            
+            // 1. SAVE UNITS DATA
             const unitRows = document.querySelectorAll('.unit-row');
             const units = [];
             unitRows.forEach(row => {
@@ -2603,9 +2595,23 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
                     units.push(unitData);
                 }
             });
-            document.getElementById('units_data').value = JSON.stringify(units);
             
-            // Ambil data TOP
+            // Jika tidak ada unit di form, ambil dari hidden field yang sudah ada
+            if (units.length === 0) {
+                try {
+                    const existingUnits = document.getElementById('units_data')?.value;
+                    if (existingUnits) {
+                        const parsed = JSON.parse(existingUnits);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            units.push(...parsed);
+                        }
+                    }
+                } catch(e) {}
+            }
+            document.getElementById('units_data').value = JSON.stringify(units);
+            console.log('Units saved:', units.length);
+            
+            // 2. SAVE TOP DATA
             const topData = {
                 booking_fee: parseFloat(document.querySelector('input[name="booking_fee"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
                 booking_fee_remark: document.querySelector('input[name="booking_fee_remark"]')?.value || '',
@@ -2643,29 +2649,76 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
                     });
                 }
             }
+            
+            // Jika tidak ada data TOP di form, ambil dari hidden field yang sudah ada
+            if (topData.booking_fee === 0 && topData.nominal_po_leasing === 0 && topData.down_payments.length === 0 && topData.installments.length === 0) {
+                try {
+                    const existingTop = document.getElementById('top_data')?.value;
+                    if (existingTop) {
+                        const parsed = JSON.parse(existingTop);
+                        if (typeof parsed === 'object' && parsed !== null) {
+                            Object.assign(topData, parsed);
+                        }
+                    }
+                } catch(e) {}
+            }
             document.getElementById('top_data').value = JSON.stringify(topData);
+            console.log('TOP saved');
             
-            // Ambil data Additional Cost
-            const additionalData = {
-                insurance_ops: parseFloat(document.querySelector('input[name="insurance_ops"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                insurance_ops_remark: document.querySelector('input[name="insurance_ops_remark"]')?.value || '',
-                insurance_cargo: parseFloat(document.querySelector('input[name="insurance_cargo"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                insurance_cargo_remark: document.querySelector('input[name="insurance_cargo_remark"]')?.value || '',
-                delivery_cost: parseFloat(document.querySelector('input[name="delivery_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                delivery_cost_remark: document.querySelector('input[name="delivery_cost_remark"]')?.value || '',
-                free_part: parseFloat(document.querySelector('input[name="free_part"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                free_part_remark: document.querySelector('input[name="free_part_remark"]')?.value || '',
-                free_service: parseFloat(document.querySelector('input[name="free_service"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                free_service_remark: document.querySelector('input[name="free_service_remark"]')?.value || '',
-                mediator_fee: parseFloat(document.querySelector('input[name="mediator_fee"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                mediator_fee_remark: document.querySelector('input[name="mediator_fee_remark"]')?.value || '',
-                others: parseFloat(document.querySelector('input[name="others_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                others_remark: document.querySelector('input[name="others_remark"]')?.value || '',
-                total_additional: parseFloat(document.getElementById('totalAdditionalHidden')?.value) || 0
+            // 3. SAVE ADDITIONAL DATA
+            const additionalInputs = document.querySelectorAll('.additional-input');
+            let additionalData = {
+                insurance_ops: 0,
+                insurance_ops_remark: '',
+                insurance_cargo: 0,
+                insurance_cargo_remark: '',
+                delivery_cost: 0,
+                delivery_cost_remark: '',
+                free_part: 0,
+                free_part_remark: '',
+                free_service: 0,
+                free_service_remark: '',
+                mediator_fee: 0,
+                mediator_fee_remark: '',
+                others: 0,
+                others_remark: '',
+                total_additional: 0
             };
-            document.getElementById('additional_data').value = JSON.stringify(additionalData);
             
-            // Ambil data Mediator
+            if (additionalInputs.length > 0) {
+                additionalData = {
+                    insurance_ops: parseFloat(document.querySelector('input[name="insurance_ops"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    insurance_ops_remark: document.querySelector('input[name="insurance_ops_remark"]')?.value || '',
+                    insurance_cargo: parseFloat(document.querySelector('input[name="insurance_cargo"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    insurance_cargo_remark: document.querySelector('input[name="insurance_cargo_remark"]')?.value || '',
+                    delivery_cost: parseFloat(document.querySelector('input[name="delivery_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    delivery_cost_remark: document.querySelector('input[name="delivery_cost_remark"]')?.value || '',
+                    free_part: parseFloat(document.querySelector('input[name="free_part"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    free_part_remark: document.querySelector('input[name="free_part_remark"]')?.value || '',
+                    free_service: parseFloat(document.querySelector('input[name="free_service"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    free_service_remark: document.querySelector('input[name="free_service_remark"]')?.value || '',
+                    mediator_fee: parseFloat(document.querySelector('input[name="mediator_fee"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    mediator_fee_remark: document.querySelector('input[name="mediator_fee_remark"]')?.value || '',
+                    others: parseFloat(document.querySelector('input[name="others_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
+                    others_remark: document.querySelector('input[name="others_remark"]')?.value || '',
+                    total_additional: parseFloat(document.getElementById('totalAdditionalHidden')?.value) || 0
+                };
+            } else {
+                // Jika tidak ada additional inputs, gunakan data yang sudah ada di hidden field
+                try {
+                    const existingAdditional = document.getElementById('additional_data')?.value;
+                    if (existingAdditional) {
+                        const parsed = JSON.parse(existingAdditional);
+                        if (typeof parsed === 'object' && parsed !== null) {
+                            additionalData = parsed;
+                        }
+                    }
+                } catch(e) {}
+            }
+            document.getElementById('additional_data').value = JSON.stringify(additionalData);
+            console.log('Additional saved');
+            
+            // 4. SAVE MEDIATOR DATA
             const mediatorData = {
                 name: document.querySelector('input[name="mediator_name"]')?.value || '',
                 id_card_no: document.querySelector('input[name="mediator_id_card"]')?.value || '',
@@ -2674,18 +2727,25 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
                 bank_account: document.querySelector('input[name="mediator_bank_account"]')?.value || '',
                 amount: parseFloat(document.querySelector('input[name="mediator_amount"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0
             };
-            document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
-        }
-
-        // Event listener untuk form submit
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('formDetailTR');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    saveDataToHidden();
-                });
+            
+            // Jika tidak ada data mediator di form, ambil dari hidden field yang sudah ada
+            if (!mediatorData.name && !mediatorData.id_card_no) {
+                try {
+                    const existingMediator = document.getElementById('mediator_data')?.value;
+                    if (existingMediator) {
+                        const parsed = JSON.parse(existingMediator);
+                        if (typeof parsed === 'object' && parsed !== null) {
+                            Object.assign(mediatorData, parsed);
+                        }
+                    }
+                } catch(e) {}
             }
-        });
+            document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
+            console.log('Mediator saved');
+            
+            console.log('Units Data:', document.getElementById('units_data').value);
+            console.log('TOP Data:', document.getElementById('top_data').value);
+        }
 
         // ============================================
         // APPROVAL FUNCTIONS
@@ -2736,6 +2796,14 @@ $isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !=
         // INITIAL CALCULATIONS
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('formDetailTR');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    saveDataToHidden();
+                    console.log('Form submitting...');
+                });
+            }
+            
             document.querySelectorAll('.qty, .price').forEach(input => {
                 const row = input.closest('.unit-row');
                 if (row) {
