@@ -1351,14 +1351,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                 </div>
 
-                <!-- TAB 2: DETAIL UNIT - DENGAN TOMBOL TAMBAH UNIT -->
+                <!-- TAB 2: DETAIL UNIT - DENGAN TOMBOL TAMBAH UNIT (TAMPIL SELALU DI MODE EDIT) -->
                 <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
                         <?php if ($editMode == 'unit'): ?>
                             <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php elseif ($isDataExists && !empty($units)): ?>
-                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Unit</a>
+                        <?php else: ?>
+                            <!-- TOMBOL EDIT UNIT SELALU TAMPIL -->
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
+                                <i class="fas fa-edit"></i> <?= empty($units) ? 'Tambah Unit' : 'Edit Unit' ?>
+                            </a>
                         <?php endif; ?>
                     </div>
                     
@@ -1468,7 +1471,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 ?>
                             </div>
                             
-                            <!-- TOMBOL TAMBAH UNIT -->
+                            <!-- TOMBOL TAMBAH UNIT - SELALU TAMPIL DI MODE EDIT -->
                             <div class="text-start mt-3 mb-3">
                                 <button type="button" class="btn btn-sm btn-primary-custom" onclick="addUnit()">
                                     <i class="fas fa-plus-circle"></i> Tambah Unit
@@ -1481,7 +1484,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </div>
                         </div>
                     <?php elseif (!empty($units)): ?>
-                        <!-- VIEW MODE UNIT -->
+                        <!-- VIEW MODE UNIT - TAMPILKAN DATA -->
                         <?php foreach ($units as $unit): ?>
                         <div class="summary-item"><span class="label">Unit</span><span class="value"><strong><?= htmlspecialchars($unit['unit_name']) ?></strong></span></div>
                         <div class="summary-item"><span class="label">QTY</span><span class="value"><?= $unit['qty'] ?? 0 ?></span></div>
@@ -1497,8 +1500,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <div class="summary-item"><span class="label">Transaction Type</span><span class="value"><span class="badge bg-info"><?= htmlspecialchars($unit['transaction_type'] ?? '-') ?></span></span></div>
                         <hr class="my-2">
                         <?php endforeach; ?>
+                        
+                        <!-- TOMBOL EDIT UNIT - TAMPIL DI VIEW MODE -->
+                        <div class="text-center mt-3">
+                            <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
+                                <i class="fas fa-edit"></i> Edit Unit
+                            </a>
+                        </div>
                     <?php else: ?>
-                        <div class="empty-state"><i class="fas fa-box-open"></i><p>Belum ada data unit. Klik Edit Unit untuk menambahkan.</p></div>
+                        <!-- KETIKA BELUM ADA DATA UNIT -->
+                        <div class="empty-state">
+                            <i class="fas fa-box-open"></i>
+                            <p>Belum ada data unit. Klik tombol di bawah untuk menambahkan unit.</p>
+                            <div class="mt-3">
+                                <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
+                                    <i class="fas fa-plus-circle"></i> Tambah Unit
+                                </a>
+                            </div>
+                        </div>
                     <?php endif; ?>
                 </div>
 
@@ -1668,7 +1687,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <?php endif; ?>
                 </div>
 
-                <!-- TAB 5: MEDIATOR FEE - DENGAN AMOUNT YANG DAPAT DIINPUT -->
+                <!-- TAB 5: MEDIATOR FEE -->
                 <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
@@ -1821,7 +1840,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('activeTabInput').value = tab;
         const url = new URL(window.location.href);
         url.searchParams.set('tab', tab);
-        // HAPUS PARAMETER EDIT SAAT BERGANTI TAB
         url.searchParams.delete('edit');
         window.history.pushState({}, '', url);
     }
@@ -1844,32 +1862,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         const container = document.getElementById('unitContainer');
         const index = document.querySelectorAll('.unit-row').length;
         
-        // Ambil data dari unit pertama untuk default
-        const firstUnit = document.querySelector('.unit-row');
-        let defaultUnitName = '';
-        let defaultSpecification = '';
-        let defaultAdditionalAttachment = '';
-        let defaultWarranty = '';
-        let defaultMachineLocation = '';
-        let defaultDeliveryTerms = '';
-        let defaultDeliverySchedule = '';
-        let defaultTransactionType = '';
-        let defaultOtherValue = '';
-        
-        if (firstUnit) {
-            defaultUnitName = firstUnit.querySelector('select[name="unit_name[]"]')?.value || '';
-            defaultSpecification = firstUnit.querySelector('input[name="specification[]"]')?.value || '';
-            defaultAdditionalAttachment = firstUnit.querySelector('input[name="additional_attachment[]"]')?.value || '';
-            defaultWarranty = firstUnit.querySelector('input[name="warranty[]"]')?.value || '';
-            defaultMachineLocation = firstUnit.querySelector('input[name="machine_location[]"]')?.value || '';
-            defaultDeliveryTerms = firstUnit.querySelector('input[name="delivery_terms[]"]')?.value || '';
-            defaultDeliverySchedule = firstUnit.querySelector('input[name="delivery_schedule[]"]')?.value || date('Y-m-d', strtotime('+30 days'));
-            defaultTransactionType = firstUnit.querySelector('select[name="transaction_type[]"]')?.value || '';
-            if (defaultTransactionType === 'Other') {
-                const otherInput = firstUnit.querySelector('input[name="transaction_type_other[]"]');
-                if (otherInput) defaultOtherValue = otherInput.value;
-            }
-        }
+        // Ambil tanggal default (30 hari dari sekarang)
+        const today = new Date();
+        today.setDate(today.getDate() + 30);
+        const defaultDate = today.toISOString().split('T')[0];
         
         const template = `
         <div class="unit-row" data-index="${index}">
@@ -1935,7 +1931,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
                 <div class="col-md-4 mb-2">
                     <label class="form-label">Delivery Schedule Plan <span class="required">*</span></label>
-                    <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="<?= date('Y-m-d', strtotime('+30 days')) ?>" required>
+                    <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="${defaultDate}" required>
                 </div>
             </div>
             <div class="row">
@@ -2102,7 +2098,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (!isNaN(val) && val !== '') {
             input.value = formatNumber(parseFloat(val) || 0);
         }
-        // Update hidden mediator data
         updateMediatorData();
     }
 
@@ -2115,7 +2110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 mediatorData.amount = val;
                 document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
             } catch(e) {
-                // Jika error, buat baru
                 const mediatorData = {
                     name: document.querySelector('input[name="mediator_name"]')?.value || '',
                     id_card_no: document.querySelector('input[name="mediator_id_card"]')?.value || '',
@@ -2133,7 +2127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     // SAVE DATA TO HIDDEN FIELDS BEFORE SUBMIT
     // ============================================
     function saveDataToHidden() {
-        // 1. SAVE UNITS DATA - hanya jika ada unit di form
+        // 1. SAVE UNITS DATA
         const unitRows = document.querySelectorAll('.unit-row');
         if (unitRows.length > 0) {
             const units = [];
@@ -2153,7 +2147,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     delivery_schedule: row.querySelector('input[name="delivery_schedule[]"]')?.value || '',
                     transaction_type: row.querySelector('select[name="transaction_type[]"]')?.value || ''
                 };
-                // Jika transaction type Other, tambahkan nilai dari input other
                 if (unitData.transaction_type === 'Other') {
                     const otherInput = row.querySelector('input[name="transaction_type_other[]"]');
                     if (otherInput && otherInput.value) {
@@ -2169,7 +2162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
         
-        // 2. SAVE TOP DATA - hanya jika ada data TOP di form
+        // 2. SAVE TOP DATA
         const hasTopData = document.querySelector('input[name="booking_fee"]') || 
                            document.querySelector('input[name="nominal_po_leasing"]') ||
                            document.querySelectorAll('input[name="dp_name[]"]').length > 0 ||
@@ -2186,7 +2179,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 grand_total_top: parseFloat(document.getElementById('grandTotalTOPHidden')?.value) || 0
             };
             
-            // DP
             const dpNames = document.querySelectorAll('input[name="dp_name[]"]');
             const dpValues = document.querySelectorAll('input[name="dp_value[]"]');
             const dpRemarks = document.querySelectorAll('input[name="dp_remark[]"]');
@@ -2200,7 +2192,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             }
             
-            // Installments
             const instNames = document.querySelectorAll('input[name="installment_name[]"]');
             const instValues = document.querySelectorAll('input[name="installment_value[]"]');
             const instRemarks = document.querySelectorAll('input[name="installment_remark[]"]');
@@ -2217,7 +2208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             document.getElementById('top_data').value = JSON.stringify(topData);
         }
         
-        // 3. SAVE ADDITIONAL DATA - hanya jika ada data Additional di form
+        // 3. SAVE ADDITIONAL DATA
         const additionalInputs = document.querySelectorAll('.additional-input');
         if (additionalInputs.length > 0) {
             const additionalData = {
@@ -2240,7 +2231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             document.getElementById('additional_data').value = JSON.stringify(additionalData);
         }
         
-        // 4. SAVE MEDIATOR DATA - hanya jika ada data Mediator di form
+        // 4. SAVE MEDIATOR DATA
         const mediatorName = document.querySelector('input[name="mediator_name"]');
         const mediatorIdCard = document.querySelector('input[name="mediator_id_card"]');
         const mediatorAmount = document.querySelector('input[name="mediator_amount"]');
@@ -2307,11 +2298,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     // HANDLE TAB CLICKS - HAPUS PARAMETER EDIT
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle semua klik pada tab
         document.querySelectorAll('.nav-tabs-custom .nav-link').forEach(function(link) {
             link.addEventListener('click', function(e) {
                 const url = new URL(this.href);
-                // Hapus parameter edit jika ada
                 if (url.searchParams.has('edit')) {
                     url.searchParams.delete('edit');
                     this.href = url.toString();
@@ -2319,14 +2308,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             });
         });
         
-        // Auto format mediator amount
         document.querySelectorAll('.mediator-amount-input').forEach(function(input) {
             input.addEventListener('input', function() {
                 formatMediatorAmount(this);
             });
         });
         
-        // Initial calculations
         const form = document.getElementById('formDetailTR');
         if (form) {
             form.addEventListener('submit', function(e) {
