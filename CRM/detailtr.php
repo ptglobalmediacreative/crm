@@ -1351,7 +1351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                 </div>
 
-                <!-- TAB 2: DETAIL UNIT -->
+                <!-- TAB 2: DETAIL UNIT - DENGAN TOMBOL TAMBAH UNIT -->
                 <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
@@ -1363,13 +1363,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                     
                     <?php if ($editMode == 'unit'): ?>
-                        <!-- EDIT MODE UNIT -->
+                        <!-- EDIT MODE UNIT - DENGAN TOMBOL TAMBAH UNIT -->
                         <div class="edit-form-container">
                             <div id="unitContainer">
                                 <?php 
                                 $unitIndex = 0;
+                                // Jika units kosong, buat 1 unit default
                                 if (empty($units)) {
-                                    $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => '', 'transaction_type' => '']];
+                                    $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => date('Y-m-d', strtotime('+30 days')), 'transaction_type' => '']];
                                 }
                                 foreach ($units as $unit):
                                 ?>
@@ -1438,7 +1439,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         </div>
                                         <div class="col-md-4 mb-2">
                                             <label class="form-label">Delivery Schedule Plan <span class="required">*</span></label>
-                                            <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? '') ?>" required>
+                                            <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? date('Y-m-d', strtotime('+30 days'))) ?>" required>
                                         </div>
                                     </div>
                                     <div class="row">
@@ -1466,11 +1467,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 endforeach; 
                                 ?>
                             </div>
+                            
+                            <!-- TOMBOL TAMBAH UNIT -->
+                            <div class="text-start mt-3 mb-3">
+                                <button type="button" class="btn btn-sm btn-primary-custom" onclick="addUnit()">
+                                    <i class="fas fa-plus-circle"></i> Tambah Unit
+                                </button>
+                            </div>
+                            
                             <div class="text-end mt-2">
                                 <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()"><i class="fas fa-save"></i> Simpan Unit</button>
                                 <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="btn btn-sm btn-secondary-custom ms-2"><i class="fas fa-times"></i> Batal</a>
                             </div>
-                            <div class="alert-info-custom mt-2"><i class="fas fa-info-circle"></i> Jumlah unit sudah ditentukan dan tidak dapat ditambahkan.</div>
                         </div>
                     <?php elseif (!empty($units)): ?>
                         <!-- VIEW MODE UNIT -->
@@ -1819,7 +1827,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     // ============================================
-    // UNIT FUNCTIONS
+    // UNIT FUNCTIONS - DENGAN TOMBOL TAMBAH UNIT
     // ============================================
     let unitIndex = <?= isset($unitIndex) ? $unitIndex : 0 ?>;
 
@@ -1830,6 +1838,135 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         } else {
             alert('Minimal 1 unit harus ada!');
         }
+    }
+
+    function addUnit() {
+        const container = document.getElementById('unitContainer');
+        const index = document.querySelectorAll('.unit-row').length;
+        
+        // Ambil data dari unit pertama untuk default
+        const firstUnit = document.querySelector('.unit-row');
+        let defaultUnitName = '';
+        let defaultSpecification = '';
+        let defaultAdditionalAttachment = '';
+        let defaultWarranty = '';
+        let defaultMachineLocation = '';
+        let defaultDeliveryTerms = '';
+        let defaultDeliverySchedule = '';
+        let defaultTransactionType = '';
+        let defaultOtherValue = '';
+        
+        if (firstUnit) {
+            defaultUnitName = firstUnit.querySelector('select[name="unit_name[]"]')?.value || '';
+            defaultSpecification = firstUnit.querySelector('input[name="specification[]"]')?.value || '';
+            defaultAdditionalAttachment = firstUnit.querySelector('input[name="additional_attachment[]"]')?.value || '';
+            defaultWarranty = firstUnit.querySelector('input[name="warranty[]"]')?.value || '';
+            defaultMachineLocation = firstUnit.querySelector('input[name="machine_location[]"]')?.value || '';
+            defaultDeliveryTerms = firstUnit.querySelector('input[name="delivery_terms[]"]')?.value || '';
+            defaultDeliverySchedule = firstUnit.querySelector('input[name="delivery_schedule[]"]')?.value || date('Y-m-d', strtotime('+30 days'));
+            defaultTransactionType = firstUnit.querySelector('select[name="transaction_type[]"]')?.value || '';
+            if (defaultTransactionType === 'Other') {
+                const otherInput = firstUnit.querySelector('input[name="transaction_type_other[]"]');
+                if (otherInput) defaultOtherValue = otherInput.value;
+            }
+        }
+        
+        const template = `
+        <div class="unit-row" data-index="${index}">
+            <div class="row">
+                <div class="col-md-12 text-end">
+                    <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit"><i class="fas fa-times-circle"></i></button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Unit <span class="required">*</span></label>
+                    <select name="unit_name[]" class="form-select form-select-sm" required>
+                        <option value="">-- Pilih Unit --</option>
+                        <?php foreach ($produkList as $produk): ?>
+                            <option value="<?= htmlspecialchars($produk['nama_produk']) ?>"><?= htmlspecialchars($produk['nama_produk']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <label class="form-label">QTY <span class="required">*</span></label>
+                    <input type="number" name="qty[]" class="form-control form-control-sm qty" value="1" min="1" required onchange="calculateUnit(this)">
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Price (Non PPN) <span class="required">*</span></label>
+                    <div class="currency-input">
+                        <span class="currency-prefix">Rp</span>
+                        <input type="text" name="price[]" class="form-control form-control-sm price" value="0" required oninput="calculateUnit(this)">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <label class="form-label">PPN (11%)</label>
+                    <input type="text" name="ppn[]" class="form-control form-control-sm ppn" value="0" readonly>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <label class="form-label">Grand Total (Include PPN)</label>
+                    <input type="text" name="grand_total_unit[]" class="form-control form-control-sm grand-total-unit" value="0" readonly>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Spesification <span class="required">*</span></label>
+                    <input type="text" name="specification[]" class="form-control form-control-sm" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Additional Attachment / Safety Devices</label>
+                    <input type="text" name="additional_attachment[]" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Warranty</label>
+                    <input type="text" name="warranty[]" class="form-control form-control-sm">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Machine Location Works <span class="required">*</span></label>
+                    <input type="text" name="machine_location[]" class="form-control form-control-sm" required>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Delivery Terms <span class="required">*</span></label>
+                    <input type="text" name="delivery_terms[]" class="form-control form-control-sm" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" required>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Delivery Schedule Plan <span class="required">*</span></label>
+                    <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="<?= date('Y-m-d', strtotime('+30 days')) ?>" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-2">
+                    <label class="form-label">Transaction Type <span class="required">*</span></label>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <select name="transaction_type[]" class="form-select form-select-sm transaction-type-select" required onchange="showOtherInput(this)">
+                                <option value="">-- Pilih Transaction Type --</option>
+                                <option value="Cash On Delivery">Cash On Delivery</option>
+                                <option value="Leasing">Leasing</option>
+                                <option value="Direct Credit">Direct Credit</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="otherInputContainer_${index}" style="display: none;">
+                            <input type="text" name="transaction_type_other[]" class="form-control form-control-sm" placeholder="Spesifikasi Other">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', template);
+        unitIndex++;
+        
+        // Hitung ulang semua unit
+        document.querySelectorAll('.qty, .price').forEach(input => {
+            calculateUnit(input);
+        });
     }
 
     function calculateUnit(input) {
@@ -2016,6 +2153,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     delivery_schedule: row.querySelector('input[name="delivery_schedule[]"]')?.value || '',
                     transaction_type: row.querySelector('select[name="transaction_type[]"]')?.value || ''
                 };
+                // Jika transaction type Other, tambahkan nilai dari input other
+                if (unitData.transaction_type === 'Other') {
+                    const otherInput = row.querySelector('input[name="transaction_type_other[]"]');
+                    if (otherInput && otherInput.value) {
+                        unitData.transaction_type = 'Other - ' + otherInput.value;
+                    }
+                }
                 if (unitData.unit_name) {
                     units.push(unitData);
                 }
