@@ -649,9 +649,14 @@ $requests = $stmt->fetchAll();
 $editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
 
-// Jika data sudah ada di database (id tidak null), maka set editMode = null
+// JIKA DATA SUDAH ADA DI DATABASE, DEFAULTNYA VIEW MODE (editMode = null)
+// KECUALI JIKA ADA PARAMETER edit=yang diinginkan
 if ($detailData && isset($detailData['id']) && $detailData['id'] !== null) {
-    if (!isset($_GET['edit'])) {
+    // HANYA SET editMode JIKA ADA PARAMETER edit DI URL
+    if (isset($_GET['edit']) && in_array($_GET['edit'], ['unit', 'top', 'additional', 'mediator'])) {
+        $editMode = $_GET['edit'];
+    } else {
+        // DEFAULT: VIEW MODE (TIDAK EDIT)
         $editMode = null;
     }
 }
@@ -1264,7 +1269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <input type="hidden" name="additional_data" id="additional_data" value='<?= htmlspecialchars($additional_json) ?>'>
         <input type="hidden" name="mediator_data" id="mediator_data" value='<?= htmlspecialchars($mediator_json) ?>'>
 
-        <!-- TAB NAVIGATION -->
+        <!-- TAB NAVIGATION - TANPA PARAMETER EDIT -->
         <div class="card-custom" style="padding: 0; overflow: hidden;">
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs" id="detailTab" role="tablist">
@@ -1274,22 +1279,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?trf=<?= $trf_number ?>&edit=unit&tab=unit" class="nav-link <?= $activeTab == 'unit' ? 'active' : '' ?>">
+                        <a href="detailtr.php?trf=<?= $trf_number ?>&tab=unit" class="nav-link <?= $activeTab == 'unit' ? 'active' : '' ?>">
                             <i class="fas fa-box"></i> Detail Unit
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?trf=<?= $trf_number ?>&edit=top&tab=top" class="nav-link <?= $activeTab == 'top' ? 'active' : '' ?>">
+                        <a href="detailtr.php?trf=<?= $trf_number ?>&tab=top" class="nav-link <?= $activeTab == 'top' ? 'active' : '' ?>">
                             <i class="fas fa-money-bill-wave"></i> Term Of Payment
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?trf=<?= $trf_number ?>&edit=additional&tab=additional" class="nav-link <?= $activeTab == 'additional' ? 'active' : '' ?>">
+                        <a href="detailtr.php?trf=<?= $trf_number ?>&tab=additional" class="nav-link <?= $activeTab == 'additional' ? 'active' : '' ?>">
                             <i class="fas fa-plus-circle"></i> Additional Cost
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?trf=<?= $trf_number ?>&edit=mediator&tab=mediator" class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>">
+                        <a href="detailtr.php?trf=<?= $trf_number ?>&tab=mediator" class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>">
                             <i class="fas fa-user-tie"></i> Mediator Fee
                         </a>
                     </li>
@@ -1784,11 +1789,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('activeTabInput').value = tab;
         const url = new URL(window.location.href);
         url.searchParams.set('tab', tab);
-        if (tab === 'summary') {
-            url.searchParams.delete('edit');
-        } else {
-            url.searchParams.set('edit', tab);
-        }
+        // HAPUS PARAMETER EDIT SAAT BERGANTI TAB
+        url.searchParams.delete('edit');
         window.history.pushState({}, '', url);
     }
 
@@ -2097,9 +2099,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     });
 
     // ============================================
-    // INITIAL CALCULATIONS
+    // HANDLE TAB CLICKS - HAPUS PARAMETER EDIT
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
+        // Handle semua klik pada tab
+        document.querySelectorAll('.nav-tabs-custom .nav-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                const url = new URL(this.href);
+                // Hapus parameter edit jika ada
+                if (url.searchParams.has('edit')) {
+                    url.searchParams.delete('edit');
+                    this.href = url.toString();
+                }
+            });
+        });
+        
+        // Initial calculations
         const form = document.getElementById('formDetailTR');
         if (form) {
             form.addEventListener('submit', function(e) {
