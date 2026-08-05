@@ -152,12 +152,12 @@ if (!$totalRevenue) $totalRevenue = 0;
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
 // ============================================
-// DATA CHART TREN (BERDASARKAN BULAN TERPILIH)
+// DATA CHART TREN (BERDASARKAN BULAN TERPILIH + TANGGAL LENGKAP)
 // ============================================
 $chartLabels = [];
 $chartValues = [];
 
-// Query dengan filter BULAN
+// 1. Ambil data aktivitas dari database
 $chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities 
                WHERE DATE_FORMAT(created_at, '%Y-%m') = ?";
 if ($filterSalesId > 0) $chartQuery .= " AND sales_id = $filterSalesId";
@@ -167,9 +167,23 @@ $stmt = $db->prepare($chartQuery);
 $stmt->execute([$filterMonth]);
 $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// 2. Ubah hasil query menjadi array assosiatif agar mudah dicari (date => total)
+$dataMap = [];
 foreach ($chartData as $row) {
-    $chartLabels[] = date('d M Y', strtotime($row['date']));
-    $chartValues[] = $row['total'];
+    $dataMap[$row['date']] = (int)$row['total'];
+}
+
+// 3. Loop dari tanggal 1 sampai akhir bulan, lalu cocokkan dengan $dataMap
+$year = substr($filterMonth, 0, 4);
+$month = substr($filterMonth, 5, 2);
+$totalDays = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+
+for ($day = 1; $day <= $totalDays; $day++) {
+    $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
+    $chartLabels[] = date('d M', strtotime($dateKey));
+    
+    // Jika ada data di tanggal itu, pakai datanya. Jika tidak, isi 0
+    $chartValues[] = isset($dataMap[$dateKey]) ? $dataMap[$dateKey] : 0;
 }
 
 // ============================================
