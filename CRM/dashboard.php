@@ -343,58 +343,116 @@ if ($filterSalesId > 0) {
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f5f7fa; display: flex; min-height: 100vh; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; min-height: 100vh; }
         
-        /* ---- SIDEBAR ---- */
+        /* ---- SIDEBAR MODERN (Deep Navy Blue) ---- */
         .sidebar {
-            width: 260px; background: #fff; border-right: 1px solid #e0e4ea; 
-            position: fixed; top: 0; left: 0; bottom: 0; padding: 30px 20px; 
-            overflow-y: auto; z-index: 1000; transition: all 0.3s ease;
+            width: 260px;
+            height: 100vh;
+            background: #0e1a2b; /* Deep Navy Blue Modern */
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            padding: 30px 20px;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s ease;
         }
-        .sidebar .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; color: #1a1a2e; }
-        .sidebar .brand .logo-wrapper { width: 40px; height: 40px; }
-        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #1a1a2e; }
-        .sidebar .brand .brand-text h5 span { color: #ffd700; }
-        .sidebar .brand .brand-text small { font-size: 10px; color: #999; }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
 
-        .sidebar .nav-item { display: flex; align-items: center; padding: 12px 16px; color: #7f8c8d; text-decoration: none; border-radius: 10px; margin-bottom: 5px; transition: all 0.2s; font-weight: 500; }
+        .sidebar .brand { 
+            display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; 
+            padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
+        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
+        .sidebar .brand .brand-text h5 span { color: #ffd700; }
+        .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+
+        .sidebar .nav-item { 
+            display: flex; align-items: center; padding: 12px 16px; 
+            color: rgba(255,255,255,0.6); text-decoration: none; 
+            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; 
+            font-size: 14px; position: relative;
+        }
         .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
-        .sidebar .nav-item:hover { background: #f8f9fa; color: #1a1a2e; }
-        .sidebar .nav-item.active { background: #fff3e6; color: #d4a017; }
+        .sidebar .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .sidebar .nav-item.active { 
+            background: rgba(255, 215, 0, 0.1); 
+            color: #ffd700; 
+            box-shadow: inset 3px 0 0 #ffd700;
+        }
         
-        .sidebar .user-profile { margin-top: 40px; padding-top: 20px; border-top: 1px solid #f0f2f5; display: flex; align-items: center; gap: 12px; }
-        .sidebar .user-profile .avatar { width: 42px; height: 42px; border-radius: 50%; background: #1a1a2e; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
-        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
-        .sidebar .user-profile .user-info .role { font-size: 12px; color: #999; }
+        .sidebar .user-profile { 
+            margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); 
+            display: flex; align-items: center; gap: 12px; 
+        }
+        .sidebar .user-profile .avatar { 
+            width: 42px; height: 42px; border-radius: 50%; 
+            background: linear-gradient(135deg, #1a1a2e, #16213e); 
+            color: #ffd700; display: flex; align-items: center; justify-content: center; 
+            font-weight: 700; font-size: 16px; border: 2px solid rgba(255,215,0,0.2);
+        }
+        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #fff; }
+        .sidebar .user-profile .user-info .role { font-size: 12px; color: rgba(255,255,255,0.4); }
+
+        .sidebar .logout-btn {
+            display: block; text-align: center; margin-top: 15px; 
+            padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; 
+            font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); 
+            transition: all 0.2s;
+        }
+        .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
         /* ---- MAIN CONTENT ---- */
         .main-content { margin-left: 260px; padding: 30px; width: 100%; }
         
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
-        .page-header h4 { font-weight: 800; color: #1a1a2e; font-size: 24px; margin:0; }
+        .page-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
+        }
+        .page-header h4 { 
+            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
+            letter-spacing: -0.5px;
+        }
         .page-header h4 span { color: #ffd700; }
         .page-header .filter-area { display: flex; gap: 10px; align-items: center; }
-        .page-header .filter-area select { width: 180px; }
+        .page-header .filter-area select, .page-header .filter-area input { border-radius: 8px; border: 1px solid #e0e4ea; font-size: 13px; }
 
         /* ---- STAT CARDS ---- */
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .stat-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; }
-        .stat-card .stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }
+        .stat-card { 
+            background: #fff; border-radius: 16px; padding: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        .stat-card .stat-icon { 
+            width: 44px; height: 44px; border-radius: 12px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 18px; margin-bottom: 10px; 
+        }
         .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
         .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .stat-card .stat-icon.purple { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
         .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
-        .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #1a1a2e; margin-bottom: 2px; }
+        .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
 
         /* ---- ROW PIPELINE & CHART ---- */
         .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
         @media (max-width: 991px) { .grid-2-col { grid-template-columns: 1fr; } }
         
-        .pipeline-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; }
-        .pipeline-card h6 { font-weight: 600; margin-bottom: 15px; color: #1a1a2e; }
+        .pipeline-card, .chart-card { 
+            background: #fff; border-radius: 16px; padding: 24px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
+            transition: all 0.3s ease;
+        }
+        .pipeline-card:hover, .chart-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        
+        .pipeline-card h6, .chart-card h6 { font-weight: 600; margin-bottom: 20px; color: #0e1a2b; }
         .pipeline-bars { display: flex; height: 6px; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
         .pipeline-bars .bar { height: 100%; transition: width 0.5s; }
         .pipeline-bars .bar.new { background: #3498db; }
@@ -405,29 +463,39 @@ if ($filterSalesId > 0) {
 
         .pipeline-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; text-align: center; }
         .pipeline-stats .p-item .p-label { font-size: 11px; color: #888; display: block; }
-        .pipeline-stats .p-item .p-value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+        .pipeline-stats .p-item .p-value { font-size: 16px; font-weight: 700; color: #0e1a2b; }
         .pipeline-stats .p-item .p-value.new { color: #3498db; }
         .pipeline-stats .p-item .p-value.middle { color: #f39c12; }
         .pipeline-stats .p-item .p-value.hot { color: #e74c3c; }
         .pipeline-stats .p-item .p-value.deal { color: #2ecc71; }
         .pipeline-stats .p-item .p-value.lost { color: #95a5a6; }
 
-        .chart-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; }
-        .chart-card h6 { font-weight: 600; margin-bottom: 20px; color: #1a1a2e; }
         .chart-wrapper { height: 220px; width: 100%; }
 
         /* ---- RECENT ACTIVITIES ---- */
-        .activity-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; height: 100%; }
-        .activity-card h6 { font-weight: 600; margin-bottom: 20px; color: #1a1a2e; }
-        .activity-item { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f0f2f5; align-items: flex-start; }
+        .activity-card { 
+            background: #fff; border-radius: 16px; padding: 24px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
+            height: 100%; transition: all 0.3s ease;
+        }
+        .activity-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        .activity-card h6 { font-weight: 600; margin-bottom: 20px; color: #0e1a2b; }
+        .activity-item { 
+            display: flex; gap: 14px; padding: 12px 0; 
+            border-bottom: 1px solid #f0f2f5; align-items: flex-start; 
+        }
         .activity-item:last-child { border-bottom: none; }
-        .activity-item .act-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .activity-item .act-icon { 
+            width: 36px; height: 36px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 14px; flex-shrink: 0; 
+        }
         .activity-item .act-icon.gold { background: rgba(255, 215, 0, 0.1); color: #d4a017; }
         .activity-item .act-icon.blue { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
         .activity-item .act-icon.green { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
         .activity-item .act-icon.red { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
         .activity-item .act-info { flex: 1; }
-        .activity-item .act-info .act-title { font-weight: 600; font-size: 14px; color: #1a1a2e; }
+        .activity-item .act-info .act-title { font-weight: 600; font-size: 14px; color: #0e1a2b; }
         .activity-item .act-info .act-desc { font-size: 13px; color: #7f8c8d; margin-top: 2px; }
         .activity-item .act-info .act-time { font-size: 11px; color: #bdc3c7; margin-top: 4px; display: block; }
 
@@ -436,18 +504,25 @@ if ($filterSalesId > 0) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; }
-            .mobile-toggle { display: flex !important; background: none; border: none; font-size: 24px; color: #1a1a2e; }
+            .mobile-toggle { 
+                display: flex !important; background: #0e1a2b; border: none; 
+                width: 40px; height: 40px; border-radius: 8px; 
+                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
+            }
         }
         .mobile-toggle { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR MODERN -->
     <nav class="sidebar" id="sidebar">
         <a href="dashboard.php" class="brand">
             <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-            <div class="brand-text"><h5>GANDA <span>ELANG</span></h5><small>CRM System</small></div>
+            <div class="brand-text">
+                <h5>GANDA <span>ELANG</span></h5>
+                <small>PT Ganda Elang Tangguh</small>
+            </div>
         </a>
 
         <a href="dashboard.php" class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</a>
@@ -481,7 +556,7 @@ if ($filterSalesId > 0) {
                 <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
         </div>
-        <a href="logout.php" style="display:block; text-align:center; margin-top:15px; color:#e74c3c; text-decoration:none; font-weight:600;">
+        <a href="logout.php" class="logout-btn">
             <i class="fas fa-sign-out-alt"></i> Logout
         </a>
     </nav>
@@ -498,9 +573,9 @@ if ($filterSalesId > 0) {
                 <h4>Sales <span>Dashboard</span></h4>
             </div>
             <div class="filter-area">
-                <span style="font-weight:500; color:#555;">Filter:</span>
+                <span style="font-weight:600; color:#555; font-size:14px;">Filter:</span>
                 <?php if (!$isSalesRole): ?>
-                <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()">
+                <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()" style="background:#f8f9fa;">
                     <option value="0">Semua Sales</option>
                     <?php foreach ($allSalesList as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
@@ -509,7 +584,7 @@ if ($filterSalesId > 0) {
                     <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
-                <input type="month" id="filterMonth" class="form-control form-control-sm" style="width:160px;" value="<?= $filterMonth ?>" onchange="applyFilter()">
+                <input type="month" id="filterMonth" class="form-control form-control-sm" style="width:160px; background:#f8f9fa;" value="<?= $filterMonth ?>" onchange="applyFilter()">
             </div>
         </div>
 
@@ -522,10 +597,9 @@ if ($filterSalesId > 0) {
                 <div class="stat-label">Total Leads</div>
             </div>
             
-            <!-- 2. OPEN DEALS (SEKARANG MENGAMBIL DATA DARI DEAL / KONTRAK) -->
+            <!-- 2. OPEN DEALS -->
             <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
-                <!-- PERUBAHAN ADA DI SINI: $pipelineCounts['Deal'] -->
                 <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
                 <div class="stat-label">Open Deals</div>
             </div>
@@ -579,9 +653,7 @@ if ($filterSalesId > 0) {
 
             <!-- Chart Tren (Multi Sales Comparison) -->
             <div class="chart-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas <?= ($filterSalesId == 0) ? : '' ?></h6>
-                </div>
+                <h6><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas</h6>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
         </div>
