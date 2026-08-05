@@ -520,8 +520,8 @@ if ($filterSalesId > 0) {
         <a href="dashboard.php" class="brand">
             <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
             <div class="brand-text">
-                <h5>PT <span>GANDA <span>ELANG <span>TANGGUH</span></h5>
-                <small>Customer Relationship Management</small>
+                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
+                <small>PT Ganda Elang Tangguh</small>
             </div>
         </a>
 
