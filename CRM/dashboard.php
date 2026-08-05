@@ -36,55 +36,37 @@ function getRoleLabel($role) {
 }
 
 // ============================================
-// DATA GLOBAL & FILTER LOGIC
+// HANDLE FILTER (AJAX & GET)
 // ============================================
+$filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $isSalesRole = ($role === 'sales');
-$sqlFilter = $isSalesRole ? " WHERE sales_id = $userId" : "";
 
-// 1. STATISTIK TOTAL
+// Jika user login sebagai Sales, paksa filter ke ID diri sendiri
+if ($isSalesRole) {
+    $filterSalesId = $userId;
+}
+
+// Ambil list Sales untuk dropdown (Hanya untuk Admin)
+$allSalesList = [];
+if (!$isSalesRole) {
+    $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
+    $allSalesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Bangun Query Filter SQL
+$sqlFilter = "";
+if ($filterSalesId > 0) {
+    $sqlFilter = " WHERE sales_id = $filterSalesId";
+} elseif ($isSalesRole) {
+    $sqlFilter = " WHERE sales_id = $userId";
+}
+
+// ============================================
+// DATA STATISTIK & CHART
+// ============================================
 $totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities" . $sqlFilter)->fetchColumn();
 
-// 2. DATA CHART HARIAN (7 HARI TERAKHIR)
-$chartQueryDaily = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY DATE(created_at) ORDER BY date ASC LIMIT 7";
-$chartDailyData = $db->query($chartQueryDaily)->fetchAll(PDO::FETCH_ASSOC);
-
-$labelsDaily = []; $valuesDaily = []; $tempDaily = [];
-foreach ($chartDailyData as $row) $tempDaily[$row['date']] = $row['total'];
-for ($i = 6; $i >= 0; $i--) {
-    $date = date('Y-m-d', strtotime("-$i days"));
-    $labelsDaily[] = date('d M', strtotime("-$i days"));
-    $valuesDaily[] = isset($tempDaily[$date]) ? $tempDaily[$date] : 0;
-}
-
-// 3. DATA CHART MINGGUAN (7 MINGGU TERAKHIR - WEEKLY)
-// Menggunakan YEARWEEK untuk grouping per minggu
-$chartQueryWeekly = "SELECT YEARWEEK(created_at, 1) as week_num, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY YEARWEEK(created_at, 1) ORDER BY week_num DESC LIMIT 7";
-$chartWeeklyData = $db->query($chartQueryWeekly)->fetchAll(PDO::FETCH_ASSOC);
-
-$labelsWeekly = []; $valuesWeekly = []; $tempWeekly = [];
-foreach ($chartWeeklyData as $row) $tempWeekly[$row['week_num']] = $row['total'];
-
-// Loop 7 minggu ke belakang untuk mengisi kekosongan data
-for ($i = 6; $i >= 0; $i--) {
-    $weekTimestamp = strtotime("-$i weeks");
-    $weekNum = date('o', $weekTimestamp) . date('W', $weekTimestamp); // Format Tahun + Minggu ke berapa
-    $labelsWeekly[] = "Minggu " . date('W', $weekTimestamp);
-    $valuesWeekly[] = isset($tempWeekly[(int)$weekNum]) ? $tempWeekly[(int)$weekNum] : 0;
-}
-
-// 4. DATA CHART BULANAN (12 BULAN TERAKHIR)
-$chartQueryMonthly = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month ASC LIMIT 12";
-$chartMonthlyData = $db->query($chartQueryMonthly)->fetchAll(PDO::FETCH_ASSOC);
-
-$labelsMonthly = []; $valuesMonthly = []; $tempMonthly = [];
-foreach ($chartMonthlyData as $row) $tempMonthly[$row['month']] = $row['total'];
-for ($i = 11; $i >= 0; $i--) {
-    $date = date('Y-m', strtotime("-$i months"));
-    $labelsMonthly[] = date('M Y', strtotime("-$i months"));
-    $valuesMonthly[] = isset($tempMonthly[$date]) ? $tempMonthly[$date] : 0;
-}
-
-// 5. DATA PIPELINE PROSPEK (Donut Chart)
+// DATA PIPELINE PROSPEK (Donut Chart)
 $statusQuery = "SELECT status, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY status";
 $statusData = $db->query($statusQuery)->fetchAll(PDO::FETCH_ASSOC);
 
@@ -105,32 +87,8 @@ $pipelineLabels = array_keys($statusCounts);
 $pipelineValues = array_values($statusCounts);
 
 // ============================================
-// DATA LAPORAN PER SALES & PER BULAN
+// DATA LAPORAN PER BULAN (Untuk Tabel di Bawah)
 // ============================================
-$salesReports = [];
-
-if ($isSalesRole) {
-    // Jika user Sales login, tampilkan laporan dirinya sendiri
-    $salesReports[] = [
-        'id' => $userId,
-        'name' => $fullName,
-        'data' => getSalesMonthlyReport($db, $userId)
-    ];
-} else {
-    // Jika Admin login, tampilkan laporan semua Sales & Manager
-    $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
-    $allSales = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($allSales as $sale) {
-        $salesReports[] = [
-            'id' => $sale['id'],
-            'name' => $sale['full_name'],
-            'data' => getSalesMonthlyReport($db, $sale['id'])
-        ];
-    }
-}
-
-// FUNGSI BANTUAN UNTUK MENGAMBIL REPORT PER SALES
 function getSalesMonthlyReport($db, $salesId) {
     $stmt = $db->prepare("
         SELECT DATE_FORMAT(created_at, '%M %Y') as month_label, 
@@ -147,6 +105,27 @@ function getSalesMonthlyReport($db, $salesId) {
     $stmt->execute([$salesId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// Ambil data report sesuai filter
+$filteredReportData = [];
+$filteredSalesName = 'Semua Sales';
+if ($filterSalesId > 0) {
+    $stmt = $db->prepare("SELECT full_name FROM users WHERE id = ?");
+    $stmt->execute([$filterSalesId]);
+    $filteredSalesName = $stmt->fetchColumn() ?: 'Sales';
+    $filteredReportData = getSalesMonthlyReport($db, $filterSalesId);
+} else {
+    // Jika Admin memilih "Semua Sales", kita ambil report dari semua sales
+    // Untuk tabel laporan, kita akan looping di view
+    $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
+    $allUsersForReport = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($allUsersForReport as $u) {
+        $filteredReportData[] = [
+            'name' => $u['full_name'],
+            'data' => getSalesMonthlyReport($db, $u['id'])
+        ];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -156,7 +135,6 @@ function getSalesMonthlyReport($db, $salesId) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard - PT Ganda Elang Tangguh</title>
     
-    <!-- Favicon & CSS Libs -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -166,8 +144,6 @@ function getSalesMonthlyReport($db, $salesId) {
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; }
-
-        /* SIDEBAR STYLING - SAMA SEPERTI SEBELUMNYA */
         .sidebar { width: 260px; height: 100vh; background: #1a1a2e; position: fixed; top: 0; left: 0; z-index: 1000; padding: 20px; overflow-y: auto; transition: all 0.3s ease; }
         .sidebar .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; text-decoration: none; }
         .sidebar .brand .logo-wrapper { width: 40px; height: 40px; flex-shrink: 0; }
@@ -208,13 +184,15 @@ function getSalesMonthlyReport($db, $salesId) {
 
         /* CHART CONTAINER */
         .chart-container { background: #fff; border-radius: 16px; padding: 24px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-top: 20px; height: 100%; }
+        .filter-control { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+        .filter-control .form-select { width: auto; min-width: 200px; border-radius: 8px; }
+        .filter-control .btn-group .btn { border-radius: 20px; padding: 4px 16px; font-size: 12px; border: 1px solid #dee2e6; }
+        .filter-control .btn-group .btn.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
 
         /* SALES REPORT TABLE & CARDS */
         .report-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 20px; }
         .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 15px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
         .report-header h5 { font-weight: 700; margin: 0; color: #1a1a2e; }
-        .report-header .badge-sales { background: rgba(255, 215, 0, 0.1); color: #d4a017; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-
         .table-report { font-size: 14px; width: 100%; }
         .table-report th { font-weight: 600; color: #888; padding: 12px 8px; border-bottom: 1px solid #eee; }
         .table-report td { padding: 12px 8px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
@@ -275,98 +253,91 @@ function getSalesMonthlyReport($db, $salesId) {
                 <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-calendar-week"></i></div><div class="stat-number"><?= date('M Y') ?></div><div class="stat-label">Bulan Berjalan</div></div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card"><div class="stat-icon green"><i class="fas fa-users"></i></div><div class="stat-number"><?= getRoleLabel($role) ?></div><div class="stat-label">Role User</div></div>
+                <div class="stat-card"><div class="stat-icon green"><i class="fas fa-users"></i></div><div class="stat-number"><?= htmlspecialchars($filteredSalesName) ?></div><div class="stat-label">Data Sedang Ditinjau</div></div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-clock"></i></div><div class="stat-number"><?= date('H:i') ?></div><div class="stat-label">Jam Sekarang</div></div>
             </div>
         </div>
 
-        <!-- CHART 1, 2, & 3: HARIAN, MINGGUAN, BULANAN -->
+        <!-- FILTER & CHART SECTION -->
         <div class="row mt-4">
-            <div class="col-xl-4 col-lg-6">
+            <div class="col-12">
                 <div class="chart-container">
-                    <h6 class="fw-bold mb-3 text-secondary"><i class="fas fa-calendar-day text-warning me-2"></i> Tren Harian (7 Hari)</h6>
-                    <div style="height: 240px; width: 100%;"><canvas id="dailyChart"></canvas></div>
-                </div>
-            </div>
-            <div class="col-xl-4 col-lg-6">
-                <div class="chart-container">
-                    <h6 class="fw-bold mb-3 text-secondary"><i class="fas fa-calendar-week text-primary me-2"></i> Tren Mingguan (7 Minggu)</h6>
-                    <div style="height: 240px; width: 100%;"><canvas id="weeklyChart"></canvas></div>
-                </div>
-            </div>
-            <div class="col-xl-4 col-lg-12">
-                <div class="chart-container">
-                    <h6 class="fw-bold mb-3 text-secondary"><i class="fas fa-calendar-alt text-success me-2"></i> Tren Bulanan (12 Bulan)</h6>
-                    <div style="height: 240px; width: 100%;"><canvas id="monthlyChart"></canvas></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- CHART 4 & 5: PIPELINE & KONTRIBUSI SALES -->
-        <div class="row mt-4">
-            <div class="col-lg-6">
-                <div class="chart-container">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
-                        <h6 class="fw-bold text-secondary mb-0"><i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> Pipeline Prospek</h6>
-                        <span style="background:rgba(255,215,0,0.1); padding:4px 12px; border-radius:20px; font-size:12px; color:#d4a017;"><i class="fas fa-chart-pie"></i> Distribusi Status</span>
-                    </div>
-                    <div style="height: 280px; width: 100%;"><canvas id="pipelineChart"></canvas></div>
-                </div>
-            </div>
-            <?php if ($role !== 'sales' && count($salesReports) > 1): ?>
-            <div class="col-lg-6">
-                <div class="chart-container">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
-                        <h6 class="fw-bold text-secondary mb-0"><i class="fas fa-user-tie" style="color:#ffd700; margin-right:8px;"></i> Kontribusi Per Sales</h6>
-                        <span style="background:rgba(255,215,0,0.1); padding:4px 12px; border-radius:20px; font-size:12px; color:#d4a017;"><i class="fas fa-database"></i> Data All Sales</span>
-                    </div>
-                    <?php 
-                    $topSalesLabels = [];
-                    $topSalesData = [];
-                    foreach($salesReports as $report) {
-                        $total = 0;
-                        foreach($report['data'] as $month) { $total += $month['total_activity']; }
-                        $topSalesLabels[] = $report['name'];
-                        $topSalesData[] = $total;
-                    }
-                    ?>
-                    <div style="height: 280px; width: 100%;"><canvas id="userChart"></canvas></div>
-                </div>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- ============================================
-        SECTION LAPORAN DETAIL PER SALES PER BULAN
-        ============================================ -->
-        <div class="mt-5 mb-4">
-            <h4 style="font-weight:700; color:#1a1a2e; margin-bottom:20px;"><i class="fas fa-clipboard-list" style="color:#ffd700; margin-right:8px;"></i> Laporan Performa Sales (Per Bulan)</h4>
-            
-            <?php if (!empty($salesReports)): ?>
-                <div class="row">
-                    <?php foreach ($salesReports as $report): ?>
-                    <div class="col-xl-6 col-lg-12 mb-4">
-                        <div class="report-card">
-                            <div class="report-header">
-                                <h5><i class="fas fa-user-circle" style="color:#ffd700; margin-right:8px;"></i> <?= htmlspecialchars($report['name']) ?></h5>
-                                <span class="badge-sales"><i class="fas fa-chart-simple me-1"></i> Sales Report</span>
+                    <!-- Kontrol Filter Sales & Time Range -->
+                    <div class="filter-control">
+                        <div class="d-flex align-items-center gap-3 flex-wrap w-100">
+                            <!-- Dropdown Pilih Sales (Hanya untuk Admin) -->
+                            <?php if (!$isSalesRole): ?>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="fw-bold text-secondary small">Sales:</label>
+                                <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()">
+                                    <option value="0">-- Semua Sales --</option>
+                                    <?php foreach ($allSalesList as $s): ?>
+                                    <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($s['full_name']) ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
-                            
-                            <?php if (!empty($report['data'])): ?>
-                            <div class="table-responsive">
-                                <table class="table table-report">
-                                    <thead>
-                                        <tr>
-                                            <th>Bulan</th>
-                                            <th class="text-center">Total Aktivitas</th>
-                                            <th class="text-center text-deal">Deal</th>
-                                            <th class="text-center text-lost">Lost</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($report['data'] as $monthData): ?>
+                            <?php endif; ?>
+
+                            <!-- Filter Periode Chart -->
+                            <div class="d-flex align-items-center gap-2 ms-auto">
+                                <label class="fw-bold text-secondary small">Periode:</label>
+                                <div class="btn-group btn-group-sm" id="timeFilterGroup">
+                                    <button class="btn btn-outline-secondary active" data-period="daily">Harian</button>
+                                    <button class="btn btn-outline-secondary" data-period="weekly">Mingguan</button>
+                                    <button class="btn btn-outline-secondary" data-period="monthly">Bulanan</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Utama (Tren Aktivitas) -->
+                    <div style="height: 300px; width: 100%;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHART KEDUA: PIPELINE & TABLE REPORT -->
+        <div class="row mt-4">
+            <div class="col-lg-5">
+                <div class="chart-container" style="height: 100%;">
+                    <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> Pipeline Prospek</h6>
+                    <div style="height: 250px; width: 100%;">
+                        <canvas id="pipelineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-7">
+                <div class="report-card" style="height: 100%;">
+                    <div class="report-header">
+                        <h5><i class="fas fa-clipboard-list" style="color:#ffd700; margin-right:8px;"></i> Laporan Bulanan</h5>
+                        <span class="badge-sales"><i class="fas fa-database me-1"></i> <?= htmlspecialchars($filteredSalesName) ?></span>
+                    </div>
+                    
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-report table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Bulan</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center text-deal">Deal</th>
+                                    <th class="text-center text-lost">Lost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($filterSalesId > 0): ?>
+                                    <!-- Mode: Satu Sales Spesifik -->
+                                    <?php if (!empty($filteredReportData)): 
+                                        $gt = 0; $gd = 0; $gl = 0;
+                                        foreach($filteredReportData as $m) { $gt += $m['total_activity']; $gd += $m['total_deal']; $gl += $m['total_lost']; }
+                                    ?>
+                                        <?php foreach ($filteredReportData as $monthData): ?>
                                         <tr>
                                             <td><strong><?= htmlspecialchars($monthData['month_label']) ?></strong></td>
                                             <td class="text-center"><span class="badge bg-dark bg-opacity-10 text-dark"><?= $monthData['total_activity'] ?></span></td>
@@ -374,33 +345,50 @@ function getSalesMonthlyReport($db, $salesId) {
                                             <td class="text-center text-lost"><i class="fas fa-times-circle me-1"></i> <?= $monthData['total_lost'] ?></td>
                                         </tr>
                                         <?php endforeach; ?>
-                                        <?php 
-                                        $grandTotal = 0; $grandDeal = 0; $grandLost = 0;
-                                        foreach($report['data'] as $m) { 
-                                            $grandTotal += $m['total_activity']; 
-                                            $grandDeal += $m['total_deal']; 
-                                            $grandLost += $m['total_lost']; 
-                                        }
-                                        ?>
                                         <tr style="border-top: 2px solid #1a1a2e;">
                                             <td><strong>TOTAL</strong></td>
-                                            <td class="text-center"><strong><?= $grandTotal ?></strong></td>
-                                            <td class="text-center text-deal"><strong><?= $grandDeal ?></strong></td>
-                                            <td class="text-center text-lost"><strong><?= $grandLost ?></strong></td>
+                                            <td class="text-center"><strong><?= $gt ?></strong></td>
+                                            <td class="text-center text-deal"><strong><?= $gd ?></strong></td>
+                                            <td class="text-center text-lost"><strong><?= $gl ?></strong></td>
                                         </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <?php else: ?>
-                                <p class="text-muted text-center py-3 mb-0"><i class="fas fa-inbox me-2"></i> Belum ada aktivitas untuk sales ini.</p>
-                            <?php endif; ?>
-                        </div>
+                                    <?php else: ?>
+                                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data aktivitas.</td></tr>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <!-- Mode: Semua Sales (List per Sales) -->
+                                    <?php if (!empty($filteredReportData)): ?>
+                                        <?php foreach ($filteredReportData as $salesReport): ?>
+                                            <tr style="background:#f8f9fa; border-top:1px solid #dee2e6;">
+                                                <td colspan="4"><strong><i class="fas fa-user me-2"></i> <?= htmlspecialchars($salesReport['name']) ?></strong></td>
+                                            </tr>
+                                            <?php 
+                                            $gt = 0; $gd = 0; $gl = 0;
+                                            foreach($salesReport['data'] as $m) { $gt += $m['total_activity']; $gd += $m['total_deal']; $gl += $m['total_lost']; }
+                                            ?>
+                                            <?php foreach ($salesReport['data'] as $monthData): ?>
+                                            <tr>
+                                                <td style="padding-left: 30px;"><?= htmlspecialchars($monthData['month_label']) ?></td>
+                                                <td class="text-center"><span class="badge bg-dark bg-opacity-10 text-dark"><?= $monthData['total_activity'] ?></span></td>
+                                                <td class="text-center text-deal"><i class="fas fa-check-circle me-1"></i> <?= $monthData['total_deal'] ?></td>
+                                                <td class="text-center text-lost"><i class="fas fa-times-circle me-1"></i> <?= $monthData['total_lost'] ?></td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                            <tr>
+                                                <td style="padding-left: 30px;"><strong>Total <?= htmlspecialchars($salesReport['name']) ?></strong></td>
+                                                <td class="text-center"><strong><?= $gt ?></strong></td>
+                                                <td class="text-center text-deal"><strong><?= $gd ?></strong></td>
+                                                <td class="text-center text-lost"><strong><?= $gl ?></strong></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data sales.</td></tr>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
-                    <?php endforeach; ?>
                 </div>
-            <?php else: ?>
-                <div class="alert alert-light text-center border">Belum ada data sales untuk ditampilkan.</div>
-            <?php endif; ?>
+            </div>
         </div>
 
     </div>
@@ -409,59 +397,76 @@ function getSalesMonthlyReport($db, $salesId) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // CHART 1: HARIAN (Bar Chart - Emas)
+        // CHART UTAMA (TREN - AKAN DIUPDATE VIA AJAX)
         // ============================================
-        const ctxDaily = document.getElementById('dailyChart').getContext('2d');
-        const gradientDaily = ctxDaily.createLinearGradient(0, 0, 0, 250);
-        gradientDaily.addColorStop(0, 'rgba(255, 215, 0, 0.7)'); gradientDaily.addColorStop(1, 'rgba(255, 215, 0, 0.0)');
-        new Chart(ctxDaily, {
-            type: 'bar', data: { labels: <?= json_encode($labelsDaily) ?>, datasets: [{ label: 'Harian', data: <?= json_encode($valuesDaily) ?>, backgroundColor: gradientDaily, borderColor: '#d4a017', borderWidth: 2, borderRadius: 6, barPercentage: 0.5 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
+        const ctxTrend = document.getElementById('trendChart').getContext('2d');
+        let trendChart = new Chart(ctxTrend, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Aktivitas', data: [], borderColor: '#ffd700', backgroundColor: 'rgba(255,215,0,0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
         });
 
         // ============================================
-        // CHART 2: MINGGUAN (Bar Chart - Biru)
-        // ============================================
-        const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
-        const gradientWeekly = ctxWeekly.createLinearGradient(0, 0, 0, 250);
-        gradientWeekly.addColorStop(0, 'rgba(52, 152, 219, 0.7)'); gradientWeekly.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
-        new Chart(ctxWeekly, {
-            type: 'bar', data: { labels: <?= json_encode($labelsWeekly) ?>, datasets: [{ label: 'Mingguan', data: <?= json_encode($valuesWeekly) ?>, backgroundColor: gradientWeekly, borderColor: '#2980b9', borderWidth: 2, borderRadius: 6, barPercentage: 0.5 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
-        });
-
-        // ============================================
-        // CHART 3: BULANAN (Line Chart - Hijau)
-        // ============================================
-        const ctxMonthly = document.getElementById('monthlyChart').getContext('2d');
-        const gradientMonthly = ctxMonthly.createLinearGradient(0, 0, 0, 250);
-        gradientMonthly.addColorStop(0, 'rgba(46, 204, 113, 0.7)'); gradientMonthly.addColorStop(1, 'rgba(46, 204, 113, 0.0)');
-        new Chart(ctxMonthly, {
-            type: 'line', data: { labels: <?= json_encode($labelsMonthly) ?>, datasets: [{ label: 'Bulanan', data: <?= json_encode($valuesMonthly) ?>, backgroundColor: gradientMonthly, borderColor: '#27ae60', borderWidth: 3, pointBackgroundColor: '#27ae60', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5, fill: true, tension: 0.4 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
-        });
-
-        // ============================================
-        // CHART 4: PIPELINE PROSPEK (Donut)
+        // CHART PIPELINE (DONUT)
         // ============================================
         const ctxPipeline = document.getElementById('pipelineChart').getContext('2d');
         new Chart(ctxPipeline, {
-            type: 'doughnut', data: { labels: <?= json_encode($pipelineLabels) ?>, datasets: [{ data: <?= json_encode($pipelineValues) ?>, backgroundColor: ['#f39c12','#e74c3c','#2ecc71','#95a5a6'], borderColor: '#fff', borderWidth: 3, hoverOffset: 10 }] },
+            type: 'doughnut',
+            data: { 
+                labels: <?= json_encode($pipelineLabels) ?>, 
+                datasets: [{ 
+                    data: <?= json_encode($pipelineValues) ?>, 
+                    backgroundColor: ['#f39c12','#e74c3c','#2ecc71','#95a5a6'], 
+                    borderColor: '#fff', borderWidth: 3, hoverOffset: 10 
+                }] 
+            },
             options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 12, weight: '500' } } } } }
         });
 
         // ============================================
-        // CHART 5: PER USER SALES (Hanya Admin)
+        // LOGIKA FILTER (AJAX REQUEST)
         // ============================================
-        <?php if ($role !== 'sales' && count($topSalesLabels) > 0): ?>
-        const ctxUser = document.getElementById('userChart').getContext('2d');
-        const gradientUser = ctxUser.createLinearGradient(0, 0, 0, 300);
-        gradientUser.addColorStop(0, 'rgba(155, 89, 182, 0.7)'); gradientUser.addColorStop(1, 'rgba(155, 89, 182, 0.0)');
-        new Chart(ctxUser, {
-            type: 'bar', data: { labels: <?= json_encode($topSalesLabels) ?>, datasets: [{ label: 'Total Aktivitas', data: <?= json_encode($topSalesData) ?>, backgroundColor: gradientUser, borderColor: '#8e44ad', borderWidth: 2, borderRadius: 6, barPercentage: 0.6 }] },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } }, x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } } } }
+        function applyFilter() {
+            const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
+            const activePeriod = document.querySelector('#timeFilterGroup .btn.active');
+            const period = activePeriod ? activePeriod.dataset.period : 'daily';
+            
+            // Reload halaman dengan parameter GET untuk merefresh semua data (Table, Statistic, Donut)
+            // agar laporan tabel dan pipeline ikut berubah sesuai user yang dipilih
+            window.location.href = '?sales_id=' + salesId;
+        }
+
+        // Event listener untuk tombol Periode (Harian, Mingguan, Bulanan)
+        document.querySelectorAll('#timeFilterGroup .btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active state tombol
+                document.querySelectorAll('#timeFilterGroup .btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Ambil parameter yang ada
+                const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
+                const period = this.dataset.period;
+
+                // Fetch Data AJAX
+                fetch(`api/get_trend_data.php?sales_id=${salesId}&period=${period}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update Chart
+                        trendChart.data.labels = data.labels;
+                        trendChart.data.datasets[0].data = data.values;
+                        trendChart.update();
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
         });
-        <?php endif; ?>
+
+        // Trigger klik pertama kali untuk memuat data default (Daily)
+        document.addEventListener('DOMContentLoaded', function() {
+            const defaultBtn = document.querySelector('#timeFilterGroup .btn.active');
+            if (defaultBtn) {
+                defaultBtn.click();
+            }
+        });
     </script>
 </body>
 </html>
