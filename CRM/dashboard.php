@@ -501,10 +501,11 @@ if ($filterSalesId > 0) {
                 <div class="stat-label">Total Leads</div>
             </div>
             
-            <!-- 2. OPEN DEALS -->
+            <!-- 2. OPEN DEALS (SEKARANG MENGAMBIL DATA DARI DEAL / KONTRAK) -->
             <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
-                <div class="stat-number"><?= number_format($pipelineCounts['Hot Prospek']) ?></div>
+                <!-- PERUBAHAN ADA DI SINI: $pipelineCounts['Deal'] -->
+                <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
                 <div class="stat-label">Open Deals</div>
             </div>
 
