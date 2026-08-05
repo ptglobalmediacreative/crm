@@ -42,7 +42,6 @@ $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $isSalesRole = ($role === 'sales');
 
 // Filter Bulan (Default ke bulan sekarang)
-// Jika URL tidak ada parameter month, gunakan bulan sekarang
 if (isset($_GET['month']) && !empty($_GET['month'])) {
     $filterMonth = $_GET['month'];
 } else {
@@ -57,12 +56,6 @@ $allSalesList = [];
 if (!$isSalesRole) {
     $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
     $allSalesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// Filter SQL untuk Sales_Activities (Pipeline, Chart, Recent Activities)
-$sqlFilterSA = "";
-if ($filterSalesId > 0) {
-    $sqlFilterSA = " AND sa.sales_id = $filterSalesId";
 }
 
 // Filter SQL untuk Accounts (Total Leads, New Leads bulan ini)
@@ -157,38 +150,128 @@ if (!$totalRevenue) $totalRevenue = 0;
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
 // ============================================
-// DATA CHART TREN (BERDASARKAN BULAN TERPILIH + TANGGAL LENGKAP)
+// DATA CHART TREN (PERBANDINGAN MULTI SALES ATAU TUNGGAL)
 // ============================================
 $chartLabels = [];
-$chartValues = [];
+$chartDatasets = []; // Kumpulan data untuk Chart.js (Bisa 1 atau banyak garis)
 
-// 1. Ambil data aktivitas dari database
-$chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities 
-               WHERE DATE_FORMAT(created_at, '%Y-%m') = ?";
-if ($filterSalesId > 0) $chartQuery .= " AND sales_id = $filterSalesId";
-$chartQuery .= " GROUP BY DATE(created_at) ORDER BY date ASC"; 
+// Tentukan warna untuk setiap Sales (bisa ditambah sesuai jumlah sales)
+$colorPalette = [
+    '#e74c3c', // Merah
+    '#3498db', // Biru
+    '#2ecc71', // Hijau
+    '#f39c12', // Oranye
+    '#9b59b6', // Ungu
+    '#1abc9c', // Tosca
+    '#e67e22', // Oranye Tua
+    '#34495e'  // Abu-abu Gelap
+];
 
-$stmt = $db->prepare($chartQuery);
-$stmt->execute([$filterMonth]);
-$chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// 1. Jika filter memilih Sales Tertentu (atau Role Sales) -> Tampilkan 1 Garis
+if ($filterSalesId > 0) {
+    // Ambil data aktivitas dari database untuk sales tersebut
+    $chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities 
+                   WHERE DATE_FORMAT(created_at, '%Y-%m') = ? AND sales_id = ? 
+                   GROUP BY DATE(created_at) ORDER BY date ASC"; 
 
-// 2. Ubah hasil query menjadi array assosiatif agar mudah dicari (date => total)
-$dataMap = [];
-foreach ($chartData as $row) {
-    $dataMap[$row['date']] = (int)$row['total'];
+    $stmt = $db->prepare($chartQuery);
+    $stmt->execute([$filterMonth, $filterSalesId]);
+    $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $dataMap = [];
+    foreach ($chartData as $row) {
+        $dataMap[$row['date']] = (int)$row['total'];
+    }
+
+    $year = substr($filterMonth, 0, 4);
+    $month = substr($filterMonth, 5, 2);
+    $totalDays = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+    
+    $values = [];
+    for ($day = 1; $day <= $totalDays; $day++) {
+        $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
+        $chartLabels[] = date('d M', strtotime($dateKey));
+        $values[] = isset($dataMap[$dateKey]) ? $dataMap[$dateKey] : 0;
+    }
+
+    // Buat dataset untuk 1 garis
+    $chartDatasets[] = [
+        'label' => htmlspecialchars($filteredSalesName),
+        'data' => $values,
+        'backgroundColor' => 'rgba(41, 128, 185, 0.6)',
+        'borderColor' => '#2980b9',
+        'borderWidth' => 3,
+        'fill' => true,
+        'tension' => 0.4,
+        'pointRadius' => 5,
+        'pointBackgroundColor' => '#fff',
+        'pointBorderColor' => '#2980b9',
+        'pointBorderWidth' => 2,
+        'pointHoverRadius' => 7
+    ];
+
+} else {
+    // 2. Jika Filter "Semua Sales" -> Tampilkan Garis Perbandingan (Multi Line)
+    $year = substr($filterMonth, 0, 4);
+    $month = substr($filterMonth, 5, 2);
+    $totalDays = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
+    
+    // Buat label tanggal dulu (dari 1 sampai akhir bulan)
+    for ($day = 1; $day <= $totalDays; $day++) {
+        $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
+        $chartLabels[] = date('d M', strtotime($dateKey));
+    }
+
+    // Loop setiap Sales untuk mengambil datanya
+    $colorIndex = 0;
+    foreach ($allSalesList as $sales) {
+        $sId = $sales['id'];
+        $sName = $sales['full_name'];
+
+        $chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities 
+                       WHERE DATE_FORMAT(created_at, '%Y-%m') = ? AND sales_id = ? 
+                       GROUP BY DATE(created_at) ORDER BY date ASC"; 
+        $stmt = $db->prepare($chartQuery);
+        $stmt->execute([$filterMonth, $sId]);
+        $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $dataMap = [];
+        foreach ($chartData as $row) {
+            $dataMap[$row['date']] = (int)$row['total'];
+        }
+
+        $values = [];
+        for ($day = 1; $day <= $totalDays; $day++) {
+            $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
+            $values[] = isset($dataMap[$dateKey]) ? $dataMap[$dateKey] : 0;
+        }
+
+        // Ambil warna dari palette, looping jika sales lebih banyak dari warna
+        $color = $colorPalette[$colorIndex % count($colorPalette)];
+
+        $chartDatasets[] = [
+            'label' => htmlspecialchars($sName),
+            'data' => $values,
+            'backgroundColor' => hexToRgba($color, 0.2),
+            'borderColor' => $color,
+            'borderWidth' => 2,
+            'fill' => false, // Untuk multi-line, biasanya fill dimatikan agar tidak saling timpa
+            'tension' => 0.4,
+            'pointRadius' => 4,
+            'pointBackgroundColor' => '#fff',
+            'pointBorderColor' => $color,
+            'pointBorderWidth' => 2,
+            'pointHoverRadius' => 6
+        ];
+
+        $colorIndex++;
+    }
 }
 
-// 3. Loop dari tanggal 1 sampai akhir bulan, lalu cocokkan dengan $dataMap
-$year = substr($filterMonth, 0, 4);
-$month = substr($filterMonth, 5, 2);
-$totalDays = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
-
-for ($day = 1; $day <= $totalDays; $day++) {
-    $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
-    $chartLabels[] = date('d M', strtotime($dateKey));
-    
-    // Jika ada data di tanggal itu, pakai datanya. Jika tidak, isi 0
-    $chartValues[] = isset($dataMap[$dateKey]) ? $dataMap[$dateKey] : 0;
+// Helper function untuk mengubah Hex ke RGBA (untuk background gradient)
+function hexToRgba($hex, $alpha) {
+    list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
+    return "rgba($r, $g, $b, $alpha)";
 }
 
 // ============================================
@@ -397,7 +480,7 @@ if ($filterSalesId > 0) {
                 <span style="font-weight:500; color:#555;">Filter:</span>
                 <?php if (!$isSalesRole): ?>
                 <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()">
-                    <option value="0">Semua Sales</option>
+                    <option value="0">Semua Sales (Perbandingan)</option>
                     <?php foreach ($allSalesList as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
                         <?= htmlspecialchars($s['full_name']) ?>
@@ -476,10 +559,10 @@ if ($filterSalesId > 0) {
                 </div>
             </div>
 
-            <!-- Chart Tren (Filter by Month - Area Chart Style) -->
+            <!-- Chart Tren (Multi Sales Comparison) -->
             <div class="chart-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas</h6>
+                    <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas <?= ($filterSalesId == 0) ? '<span class="badge bg-info ms-2">Perbandingan Sales</span>' : '' ?></h6>
                 </div>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
@@ -554,39 +637,29 @@ if ($filterSalesId > 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // CHART TREN (AREA CHART + CUSTOM TOOLTIP)
+        // CHART TREN (SINGLE atau MULTI SALES)
         // ============================================
         const ctx = document.getElementById('trendChart').getContext('2d');
         
-        // Gradient Fill yang cantik (Biru transparan ke bawah)
-        const grad = ctx.createLinearGradient(0, 0, 0, 220);
-        grad.addColorStop(0, 'rgba(41, 128, 185, 0.6)');  // Bagian atas
-        grad.addColorStop(1, 'rgba(41, 128, 185, 0.0)');  // Bagian bawah transparan
-
         let trendChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: <?= json_encode($chartLabels) ?>,
-                datasets: [{
-                    label: 'Aktivitas',
-                    data: <?= json_encode($chartValues) ?>,
-                    backgroundColor: grad,         // Warna area gradasi
-                    borderColor: '#2980b9',       // Warna garis
-                    borderWidth: 3,               // Ketebalan garis
-                    fill: true,                   // Mengaktifkan area di bawah garis
-                    tension: 0.4,                 // Melengkungkan garis secara halus
-                    pointRadius: 5,               // Ukuran titik data
-                    pointBackgroundColor: '#fff', // Warna titik data (putih)
-                    pointBorderColor: '#2980b9',  // Pinggiran titik data
-                    pointBorderWidth: 2,
-                    pointHoverRadius: 7           // Titik membesar saat di-hover
-                }]
+                datasets: <?= json_encode($chartDatasets) ?>
             },
             options: {
                 responsive: true, 
                 maintainAspectRatio: false,
                 plugins: { 
-                    legend: { display: false },
+                    legend: { 
+                        display: <?= ($filterSalesId > 0) ? 'false' : 'true' ?>, // Tampilkan legenda hanya jika multi sales
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { family: 'Inter', size: 12 }
+                        }
+                    },
                     tooltip: {
                         backgroundColor: 'rgba(255, 255, 255, 0.9)',
                         titleColor: '#2980b9',
@@ -597,15 +670,7 @@ if ($filterSalesId > 0) {
                         borderWidth: 2,
                         cornerRadius: 10,
                         padding: 12,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                return 'Total: ' + context.parsed.y + ' Aktivitas';
-                            },
-                            title: function(context) {
-                                return context[0].label;
-                            }
-                        }
+                        displayColors: true
                     }
                 },
                 scales: {
