@@ -20,12 +20,6 @@ if (!isLoggedIn()) {
 requirePermission('sales_activity', 'view');
 
 // ============================================
-// AMBIL MENU YANG BOLEH DIAKSES USER (DITAMBAHKAN UNTUK MENGATASI ERROR)
-// ============================================
-$userMenus = getUserMenus();
-$menuNames = array_column($userMenus, 'module_name');
-
-// ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
 function getRoleLabel($role) {
@@ -1069,9 +1063,7 @@ function addTRLinkStyle() {
             padding-bottom: 70px;
         }
 
-        /* ============================================
-           SIDEBAR STYLING - SAMA SEPERTI DASHBOARD
-           ============================================ */
+        /* SIDEBAR STYLING - SAMA SEPERTI DASHBOARD */
         .sidebar {
             width: 260px;
             height: 100vh;
@@ -1131,9 +1123,7 @@ function addTRLinkStyle() {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        /* ============================================
-           MAIN CONTENT
-           ============================================ */
+        /* MAIN CONTENT */
         .main-content { margin-left: 260px; padding: 30px; width: 100%; min-height: 100vh; }
         
         .page-header { 
@@ -1148,9 +1138,7 @@ function addTRLinkStyle() {
         .page-header .filter-area { display: flex; gap: 10px; align-items: center; }
         .page-header .filter-area select, .page-header .filter-area input { border-radius: 8px; border: 1px solid #e0e4ea; font-size: 13px; }
 
-        /* ============================================
-           STAT CARDS
-           ============================================ */
+        /* STAT CARDS */
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
         .stat-card { 
             background: #fff; border-radius: 16px; padding: 20px; 
@@ -1171,9 +1159,7 @@ function addTRLinkStyle() {
         .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
 
-        /* ============================================
-           ROW PIPELINE & CHART
-           ============================================ */
+        /* ROW PIPELINE & CHART */
         .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
         @media (max-width: 991px) { .grid-2-col { grid-template-columns: 1fr; } }
         
@@ -1204,9 +1190,7 @@ function addTRLinkStyle() {
 
         .chart-wrapper { height: 220px; width: 100%; }
 
-        /* ============================================
-           RECENT ACTIVITIES
-           ============================================ */
+        /* RECENT ACTIVITIES */
         .activity-card { 
             background: #fff; border-radius: 16px; padding: 24px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
@@ -1233,9 +1217,7 @@ function addTRLinkStyle() {
         .activity-item .act-info .act-desc { font-size: 13px; color: #7f8c8d; margin-top: 2px; }
         .activity-item .act-info .act-time { font-size: 11px; color: #bdc3c7; margin-top: 4px; display: block; }
 
-        /* ============================================
-           MOBILE
-           ============================================ */
+        /* MOBILE */
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
@@ -1247,6 +1229,39 @@ function addTRLinkStyle() {
             }
         }
         .mobile-toggle { display: none; }
+        
+        @media (min-width: 769px) {
+            .bottom-nav { display: none !important; }
+            body { padding-bottom: 0; }
+        }
+        
+        /* BOTTOM NAV (MOBILE) */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff;
+            border-top: 1px solid rgba(0,0,0,0.05); padding: 5px 0 env(safe-area-inset-bottom);
+            z-index: 999; display: flex; justify-content: space-around; align-items: center;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+        }
+        .bottom-nav .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; padding: 3px 8px; border-radius: 8px; transition: all 0.3s ease; position: relative; min-width: 45px; }
+        .bottom-nav .nav-item .nav-icon { font-size: 17px; color: #999; transition: all 0.3s ease; }
+        .bottom-nav .nav-item .nav-label { font-size: 8px; color: #999; font-weight: 500; margin-top: 2px; transition: all 0.3s ease; }
+        .bottom-nav .nav-item.active .nav-icon { color: #ffd700; }
+        .bottom-nav .nav-item.active .nav-label { color: #0e1a2b; font-weight: 600; }
+        .bottom-nav .nav-item.active::before { content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 18px; height: 2px; background: #ffd700; border-radius: 0 0 2px 2px; }
+        .bottom-nav .nav-item .badge-nav { position: absolute; top: -2px; right: -2px; background: #d63031; color: #fff; font-size: 7px; padding: 1px 5px; border-radius: 50%; min-width: 15px; text-align: center; }
+        .bottom-nav .nav-item:hover .nav-icon { color: #0e1a2e; }
+        
+        @media (max-width: 768px) {
+            .bottom-nav { display: flex !important; }
+        }
+        
+        @media (min-width: 769px) {
+            .bottom-nav { display: none !important; }
+        }
+        
+        .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
+        .footer-text a { color: #0e1a2b; text-decoration: none; font-weight: 500; }
+        .footer-text a:hover { color: #ffd700; }
     </style>
 </head>
 <body>
@@ -1310,7 +1325,6 @@ function addTRLinkStyle() {
             </div>
             <div class="filter-area">
                 <span style="font-weight:600; color:#555; font-size:14px;">Filter:</span>
-                <?php if (!$isSalesRole): ?>
                 <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()" style="background:#f8f9fa;">
                     <option value="0">Semua Sales</option>
                     <?php foreach ($allSalesList as $s): ?>
@@ -1319,35 +1333,27 @@ function addTRLinkStyle() {
                     </option>
                     <?php endforeach; ?>
                 </select>
-                <?php endif; ?>
                 <input type="month" id="filterMonth" class="form-control form-control-sm" style="width:160px; background:#f8f9fa;" value="<?= $filterMonth ?>" onchange="applyFilter()">
             </div>
         </div>
 
         <!-- STAT CARDS (REAL DATA) -->
         <div class="stat-grid">
-            <!-- 1. TOTAL LEADS -->
             <div class="stat-card">
                 <div class="stat-icon gold"><i class="fas fa-users"></i></div>
                 <div class="stat-number"><?= number_format($totalLeads) ?></div>
                 <div class="stat-label">Total Leads</div>
             </div>
-            
-            <!-- 2. OPEN DEALS -->
             <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
                 <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
                 <div class="stat-label">Open Deals</div>
             </div>
-
-            <!-- 3. REVENUE FORECAST -->
             <div class="stat-card">
                 <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
                 <div class="stat-number">Rp <?= number_format($totalRevenue, 0, ',', '.') ?></div>
                 <div class="stat-label">Revenue Forecast</div>
             </div>
-            
-            <!-- 4. FILTERED SALES NAME -->
             <div class="stat-card">
                 <div class="stat-icon blue"><i class="fas fa-users"></i></div>
                 <div class="stat-number" style="font-size:18px;"><?= htmlspecialchars($filteredSalesName) ?></div>
@@ -1355,14 +1361,12 @@ function addTRLinkStyle() {
             </div>
         </div>
 
-        <!-- GRID: PIPELINE (REAL DATA) & CHART -->
+        <!-- GRID: PIPELINE & CHART -->
         <div class="grid-2-col">
-            <!-- Pipeline -->
             <div class="pipeline-card">
                 <h6><i class="fas fa-filter" style="color:#ffd700;"></i> Sales Pipeline</h6>
                 
                 <?php 
-                // Hitung total pipeline untuk persentase
                 $totalPipeline = array_sum($pipelineCounts);
                 $pctNew = $totalPipeline > 0 ? ($pipelineCounts['New Lead'] / $totalPipeline * 100) : 0;
                 $pctMid = $totalPipeline > 0 ? ($pipelineCounts['Middle Prospek'] / $totalPipeline * 100) : 0;
@@ -1386,26 +1390,21 @@ function addTRLinkStyle() {
                     <div class="p-item"><span class="p-label">Lost</span><span class="p-value lost"><?= $pipelineCounts['Lost Deal'] ?></span></div>
                 </div>
             </div>
-
-            <!-- Chart Tren (Multi Sales Comparison) -->
             <div class="chart-card">
                 <h6><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas</h6>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
         </div>
 
-        <!-- GRID: AKTIVITAS TERBARU & LAPORAN SALES -->
+        <!-- GRID: AKTIVITAS & LAPORAN -->
         <div class="grid-2-col">
-            <!-- Recent Activities (REAL DATA) -->
             <div class="activity-card">
                 <div style="display:flex; justify-content:space-between;">
                     <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
                     <a href="salesactivity.php" style="font-size:12px; color:#2980b9; text-decoration:none;">Lihat Semua</a>
                 </div>
-                
                 <?php if (!empty($recentActivities)): ?>
                     <?php foreach ($recentActivities as $act): 
-                        // Ambil inisial nama Sales (maksimal 2 huruf)
                         $salesInitial = '';
                         if (!empty($act['sales_name'])) {
                             $names = explode(' ', $act['sales_name']);
@@ -1435,7 +1434,6 @@ function addTRLinkStyle() {
                 <?php endif; ?>
             </div>
 
-            <!-- Monthly Sales Report (Ringkasan Sales REAL - Filtered by Month) -->
             <div class="activity-card">
                 <div style="display:flex; justify-content:space-between;">
                     <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Performa Sales (<?= date('F Y', strtotime($filterMonth . '-01')) ?>)</h6>
@@ -1447,14 +1445,12 @@ function addTRLinkStyle() {
                             <?php 
                             $reportData = $filteredReportData ?? [];
                             if ($filterSalesId > 0) {
-                                // Jika filter satu sales
                                 $totalDeal = 0; $totalLost = 0;
                                 foreach($filteredReportData as $m) { $totalDeal += $m['total_deal']; $totalLost += $m['total_lost']; }
                                 echo "<tr><td><strong>" . htmlspecialchars($filteredSalesName) . "</strong></td>
                                       <td class='text-center text-deal'>$totalDeal</td>
                                       <td class='text-center text-lost'>$totalLost</td></tr>";
                             } else {
-                                // Jika semua sales
                                 foreach($filteredReportData as $sales):
                                     $gtD = 0; $gtL = 0;
                                     foreach($sales['data'] as $m) { $gtD += $m['total_deal']; $gtL += $m['total_lost']; }
@@ -1475,14 +1471,61 @@ function addTRLinkStyle() {
 
     </div>
 
+    <!-- BOTTOM NAVIGATION (MOBILE) -->
+    <nav class="bottom-nav">
+        <a href="dashboard.php" class="nav-item">
+            <i class="fas fa-th-large nav-icon"></i>
+            <span class="nav-label">Home</span>
+        </a>
+        <?php if (canAccessMenu('account_management')): ?>
+            <a href="account_management.php" class="nav-item">
+                <i class="fas fa-building nav-icon"></i>
+                <span class="nav-label">Account</span>
+            </a>
+        <?php endif; ?>
+        <?php if (canAccessMenu('sales_activity')): ?>
+            <a href="salesactivity.php" class="nav-item active">
+                <i class="fas fa-chart-bar nav-icon"></i>
+                <span class="nav-label">Sales Activity</span>
+            </a>
+        <?php endif; ?>
+        <?php if (canAccessMenu('transaction_request')): ?>
+            <a href="transactionrequest.php" class="nav-item">
+                <i class="fas fa-file-signature nav-icon"></i>
+                <span class="nav-label">TR Request</span>
+            </a>
+        <?php endif; ?>
+        <?php if (canAccessMenu('produk')): ?>
+            <a href="produk.php" class="nav-item">
+                <i class="fas fa-box nav-icon"></i>
+                <span class="nav-label">Produk</span>
+            </a>
+        <?php endif; ?>
+        <?php if (canAccessMenu('delivery_order')): ?>
+            <a href="#" class="nav-item">
+                <i class="fas fa-tractor nav-icon"></i>
+                <span class="nav-label">Delivery Order</span>
+            </a>
+        <?php endif; ?>
+        <?php if (canAccessMenu('data_user')): ?>
+            <a href="data_user.php" class="nav-item">
+                <i class="fas fa-users nav-icon"></i>
+                <span class="nav-label">User</span>
+            </a>
+        <?php endif; ?>
+        <a href="logout.php" class="nav-item">
+            <i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i>
+            <span class="nav-label" style="color:#d63031;">Logout</span>
+        </a>
+    </nav>
+
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // CHART TREN (SINGLE atau MULTI SALES)
+        // CHART TREN
         // ============================================
         const ctx = document.getElementById('trendChart').getContext('2d');
-        
         let trendChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -1494,7 +1537,7 @@ function addTRLinkStyle() {
                 maintainAspectRatio: false,
                 plugins: { 
                     legend: { 
-                        display: <?= ($filterSalesId > 0) ? 'false' : 'true' ?>, // Tampilkan legenda hanya jika multi sales
+                        display: <?= ($filterSalesId > 0) ? 'false' : 'true' ?>,
                         position: 'bottom',
                         labels: {
                             usePointStyle: true,
@@ -1527,13 +1570,11 @@ function addTRLinkStyle() {
         });
 
         // ============================================
-        // FUNGSI APPLY FILTER (Reload untuk Table & Pipeline)
+        // FUNGSI APPLY FILTER
         // ============================================
         function applyFilter() {
             const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
             const month = document.getElementById('filterMonth').value;
-            
-            // Refresh halaman dengan filter bulan dan sales terbaru agar semua elemen tabel berubah
             window.location.href = '?sales_id=' + salesId + '&month=' + month;
         }
     </script>
