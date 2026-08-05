@@ -57,7 +57,7 @@ if ($filterSalesId > 0) {
 }
 
 // ============================================
-// DATA STATISTIK & PIPELINE (LOGIKA ANDA TETAP SAMA)
+// DATA STATISTIK & PIPELINE (LOGIKA REAL)
 // ============================================
 $sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilter;
 $totalActivities = $db->query($sqlTotal)->fetchColumn();
@@ -104,10 +104,6 @@ $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
             WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilter;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
-// Pipeline Value (Total Deal dalam Rupiah) - CONTOH LOGIKA
-$pipelineValue = $pipelineCounts['Deal'] * 50000000; // Estimasi nilai deal
-$forecastRevenue = ($pipelineCounts['Hot Prospek'] * 30000000) + ($pipelineCounts['Middle Prospek'] * 10000000);
-
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
 // ============================================
@@ -140,6 +136,40 @@ for ($i = 6; $i >= 0; $i--) {
     $chartLabels[] = date('d M', strtotime("-$i days"));
     $chartValues[] = isset($tempData[$date]) ? $tempData[$date] : 0;
 }
+
+// ============================================
+// DATA LAPORAN PER BULAN (PERFORMA SALES)
+// ============================================
+function getSalesMonthlyReport($db, $salesId) {
+    $stmt = $db->prepare("
+        SELECT DATE_FORMAT(created_at, '%M %Y') as month_label, 
+               DATE_FORMAT(created_at, '%Y-%m') as month_sort, 
+               COUNT(*) as total_activity,
+               SUM(CASE WHEN status = 'Deal' THEN 1 ELSE 0 END) as total_deal,
+               SUM(CASE WHEN status = 'Lost Prospek' THEN 1 ELSE 0 END) as total_lost
+        FROM sales_activities 
+        WHERE sales_id = ? 
+        GROUP BY month_sort 
+        ORDER BY month_sort DESC 
+        LIMIT 6
+    ");
+    $stmt->execute([$salesId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+$filteredReportData = [];
+if ($filterSalesId > 0) {
+    $filteredReportData = getSalesMonthlyReport($db, $filterSalesId);
+} else {
+    $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
+    $allUsersForReport = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($allUsersForReport as $u) {
+        $filteredReportData[] = [
+            'name' => $u['full_name'],
+            'data' => getSalesMonthlyReport($db, $u['id'])
+        ];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -149,11 +179,9 @@ for ($i = 6; $i >= 0; $i--) {
     <title>Dashboard - PT Ganda Elang Tangguh</title>
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     
-    <!-- Bootstrap 5 & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -325,7 +353,7 @@ for ($i = 6; $i >= 0; $i--) {
             </div>
         </div>
 
-        <!-- STAT CARDS -->
+        <!-- STAT CARDS (REAL DATA) -->
         <div class="stat-grid">
             <div class="stat-card">
                 <div class="stat-icon gold"><i class="fas fa-chart-line"></i></div>
@@ -349,16 +377,25 @@ for ($i = 6; $i >= 0; $i--) {
             </div>
         </div>
 
-        <!-- GRID: PIPELINE & CHART -->
+        <!-- GRID: PIPELINE (REAL DATA) & CHART -->
         <div class="grid-2-col">
             <!-- Pipeline -->
             <div class="pipeline-card">
                 <h6><i class="fas fa-filter" style="color:#ffd700;"></i> Sales Pipeline</h6>
+                
+                <?php 
+                $totalPipeline = $pipelineCounts['Middle Prospek'] + $pipelineCounts['Hot Prospek'] + $pipelineCounts['Deal'] + $pipelineCounts['Lost Prospek'];
+                $pctMid = $totalPipeline > 0 ? ($pipelineCounts['Middle Prospek'] / $totalPipeline * 100) : 0;
+                $pctHot = $totalPipeline > 0 ? ($pipelineCounts['Hot Prospek'] / $totalPipeline * 100) : 0;
+                $pctDeal = $totalPipeline > 0 ? ($pipelineCounts['Deal'] / $totalPipeline * 100) : 0;
+                $pctLost = $totalPipeline > 0 ? ($pipelineCounts['Lost Prospek'] / $totalPipeline * 100) : 0;
+                ?>
+                
                 <div class="pipeline-bars">
-                    <div class="bar middle" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Middle Prospek'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
-                    <div class="bar hot" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Hot Prospek'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
-                    <div class="bar deal" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Deal'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
-                    <div class="bar lost" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Lost Prospek'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
+                    <div class="bar middle" style="width: <?= $pctMid ?>%;"></div>
+                    <div class="bar hot" style="width: <?= $pctHot ?>%;"></div>
+                    <div class="bar deal" style="width: <?= $pctDeal ?>%;"></div>
+                    <div class="bar lost" style="width: <?= $pctLost ?>%;"></div>
                 </div>
                 <div class="pipeline-stats">
                     <div class="p-item"><span class="p-label">Middle</span><span class="p-value middle"><?= $pipelineCounts['Middle Prospek'] ?></span></div>
@@ -372,7 +409,7 @@ for ($i = 6; $i >= 0; $i--) {
                 </div>
             </div>
 
-            <!-- Chart Tren -->
+            <!-- Chart Tren (REAL DATA 7 Days) -->
             <div class="chart-card">
                 <h6><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas (7 Hari)</h6>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
@@ -381,7 +418,7 @@ for ($i = 6; $i >= 0; $i--) {
 
         <!-- GRID: AKTIVITAS TERBARU & LAPORAN SALES -->
         <div class="grid-2-col">
-            <!-- Recent Activities -->
+            <!-- Recent Activities (REAL DATA) -->
             <div class="activity-card">
                 <div style="display:flex; justify-content:space-between;">
                     <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
@@ -404,7 +441,7 @@ for ($i = 6; $i >= 0; $i--) {
                 <?php endif; ?>
             </div>
 
-            <!-- Monthly Sales Report (Ringkasan Sales) -->
+            <!-- Monthly Sales Report (Ringkasan Sales REAL) -->
             <div class="activity-card">
                 <div style="display:flex; justify-content:space-between;">
                     <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Performa Sales (Bulan Ini)</h6>
@@ -447,7 +484,7 @@ for ($i = 6; $i >= 0; $i--) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // CHART TREN
+        // CHART TREN (REAL DATA)
         const ctx = document.getElementById('trendChart').getContext('2d');
         const grad = ctx.createLinearGradient(0, 0, 0, 200);
         grad.addColorStop(0, 'rgba(52, 152, 219, 0.6)');
