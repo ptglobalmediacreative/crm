@@ -36,26 +36,19 @@ function getRoleLabel($role) {
 }
 
 // ============================================
-// DATA GLOBAL - GRAFIK DASHBOARD
+// DATA GLOBAL & FILTER LOGIC
 // ============================================
+$isSalesRole = ($role === 'sales');
+$sqlFilter = $isSalesRole ? " WHERE sales_id = $userId" : "";
 
 // 1. STATISTIK TOTAL
-if ($role === 'sales') {
-    $totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId")->fetchColumn();
-} else {
-    $totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities")->fetchColumn();
-}
+$totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities" . $sqlFilter)->fetchColumn();
 
 // 2. DATA CHART HARIAN (7 HARI TERAKHIR)
-$chartQueryDaily = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities";
-if ($role === 'sales') $chartQueryDaily .= " WHERE sales_id = $userId";
-$chartQueryDaily .= " GROUP BY DATE(created_at) ORDER BY date ASC LIMIT 7";
-
+$chartQueryDaily = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY DATE(created_at) ORDER BY date ASC LIMIT 7";
 $chartDailyData = $db->query($chartQueryDaily)->fetchAll(PDO::FETCH_ASSOC);
 
-$labelsDaily = [];
-$valuesDaily = [];
-$tempDaily = [];
+$labelsDaily = []; $valuesDaily = []; $tempDaily = [];
 foreach ($chartDailyData as $row) $tempDaily[$row['date']] = $row['total'];
 for ($i = 6; $i >= 0; $i--) {
     $date = date('Y-m-d', strtotime("-$i days"));
@@ -63,16 +56,27 @@ for ($i = 6; $i >= 0; $i--) {
     $valuesDaily[] = isset($tempDaily[$date]) ? $tempDaily[$date] : 0;
 }
 
-// 3. DATA CHART BULANAN (12 BULAN TERAKHIR)
-$chartQueryMonthly = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total FROM sales_activities";
-if ($role === 'sales') $chartQueryMonthly .= " WHERE sales_id = $userId";
-$chartQueryMonthly .= " GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month ASC LIMIT 12";
+// 3. DATA CHART MINGGUAN (7 MINGGU TERAKHIR - WEEKLY)
+// Menggunakan YEARWEEK untuk grouping per minggu
+$chartQueryWeekly = "SELECT YEARWEEK(created_at, 1) as week_num, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY YEARWEEK(created_at, 1) ORDER BY week_num DESC LIMIT 7";
+$chartWeeklyData = $db->query($chartQueryWeekly)->fetchAll(PDO::FETCH_ASSOC);
 
+$labelsWeekly = []; $valuesWeekly = []; $tempWeekly = [];
+foreach ($chartWeeklyData as $row) $tempWeekly[$row['week_num']] = $row['total'];
+
+// Loop 7 minggu ke belakang untuk mengisi kekosongan data
+for ($i = 6; $i >= 0; $i--) {
+    $weekTimestamp = strtotime("-$i weeks");
+    $weekNum = date('o', $weekTimestamp) . date('W', $weekTimestamp); // Format Tahun + Minggu ke berapa
+    $labelsWeekly[] = "Minggu " . date('W', $weekTimestamp);
+    $valuesWeekly[] = isset($tempWeekly[(int)$weekNum]) ? $tempWeekly[(int)$weekNum] : 0;
+}
+
+// 4. DATA CHART BULANAN (12 BULAN TERAKHIR)
+$chartQueryMonthly = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month ASC LIMIT 12";
 $chartMonthlyData = $db->query($chartQueryMonthly)->fetchAll(PDO::FETCH_ASSOC);
 
-$labelsMonthly = [];
-$valuesMonthly = [];
-$tempMonthly = [];
+$labelsMonthly = []; $valuesMonthly = []; $tempMonthly = [];
 foreach ($chartMonthlyData as $row) $tempMonthly[$row['month']] = $row['total'];
 for ($i = 11; $i >= 0; $i--) {
     $date = date('Y-m', strtotime("-$i months"));
@@ -80,11 +84,8 @@ for ($i = 11; $i >= 0; $i--) {
     $valuesMonthly[] = isset($tempMonthly[$date]) ? $tempMonthly[$date] : 0;
 }
 
-// 4. DATA PIPELINE PROSPEK (Donut Chart)
-$statusQuery = "SELECT status, COUNT(*) as total FROM sales_activities";
-if ($role === 'sales') $statusQuery .= " WHERE sales_id = $userId";
-$statusQuery .= " GROUP BY status";
-
+// 5. DATA PIPELINE PROSPEK (Donut Chart)
+$statusQuery = "SELECT status, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY status";
 $statusData = $db->query($statusQuery)->fetchAll(PDO::FETCH_ASSOC);
 
 $statusCounts = [
@@ -106,10 +107,9 @@ $pipelineValues = array_values($statusCounts);
 // ============================================
 // DATA LAPORAN PER SALES & PER BULAN
 // ============================================
-
 $salesReports = [];
 
-if ($role === 'sales') {
+if ($isSalesRole) {
     // Jika user Sales login, tampilkan laporan dirinya sendiri
     $salesReports[] = [
         'id' => $userId,
@@ -132,7 +132,6 @@ if ($role === 'sales') {
 
 // FUNGSI BANTUAN UNTUK MENGAMBIL REPORT PER SALES
 function getSalesMonthlyReport($db, $salesId) {
-    // Ambil per bulan: Total Aktivitas
     $stmt = $db->prepare("
         SELECT DATE_FORMAT(created_at, '%M %Y') as month_label, 
                DATE_FORMAT(created_at, '%Y-%m') as month_sort, 
@@ -157,28 +156,19 @@ function getSalesMonthlyReport($db, $salesId) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard - PT Ganda Elang Tangguh</title>
     
-    <!-- Favicon -->
+    <!-- Favicon & CSS Libs -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
-    
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; }
 
-        /* SIDEBAR STYLING */
-        .sidebar {
-            width: 260px; height: 100vh; background: #1a1a2e; position: fixed;
-            top: 0; left: 0; z-index: 1000; padding: 20px; overflow-y: auto;
-            transition: all 0.3s ease;
-        }
+        /* SIDEBAR STYLING - SAMA SEPERTI SEBELUMNYA */
+        .sidebar { width: 260px; height: 100vh; background: #1a1a2e; position: fixed; top: 0; left: 0; z-index: 1000; padding: 20px; overflow-y: auto; transition: all 0.3s ease; }
         .sidebar .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; text-decoration: none; }
         .sidebar .brand .logo-wrapper { width: 40px; height: 40px; flex-shrink: 0; }
         .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
@@ -187,7 +177,6 @@ function getSalesMonthlyReport($db, $salesId) {
         .sidebar .brand .brand-text .brand-sub { font-size: 8px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
 
         .sidebar .menu-label { font-size: 11px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px 12px; font-weight: 600; }
-
         .sidebar .nav-link { display: flex; align-items: center; padding: 12px 16px; color: rgba(255,255,255,0.6); text-decoration: none; border-radius: 10px; margin-bottom: 4px; transition: all 0.3s ease; font-size: 14px; font-weight: 500; }
         .sidebar .nav-link i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255, 215, 0, 0.08); color: #fff; }
@@ -197,7 +186,6 @@ function getSalesMonthlyReport($db, $salesId) {
         .sidebar .user-profile .avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); color: #ffd700; display: flex; align-items: center; justify-content: center; font-weight: 700; }
         .sidebar .user-profile .user-info .name { font-size: 14px; color: #fff; font-weight: 600; }
         .sidebar .user-profile .user-info .role { font-size: 11px; color: rgba(255,255,255,0.4); }
-
         .sidebar .logout-btn { display: flex; align-items: center; padding: 12px 16px; color: #ff6b6b; text-decoration: none; border-radius: 10px; margin-top: 10px; transition: all 0.3s ease; font-size: 14px; font-weight: 500; background: rgba(214, 48, 49, 0.1); }
         .sidebar .logout-btn:hover { background: rgba(214, 48, 49, 0.2); }
 
@@ -219,7 +207,7 @@ function getSalesMonthlyReport($db, $salesId) {
         .stat-card .stat-label { font-size: 13px; color: #888; font-weight: 500; }
 
         /* CHART CONTAINER */
-        .chart-container { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-top: 20px; height: 100%; }
+        .chart-container { background: #fff; border-radius: 16px; padding: 24px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-top: 20px; height: 100%; }
 
         /* SALES REPORT TABLE & CARDS */
         .report-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 20px; }
@@ -253,28 +241,13 @@ function getSalesMonthlyReport($db, $salesId) {
         </a>
         <div class="menu-label">Menu Utama</div>
         <a href="dashboard.php" class="nav-link active"><i class="fas fa-th-large"></i> Dashboard</a>
-
-        <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-link"><i class="fas fa-building"></i> Account</a>
-        <?php endif; ?>
-        <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="salesactivity.php" class="nav-link"><i class="fas fa-chart-bar"></i> Sales Activity</a>
-        <?php endif; ?>
-        <?php if (in_array('transaction_request', $menuNames)): ?>
-            <a href="transactionrequest.php" class="nav-link"><i class="fas fa-file-signature"></i> TR Request</a>
-        <?php endif; ?>
-        <?php if (in_array('detail_transaction_request', $menuNames)): ?>
-            <a href="detailtr.php" class="nav-link"><i class="fas fa-file-alt"></i> Detail TR</a>
-        <?php endif; ?>
-        <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-link"><i class="fas fa-box"></i> Produk</a>
-        <?php endif; ?>
-        <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="#" class="nav-link"><i class="fas fa-tractor"></i> Delivery</a>
-        <?php endif; ?>
-        <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-link"><i class="fas fa-users"></i> User</a>
-        <?php endif; ?>
+        <?php if (in_array('account_management', $menuNames)): ?><a href="account_management.php" class="nav-link"><i class="fas fa-building"></i> Account</a><?php endif; ?>
+        <?php if (in_array('sales_activity', $menuNames)): ?><a href="salesactivity.php" class="nav-link"><i class="fas fa-chart-bar"></i> Sales Activity</a><?php endif; ?>
+        <?php if (in_array('transaction_request', $menuNames)): ?><a href="transactionrequest.php" class="nav-link"><i class="fas fa-file-signature"></i> TR Request</a><?php endif; ?>
+        <?php if (in_array('detail_transaction_request', $menuNames)): ?><a href="detailtr.php" class="nav-link"><i class="fas fa-file-alt"></i> Detail TR</a><?php endif; ?>
+        <?php if (in_array('produk', $menuNames)): ?><a href="produk.php" class="nav-link"><i class="fas fa-box"></i> Produk</a><?php endif; ?>
+        <?php if (in_array('delivery_order', $menuNames)): ?><a href="#" class="nav-link"><i class="fas fa-tractor"></i> Delivery</a><?php endif; ?>
+        <?php if (in_array('data_user', $menuNames)): ?><a href="data_user.php" class="nav-link"><i class="fas fa-users"></i> User</a><?php endif; ?>
 
         <div class="user-profile">
             <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
@@ -296,7 +269,7 @@ function getSalesMonthlyReport($db, $salesId) {
         <!-- STATISTICS CARDS -->
         <div class="row g-4">
             <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card"><div class="stat-icon gold"><i class="fas fa-chart-line"></i></div><div class="stat-number"><?= number_format($totalActivities) ?></div><div class="stat-label">Total Aktivitas Global</div></div>
+                <div class="stat-card"><div class="stat-icon gold"><i class="fas fa-chart-line"></i></div><div class="stat-number"><?= number_format($totalActivities) ?></div><div class="stat-label">Total Aktivitas</div></div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6">
                 <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-calendar-week"></i></div><div class="stat-number"><?= date('M Y') ?></div><div class="stat-label">Bulan Berjalan</div></div>
@@ -309,28 +282,34 @@ function getSalesMonthlyReport($db, $salesId) {
             </div>
         </div>
 
-        <!-- CHART 1 & 2: HARIAN & BULANAN -->
+        <!-- CHART 1, 2, & 3: HARIAN, MINGGUAN, BULANAN -->
         <div class="row mt-4">
-            <div class="col-lg-6">
+            <div class="col-xl-4 col-lg-6">
                 <div class="chart-container">
-                    <h5 style="font-weight:600; color:#1a1a2e; margin-bottom:20px;"><i class="fas fa-chart-bar" style="color:#ffd700; margin-right:8px;"></i> Tren 7 Hari Terakhir</h5>
-                    <div style="height: 260px; width: 100%;"><canvas id="dailyChart"></canvas></div>
+                    <h6 class="fw-bold mb-3 text-secondary"><i class="fas fa-calendar-day text-warning me-2"></i> Tren Harian (7 Hari)</h6>
+                    <div style="height: 240px; width: 100%;"><canvas id="dailyChart"></canvas></div>
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-xl-4 col-lg-6">
                 <div class="chart-container">
-                    <h5 style="font-weight:600; color:#1a1a2e; margin-bottom:20px;"><i class="fas fa-calendar-alt" style="color:#ffd700; margin-right:8px;"></i> Tren 12 Bulan Terakhir</h5>
-                    <div style="height: 260px; width: 100%;"><canvas id="monthlyChart"></canvas></div>
+                    <h6 class="fw-bold mb-3 text-secondary"><i class="fas fa-calendar-week text-primary me-2"></i> Tren Mingguan (7 Minggu)</h6>
+                    <div style="height: 240px; width: 100%;"><canvas id="weeklyChart"></canvas></div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-12">
+                <div class="chart-container">
+                    <h6 class="fw-bold mb-3 text-secondary"><i class="fas fa-calendar-alt text-success me-2"></i> Tren Bulanan (12 Bulan)</h6>
+                    <div style="height: 240px; width: 100%;"><canvas id="monthlyChart"></canvas></div>
                 </div>
             </div>
         </div>
 
-        <!-- CHART 3 & 4: PIPELINE & KONTRIBUSI SALES -->
+        <!-- CHART 4 & 5: PIPELINE & KONTRIBUSI SALES -->
         <div class="row mt-4">
             <div class="col-lg-6">
                 <div class="chart-container">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
-                        <h5 style="font-weight:600; color:#1a1a2e; margin:0;"><i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> Pipeline Prospek</h5>
+                        <h6 class="fw-bold text-secondary mb-0"><i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> Pipeline Prospek</h6>
                         <span style="background:rgba(255,215,0,0.1); padding:4px 12px; border-radius:20px; font-size:12px; color:#d4a017;"><i class="fas fa-chart-pie"></i> Distribusi Status</span>
                     </div>
                     <div style="height: 280px; width: 100%;"><canvas id="pipelineChart"></canvas></div>
@@ -340,7 +319,7 @@ function getSalesMonthlyReport($db, $salesId) {
             <div class="col-lg-6">
                 <div class="chart-container">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
-                        <h5 style="font-weight:600; color:#1a1a2e; margin:0;"><i class="fas fa-user-tie" style="color:#ffd700; margin-right:8px;"></i> Kontribusi Per Sales</h5>
+                        <h6 class="fw-bold text-secondary mb-0"><i class="fas fa-user-tie" style="color:#ffd700; margin-right:8px;"></i> Kontribusi Per Sales</h6>
                         <span style="background:rgba(255,215,0,0.1); padding:4px 12px; border-radius:20px; font-size:12px; color:#d4a017;"><i class="fas fa-database"></i> Data All Sales</span>
                     </div>
                     <?php 
@@ -396,7 +375,6 @@ function getSalesMonthlyReport($db, $salesId) {
                                         </tr>
                                         <?php endforeach; ?>
                                         <?php 
-                                        // Tambahkan baris total keseluruhan
                                         $grandTotal = 0; $grandDeal = 0; $grandLost = 0;
                                         foreach($report['data'] as $m) { 
                                             $grandTotal += $m['total_activity']; 
@@ -430,38 +408,57 @@ function getSalesMonthlyReport($db, $salesId) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // CHART 1: HARIAN
+        // ============================================
+        // CHART 1: HARIAN (Bar Chart - Emas)
+        // ============================================
         const ctxDaily = document.getElementById('dailyChart').getContext('2d');
-        const gradientDaily = ctxDaily.createLinearGradient(0, 0, 0, 300);
-        gradientDaily.addColorStop(0, 'rgba(255, 215, 0, 0.6)'); gradientDaily.addColorStop(1, 'rgba(255, 215, 0, 0.0)');
+        const gradientDaily = ctxDaily.createLinearGradient(0, 0, 0, 250);
+        gradientDaily.addColorStop(0, 'rgba(255, 215, 0, 0.7)'); gradientDaily.addColorStop(1, 'rgba(255, 215, 0, 0.0)');
         new Chart(ctxDaily, {
-            type: 'bar', data: { labels: <?= json_encode($labelsDaily) ?>, datasets: [{ label: 'Aktivitas Harian', data: <?= json_encode($valuesDaily) ?>, backgroundColor: gradientDaily, borderColor: '#d4a017', borderWidth: 2, borderRadius: 6, barPercentage: 0.6, }] },
+            type: 'bar', data: { labels: <?= json_encode($labelsDaily) ?>, datasets: [{ label: 'Harian', data: <?= json_encode($valuesDaily) ?>, backgroundColor: gradientDaily, borderColor: '#d4a017', borderWidth: 2, borderRadius: 6, barPercentage: 0.5 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
         });
 
-        // CHART 2: BULANAN
+        // ============================================
+        // CHART 2: MINGGUAN (Bar Chart - Biru)
+        // ============================================
+        const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
+        const gradientWeekly = ctxWeekly.createLinearGradient(0, 0, 0, 250);
+        gradientWeekly.addColorStop(0, 'rgba(52, 152, 219, 0.7)'); gradientWeekly.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
+        new Chart(ctxWeekly, {
+            type: 'bar', data: { labels: <?= json_encode($labelsWeekly) ?>, datasets: [{ label: 'Mingguan', data: <?= json_encode($valuesWeekly) ?>, backgroundColor: gradientWeekly, borderColor: '#2980b9', borderWidth: 2, borderRadius: 6, barPercentage: 0.5 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
+        });
+
+        // ============================================
+        // CHART 3: BULANAN (Line Chart - Hijau)
+        // ============================================
         const ctxMonthly = document.getElementById('monthlyChart').getContext('2d');
-        const gradientMonthly = ctxMonthly.createLinearGradient(0, 0, 0, 300);
-        gradientMonthly.addColorStop(0, 'rgba(52, 152, 219, 0.8)'); gradientMonthly.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
+        const gradientMonthly = ctxMonthly.createLinearGradient(0, 0, 0, 250);
+        gradientMonthly.addColorStop(0, 'rgba(46, 204, 113, 0.7)'); gradientMonthly.addColorStop(1, 'rgba(46, 204, 113, 0.0)');
         new Chart(ctxMonthly, {
-            type: 'line', data: { labels: <?= json_encode($labelsMonthly) ?>, datasets: [{ label: 'Aktivitas Bulanan', data: <?= json_encode($valuesMonthly) ?>, backgroundColor: gradientMonthly, borderColor: '#2980b9', borderWidth: 3, pointBackgroundColor: '#2980b9', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5, fill: true, tension: 0.4, }] },
+            type: 'line', data: { labels: <?= json_encode($labelsMonthly) ?>, datasets: [{ label: 'Bulanan', data: <?= json_encode($valuesMonthly) ?>, backgroundColor: gradientMonthly, borderColor: '#27ae60', borderWidth: 3, pointBackgroundColor: '#27ae60', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5, fill: true, tension: 0.4 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
         });
 
-        // CHART 3: PIPELINE PROSPEK
+        // ============================================
+        // CHART 4: PIPELINE PROSPEK (Donut)
+        // ============================================
         const ctxPipeline = document.getElementById('pipelineChart').getContext('2d');
         new Chart(ctxPipeline, {
             type: 'doughnut', data: { labels: <?= json_encode($pipelineLabels) ?>, datasets: [{ data: <?= json_encode($pipelineValues) ?>, backgroundColor: ['#f39c12','#e74c3c','#2ecc71','#95a5a6'], borderColor: '#fff', borderWidth: 3, hoverOffset: 10 }] },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 12, weight: '500' } } } } }
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 12, weight: '500' } } } } }
         });
 
-        // CHART 4: PER USER SALES (Hanya Admin)
+        // ============================================
+        // CHART 5: PER USER SALES (Hanya Admin)
+        // ============================================
         <?php if ($role !== 'sales' && count($topSalesLabels) > 0): ?>
         const ctxUser = document.getElementById('userChart').getContext('2d');
         const gradientUser = ctxUser.createLinearGradient(0, 0, 0, 300);
-        gradientUser.addColorStop(0, 'rgba(46, 204, 113, 0.7)'); gradientUser.addColorStop(1, 'rgba(46, 204, 113, 0.0)');
+        gradientUser.addColorStop(0, 'rgba(155, 89, 182, 0.7)'); gradientUser.addColorStop(1, 'rgba(155, 89, 182, 0.0)');
         new Chart(ctxUser, {
-            type: 'bar', data: { labels: <?= json_encode($topSalesLabels) ?>, datasets: [{ label: 'Total Aktivitas', data: <?= json_encode($topSalesData) ?>, backgroundColor: gradientUser, borderColor: '#27ae60', borderWidth: 2, borderRadius: 6, barPercentage: 0.6, }] },
+            type: 'bar', data: { labels: <?= json_encode($topSalesLabels) ?>, datasets: [{ label: 'Total Aktivitas', data: <?= json_encode($topSalesData) ?>, backgroundColor: gradientUser, borderColor: '#8e44ad', borderWidth: 2, borderRadius: 6, barPercentage: 0.6 }] },
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } }, x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } } } }
         });
         <?php endif; ?>
