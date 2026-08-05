@@ -42,7 +42,12 @@ $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $isSalesRole = ($role === 'sales');
 
 // Filter Bulan (Default ke bulan sekarang)
-$filterMonth = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
+// Jika URL tidak ada parameter month, gunakan bulan sekarang
+if (isset($_GET['month']) && !empty($_GET['month'])) {
+    $filterMonth = $_GET['month'];
+} else {
+    $filterMonth = date('Y-m');
+}
 
 if ($isSalesRole) {
     $filterSalesId = $userId;
@@ -391,7 +396,7 @@ if ($filterSalesId > 0) {
             <div class="filter-area">
                 <span style="font-weight:500; color:#555;">Filter:</span>
                 <?php if (!$isSalesRole): ?>
-                <select class="form-select form-select-sm" onchange="window.location.href='?sales_id='+this.value + '&month=' + document.getElementById('filterMonth').value">
+                <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()">
                     <option value="0">Semua Sales</option>
                     <?php foreach ($allSalesList as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
