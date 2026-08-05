@@ -58,6 +58,13 @@ if (!$isSalesRole) {
     $allSalesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Filter SQL untuk Sales_Activities (Pipeline, Chart, Recent Activities)
+// --- PERBAIKAN PENTING DI SINI ---
+$sqlFilterSA = "";
+if ($filterSalesId > 0) {
+    $sqlFilterSA = " AND sa.sales_id = $filterSalesId";
+}
+
 // Filter SQL untuk Accounts (Total Leads, New Leads bulan ini)
 $sqlFilterAcc = "";
 if ($filterSalesId > 0) {
@@ -273,6 +280,20 @@ function hexToRgba($hex, $alpha) {
     list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
     return "rgba($r, $g, $b, $alpha)";
 }
+
+// ============================================
+// DATA AKTIVITAS TERBARU (TIMELINE)
+// ============================================
+$activityLimit = 5;
+// PERBAIKAN: Pastikan $sqlFilterSA digunakan di sini
+$sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name
+                  FROM sales_activities sa 
+                  LEFT JOIN accounts a ON sa.account_id = a.id 
+                  LEFT JOIN users u ON sa.sales_id = u.id
+                  WHERE 1=1" . $sqlFilterSA . "
+                  ORDER BY sa.created_at DESC 
+                  LIMIT $activityLimit";
+$recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
 
 // ============================================
 // DATA LAPORAN PER BULAN (PERFORMA SALES - SESUAI BULAN FILTER)
@@ -553,10 +574,6 @@ if ($filterSalesId > 0) {
                     <div class="p-item"><span class="p-label">Hot</span><span class="p-value hot"><?= $pipelineCounts['Hot Prospek'] ?></span></div>
                     <div class="p-item"><span class="p-label">Deal</span><span class="p-value deal"><?= $pipelineCounts['Deal'] ?></span></div>
                     <div class="p-item"><span class="p-label">Lost</span><span class="p-value lost"><?= $pipelineCounts['Lost Deal'] ?></span></div>
-                </div>
-                <div style="margin-top:15px; display:flex; justify-content:space-between; background:#f8f9fa; padding:10px 15px; border-radius:8px;">
-                    <span style="color:#888; font-size:13px;">Total Pipeline</span>
-                    <span style="font-weight:700; color:#1a1a2e;"><?= $totalPipeline ?></span>
                 </div>
             </div>
 
