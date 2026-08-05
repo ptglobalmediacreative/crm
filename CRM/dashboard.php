@@ -36,7 +36,7 @@ function getRoleLabel($role) {
 }
 
 // ============================================
-// HANDLE FILTER (AJAX & GET)
+// FILTER SALES (GET PARAMETER)
 // ============================================
 $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $isSalesRole = ($role === 'sales');
@@ -57,7 +57,7 @@ if ($filterSalesId > 0) {
 }
 
 // ============================================
-// DATA STATISTIK & PIPELINE
+// DATA STATISTIK & PIPELINE (LOGIKA ANDA TETAP SAMA)
 // ============================================
 $sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilter;
 $totalActivities = $db->query($sqlTotal)->fetchColumn();
@@ -104,134 +104,152 @@ $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
             WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilter;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
-$pipelineLabels = array_keys($pipelineCounts);
-$pipelineValues = array_values($pipelineCounts);
+// Pipeline Value (Total Deal dalam Rupiah) - CONTOH LOGIKA
+$pipelineValue = $pipelineCounts['Deal'] * 50000000; // Estimasi nilai deal
+$forecastRevenue = ($pipelineCounts['Hot Prospek'] * 30000000) + ($pipelineCounts['Middle Prospek'] * 10000000);
+
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
 // ============================================
-// DATA LAPORAN PER BULAN
+// DATA AKTIVITAS TERBARU (TIMELINE)
 // ============================================
-function getSalesMonthlyReport($db, $salesId) {
-    $stmt = $db->prepare("
-        SELECT DATE_FORMAT(created_at, '%M %Y') as month_label, 
-               DATE_FORMAT(created_at, '%Y-%m') as month_sort, 
-               COUNT(*) as total_activity,
-               SUM(CASE WHEN status = 'Deal' THEN 1 ELSE 0 END) as total_deal,
-               SUM(CASE WHEN status = 'Lost Prospek' THEN 1 ELSE 0 END) as total_lost
-        FROM sales_activities 
-        WHERE sales_id = ? 
-        GROUP BY month_sort 
-        ORDER BY month_sort DESC 
-        LIMIT 6
-    ");
-    $stmt->execute([$salesId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+$activityLimit = 5;
+$sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name
+                  FROM sales_activities sa 
+                  LEFT JOIN accounts a ON sa.account_id = a.id 
+                  LEFT JOIN users u ON sa.sales_id = u.id
+                  WHERE 1=1" . $sqlFilter . "
+                  ORDER BY sa.created_at DESC 
+                  LIMIT $activityLimit";
+$recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
 
-$filteredReportData = [];
-if ($filterSalesId > 0) {
-    $filteredReportData = getSalesMonthlyReport($db, $filterSalesId);
-} else {
-    $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
-    $allUsersForReport = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($allUsersForReport as $u) {
-        $filteredReportData[] = [
-            'name' => $u['full_name'],
-            'data' => getSalesMonthlyReport($db, $u['id'])
-        ];
-    }
+// ============================================
+// DATA CHART TREN (UNTOUK DASHBOARD)
+// ============================================
+$chartLabels = [];
+$chartValues = [];
+$chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities";
+if ($filterSalesId > 0) $chartQuery .= " WHERE sales_id = $filterSalesId";
+$chartQuery .= " GROUP BY DATE(created_at) ORDER BY date ASC LIMIT 7";
+$chartData = $db->query($chartQuery)->fetchAll(PDO::FETCH_ASSOC);
+
+$tempData = [];
+foreach ($chartData as $row) $tempData[$row['date']] = $row['total'];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $chartLabels[] = date('d M', strtotime("-$i days"));
+    $chartValues[] = isset($tempData[$date]) ? $tempData[$date] : 0;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - PT Ganda Elang Tangguh</title>
-    
     <link rel="icon" type="image/webp" href="images/favicon.webp">
+    
+    <!-- Bootstrap 5 & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fa; display: flex; min-height: 100vh; }
         
-        .sidebar { width: 260px; height: 100vh; background: #1a1a2e; position: fixed; top: 0; left: 0; z-index: 1000; padding: 20px; overflow-y: auto; transition: all 0.3s ease; }
-        .sidebar .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; text-decoration: none; }
-        .sidebar .brand .logo-wrapper { width: 40px; height: 40px; flex-shrink: 0; }
-        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text .brand-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
-        .sidebar .brand .brand-text .brand-name span { color: #ffd700; }
-        .sidebar .brand .brand-text .brand-sub { font-size: 8px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
-
-        .sidebar .menu-label { font-size: 11px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px 12px; font-weight: 600; }
-        .sidebar .nav-link { display: flex; align-items: center; padding: 12px 16px; color: rgba(255,255,255,0.6); text-decoration: none; border-radius: 10px; margin-bottom: 4px; transition: all 0.3s ease; font-size: 14px; font-weight: 500; }
-        .sidebar .nav-link i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255, 215, 0, 0.08); color: #fff; }
-        .sidebar .nav-link.active { color: #ffd700; background: rgba(255, 215, 0, 0.1); box-shadow: inset 3px 0 0 #ffd700; }
-        .sidebar .user-profile { margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px; }
-        .sidebar .user-profile .avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); color: #ffd700; display: flex; align-items: center; justify-content: center; font-weight: 700; }
-        .sidebar .user-profile .user-info .name { font-size: 14px; color: #fff; font-weight: 600; }
-        .sidebar .user-profile .user-info .role { font-size: 11px; color: rgba(255,255,255,0.4); }
-        .sidebar .logout-btn { display: flex; align-items: center; padding: 12px 16px; color: #ff6b6b; text-decoration: none; border-radius: 10px; margin-top: 10px; transition: all 0.3s ease; font-size: 14px; font-weight: 500; background: rgba(214, 48, 49, 0.1); }
-        .sidebar .logout-btn:hover { background: rgba(214, 48, 49, 0.2); }
-
-        .main-content { margin-left: 260px; padding: 30px 40px; width: 100%; min-height: 100vh; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
-        .page-header h4 { font-weight: 700; color: #1a1a2e; margin: 0; font-size: 22px; }
-        .page-header h4 span { color: #ffd700; }
-
-        /* STAT CARDS - DIPERBESAR DAN DIPERJELAS */
-        .stat-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); transition: transform 0.3s ease; height: 100%; text-align: center; }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-card .stat-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 10px auto; }
-        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.15); color: #d4a017; }
-        .stat-card .stat-icon.orange { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
-        .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
-        .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
-        .stat-card .stat-icon.gray { background: rgba(149, 165, 166, 0.15); color: #7f8c8d; }
-        
-        .stat-card .stat-number { font-size: 30px; font-weight: 800; color: #1a1a2e; }
-        .stat-card .stat-label { font-size: 13px; color: #888; font-weight: 500; margin-top: 2px; }
-
-        .chart-container { background: #fff; border-radius: 16px; padding: 24px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-top: 20px; height: 100%; }
-        
-        .filter-control { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
-        .filter-control .form-select { width: auto; min-width: 200px; border-radius: 8px; }
-        .filter-control .btn-group .btn { border-radius: 20px; padding: 4px 16px; font-size: 12px; border: 1px solid #dee2e6; }
-        .filter-control .btn-group .btn.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
-
-        /* REPORT CARD & TABLE */
-        .report-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 20px; height: 100%; }
-        .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 15px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
-        .report-header h5 { font-weight: 700; margin: 0; color: #1a1a2e; }
-        .table-report { font-size: 14px; width: 100%; }
-        .table-report th { font-weight: 600; color: #888; padding: 12px 8px; border-bottom: 1px solid #eee; }
-        .table-report td { padding: 12px 8px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
-        .table-report tr:last-child td { border-bottom: none; }
-        .text-deal { color: #27ae60; font-weight: 600; }
-        .text-lost { color: #e74c3c; font-weight: 600; }
-
-        /* PIPELINE ANGKA DI TENGAH DONUT */
-        .pipeline-center-text {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            pointer-events: none;
+        /* ---- SIDEBAR ---- */
+        .sidebar {
+            width: 260px; background: #fff; border-right: 1px solid #e0e4ea; 
+            position: fixed; top: 0; left: 0; bottom: 0; padding: 30px 20px; 
+            overflow-y: auto; z-index: 1000; transition: all 0.3s ease;
         }
-        .pipeline-center-text .big-number { font-size: 32px; font-weight: 800; color: #1a1a2e; display: block; }
-        .pipeline-center-text .small-label { font-size: 11px; color: #888; font-weight: 500; }
+        .sidebar .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; color: #1a1a2e; }
+        .sidebar .brand .logo-wrapper { width: 40px; height: 40px; }
+        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #1a1a2e; }
+        .sidebar .brand .brand-text h5 span { color: #ffd700; }
+        .sidebar .brand .brand-text small { font-size: 10px; color: #999; }
 
+        .sidebar .nav-item { display: flex; align-items: center; padding: 12px 16px; color: #7f8c8d; text-decoration: none; border-radius: 10px; margin-bottom: 5px; transition: all 0.2s; font-weight: 500; }
+        .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
+        .sidebar .nav-item:hover { background: #f8f9fa; color: #1a1a2e; }
+        .sidebar .nav-item.active { background: #fff3e6; color: #d4a017; }
+        
+        .sidebar .user-profile { margin-top: 40px; padding-top: 20px; border-top: 1px solid #f0f2f5; display: flex; align-items: center; gap: 12px; }
+        .sidebar .user-profile .avatar { width: 42px; height: 42px; border-radius: 50%; background: #1a1a2e; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+        .sidebar .user-profile .user-info .role { font-size: 12px; color: #999; }
+
+        /* ---- MAIN CONTENT ---- */
+        .main-content { margin-left: 260px; padding: 30px; width: 100%; }
+        
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .page-header h4 { font-weight: 800; color: #1a1a2e; font-size: 24px; margin:0; }
+        .page-header h4 span { color: #ffd700; }
+        .page-header .filter-area { display: flex; gap: 10px; align-items: center; }
+        .page-header .filter-area select { width: 180px; }
+
+        /* ---- STAT CARDS ---- */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; }
+        .stat-card .stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }
+        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
+        .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .stat-card .stat-icon.purple { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
+        .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
+        .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #1a1a2e; margin-bottom: 2px; }
+        .stat-card .stat-label { font-size: 13px; color: #888; }
+
+        /* ---- ROW PIPELINE & CHART ---- */
+        .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 991px) { .grid-2-col { grid-template-columns: 1fr; } }
+        
+        .pipeline-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; }
+        .pipeline-card h6 { font-weight: 600; margin-bottom: 15px; color: #1a1a2e; }
+        .pipeline-bars { display: flex; height: 6px; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        .pipeline-bars .bar { height: 100%; transition: width 0.5s; }
+        .pipeline-bars .bar.middle { background: #f39c12; }
+        .pipeline-bars .bar.hot { background: #e74c3c; }
+        .pipeline-bars .bar.deal { background: #2ecc71; }
+        .pipeline-bars .bar.lost { background: #95a5a6; }
+
+        .pipeline-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
+        .pipeline-stats .p-item .p-label { font-size: 11px; color: #888; display: block; }
+        .pipeline-stats .p-item .p-value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+        .pipeline-stats .p-item .p-value.middle { color: #f39c12; }
+        .pipeline-stats .p-item .p-value.hot { color: #e74c3c; }
+        .pipeline-stats .p-item .p-value.deal { color: #2ecc71; }
+        .pipeline-stats .p-item .p-value.lost { color: #95a5a6; }
+
+        .chart-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; }
+        .chart-card h6 { font-weight: 600; margin-bottom: 20px; color: #1a1a2e; }
+        .chart-wrapper { height: 220px; width: 100%; }
+
+        /* ---- RECENT ACTIVITIES ---- */
+        .activity-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; height: 100%; }
+        .activity-card h6 { font-weight: 600; margin-bottom: 20px; color: #1a1a2e; }
+        .activity-item { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f0f2f5; align-items: flex-start; }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-item .act-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .activity-item .act-icon.gold { background: rgba(255, 215, 0, 0.1); color: #d4a017; }
+        .activity-item .act-icon.blue { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
+        .activity-item .act-icon.green { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
+        .activity-item .act-icon.red { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
+        .activity-item .act-info { flex: 1; }
+        .activity-item .act-info .act-title { font-weight: 600; font-size: 14px; color: #1a1a2e; }
+        .activity-item .act-info .act-desc { font-size: 13px; color: #7f8c8d; margin-top: 2px; }
+        .activity-item .act-info .act-time { font-size: 11px; color: #bdc3c7; margin-top: 4px; display: block; }
+
+        /* ---- MOBILE ---- */
         @media (max-width: 991px) {
-            .sidebar { transform: translateX(-100%); width: 280px; }
+            .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 20px; }
-            .mobile-toggle { display: flex !important; align-items: center; justify-content: center; width: 40px; height: 40px; background: #1a1a2e; color: #fff; border-radius: 8px; border: none; cursor: pointer; font-size: 18px; }
+            .main-content { margin-left: 0; }
+            .mobile-toggle { display: flex !important; background: none; border: none; font-size: 24px; color: #1a1a2e; }
         }
         .mobile-toggle { display: none; }
     </style>
@@ -241,259 +259,226 @@ if ($filterSalesId > 0) {
     <!-- SIDEBAR -->
     <nav class="sidebar" id="sidebar">
         <a href="dashboard.php" class="brand">
-            <div class="logo-wrapper"><img src="images/logo.webp" alt="PT Ganda Elang Tangguh"></div>
-            <div class="brand-text"><div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div><div class="brand-sub">CRM System</div></div>
+            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
+            <div class="brand-text"><h5>GANDA <span>ELANG</span></h5><small>CRM System</small></div>
         </a>
-        <div class="menu-label">Menu Utama</div>
-        <a href="dashboard.php" class="nav-link active"><i class="fas fa-th-large"></i> Dashboard</a>
-        <?php if (in_array('account_management', $menuNames)): ?><a href="account_management.php" class="nav-link"><i class="fas fa-building"></i> Account</a><?php endif; ?>
-        <?php if (in_array('sales_activity', $menuNames)): ?><a href="salesactivity.php" class="nav-link"><i class="fas fa-chart-bar"></i> Sales Activity</a><?php endif; ?>
-        <?php if (in_array('transaction_request', $menuNames)): ?><a href="transactionrequest.php" class="nav-link"><i class="fas fa-file-signature"></i> TR Request</a><?php endif; ?>
-        <?php if (in_array('detail_transaction_request', $menuNames)): ?><a href="detailtr.php" class="nav-link"><i class="fas fa-file-alt"></i> Detail TR</a><?php endif; ?>
-        <?php if (in_array('produk', $menuNames)): ?><a href="produk.php" class="nav-link"><i class="fas fa-box"></i> Produk</a><?php endif; ?>
-        <?php if (in_array('delivery_order', $menuNames)): ?><a href="#" class="nav-link"><i class="fas fa-tractor"></i> Delivery</a><?php endif; ?>
-        <?php if (in_array('data_user', $menuNames)): ?><a href="data_user.php" class="nav-link"><i class="fas fa-users"></i> User</a><?php endif; ?>
+
+        <a href="dashboard.php" class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</a>
+        
+        <?php if (in_array('sales_activity', $menuNames)): ?>
+            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i> Sales Activity</a>
+        <?php endif; ?>
+        <?php if (in_array('account_management', $menuNames)): ?>
+            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
+        <?php endif; ?>
+        <?php if (in_array('transaction_request', $menuNames)): ?>
+            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
+        <?php endif; ?>
+        <?php if (in_array('detail_transaction_request', $menuNames)): ?>
+            <a href="detailtr.php" class="nav-item"><i class="fas fa-file-alt"></i> Detail TR</a>
+        <?php endif; ?>
+        <?php if (in_array('produk', $menuNames)): ?>
+            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
+        <?php endif; ?>
+        <?php if (in_array('delivery_order', $menuNames)): ?>
+            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+        <?php endif; ?>
+        <?php if (in_array('data_user', $menuNames)): ?>
+            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
+        <?php endif; ?>
 
         <div class="user-profile">
             <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-            <div class="user-info"><div class="name"><?= htmlspecialchars($fullName) ?></div><div class="role"><?= getRoleLabel($role) ?></div></div>
+            <div class="user-info">
+                <div class="name"><?= htmlspecialchars($fullName) ?></div>
+                <div class="role"><?= getRoleLabel($role) ?></div>
+            </div>
         </div>
-        <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt" style="margin-right:12px;"></i> Logout</a>
+        <a href="logout.php" style="display:block; text-align:center; margin-top:15px; color:#e74c3c; text-decoration:none; font-weight:600;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
     </nav>
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
+        
+        <!-- HEADER -->
         <div class="page-header">
-            <div>
-                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h4>Sales <span>Dashboard</span></h4>
             </div>
-            <div style="background:#fff; padding: 8px 16px; border-radius: 8px; box-shadow:0 2px 5px rgba(0,0,0,0.03); font-size:14px; font-weight:500;"><?= date('d F Y') ?></div>
-        </div>
-
-        <!-- STATISTICS CARDS (Semua Angka Muncul di Sini) -->
-        <div class="row g-4">
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card"><div class="stat-icon gold"><i class="fas fa-chart-line"></i></div><div class="stat-number"><?= number_format($totalActivities) ?></div><div class="stat-label">Total Aktivitas</div></div>
-            </div>
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-user-tie"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Middle Prospek']) ?></div><div class="stat-label">Middle Prospek</div></div>
-            </div>
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card"><div class="stat-icon red"><i class="fas fa-fire"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Hot Prospek']) ?></div><div class="stat-label">Hot Prospek</div></div>
-            </div>
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card"><div class="stat-icon green"><i class="fas fa-handshake"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div><div class="stat-label">Deal (Kontrak)</div></div>
-            </div>
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card"><div class="stat-icon gray"><i class="fas fa-times-circle"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Lost Prospek']) ?></div><div class="stat-label">Lost Prospek</div></div>
-            </div>
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-user"></i></div><div class="stat-number" style="font-size: 20px;"><?= htmlspecialchars($filteredSalesName) ?></div><div class="stat-label">Data Sedang Ditinjau</div></div>
+            <div class="filter-area">
+                <span style="font-weight:500; color:#555;">Filter:</span>
+                <?php if (!$isSalesRole): ?>
+                <select class="form-select form-select-sm" onchange="window.location.href='?sales_id='+this.value">
+                    <option value="0">Semua Sales</option>
+                    <?php foreach ($allSalesList as $s): ?>
+                    <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($s['full_name']) ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php endif; ?>
             </div>
         </div>
 
-        <!-- FILTER & CHART SECTION -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="chart-container">
-                    <div class="filter-control">
-                        <div class="d-flex align-items-center gap-3 flex-wrap w-100">
-                            <?php if (!$isSalesRole): ?>
-                            <div class="d-flex align-items-center gap-2">
-                                <label class="fw-bold text-secondary small">Sales:</label>
-                                <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()">
-                                    <option value="0">-- Semua Sales --</option>
-                                    <?php foreach ($allSalesList as $s): ?>
-                                    <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($s['full_name']) ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <?php endif; ?>
+        <!-- STAT CARDS -->
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-icon gold"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-number"><?= number_format($totalActivities) ?></div>
+                <div class="stat-label">Total Aktivitas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red"><i class="fas fa-fire"></i></div>
+                <div class="stat-number"><?= number_format($pipelineCounts['Hot Prospek']) ?></div>
+                <div class="stat-label">Hot Prospek</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-handshake"></i></div>
+                <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
+                <div class="stat-label">Deal (Kontrak)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                <div class="stat-number" style="font-size:18px;"><?= htmlspecialchars($filteredSalesName) ?></div>
+                <div class="stat-label">Sedang Ditinjau</div>
+            </div>
+        </div>
 
-                            <div class="d-flex align-items-center gap-2 ms-auto">
-                                <label class="fw-bold text-secondary small">Periode:</label>
-                                <div class="btn-group btn-group-sm" id="timeFilterGroup">
-                                    <button class="btn btn-outline-secondary active" data-period="daily">Harian</button>
-                                    <button class="btn btn-outline-secondary" data-period="weekly">Mingguan</button>
-                                    <button class="btn btn-outline-secondary" data-period="monthly">Bulanan</button>
-                                </div>
-                            </div>
+        <!-- GRID: PIPELINE & CHART -->
+        <div class="grid-2-col">
+            <!-- Pipeline -->
+            <div class="pipeline-card">
+                <h6><i class="fas fa-filter" style="color:#ffd700;"></i> Sales Pipeline</h6>
+                <div class="pipeline-bars">
+                    <div class="bar middle" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Middle Prospek'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
+                    <div class="bar hot" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Hot Prospek'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
+                    <div class="bar deal" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Deal'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
+                    <div class="bar lost" style="width: <?= array_sum($pipelineValues) > 0 ? ($pipelineCounts['Lost Prospek'] / array_sum($pipelineValues) * 100) : 0 ?>%;"></div>
+                </div>
+                <div class="pipeline-stats">
+                    <div class="p-item"><span class="p-label">Middle</span><span class="p-value middle"><?= $pipelineCounts['Middle Prospek'] ?></span></div>
+                    <div class="p-item"><span class="p-label">Hot</span><span class="p-value hot"><?= $pipelineCounts['Hot Prospek'] ?></span></div>
+                    <div class="p-item"><span class="p-label">Deal</span><span class="p-value deal"><?= $pipelineCounts['Deal'] ?></span></div>
+                    <div class="p-item"><span class="p-label">Lost</span><span class="p-value lost"><?= $pipelineCounts['Lost Prospek'] ?></span></div>
+                </div>
+                <div style="margin-top:15px; display:flex; justify-content:space-between; background:#f8f9fa; padding:10px 15px; border-radius:8px;">
+                    <span style="color:#888; font-size:13px;">Total Prospek Aktif</span>
+                    <span style="font-weight:700; color:#1a1a2e;"><?= $pipelineCounts['Middle Prospek'] + $pipelineCounts['Hot Prospek'] + $pipelineCounts['Deal'] ?></span>
+                </div>
+            </div>
+
+            <!-- Chart Tren -->
+            <div class="chart-card">
+                <h6><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas (7 Hari)</h6>
+                <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- GRID: AKTIVITAS TERBARU & LAPORAN SALES -->
+        <div class="grid-2-col">
+            <!-- Recent Activities -->
+            <div class="activity-card">
+                <div style="display:flex; justify-content:space-between;">
+                    <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
+                    <a href="salesactivity.php" style="font-size:12px; color:#2980b9; text-decoration:none;">Lihat Semua</a>
+                </div>
+                
+                <?php if (!empty($recentActivities)): ?>
+                    <?php foreach ($recentActivities as $act): ?>
+                    <div class="activity-item">
+                        <div class="act-icon gold"><i class="fas fa-file-alt"></i></div>
+                        <div class="act-info">
+                            <div class="act-title"><?= htmlspecialchars($act['subject']) ?></div>
+                            <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas']) ?></div>
+                            <span class="act-time"><?= date('d M H:i', strtotime($act['created_at'])) ?></span>
                         </div>
                     </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center text-muted py-3">Belum ada aktivitas.</div>
+                <?php endif; ?>
+            </div>
 
-                    <div style="height: 300px; width: 100%;">
-                        <canvas id="trendChart"></canvas>
-                    </div>
+            <!-- Monthly Sales Report (Ringkasan Sales) -->
+            <div class="activity-card">
+                <div style="display:flex; justify-content:space-between;">
+                    <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Performa Sales (Bulan Ini)</h6>
+                </div>
+                <div style="overflow-y:auto; max-height:300px;">
+                    <table class="table table-sm table-hover" style="font-size:14px; margin:0;">
+                        <thead><tr><th>Sales</th><th class="text-center">Deal</th><th class="text-center">Lost</th></tr></thead>
+                        <tbody>
+                            <?php 
+                            $reportData = $filteredReportData ?? [];
+                            if ($filterSalesId > 0) {
+                                // Jika filter satu sales
+                                $totalDeal = 0; $totalLost = 0;
+                                foreach($filteredReportData as $m) { $totalDeal += $m['total_deal']; $totalLost += $m['total_lost']; }
+                                echo "<tr><td><strong>" . htmlspecialchars($filteredSalesName) . "</strong></td>
+                                      <td class='text-center text-deal'>$totalDeal</td>
+                                      <td class='text-center text-lost'>$totalLost</td></tr>";
+                            } else {
+                                // Jika semua sales
+                                foreach($filteredReportData as $sales):
+                                    $gtD = 0; $gtL = 0;
+                                    foreach($sales['data'] as $m) { $gtD += $m['total_deal']; $gtL += $m['total_lost']; }
+                            ?>
+                            <tr>
+                                <td><i class="fas fa-user-circle me-2 text-secondary"></i> <?= htmlspecialchars($sales['name']) ?></td>
+                                <td class="text-center text-deal"><strong><?= $gtD ?></strong></td>
+                                <td class="text-center text-lost"><?= $gtL ?></td>
+                            </tr>
+                            <?php endforeach; } ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-
-        <!-- CHART KEDUA: PIPELINE & TABLE REPORT -->
-        <div class="row mt-4">
-            <div class="col-lg-5">
-                <div class="chart-container" style="position: relative; height: 100%;">
-                    <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> Pipeline Prospek (Visual)</h6>
-                    
-                    <!-- Teks Angka di Tengah Donut -->
-                    <div class="pipeline-center-text">
-                        <span class="big-number"><?= array_sum($pipelineValues) ?></span>
-                        <span class="small-label">Total Prospek</span>
-                    </div>
-                    
-                    <div style="height: 250px; width: 100%;">
-                        <canvas id="pipelineChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-7">
-                <div class="report-card">
-                    <div class="report-header">
-                        <h5><i class="fas fa-clipboard-list" style="color:#ffd700; margin-right:8px;"></i> Laporan Performa Bulanan</h5>
-                        <span class="badge-sales"><i class="fas fa-database me-1"></i> <?= htmlspecialchars($filteredSalesName) ?></span>
-                    </div>
-                    
-                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                        <table class="table table-report table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Bulan</th>
-                                    <th class="text-center">Total Aktivitas</th>
-                                    <th class="text-center text-deal">Deal</th>
-                                    <th class="text-center text-lost">Lost</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if ($filterSalesId > 0): ?>
-                                    <!-- Mode: Detail Satu Sales -->
-                                    <?php if (!empty($filteredReportData)): 
-                                        $gt = 0; $gd = 0; $gl = 0;
-                                        foreach($filteredReportData as $m) { $gt += $m['total_activity']; $gd += $m['total_deal']; $gl += $m['total_lost']; }
-                                    ?>
-                                        <?php foreach ($filteredReportData as $monthData): ?>
-                                        <tr>
-                                            <td><strong><?= htmlspecialchars($monthData['month_label']) ?></strong></td>
-                                            <td class="text-center"><span class="badge bg-dark bg-opacity-10 text-dark"><?= $monthData['total_activity'] ?></span></td>
-                                            <td class="text-center text-deal"><i class="fas fa-check-circle me-1"></i> <?= $monthData['total_deal'] ?></td>
-                                            <td class="text-center text-lost"><i class="fas fa-times-circle me-1"></i> <?= $monthData['total_lost'] ?></td>
-                                        </tr>
-                                        <?php endforeach; ?>
-                                        <tr style="border-top: 2px solid #1a1a2e;">
-                                            <td><strong>TOTAL KESELURUHAN</strong></td>
-                                            <td class="text-center"><strong><?= $gt ?></strong></td>
-                                            <td class="text-center text-deal"><strong><?= $gd ?></strong></td>
-                                            <td class="text-center text-lost"><strong><?= $gl ?></strong></td>
-                                        </tr>
-                                    <?php else: ?>
-                                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data aktivitas sales ini.</td></tr>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <!-- Mode: Semua Sales -->
-                                    <?php if (!empty($filteredReportData)): ?>
-                                        <?php foreach ($filteredReportData as $salesReport): ?>
-                                            <tr style="background:#f8f9fa; border-top:1px solid #dee2e6;">
-                                                <td colspan="4"><strong><i class="fas fa-user me-2"></i> <?= htmlspecialchars($salesReport['name']) ?></strong></td>
-                                            </tr>
-                                            <?php 
-                                            $gt = 0; $gd = 0; $gl = 0;
-                                            foreach($salesReport['data'] as $m) { $gt += $m['total_activity']; $gd += $m['total_deal']; $gl += $m['total_lost']; }
-                                            ?>
-                                            <?php foreach ($salesReport['data'] as $monthData): ?>
-                                            <tr>
-                                                <td style="padding-left: 30px;"><?= htmlspecialchars($monthData['month_label']) ?></td>
-                                                <td class="text-center"><span class="badge bg-dark bg-opacity-10 text-dark"><?= $monthData['total_activity'] ?></span></td>
-                                                <td class="text-center text-deal"><i class="fas fa-check-circle me-1"></i> <?= $monthData['total_deal'] ?></td>
-                                                <td class="text-center text-lost"><i class="fas fa-times-circle me-1"></i> <?= $monthData['total_lost'] ?></td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                            <tr>
-                                                <td style="padding-left: 30px;"><strong>Total <?= htmlspecialchars($salesReport['name']) ?></strong></td>
-                                                <td class="text-center"><strong><?= $gt ?></strong></td>
-                                                <td class="text-center text-deal"><strong><?= $gd ?></strong></td>
-                                                <td class="text-center text-lost"><strong><?= $gl ?></strong></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data sales.</td></tr>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+        
+        <div class="text-center mt-4 text-muted" style="font-size:12px;">&copy; <?= date('Y') ?> PT Ganda Elang Tangguh - CRM</div>
 
     </div>
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // CHART UTAMA (TREN)
-        // ============================================
-        const ctxTrend = document.getElementById('trendChart').getContext('2d');
-        let trendChart = new Chart(ctxTrend, {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Aktivitas', data: [], borderColor: '#ffd700', backgroundColor: 'rgba(255,215,0,0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
-        });
+        // CHART TREN
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 200);
+        grad.addColorStop(0, 'rgba(52, 152, 219, 0.6)');
+        grad.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
 
-        // ============================================
-        // CHART PIPELINE (DONUT) + ANGKA DI TENGAH
-        // ============================================
-        const ctxPipeline = document.getElementById('pipelineChart').getContext('2d');
-        new Chart(ctxPipeline, {
-            type: 'doughnut',
-            data: { 
-                labels: <?= json_encode($pipelineLabels) ?>, 
-                datasets: [{ 
-                    data: <?= json_encode($pipelineValues) ?>, 
-                    backgroundColor: ['#f39c12','#e74c3c','#2ecc71','#95a5a6'], 
-                    borderColor: '#fff', borderWidth: 3, hoverOffset: 10 
-                }] 
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($chartLabels) ?>,
+                datasets: [{
+                    label: 'Aktivitas',
+                    data: <?= json_encode($chartValues) ?>,
+                    backgroundColor: grad,
+                    borderColor: '#2980b9',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#2980b9',
+                    pointBorderWidth: 2
+                }]
             },
             options: {
-                responsive: true, maintainAspectRatio: false, cutout: '72%',
-                plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 12, weight: '500' } } }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } },
+                    x: { grid: { display: false } }
                 }
             }
-        });
-
-        // ============================================
-        // LOGIKA FILTER
-        // ============================================
-        function applyFilter() {
-            const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
-            window.location.href = '?sales_id=' + salesId;
-        }
-
-        document.querySelectorAll('#timeFilterGroup .btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('#timeFilterGroup .btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-
-                const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
-                const period = this.dataset.period;
-
-                fetch(`api/get_trend_data.php?sales_id=${salesId}&period=${period}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        trendChart.data.labels = data.labels;
-                        trendChart.data.datasets[0].data = data.values;
-                        trendChart.update();
-                    })
-                    .catch(error => console.error('Error:', error));
-            });
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const defaultBtn = document.querySelector('#timeFilterGroup .btn.active');
-            if (defaultBtn) defaultBtn.click();
         });
     </script>
 </body>
