@@ -41,35 +41,27 @@ function getRoleLabel($role) {
 $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $isSalesRole = ($role === 'sales');
 
-// Jika user login sebagai Sales, paksa filter ke ID diri sendiri
 if ($isSalesRole) {
     $filterSalesId = $userId;
 }
 
-// Ambil list Sales untuk dropdown (Hanya untuk Admin)
 $allSalesList = [];
 if (!$isSalesRole) {
     $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
     $allSalesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Bangun Query Filter SQL dasar
 $sqlFilter = "";
 if ($filterSalesId > 0) {
     $sqlFilter = " AND sa.sales_id = $filterSalesId";
 }
 
 // ============================================
-// DATA STATISTIK
+// DATA STATISTIK & PIPELINE
 // ============================================
-// Total Aktivitas
 $sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilter;
 $totalActivities = $db->query($sqlTotal)->fetchColumn();
 
-// ============================================
-// DATA PIPELINE PROSPEK (Donut Chart)
-// Menggunakan logika query lanjutan seperti di salesactivity.php
-// ============================================
 $pipelineCounts = [
     'Middle Prospek' => 0,
     'Hot Prospek'    => 0,
@@ -114,9 +106,10 @@ $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
 $pipelineLabels = array_keys($pipelineCounts);
 $pipelineValues = array_values($pipelineCounts);
+$filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
 // ============================================
-// DATA LAPORAN PER BULAN (Untuk Tabel di Bawah)
+// DATA LAPORAN PER BULAN
 // ============================================
 function getSalesMonthlyReport($db, $salesId) {
     $stmt = $db->prepare("
@@ -135,16 +128,10 @@ function getSalesMonthlyReport($db, $salesId) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Ambil data report sesuai filter
 $filteredReportData = [];
-$filteredSalesName = 'Semua Sales';
 if ($filterSalesId > 0) {
-    $stmt = $db->prepare("SELECT full_name FROM users WHERE id = ?");
-    $stmt->execute([$filterSalesId]);
-    $filteredSalesName = $stmt->fetchColumn() ?: 'Sales';
     $filteredReportData = getSalesMonthlyReport($db, $filterSalesId);
 } else {
-    // Jika Admin memilih "Semua Sales", kita ambil report dari semua sales
     $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
     $allUsersForReport = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($allUsersForReport as $u) {
@@ -172,6 +159,7 @@ if ($filterSalesId > 0) {
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; }
+        
         .sidebar { width: 260px; height: 100vh; background: #1a1a2e; position: fixed; top: 0; left: 0; z-index: 1000; padding: 20px; overflow-y: auto; transition: all 0.3s ease; }
         .sidebar .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; text-decoration: none; }
         .sidebar .brand .logo-wrapper { width: 40px; height: 40px; flex-shrink: 0; }
@@ -185,7 +173,6 @@ if ($filterSalesId > 0) {
         .sidebar .nav-link i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255, 215, 0, 0.08); color: #fff; }
         .sidebar .nav-link.active { color: #ffd700; background: rgba(255, 215, 0, 0.1); box-shadow: inset 3px 0 0 #ffd700; }
-
         .sidebar .user-profile { margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px; }
         .sidebar .user-profile .avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); color: #ffd700; display: flex; align-items: center; justify-content: center; font-weight: 700; }
         .sidebar .user-profile .user-info .name { font-size: 14px; color: #fff; font-weight: 600; }
@@ -193,32 +180,33 @@ if ($filterSalesId > 0) {
         .sidebar .logout-btn { display: flex; align-items: center; padding: 12px 16px; color: #ff6b6b; text-decoration: none; border-radius: 10px; margin-top: 10px; transition: all 0.3s ease; font-size: 14px; font-weight: 500; background: rgba(214, 48, 49, 0.1); }
         .sidebar .logout-btn:hover { background: rgba(214, 48, 49, 0.2); }
 
-        /* MAIN CONTENT */
         .main-content { margin-left: 260px; padding: 30px 40px; width: 100%; min-height: 100vh; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
         .page-header h4 { font-weight: 700; color: #1a1a2e; margin: 0; font-size: 22px; }
         .page-header h4 span { color: #ffd700; }
 
-        /* STAT CARDS */
-        .stat-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); transition: transform 0.3s ease; height: 100%; }
+        /* STAT CARDS - DIPERBESAR DAN DIPERJELAS */
+        .stat-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); transition: transform 0.3s ease; height: 100%; text-align: center; }
         .stat-card:hover { transform: translateY(-5px); }
-        .stat-card .stat-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
-        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
-        .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .stat-card .stat-icon.purple { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
-        .stat-card .stat-number { font-size: 28px; font-weight: 800; color: #1a1a2e; }
-        .stat-card .stat-label { font-size: 13px; color: #888; font-weight: 500; }
+        .stat-card .stat-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 10px auto; }
+        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.15); color: #d4a017; }
+        .stat-card .stat-icon.orange { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
+        .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+        .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
+        .stat-card .stat-icon.gray { background: rgba(149, 165, 166, 0.15); color: #7f8c8d; }
+        
+        .stat-card .stat-number { font-size: 30px; font-weight: 800; color: #1a1a2e; }
+        .stat-card .stat-label { font-size: 13px; color: #888; font-weight: 500; margin-top: 2px; }
 
-        /* CHART CONTAINER */
         .chart-container { background: #fff; border-radius: 16px; padding: 24px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-top: 20px; height: 100%; }
+        
         .filter-control { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
         .filter-control .form-select { width: auto; min-width: 200px; border-radius: 8px; }
         .filter-control .btn-group .btn { border-radius: 20px; padding: 4px 16px; font-size: 12px; border: 1px solid #dee2e6; }
         .filter-control .btn-group .btn.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
 
-        /* SALES REPORT TABLE & CARDS */
-        .report-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 20px; }
+        /* REPORT CARD & TABLE */
+        .report-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 20px; height: 100%; }
         .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 15px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
         .report-header h5 { font-weight: 700; margin: 0; color: #1a1a2e; }
         .table-report { font-size: 14px; width: 100%; }
@@ -227,6 +215,17 @@ if ($filterSalesId > 0) {
         .table-report tr:last-child td { border-bottom: none; }
         .text-deal { color: #27ae60; font-weight: 600; }
         .text-lost { color: #e74c3c; font-weight: 600; }
+
+        /* PIPELINE ANGKA DI TENGAH DONUT */
+        .pipeline-center-text {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+        .pipeline-center-text .big-number { font-size: 32px; font-weight: 800; color: #1a1a2e; display: block; }
+        .pipeline-center-text .small-label { font-size: 11px; color: #888; font-weight: 500; }
 
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); width: 280px; }
@@ -272,19 +271,25 @@ if ($filterSalesId > 0) {
             <div style="background:#fff; padding: 8px 16px; border-radius: 8px; box-shadow:0 2px 5px rgba(0,0,0,0.03); font-size:14px; font-weight:500;"><?= date('d F Y') ?></div>
         </div>
 
-        <!-- STATISTICS CARDS -->
+        <!-- STATISTICS CARDS (Semua Angka Muncul di Sini) -->
         <div class="row g-4">
-            <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="col-xl-2 col-lg-4 col-md-6">
                 <div class="stat-card"><div class="stat-icon gold"><i class="fas fa-chart-line"></i></div><div class="stat-number"><?= number_format($totalActivities) ?></div><div class="stat-label">Total Aktivitas</div></div>
             </div>
-            <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-calendar-week"></i></div><div class="stat-number"><?= date('M Y') ?></div><div class="stat-label">Bulan Berjalan</div></div>
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-user-tie"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Middle Prospek']) ?></div><div class="stat-label">Middle Prospek</div></div>
             </div>
-            <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card"><div class="stat-icon green"><i class="fas fa-users"></i></div><div class="stat-number"><?= htmlspecialchars($filteredSalesName) ?></div><div class="stat-label">Data Sedang Ditinjau</div></div>
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card"><div class="stat-icon red"><i class="fas fa-fire"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Hot Prospek']) ?></div><div class="stat-label">Hot Prospek</div></div>
             </div>
-            <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-clock"></i></div><div class="stat-number"><?= date('H:i') ?></div><div class="stat-label">Jam Sekarang</div></div>
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card"><div class="stat-icon green"><i class="fas fa-handshake"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div><div class="stat-label">Deal (Kontrak)</div></div>
+            </div>
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card"><div class="stat-icon gray"><i class="fas fa-times-circle"></i></div><div class="stat-number"><?= number_format($pipelineCounts['Lost Prospek']) ?></div><div class="stat-label">Lost Prospek</div></div>
+            </div>
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-user"></i></div><div class="stat-number" style="font-size: 20px;"><?= htmlspecialchars($filteredSalesName) ?></div><div class="stat-label">Data Sedang Ditinjau</div></div>
             </div>
         </div>
 
@@ -292,10 +297,8 @@ if ($filterSalesId > 0) {
         <div class="row mt-4">
             <div class="col-12">
                 <div class="chart-container">
-                    <!-- Kontrol Filter Sales & Time Range -->
                     <div class="filter-control">
                         <div class="d-flex align-items-center gap-3 flex-wrap w-100">
-                            <!-- Dropdown Pilih Sales (Hanya untuk Admin) -->
                             <?php if (!$isSalesRole): ?>
                             <div class="d-flex align-items-center gap-2">
                                 <label class="fw-bold text-secondary small">Sales:</label>
@@ -310,7 +313,6 @@ if ($filterSalesId > 0) {
                             </div>
                             <?php endif; ?>
 
-                            <!-- Filter Periode Chart -->
                             <div class="d-flex align-items-center gap-2 ms-auto">
                                 <label class="fw-bold text-secondary small">Periode:</label>
                                 <div class="btn-group btn-group-sm" id="timeFilterGroup">
@@ -322,7 +324,6 @@ if ($filterSalesId > 0) {
                         </div>
                     </div>
 
-                    <!-- Chart Utama (Tren Aktivitas) -->
                     <div style="height: 300px; width: 100%;">
                         <canvas id="trendChart"></canvas>
                     </div>
@@ -333,8 +334,15 @@ if ($filterSalesId > 0) {
         <!-- CHART KEDUA: PIPELINE & TABLE REPORT -->
         <div class="row mt-4">
             <div class="col-lg-5">
-                <div class="chart-container" style="height: 100%;">
-                    <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> Pipeline Prospek</h6>
+                <div class="chart-container" style="position: relative; height: 100%;">
+                    <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> Pipeline Prospek (Visual)</h6>
+                    
+                    <!-- Teks Angka di Tengah Donut -->
+                    <div class="pipeline-center-text">
+                        <span class="big-number"><?= array_sum($pipelineValues) ?></span>
+                        <span class="small-label">Total Prospek</span>
+                    </div>
+                    
                     <div style="height: 250px; width: 100%;">
                         <canvas id="pipelineChart"></canvas>
                     </div>
@@ -342,9 +350,9 @@ if ($filterSalesId > 0) {
             </div>
             
             <div class="col-lg-7">
-                <div class="report-card" style="height: 100%;">
+                <div class="report-card">
                     <div class="report-header">
-                        <h5><i class="fas fa-clipboard-list" style="color:#ffd700; margin-right:8px;"></i> Laporan Bulanan</h5>
+                        <h5><i class="fas fa-clipboard-list" style="color:#ffd700; margin-right:8px;"></i> Laporan Performa Bulanan</h5>
                         <span class="badge-sales"><i class="fas fa-database me-1"></i> <?= htmlspecialchars($filteredSalesName) ?></span>
                     </div>
                     
@@ -353,14 +361,14 @@ if ($filterSalesId > 0) {
                             <thead>
                                 <tr>
                                     <th>Bulan</th>
-                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Total Aktivitas</th>
                                     <th class="text-center text-deal">Deal</th>
                                     <th class="text-center text-lost">Lost</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if ($filterSalesId > 0): ?>
-                                    <!-- Mode: Satu Sales Spesifik -->
+                                    <!-- Mode: Detail Satu Sales -->
                                     <?php if (!empty($filteredReportData)): 
                                         $gt = 0; $gd = 0; $gl = 0;
                                         foreach($filteredReportData as $m) { $gt += $m['total_activity']; $gd += $m['total_deal']; $gl += $m['total_lost']; }
@@ -374,16 +382,16 @@ if ($filterSalesId > 0) {
                                         </tr>
                                         <?php endforeach; ?>
                                         <tr style="border-top: 2px solid #1a1a2e;">
-                                            <td><strong>TOTAL</strong></td>
+                                            <td><strong>TOTAL KESELURUHAN</strong></td>
                                             <td class="text-center"><strong><?= $gt ?></strong></td>
                                             <td class="text-center text-deal"><strong><?= $gd ?></strong></td>
                                             <td class="text-center text-lost"><strong><?= $gl ?></strong></td>
                                         </tr>
                                     <?php else: ?>
-                                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data aktivitas.</td></tr>
+                                        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada data aktivitas sales ini.</td></tr>
                                     <?php endif; ?>
                                 <?php else: ?>
-                                    <!-- Mode: Semua Sales (List per Sales) -->
+                                    <!-- Mode: Semua Sales -->
                                     <?php if (!empty($filteredReportData)): ?>
                                         <?php foreach ($filteredReportData as $salesReport): ?>
                                             <tr style="background:#f8f9fa; border-top:1px solid #dee2e6;">
@@ -425,7 +433,7 @@ if ($filterSalesId > 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // CHART UTAMA (TREN - AKAN DIUPDATE VIA AJAX)
+        // CHART UTAMA (TREN)
         // ============================================
         const ctxTrend = document.getElementById('trendChart').getContext('2d');
         let trendChart = new Chart(ctxTrend, {
@@ -435,7 +443,7 @@ if ($filterSalesId > 0) {
         });
 
         // ============================================
-        // CHART PIPELINE (DONUT)
+        // CHART PIPELINE (DONUT) + ANGKA DI TENGAH
         // ============================================
         const ctxPipeline = document.getElementById('pipelineChart').getContext('2d');
         new Chart(ctxPipeline, {
@@ -448,38 +456,33 @@ if ($filterSalesId > 0) {
                     borderColor: '#fff', borderWidth: 3, hoverOffset: 10 
                 }] 
             },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 12, weight: '500' } } } } }
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '72%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 12, weight: '500' } } }
+                }
+            }
         });
 
         // ============================================
-        // LOGIKA FILTER (AJAX REQUEST)
+        // LOGIKA FILTER
         // ============================================
         function applyFilter() {
             const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
-            const activePeriod = document.querySelector('#timeFilterGroup .btn.active');
-            const period = activePeriod ? activePeriod.dataset.period : 'daily';
-            
-            // Reload halaman dengan parameter GET untuk merefresh semua data (Table, Statistic, Donut)
-            // agar laporan tabel dan pipeline ikut berubah sesuai user yang dipilih
             window.location.href = '?sales_id=' + salesId;
         }
 
-        // Event listener untuk tombol Periode (Harian, Mingguan, Bulanan)
         document.querySelectorAll('#timeFilterGroup .btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                // Update active state tombol
                 document.querySelectorAll('#timeFilterGroup .btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
 
-                // Ambil parameter yang ada
                 const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
                 const period = this.dataset.period;
 
-                // Fetch Data AJAX
                 fetch(`api/get_trend_data.php?sales_id=${salesId}&period=${period}`)
                     .then(response => response.json())
                     .then(data => {
-                        // Update Chart
                         trendChart.data.labels = data.labels;
                         trendChart.data.datasets[0].data = data.values;
                         trendChart.update();
@@ -488,12 +491,9 @@ if ($filterSalesId > 0) {
             });
         });
 
-        // Trigger klik pertama kali untuk memuat data default (Daily)
         document.addEventListener('DOMContentLoaded', function() {
             const defaultBtn = document.querySelector('#timeFilterGroup .btn.active');
-            if (defaultBtn) {
-                defaultBtn.click();
-            }
+            if (defaultBtn) defaultBtn.click();
         });
     </script>
 </body>
