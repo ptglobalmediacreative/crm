@@ -596,11 +596,27 @@ if ($filterSalesId > 0) {
                 </div>
                 
                 <?php if (!empty($recentActivities)): ?>
-                    <?php foreach ($recentActivities as $act): ?>
+                    <?php foreach ($recentActivities as $act): 
+                        // Ambil inisial nama Sales (maksimal 2 huruf)
+                        $salesInitial = '';
+                        if (!empty($act['sales_name'])) {
+                            $names = explode(' ', $act['sales_name']);
+                            if (count($names) >= 2) {
+                                $salesInitial = strtoupper(substr($names[0], 0, 1) . substr($names[1], 0, 1));
+                            } else {
+                                $salesInitial = strtoupper(substr($act['sales_name'], 0, 2));
+                            }
+                        }
+                    ?>
                     <div class="activity-item">
                         <div class="act-icon gold"><i class="fas fa-file-alt"></i></div>
                         <div class="act-info">
-                            <div class="act-title"><?= htmlspecialchars($act['subject']) ?></div>
+                            <div class="act-title">
+                                <?php if (!empty($salesInitial)): ?>
+                                    <span class="badge bg-primary me-2" style="font-size:11px;"><?= $salesInitial ?></span>
+                                <?php endif; ?>
+                                <?= htmlspecialchars($act['subject']) ?>
+                            </div>
                             <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas']) ?></div>
                             <span class="act-time"><?= date('d M H:i', strtotime($act['created_at'])) ?></span>
                         </div>
