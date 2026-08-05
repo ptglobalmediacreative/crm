@@ -13,27 +13,9 @@ if (!isLoggedIn()) {
 $userMenus = getUserMenus();
 $menuNames = array_column($userMenus, 'module_name');
 
-// Ambil data untuk badge
-$totalUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-$totalActive = $db->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
-
-// ============================================
-// AMBIL TOTAL SALES ACTIVITY SESUAI USER
-// ============================================
-$userId = $_SESSION['user_id'] ?? 0;
-$userRole = $_SESSION['role'] ?? 'user';
-
-if ($userRole === 'sales') {
-    // Sales hanya melihat aktivitasnya sendiri
-    $salesActivity = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId")->fetchColumn();
-} else {
-    // Admin/Full Access melihat semua aktivitas
-    $salesActivity = $db->query("SELECT COUNT(*) FROM sales_activities")->fetchColumn();
-}
-
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
-$username = $_SESSION['username'] ?? '';
+$userId = $_SESSION['user_id'] ?? 0;
 
 // ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
@@ -53,9 +35,46 @@ function getRoleLabel($role) {
     return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
 }
 
-// Cek banner
-$bannerPath = 'images/banner.png';
-$bannerExists = file_exists($bannerPath);
+// ============================================
+// AMBIL DATA UNTUK CHART & STATISTIK
+// ============================================
+
+// 1. Total Sales Activity (Filter berdasarkan Role)
+if ($role === 'sales') {
+    // Sales hanya melihat aktivitasnya sendiri
+    $totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId")->fetchColumn();
+    $chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities WHERE sales_id = $userId GROUP BY DATE(created_at) ORDER BY date ASC LIMIT 7";
+} else {
+    // Admin/Full Access melihat semua aktivitas sales
+    $totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities")->fetchColumn();
+    $chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities GROUP BY DATE(created_at) ORDER BY date ASC LIMIT 7";
+}
+
+// 2. Data untuk Chart (7 Hari Terakhir)
+$chartData = $db->query($chartQuery)->fetchAll(PDO::FETCH_ASSOC);
+
+$chartLabels = [];
+$chartValues = [];
+
+// Jika tidak ada data dalam 7 hari terakhir, beri default 0
+if (empty($chartData)) {
+    for ($i = 6; $i >= 0; $i--) {
+        $chartLabels[] = date('d M', strtotime("-$i days"));
+        $chartValues[] = 0;
+    }
+} else {
+    // Mapping data dari database ke 7 hari terakhir
+    $tempData = [];
+    foreach ($chartData as $row) {
+        $tempData[$row['date']] = $row['total'];
+    }
+    
+    for ($i = 6; $i >= 0; $i--) {
+        $date = date('Y-m-d', strtotime("-$i days"));
+        $chartLabels[] = date('d M', strtotime("-$i days"));
+        $chartValues[] = isset($tempData[$date]) ? $tempData[$date] : 0;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -67,7 +86,6 @@ $bannerExists = file_exists($bannerPath);
     
     <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
-    <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -75,6 +93,8 @@ $bannerExists = file_exists($bannerPath);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         * {
@@ -84,1152 +104,468 @@ $bannerExists = file_exists($bannerPath);
         }
         
         body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            padding-bottom: 70px;
+            font-family: 'Inter', sans-serif;
+            background: #f5f6fa;
+            display: flex;
         }
-        
+
         /* ============================================
-           TOP HEADER - MOBILE (SAMA DENGAN ACCOUNT MANAGEMENT)
+           SIDEBAR STYLING
            ============================================ */
-        .top-header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 10px 20px;
-            position: sticky;
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: #1a1a2e;
+            position: fixed;
             top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            left: 0;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
         }
-        
-        .top-header .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .top-header .header-left .logo-wrapper {
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        
-        .top-header .header-left .logo-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        
-        .top-header .header-left .brand-text .brand-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: #fff;
-            line-height: 1.2;
-        }
-        
-        .top-header .header-left .brand-text .brand-name span {
-            color: #ffd700;
-        }
-        
-        .top-header .header-left .brand-text .brand-sub {
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-        
-        .top-header .header-right {
+
+        .sidebar .brand {
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-        
-        .top-header .header-right .notif-icon {
-            position: relative;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 16px;
-            cursor: pointer;
-        }
-        
-        .top-header .header-right .notif-icon .badge-notif {
-            position: absolute;
-            top: -5px;
-            right: -6px;
-            background: #d63031;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             color: #fff;
-            font-size: 8px;
-            padding: 1px 5px;
-            border-radius: 50%;
-            min-width: 16px;
-            text-align: center;
-        }
-        
-        .top-header .header-right .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(255, 215, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffd700;
-            font-weight: 700;
-            font-size: 13px;
             text-decoration: none;
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            transition: border-color 0.3s ease;
         }
-        
-        .top-header .header-right .user-avatar:hover {
-            border-color: #ffd700;
-        }
-        
-        /* ============================================
-           WELCOME BANNER
-           ============================================ */
-        .welcome-banner {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-radius: 12px;
-            padding: 16px 24px;
-            color: #fff;
-            margin-bottom: 16px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .welcome-banner .welcome-text .greeting {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
-            font-weight: 400;
-        }
-        
-        .welcome-banner .welcome-text h3 {
-            font-weight: 700;
-            font-size: 18px;
-            margin: 2px 0 0;
-        }
-        
-        .welcome-banner .welcome-text h3 span {
-            color: #ffd700;
-        }
-        
-        .welcome-banner .welcome-icon {
-            font-size: 32px;
-            color: rgba(255, 215, 0, 0.05);
-            position: absolute;
-            right: 15px;
-            bottom: 10px;
-        }
-        
-        /* ============================================
-           BANNER PROMO - DARI FILE
-           ============================================ */
-        .promo-banner {
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            background: #fff;
-        }
-        
-        .promo-banner img {
-            width: 100%;
-            height: auto;
-            max-height: 180px;
-            display: block;
-        }
-        
-        .promo-banner .banner-placeholder {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            padding: 24px 30px;
-            text-align: center;
-            color: #fff;
-            min-height: 100px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .promo-banner .banner-placeholder .banner-title {
-            font-size: 22px;
-            font-weight: 800;
-        }
-        
-        .promo-banner .banner-placeholder .banner-title span {
-            color: #ffd700;
-        }
-        
-        .promo-banner .banner-placeholder .banner-desc {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 4px;
-        }
-        
-        /* ============================================
-           SECTION TITLE
-           ============================================ */
-        .section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .section-title h5 {
-            font-weight: 700;
-            color: #1a1a2e;
-            font-size: 15px;
-            margin: 0;
-        }
-        
-        .section-title h5 i {
-            color: #ffd700;
-            margin-right: 8px;
-            font-size: 14px;
-        }
-        
-        .section-title .see-all {
-            font-size: 12px;
-            color: #888;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .section-title .see-all:hover {
-            color: #ffd700;
-        }
-        
-        /* ============================================
-           MENU GRID
-           ============================================ */
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 16px;
-        }
-        
-        .menu-grid.show-all {
-            grid-template-columns: repeat(4, 1fr);
-        }
-        
-        .menu-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 16px 12px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.03);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .menu-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            border-color: #ffd700;
-        }
-        
-        .menu-card .menu-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            margin-bottom: 8px;
-        }
-        
-        .menu-card .menu-icon.orange {
-            background: rgba(255, 165, 0, 0.12);
-            color: #e67e22;
-        }
-        
-        .menu-card .menu-icon.blue {
-            background: rgba(26, 26, 46, 0.08);
-            color: #1a1a2e;
-        }
-        
-        .menu-card .menu-icon.green {
-            background: rgba(46, 213, 115, 0.12);
-            color: #2ed573;
-        }
-        
-        .menu-card .menu-icon.gold {
-            background: rgba(255, 215, 0, 0.15);
-            color: #d4a017;
-        }
-        
-        .menu-card .menu-icon.purple {
-            background: rgba(155, 89, 182, 0.12);
-            color: #8e44ad;
-        }
-        
-        .menu-card .menu-icon.teal {
-            background: rgba(0, 206, 209, 0.12);
-            color: #16a085;
-        }
-        
-        .menu-card .menu-title {
-            font-weight: 600;
-            font-size: 13px;
-            color: #1a1a2e;
-            margin: 0;
-        }
-        
-        .menu-card .menu-sub {
-            font-size: 10px;
-            color: #999;
-            margin: 2px 0 0;
-        }
-        
-        /* Menu tambahan (hidden) */
-        .menu-card.hidden-menu {
-            display: none;
-        }
-        
-        .menu-grid.show-all .menu-card.hidden-menu {
-            display: flex;
-        }
-        
-        /* ============================================
-           MY ACTIVITY - SIMPLE SEPERTI GAMBAR
-           ============================================ */
-        .my-activity {
-            background: #fff;
-            border-radius: 12px;
-            padding: 16px 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.03);
-            margin-top: 16px;
-            transition: all 0.3s ease;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .my-activity:hover {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-        
-        .my-activity .activity-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        
-        .my-activity .activity-left .activity-icon {
+
+        .sidebar .brand .logo-wrapper {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
-            background: rgba(255, 215, 0, 0.12);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffd700;
-            font-size: 17px;
             flex-shrink: 0;
         }
-        
-        .my-activity .activity-left .activity-info .activity-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #1a1a2e;
-            margin: 0;
-        }
-        
-        .my-activity .activity-left .activity-info .activity-desc {
-            font-size: 12px;
-            color: #888;
-            margin: 2px 0 0;
-        }
-        
-        .my-activity .activity-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        
-        .my-activity .activity-right .btn-add {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            color: #fff;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: 300;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .my-activity .activity-right .btn-add:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
-        }
-        
-        /* ============================================
-           BOTTOM NAVIGATION - MOBILE (SAMA DENGAN ACCOUNT MANAGEMENT)
-           ============================================ */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #ffffff;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 5px 0 env(safe-area-inset-bottom);
-            z-index: 999;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
-        }
-        
-        .bottom-nav .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            padding: 3px 8px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            position: relative;
-            min-width: 45px;
-        }
-        
-        .bottom-nav .nav-item .nav-icon {
-            font-size: 17px;
-            color: #999;
-            transition: all 0.3s ease;
-        }
-        
-        .bottom-nav .nav-item .nav-label {
-            font-size: 8px;
-            color: #999;
-            font-weight: 500;
-            margin-top: 2px;
-            transition: all 0.3s ease;
-        }
-        
-        .bottom-nav .nav-item.active .nav-icon {
-            color: #ffd700;
-        }
-        
-        .bottom-nav .nav-item.active .nav-label {
-            color: #1a1a2e;
-            font-weight: 600;
-        }
-        
-        .bottom-nav .nav-item.active::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 18px;
-            height: 2px;
-            background: #ffd700;
-            border-radius: 0 0 2px 2px;
-        }
-        
-        .bottom-nav .nav-item .badge-nav {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            background: #d63031;
-            color: #fff;
-            font-size: 7px;
-            padding: 1px 5px;
-            border-radius: 50%;
-            min-width: 15px;
-            text-align: center;
-        }
-        
-        .bottom-nav .nav-item:hover .nav-icon {
-            color: #1a1a2e;
-        }
-        
-        /* ============================================
-           DESKTOP NAVBAR (SAMA DENGAN ACCOUNT MANAGEMENT)
-           ============================================ */
-        .desktop-nav-wrapper {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 0 30px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .desktop-nav-wrapper .brand-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 0;
-        }
-        
-        .desktop-nav-wrapper .brand-section .logo-wrapper {
-            width: 38px;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        
-        .desktop-nav-wrapper .brand-section .logo-wrapper img {
+
+        .sidebar .brand .logo-wrapper img {
             width: 100%;
             height: 100%;
             object-fit: contain;
         }
-        
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name {
+
+        .sidebar .brand .brand-text .brand-name {
             font-size: 15px;
             font-weight: 700;
-            color: #fff;
             line-height: 1.2;
         }
-        
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name span {
-            color: #ffd700;
-        }
-        
-        .desktop-nav-wrapper .brand-section .brand-text .brand-sub {
+        .sidebar .brand .brand-text .brand-name span { color: #ffd700; }
+        .sidebar .brand .brand-text .brand-sub {
             font-size: 8px;
-            color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        
-        .desktop-nav-wrapper .desktop-menu {
+
+        .sidebar .menu-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 20px 0 10px 12px;
+            font-weight: 600;
+        }
+
+        .sidebar .nav-link {
             display: flex;
             align-items: center;
-            gap: 4px;
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link {
-            color: rgba(255, 255, 255, 0.6);
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            padding: 12px 16px;
+            color: rgba(255,255,255,0.6);
             text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: 8px;
+            border-radius: 10px;
+            margin-bottom: 4px;
             transition: all 0.3s ease;
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link.active {
-            color: #ffd700;
-            background: rgba(255, 215, 0, 0.08);
-        }
-        
-        .desktop-nav-wrapper .desktop-menu .nav-link i {
             font-size: 14px;
+            font-weight: 500;
         }
-        
-        .desktop-nav-wrapper .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        
-        .desktop-nav-wrapper .nav-right .notif-icon {
-            position: relative;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 17px;
-            cursor: pointer;
-        }
-        
-        .desktop-nav-wrapper .nav-right .notif-icon .badge-notif {
-            position: absolute;
-            top: -5px;
-            right: -6px;
-            background: #d63031;
-            color: #fff;
-            font-size: 8px;
-            padding: 1px 5px;
-            border-radius: 50%;
-            min-width: 16px;
+
+        .sidebar .nav-link i {
+            width: 24px;
+            font-size: 16px;
+            margin-right: 12px;
             text-align: center;
         }
-        
-        .desktop-nav-wrapper .nav-right .user-info {
-            text-align: right;
+
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
+            background: rgba(255, 215, 0, 0.08);
             color: #fff;
         }
-        
-        .desktop-nav-wrapper .nav-right .user-info .name {
-            font-weight: 600;
-            font-size: 13px;
-            line-height: 1.2;
+
+        .sidebar .nav-link.active {
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            box-shadow: inset 3px 0 0 #ffd700;
         }
-        
-        .desktop-nav-wrapper .nav-right .user-info .role {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.4);
+
+        .sidebar .user-profile {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        
-        .desktop-nav-wrapper .nav-right .user-avatar {
-            width: 34px;
-            height: 34px;
+
+        .sidebar .user-profile .avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #ffd700;
             font-weight: 700;
+        }
+
+        .sidebar .user-profile .user-info .name {
             font-size: 14px;
-            text-decoration: none;
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            transition: border-color 0.3s ease;
+            color: #fff;
+            font-weight: 600;
         }
-        
-        .desktop-nav-wrapper .nav-right .user-avatar:hover {
-            border-color: #ffd700;
-        }
-        
-        .desktop-nav-wrapper .nav-right .logout-btn {
-            color: rgba(255, 255, 255, 0.5);
-            padding: 5px 14px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .desktop-nav-wrapper .nav-right .logout-btn:hover {
-            color: #ff6b6b;
-            background: rgba(214, 48, 49, 0.1);
-            border-color: rgba(214, 48, 49, 0.3);
-        }
-        
-        /* ============================================
-           RESPONSIVE (SAMA DENGAN ACCOUNT MANAGEMENT)
-           ============================================ */
-        
-        @media (min-width: 769px) {
-            .bottom-nav { display: none !important; }
-            body { padding-bottom: 0; }
-            .top-header { display: none !important; }
-        }
-        
-        @media (max-width: 768px) {
-            .desktop-nav-wrapper { display: none !important; }
-            body { padding-bottom: 65px; }
-            
-            .menu-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-            
-            .menu-grid.show-all {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .menu-card {
-                padding: 14px 10px;
-            }
-            
-            .menu-card .menu-icon {
-                width: 42px;
-                height: 42px;
-                font-size: 18px;
-            }
-            
-            .menu-card .menu-title {
-                font-size: 12px;
-            }
-            
-            .welcome-banner {
-                padding: 14px 18px;
-            }
-            
-            .welcome-banner .welcome-text h3 {
-                font-size: 16px;
-            }
-            
-            .welcome-banner .welcome-icon {
-                display: none;
-            }
-            
-            .section-title h5 {
-                font-size: 14px;
-            }
-            
-            .my-activity {
-                padding: 14px 18px;
-            }
-            
-            .promo-banner img {
-                max-height: 120px;
-            }
-            
-            .promo-banner .banner-placeholder {
-                padding: 16px 20px;
-                min-height: 80px;
-            }
-            
-            .promo-banner .banner-placeholder .banner-title {
-                font-size: 18px;
-            }
-            
-            .promo-banner .banner-placeholder .banner-desc {
-                font-size: 12px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .menu-grid {
-                gap: 8px;
-            }
-            
-            .menu-card {
-                padding: 12px 6px;
-                border-radius: 8px;
-            }
-            
-            .menu-card .menu-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 15px;
-                border-radius: 8px;
-            }
-            
-            .menu-card .menu-title {
-                font-size: 11px;
-            }
-            
-            .menu-card .menu-sub {
-                font-size: 9px;
-            }
-            
-            .bottom-nav .nav-item .nav-label {
-                font-size: 7px;
-            }
-            
-            .bottom-nav .nav-item .nav-icon {
-                font-size: 15px;
-            }
-            
-            .top-header .header-left .brand-text .brand-name {
-                font-size: 11px;
-            }
-            
-            .top-header .header-left .logo-wrapper {
-                width: 28px;
-                height: 28px;
-            }
-            
-            .my-activity {
-                padding: 12px 14px;
-            }
-            
-            .my-activity .activity-left .activity-icon {
-                width: 34px;
-                height: 34px;
-                font-size: 14px;
-            }
-            
-            .my-activity .activity-left .activity-info .activity-title {
-                font-size: 13px;
-            }
-            
-            .my-activity .activity-left .activity-info .activity-desc {
-                font-size: 11px;
-            }
-            
-            .my-activity .activity-right .btn-add {
-                width: 28px;
-                height: 28px;
-                font-size: 14px;
-            }
-            
-            .promo-banner .banner-placeholder {
-                padding: 12px 16px;
-                min-height: 60px;
-            }
-            
-            .promo-banner .banner-placeholder .banner-title {
-                font-size: 15px;
-            }
-            
-            .promo-banner .banner-placeholder .banner-desc {
-                font-size: 11px;
-            }
-        }
-        
-        @media (min-width: 769px) and (max-width: 992px) {
-            .menu-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-            .menu-grid.show-all {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        
-        /* ============================================
-           FOOTER
-           ============================================ */
-        .footer-text {
-            text-align: center;
-            padding: 16px 0 8px;
-            color: #999;
+        .sidebar .user-profile .user-info .role {
             font-size: 11px;
+            color: rgba(255,255,255,0.4);
         }
-        
-        .footer-text a {
-            color: #16213e;
+
+        .sidebar .logout-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: #ff6b6b;
             text-decoration: none;
+            border-radius: 10px;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            background: rgba(214, 48, 49, 0.1);
+        }
+        .sidebar .logout-btn:hover {
+            background: rgba(214, 48, 49, 0.2);
+        }
+
+        /* ============================================
+           MAIN CONTENT STYLING
+           ============================================ */
+        .main-content {
+            margin-left: 260px;
+            padding: 30px 40px;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .page-header h4 {
+            font-weight: 700;
+            color: #1a1a2e;
+            margin: 0;
+            font-size: 22px;
+        }
+        .page-header h4 span { color: #ffd700; }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+
+        .stat-card .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 16px;
+        }
+        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
+        .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .stat-card .stat-icon.purple { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
+
+        .stat-card .stat-number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1a1a2e;
+        }
+        .stat-card .stat-label {
+            font-size: 13px;
+            color: #888;
             font-weight: 500;
         }
-        
-        .footer-text a:hover {
-            color: #ffd700;
+
+        .chart-container {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+            margin-top: 20px;
         }
+
+        /* ============================================
+           MOBILE & RESPONSIVE
+           ============================================ */
+        @media (max-width: 991px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            .mobile-toggle {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                background: #1a1a2e;
+                color: #fff;
+                border-radius: 8px;
+                border: none;
+                cursor: pointer;
+                font-size: 18px;
+            }
+            .page-header {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+        }
+
+        .mobile-toggle { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- ============================================
-    DESKTOP NAVBAR (SAMA DENGAN ACCOUNT MANAGEMENT)
-    ============================================ -->
-    <div class="desktop-nav-wrapper">
-        <div class="brand-section">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+        <a href="dashboard.php" class="brand">
             <div class="logo-wrapper">
                 <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
             </div>
             <div class="brand-text">
                 <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                <div class="brand-sub">Customer Relationship Management System</div>
+                <div class="brand-sub">CRM System</div>
             </div>
-        </div>
+        </a>
+
+        <div class="menu-label">Menu Utama</div>
         
-        <div class="desktop-menu">
-            <a href="dashboard.php" class="nav-link active">
-                <i class="fas fa-th-large"></i> Dashboard
+        <a href="dashboard.php" class="nav-link active">
+            <i class="fas fa-th-large"></i> Dashboard
+        </a>
+
+        <?php if (in_array('account_management', $menuNames)): ?>
+            <a href="account_management.php" class="nav-link">
+                <i class="fas fa-building"></i> Account
             </a>
-            
-            <!-- Account Management - hanya tampil jika user punya akses -->
-            <?php if (in_array('account_management', $menuNames)): ?>
-                <a href="account_management.php" class="nav-link">
-                    <i class="fas fa-building"></i> Account
-                </a>
-            <?php endif; ?>
-            
-            <!-- Sales Activity - hanya tampil jika user punya akses -->
-            <?php if (in_array('sales_activity', $menuNames)): ?>
-                <a href="salesactivity.php" class="nav-link">
-                    <i class="fas fa-chart-bar"></i> Sales Activity
-                </a>
-            <?php endif; ?>
-            
-            <!-- Produk - hanya tampil jika user punya akses -->
-            <?php if (in_array('produk', $menuNames)): ?>
-                <a href="produk.php" class="nav-link">
-                    <i class="fas fa-box"></i> Produk
-                </a>
-            <?php endif; ?>
-            
-            <!-- Delivery Order - hanya tampil jika user punya akses -->
-            <?php if (in_array('delivery_order', $menuNames)): ?>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-tractor"></i> Delivery
-                </a>
-            <?php endif; ?>
-        </div>
-        
-        <div class="nav-right">
-            <div class="notif-icon">
-                <i class="fas fa-bell"></i>
-                <span class="badge-notif">3</span>
-            </div>
+        <?php endif; ?>
+
+        <?php if (in_array('sales_activity', $menuNames)): ?>
+            <a href="salesactivity.php" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Sales Activity
+            </a>
+        <?php endif; ?>
+
+        <?php if (in_array('transaction_request', $menuNames)): ?>
+            <a href="transactionrequest.php" class="nav-link">
+                <i class="fas fa-file-signature"></i> TR Request
+            </a>
+        <?php endif; ?>
+
+        <?php if (in_array('detail_transaction_request', $menuNames)): ?>
+            <a href="detailtr.php" class="nav-link">
+                <i class="fas fa-file-alt"></i> Detail TR
+            </a>
+        <?php endif; ?>
+
+        <?php if (in_array('produk', $menuNames)): ?>
+            <a href="produk.php" class="nav-link">
+                <i class="fas fa-box"></i> Produk
+            </a>
+        <?php endif; ?>
+
+        <?php if (in_array('delivery_order', $menuNames)): ?>
+            <a href="#" class="nav-link">
+                <i class="fas fa-tractor"></i> Delivery
+            </a>
+        <?php endif; ?>
+
+        <?php if (in_array('data_user', $menuNames)): ?>
+            <a href="data_user.php" class="nav-link">
+                <i class="fas fa-users"></i> User
+            </a>
+        <?php endif; ?>
+
+        <!-- User Profile & Logout di Sidebar -->
+        <div class="user-profile">
+            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
             <div class="user-info">
                 <div class="name"><?= htmlspecialchars($fullName) ?></div>
                 <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
-            <a href="logout.php" class="user-avatar">
-                <?= strtoupper(substr($fullName, 0, 1)) ?>
-            </a>
-            <a href="logout.php" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
         </div>
-    </div>
-
-    <!-- ============================================
-    MOBILE HEADER (SAMA DENGAN ACCOUNT MANAGEMENT)
-    ============================================ -->
-    <header class="top-header">
-        <div class="header-left">
-            <div class="logo-wrapper">
-                <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
-            </div>
-            <div class="brand-text">
-                <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                <div class="brand-sub">Customer Relationship Management</div>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="notif-icon">
-                <i class="fas fa-bell"></i>
-                <span class="badge-notif">3</span>
-            </div>
-            <a href="logout.php" class="user-avatar">
-                <?= strtoupper(substr($fullName, 0, 1)) ?>
-            </a>
-        </div>
-    </header>
-
-    <!-- ============================================
-    MAIN CONTENT
-    ============================================ -->
-    <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
-
-        <!-- WELCOME BANNER -->
-        <div class="welcome-banner">
-            <div class="welcome-text">
-                <div class="greeting">Selamat Datang,</div>
-                <h3><?= htmlspecialchars($fullName) ?></h3>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px;">
-                    <i class="fas fa-user-tie"></i> <?= getRoleLabel($role) ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================
-        BANNER - DARI FILE images/banner.png
-        ============================================ -->
-        <div class="promo-banner">
-            <?php if ($bannerExists): ?>
-                <img src="images/banner.png" alt="Banner PT Ganda Elang Tangguh" loading="lazy">
-            <?php else: ?>
-                <div class="banner-placeholder">
-                    <div class="banner-title">PT GANDA <span>ELANG TANGGUH</span></div>
-                    <div class="banner-desc">Complete Heavy Equipment Solutions</div>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- SECTION: MENU UTAMA -->
-        <div class="section-title">
-            <h5><i class="fas fa-th-large"></i>Menu Utama</h5>
-            
-            <?php 
-            // Menu yang akan disembunyikan di tombol "Lainnya"
-            $hiddenMenus = ['data_user', 'data_sales'];
-            // Cek apakah ada menu yang user punya akses dan termasuk dalam hiddenMenus
-            $hasHidden = count(array_intersect($hiddenMenus, $menuNames)) > 0;
-            ?>
-            <?php if ($hasHidden): ?>
-                <a href="#" class="see-all" id="toggleMenu">Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i></a>
-            <?php endif; ?>
-        </div>
-
-        <!-- MENU GRID -->
-        <div class="menu-grid" id="menuGrid">
-            <!-- Account Management - hanya tampil jika user punya akses -->
-            <?php if (in_array('account_management', $menuNames)): ?>
-                <a href="account_management.php" class="menu-card">
-                    <div class="menu-icon orange"><i class="fas fa-building"></i></div>
-                    <div class="menu-title">Account Management</div>
-                    <div class="menu-sub">Kelola akun</div>
-                </a>
-            <?php endif; ?>
-            
-            <!-- Sales Activity - hanya tampil jika user punya akses -->
-            <?php if (in_array('sales_activity', $menuNames)): ?>
-                <a href="salesactivity.php" class="menu-card">
-                    <div class="menu-icon blue"><i class="fas fa-chart-bar"></i></div>
-                    <div class="menu-title">Sales Activity</div>
-                    <div class="menu-sub">Aktivitas sales</div>
-                </a>
-            <?php endif; ?>
-            
-            <!-- Produk - hanya tampil jika user punya akses -->
-            <?php if (in_array('produk', $menuNames)): ?>
-                <a href="produk.php" class="menu-card">
-                    <div class="menu-icon green"><i class="fas fa-box"></i></div>
-                    <div class="menu-title">Produk</div>
-                    <div class="menu-sub">Kelola produk</div>
-                </a>
-            <?php endif; ?>
-            
-            <!-- Delivery Order - hanya tampil jika user punya akses -->
-            <?php if (in_array('delivery_order', $menuNames)): ?>
-                <a href="#" class="menu-card">
-                    <div class="menu-icon gold"><i class="fas fa-tractor"></i></div>
-                    <div class="menu-title">Delivery Order</div>
-                    <div class="menu-sub">Pengiriman</div>
-                </a>
-            <?php endif; ?>
-            
-            <!-- Data User (Hidden) - hanya tampil jika user punya akses -->
-            <?php if (in_array('data_user', $menuNames)): ?>
-                <a href="data_user.php" class="menu-card hidden-menu">
-                    <div class="menu-icon purple"><i class="fas fa-users"></i></div>
-                    <div class="menu-title">Data User</div>
-                    <div class="menu-sub">Kelola user</div>
-                </a>
-            <?php endif; ?>
-            
-            <!-- Data Sales (Hidden) - hanya tampil jika user punya akses -->
-            <?php if (in_array('data_sales', $menuNames)): ?>
-                <a href="#" class="menu-card hidden-menu">
-                    <div class="menu-icon teal"><i class="fas fa-user-tie"></i></div>
-                    <div class="menu-title">Data Sales</div>
-                    <div class="menu-sub">Kelola sales</div>
-                </a>
-            <?php endif; ?>
-        </div>
-
-        <!-- ============================================
-        MY ACTIVITY - SIMPLE SEPERTI GAMBAR
-        ============================================ -->
-        <?php if (in_array('sales_activity', $menuNames)): ?>
-        <div class="section-title" style="margin-top: 0px;">
-            <h5><i class="fas fa-clock" style="color:#ffd700;"></i>My Activity</h5>
-            <span style="font-size:12px; color:#888;">Active: <strong style="color:#1a1a2e;"><?= $salesActivity ?> Activities</strong></span>
-        </div>
-
-        <div class="my-activity">
-            <div class="activity-left">
-                <div class="activity-icon">
-                    <i class="fas fa-list"></i>
-                </div>
-                <div class="activity-info">
-                    <div class="activity-title">My Activity</div>
-                    <div class="activity-desc">Akses quick link aktivitas dan pengingat Anda</div>
-                </div>
-            </div>
-            <div class="activity-right">
-                <a href="salesactivity.php" class="btn-add">
-                    <i class="fas fa-plus"></i>
-                </a>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- FOOTER -->
-        <div class="footer-text">
-            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
-        </div>
-
-    </main>
-
-    <!-- ============================================
-    BOTTOM NAVIGATION - MOBILE (SAMA DENGAN ACCOUNT MANAGEMENT)
-    ============================================ -->
-    <nav class="bottom-nav">
-        <a href="dashboard.php" class="nav-item active">
-            <i class="fas fa-th-large nav-icon"></i>
-            <span class="nav-label">Home</span>
-        </a>
-        
-        <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item">
-                <i class="fas fa-building nav-icon"></i>
-                <span class="nav-label">Account</span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="#" class="nav-item">
-                <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales Activity</span>
-                <span class="badge-nav"><?= $salesActivity ?></span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-item">
-                <i class="fas fa-box nav-icon"></i>
-                <span class="nav-label">Produk</span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="#" class="nav-item">
-                <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">Delivery Order</span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-item">
-                <i class="fas fa-users nav-icon"></i>
-                <span class="nav-label">User</span>
-            </a>
-        <?php endif; ?>
-        
-        <a href="logout.php" class="nav-item">
-            <i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i>
-            <span class="nav-label" style="color:#d63031;">Logout</span>
+        <a href="logout.php" class="logout-btn">
+            <i class="fas fa-sign-out-alt" style="margin-right:12px;"></i> Logout
         </a>
     </nav>
 
-    <!-- ============================================
-    SCRIPTS
-    ============================================ -->
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- HEADER WITH MOBILE TOGGLE -->
+        <div class="page-header">
+            <div>
+                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h4>Sales <span>Dashboard</span></h4>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <div style="background:#fff; padding: 8px 16px; border-radius: 8px; box-shadow:0 2px 5px rgba(0,0,0,0.03); font-size:14px; font-weight:500;">
+                    <?= date('d F Y') ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATISTICS CARDS -->
+        <div class="row g-4">
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon gold"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-number"><?= number_format($totalActivities) ?></div>
+                    <div class="stat-label">Total Aktivitas Sales</div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                    <div class="stat-number">Active</div>
+                    <div class="stat-label">Status Keaktifan</div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-calendar-check"></i></div>
+                    <div class="stat-number">Hari Ini</div>
+                    <div class="stat-label"><?= date('l') ?></div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fas fa-user-tie"></i></div>
+                    <div class="stat-number"><?= getRoleLabel($role) ?></div>
+                    <div class="stat-label">Role Anda</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHART SECTION -->
+        <div class="chart-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap;">
+                <h5 style="font-weight:600; margin:0; color:#1a1a2e;">
+                    <i class="fas fa-chart-bar" style="color:#ffd700; margin-right:8px;"></i> 
+                    Grafik Aktivitas Sales (7 Hari Terakhir)
+                </h5>
+                <?php if ($role === 'sales'): ?>
+                    <span style="background:#e8edf2; padding:4px 12px; border-radius:20px; font-size:12px; color:#555;">
+                        <i class="fas fa-user"></i> Data Pribadi
+                    </span>
+                <?php else: ?>
+                    <span style="background:rgba(255,215,0,0.1); padding:4px 12px; border-radius:20px; font-size:12px; color:#d4a017;">
+                        <i class="fas fa-users"></i> Data All Sales
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div style="height: 320px; width: 100%;">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle Menu - Show/Hide hidden menus
-        const toggleMenu = document.getElementById('toggleMenu');
-        const menuGrid = document.getElementById('menuGrid');
-        let isMenuOpen = false;
+        // CHART.JS SETUP
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.6)');
+        gradient.addColorStop(1, 'rgba(255, 215, 0, 0.0)');
 
-        if (toggleMenu) {
-            toggleMenu.addEventListener('click', function(e) {
-                e.preventDefault();
-                isMenuOpen = !isMenuOpen;
-                
-                if (isMenuOpen) {
-                    menuGrid.classList.add('show-all');
-                    toggleMenu.innerHTML = 'Sembunyikan <i class="fas fa-chevron-up" style="font-size:10px;"></i>';
-                } else {
-                    menuGrid.classList.remove('show-all');
-                    toggleMenu.innerHTML = 'Lainnya <i class="fas fa-chevron-down" style="font-size:10px;"></i>';
+        const salesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode($chartLabels) ?>,
+                datasets: [{
+                    label: 'Jumlah Aktivitas',
+                    data: <?= json_encode($chartValues) ?>,
+                    backgroundColor: gradient,
+                    borderColor: '#d4a017',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    barPercentage: 0.6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1a2e',
+                        titleColor: '#ffd700',
+                        bodyColor: '#fff',
+                        cornerRadius: 8,
+                        padding: 12
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.04)'
+                        },
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 20
+                    }
                 }
-            });
-        }
-
-        // Active state untuk bottom nav
-        document.querySelectorAll('.bottom-nav .nav-item').forEach(function(item) {
-            item.addEventListener('click', function(e) {
-                document.querySelectorAll('.bottom-nav .nav-item').forEach(function(el) {
-                    el.classList.remove('active');
-                });
-                this.classList.add('active');
-            });
+            }
         });
     </script>
 </body>
