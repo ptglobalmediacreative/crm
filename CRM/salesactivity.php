@@ -1063,7 +1063,155 @@ function addTRLinkStyle() {
             padding-bottom: 70px;
         }
 
-        /* ---- SIDEBAR REPLACEMENT (Deep Navy Blue) ---- */
+        /* ============================================
+           TOP NAVBAR MODERN (Deep Navy Blue)
+           ============================================ */
+        .desktop-nav-wrapper {
+            background: #0e1a2b;
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .desktop-nav-wrapper .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+        }
+        .desktop-nav-wrapper .brand-section .logo-wrapper {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .desktop-nav-wrapper .brand-section .logo-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .desktop-nav-wrapper .brand-section .brand-text .brand-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .desktop-nav-wrapper .brand-section .brand-text .brand-name span {
+            color: #ffd700;
+        }
+        .desktop-nav-wrapper .brand-section .brand-text .brand-sub {
+            font-size: 8px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .desktop-nav-wrapper .desktop-menu {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .desktop-nav-wrapper .desktop-menu .nav-link {
+            color: rgba(255,255,255,0.6);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .desktop-nav-wrapper .desktop-menu .nav-link:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+        }
+        .desktop-nav-wrapper .desktop-menu .nav-link.active {
+            color: #ffd700;
+            background: rgba(255,215,0,0.08);
+        }
+        .desktop-nav-wrapper .desktop-menu .nav-link i {
+            font-size: 14px;
+        }
+        .desktop-nav-wrapper .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .desktop-nav-wrapper .nav-right .notif-icon {
+            position: relative;
+            color: rgba(255,255,255,0.6);
+            font-size: 17px;
+            cursor: pointer;
+        }
+        .desktop-nav-wrapper .nav-right .notif-icon .badge-notif {
+            position: absolute;
+            top: -5px;
+            right: -6px;
+            background: #d63031;
+            color: #fff;
+            font-size: 8px;
+            padding: 1px 5px;
+            border-radius: 50%;
+            min-width: 16px;
+            text-align: center;
+        }
+        .desktop-nav-wrapper .nav-right .user-info {
+            text-align: right;
+            color: #fff;
+        }
+        .desktop-nav-wrapper .nav-right .user-info .name {
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 1.2;
+        }
+        .desktop-nav-wrapper .nav-right .user-info .role {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+        }
+        .desktop-nav-wrapper .nav-right .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255,215,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            border: 2px solid rgba(255,215,0,0.2);
+            transition: border-color 0.3s ease;
+        }
+        .desktop-nav-wrapper .nav-right .user-avatar:hover {
+            border-color: #ffd700;
+        }
+        .desktop-nav-wrapper .nav-right .logout-btn {
+            color: rgba(255,255,255,0.5);
+            padding: 5px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .desktop-nav-wrapper .nav-right .logout-btn:hover {
+            color: #ff6b6b;
+            background: rgba(214,48,49,0.1);
+            border-color: rgba(214,48,49,0.3);
+        }
+
+        /* ============================================
+           MOBILE HEADER
+           ============================================ */
         .top-header {
             background: #0e1a2b;
             padding: 12px 20px;
@@ -1074,19 +1222,85 @@ function addTRLinkStyle() {
             justify-content: space-between;
             align-items: center;
         }
-        .top-header .header-left { display: flex; align-items: center; gap: 12px; }
-        .top-header .header-left .logo-wrapper { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-        .top-header .header-left .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .top-header .header-left .brand-text .brand-name { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
-        .top-header .header-left .brand-text .brand-name span { color: #ffd700; }
-        .top-header .header-left .brand-text .brand-sub { font-size: 8px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; text-transform: uppercase; }
-        .top-header .header-right { display: flex; align-items: center; gap: 12px; }
-        .top-header .header-right .notif-icon { position: relative; color: rgba(255,255,255,0.6); font-size: 16px; cursor: pointer; }
-        .top-header .header-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
-        .top-header .header-right .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 13px; text-decoration: none; border: 2px solid rgba(255,215,0,0.2); transition: border-color 0.3s ease; }
-        .top-header .header-right .user-avatar:hover { border-color: #ffd700; }
+        .top-header .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .top-header .header-left .logo-wrapper {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .top-header .header-left .logo-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .top-header .header-left .brand-text .brand-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .top-header .header-left .brand-text .brand-name span {
+            color: #ffd700;
+        }
+        .top-header .header-left .brand-text .brand-sub {
+            font-size: 8px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .top-header .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .top-header .header-right .notif-icon {
+            position: relative;
+            color: rgba(255,255,255,0.6);
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .top-header .header-right .notif-icon .badge-notif {
+            position: absolute;
+            top: -5px;
+            right: -6px;
+            background: #d63031;
+            color: #fff;
+            font-size: 8px;
+            padding: 1px 5px;
+            border-radius: 50%;
+            min-width: 16px;
+            text-align: center;
+        }
+        .top-header .header-right .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,215,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 13px;
+            text-decoration: none;
+            border: 2px solid rgba(255,215,0,0.2);
+            transition: border-color 0.3s ease;
+        }
+        .top-header .header-right .user-avatar:hover {
+            border-color: #ffd700;
+        }
 
-        /* ---- WELCOME BANNER (Modernized) ---- */
+        /* ============================================
+           WELCOME BANNER
+           ============================================ */
         .welcome-banner {
             background: linear-gradient(135deg, #0e1a2b, #16213e);
             border-radius: 16px;
@@ -1096,12 +1310,30 @@ function addTRLinkStyle() {
             position: relative;
             overflow: hidden;
         }
-        .welcome-banner .welcome-text .greeting { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 400; }
-        .welcome-banner .welcome-text h3 { font-weight: 700; font-size: 18px; margin: 2px 0 0; }
-        .welcome-banner .welcome-text h3 span { color: #ffd700; }
-        .welcome-banner .welcome-icon { font-size: 32px; color: rgba(255,215,0,0.05); position: absolute; right: 15px; bottom: 10px; }
+        .welcome-banner .welcome-text .greeting {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            font-weight: 400;
+        }
+        .welcome-banner .welcome-text h3 {
+            font-weight: 700;
+            font-size: 18px;
+            margin: 2px 0 0;
+        }
+        .welcome-banner .welcome-text h3 span {
+            color: #ffd700;
+        }
+        .welcome-banner .welcome-icon {
+            font-size: 32px;
+            color: rgba(255,215,0,0.05);
+            position: absolute;
+            right: 15px;
+            bottom: 10px;
+        }
 
-        /* ---- STAT CARDS (White Clean) ---- */
+        /* ============================================
+           STAT CARDS
+           ============================================ */
         .stat-card {
             background: #fff;
             border-radius: 12px;
@@ -1116,7 +1348,9 @@ function addTRLinkStyle() {
         .stat-card .stat-label { font-size: 12px; color: #888; font-weight: 500; }
         .stat-card .stat-icon { font-size: 28px; opacity: 0.15; }
 
-        /* ---- CHART CARDS ---- */
+        /* ============================================
+           CHART CARDS
+           ============================================ */
         .chart-card {
             background: #fff;
             border-radius: 12px;
@@ -1131,7 +1365,9 @@ function addTRLinkStyle() {
         .chart-wrapper { position: relative; height: 280px; width: 100%; max-width: 320px; margin: 0 auto; }
         .chart-wrapper canvas { max-height: 280px; max-width: 320px; }
 
-        /* ---- MAIN TABLE (White Clean) ---- */
+        /* ============================================
+           MAIN TABLE
+           ============================================ */
         .card-custom {
             background: #fff;
             border-radius: 12px;
@@ -1150,8 +1386,11 @@ function addTRLinkStyle() {
         .card-custom .card-header-custom h6 { font-weight: 600; color: #0e1a2b; margin: 0; font-size: 14px; }
         .card-custom .card-header-custom h6 i { color: #ffd700; margin-right: 8px; }
         .card-custom .card-body-custom { padding: 0; overflow-x: auto; }
+        .card-footer-custom { padding: 12px 20px; border-top: 1px solid #f0f2f5; }
 
-        /* ---- TABLE STYLING ---- */
+        /* ============================================
+           TABLE STYLING
+           ============================================ */
         .table-custom { margin-bottom: 0; font-size: 13px; }
         .table-custom th {
             font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
@@ -1162,10 +1401,10 @@ function addTRLinkStyle() {
         .table-custom tr:last-child td { border-bottom: none; }
         .table-custom tr:hover { background: #f8f9fa; }
 
-        /* ---- BADGES ---- */
-        .badge-tugas {
-            padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
-        }
+        /* ============================================
+           BADGES
+           ============================================ */
+        .badge-tugas { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-tugas.Perkenalan { background: rgba(52,152,219,0.12); color: #2980b9; }
         .badge-tugas.Visit_Meeting { background: rgba(46,204,113,0.12); color: #27ae60; }
         .badge-tugas.Prospecting { background: rgba(155,89,182,0.12); color: #8e44ad; }
@@ -1173,23 +1412,22 @@ function addTRLinkStyle() {
         .badge-tugas.Kontrak { background: rgba(26,188,156,0.12); color: #16a085; }
         .badge-tugas.Collect_Payment { background: rgba(231,76,60,0.12); color: #c0392b; }
         .badge-tugas.Aftersales { background: rgba(22,160,133,0.12); color: #1abc9c; }
-
         .badge-deal-status { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-deal-status.Yes { background: rgba(46,204,113,0.12); color: #27ae60; }
         .badge-deal-status.No { background: rgba(231,76,60,0.15); color: #c0392b; }
-
         .badge-status { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-status.in_progress { background: rgba(52,152,219,0.12); color: #2980b9; }
         .badge-status.completed { background: rgba(46,204,113,0.12); color: #27ae60; }
         .badge-status.overdue { background: rgba(231,76,60,0.15); color: #c0392b; }
-
         .badge-trf { background: rgba(52,152,219,0.12); color: #2980b9; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-lost { background: rgba(231,76,60,0.15); color: #e74c3c; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-middle-prospek { background: rgba(243,156,18,0.15); color: #f39c12; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-hot-prospek { background: rgba(231,76,60,0.15); color: #e74c3c; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-deal { background: rgba(142,68,173,0.15); color: #8e44ad; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
 
-        /* ---- BUTTONS ---- */
+        /* ============================================
+           BUTTONS
+           ============================================ */
         .btn-action { width: 30px; height: 30px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; border: none; transition: all 0.3s ease; font-size: 13px; cursor: pointer; }
         .btn-action:hover { transform: scale(1.1); }
         .btn-action.detail { background: rgba(46,204,113,0.1); color: #27ae60; }
@@ -1208,20 +1446,22 @@ function addTRLinkStyle() {
         .btn-complete-custom { background: #f39c12; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px; transition: all 0.3s ease; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
         .btn-complete-custom:hover { background: #e67e22; color: #fff; }
 
-        /* ---- MODALS ---- */
+        /* ============================================
+           MODALS & FORMS
+           ============================================ */
         .modal-content { border: none; border-radius: 12px; }
         .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
         .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
         .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
         .modal-body { padding: 20px 24px; }
         .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
-
-        /* ---- FORMS ---- */
         .form-label { font-weight: 600; font-size: 13px; color: #333; }
         .form-control, .form-select { border-radius: 8px; padding: 10px 14px; border: 2px solid #e8edf2; transition: all 0.3s ease; font-size: 13px; }
         .form-control:focus, .form-select:focus { border-color: #ffd700; box-shadow: 0 0 0 3px rgba(255,215,0,0.1); }
 
-        /* ---- FILTER BUTTONS ---- */
+        /* ============================================
+           FILTER BUTTONS
+           ============================================ */
         .filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-buttons .btn-filter { padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 2px solid #e8edf2; background: transparent; color: #666; transition: all 0.3s ease; text-decoration: none; }
         .filter-buttons .btn-filter:hover { border-color: #ffd700; color: #0e1a2b; }
@@ -1229,7 +1469,9 @@ function addTRLinkStyle() {
         .filter-buttons .btn-filter .count { background: rgba(0,0,0,0.1); padding: 0 6px; border-radius: 10px; font-size: 10px; margin-left: 4px; }
         .filter-buttons .btn-filter.active .count { background: rgba(255,255,255,0.2); }
 
-        /* ---- BOTTOM NAV (MOBILE) ---- */
+        /* ============================================
+           BOTTOM NAV (MOBILE)
+           ============================================ */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff;
             border-top: 1px solid rgba(0,0,0,0.05); padding: 5px 0 env(safe-area-inset-bottom);
@@ -1245,34 +1487,9 @@ function addTRLinkStyle() {
         .bottom-nav .nav-item .badge-nav { position: absolute; top: -2px; right: -2px; background: #d63031; color: #fff; font-size: 7px; padding: 1px 5px; border-radius: 50%; min-width: 15px; text-align: center; }
         .bottom-nav .nav-item:hover .nav-icon { color: #0e1a2e; }
 
-        /* ---- DESKTOP NAVBAR (Sidebar replacement) ---- */
-        .desktop-nav-wrapper {
-            background: #0e1a2b; padding: 0 30px; position: sticky; top: 0; z-index: 100;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .desktop-nav-wrapper .brand-section { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
-        .desktop-nav-wrapper .brand-section .logo-wrapper { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-        .desktop-nav-wrapper .brand-section .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name span { color: #ffd700; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-sub { font-size: 8px; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase; }
-        .desktop-nav-wrapper .desktop-menu { display: flex; align-items: center; gap: 4px; }
-        .desktop-nav-wrapper .desktop-menu .nav-link { color: rgba(255,255,255,0.6); padding: 8px 16px; display: flex; align-items: center; gap: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border-radius: 8px; transition: all 0.3s ease; }
-        .desktop-nav-wrapper .desktop-menu .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .desktop-nav-wrapper .desktop-menu .nav-link.active { color: #ffd700; background: rgba(255,215,0,0.08); }
-        .desktop-nav-wrapper .desktop-menu .nav-link i { font-size: 14px; }
-        .desktop-nav-wrapper .nav-right { display: flex; align-items: center; gap: 16px; }
-        .desktop-nav-wrapper .nav-right .notif-icon { position: relative; color: rgba(255,255,255,0.6); font-size: 17px; cursor: pointer; }
-        .desktop-nav-wrapper .nav-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
-        .desktop-nav-wrapper .nav-right .user-info { text-align: right; color: #fff; }
-        .desktop-nav-wrapper .nav-right .user-info .name { font-weight: 600; font-size: 13px; line-height: 1.2; }
-        .desktop-nav-wrapper .nav-right .user-info .role { font-size: 10px; color: rgba(255,255,255,0.4); }
-        .desktop-nav-wrapper .nav-right .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 14px; text-decoration: none; border: 2px solid rgba(255,215,0,0.2); transition: border-color 0.3s ease; }
-        .desktop-nav-wrapper .nav-right .user-avatar:hover { border-color: #ffd700; }
-        .desktop-nav-wrapper .nav-right .logout-btn { color: rgba(255,255,255,0.5); padding: 5px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1); }
-        .desktop-nav-wrapper .nav-right .logout-btn:hover { color: #ff6b6b; background: rgba(214,48,49,0.1); border-color: rgba(214,48,49,0.3); }
-
-        /* ---- OTHERS ---- */
+        /* ============================================
+           OTHERS
+           ============================================ */
         .deadline-overdue { animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         .badge-overdue { background: #dc3545 !important; animation: blink 1s infinite; }
@@ -1296,7 +1513,9 @@ function addTRLinkStyle() {
         .trf-link .badge-trf { transition: all 0.3s ease; }
         .trf-link:hover .badge-trf { background: rgba(52,152,219,0.25); }
 
-        /* ---- RESPONSIVE ---- */
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
             body { padding-bottom: 0; }
@@ -1338,7 +1557,7 @@ function addTRLinkStyle() {
 </head>
 <body>
 
-    <!-- DESKTOP NAVBAR (Deep Navy Blue) -->
+    <!-- DESKTOP NAVBAR (MODERN, SAMA SEPERTI DASHBOARD) -->
     <div class="desktop-nav-wrapper">
         <div class="brand-section">
             <div class="logo-wrapper">
@@ -1404,7 +1623,7 @@ function addTRLinkStyle() {
         </div>
     </div>
 
-    <!-- MOBILE HEADER -->
+    <!-- MOBILE HEADER (MODERN) -->
     <header class="top-header">
         <div class="header-left">
             <div class="logo-wrapper">
@@ -1677,7 +1896,7 @@ function addTRLinkStyle() {
                 </div>
             </div>
             <?php if ($totalPages > 1): ?>
-                <div class="card-footer bg-transparent border-top p-3">
+                <div class="card-footer-custom">
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
