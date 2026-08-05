@@ -57,14 +57,13 @@ if ($filterSalesId > 0) {
     $sqlFilterSA = " AND sa.sales_id = $filterSalesId";
 }
 
-// Filter SQL untuk Accounts (Total Leads)
+// Filter SQL untuk Accounts (Total Leads, New Leads bulan ini)
 $sqlFilterAcc = "";
 if ($filterSalesId > 0) {
     $sqlFilterAcc = " AND sales_id = $filterSalesId";
 }
 
 // Filter SQL untuk Detail TR (Revenue Forecast)
-// Karena detail_tr terhubung ke sales_activity melalui trf_number, kita join sales_activities
 $sqlFilterTR = "";
 if ($filterSalesId > 0) {
     $sqlFilterTR = " AND sa.sales_id = $filterSalesId";
@@ -81,18 +80,23 @@ if ($isSalesRole) {
 }
 $totalLeads = $db->query($sqlTotalLeads)->fetchColumn();
 
-// 2. Pipeline Data (Dari sales_activities)
+// 2. Pipeline Data (Dari sales_activities & accounts)
 $sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilterSA;
 $totalActivities = $db->query($sqlTotal)->fetchColumn();
 
 $pipelineCounts = [
+    'New Lead'     => 0,
     'Middle Prospek' => 0,
     'Hot Prospek'    => 0,
     'Deal'           => 0,
-    'Lost Prospek'   => 0
+    'Lost Deal'      => 0
 ];
 
-// Middle Prospek
+// --- NEW LEAD (Dari Account Management - 30 Hari Terakhir) ---
+$sqlNewLead = "SELECT COUNT(*) FROM accounts WHERE 1=1" . $sqlFilterAcc . " AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+$pipelineCounts['New Lead'] = (int)$db->query($sqlNewLead)->fetchColumn();
+
+// --- MIDDLE PROSPEK ---
 $sqlMid = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
            WHERE sa.jenis_tugas = 'Prospecting'
            AND sa.account_id NOT IN (
@@ -101,7 +105,7 @@ $sqlMid = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
            )" . $sqlFilterSA;
 $pipelineCounts['Middle Prospek'] = (int)$db->query($sqlMid)->fetchColumn();
 
-// Hot Prospek (Ini akan menjadi label "Open Deals")
+// --- HOT PROSPEK ---
 $sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
            WHERE sa.jenis_tugas = 'Negosiasi'
            AND sa.account_id NOT IN (
@@ -115,21 +119,19 @@ $sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
            AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')" . $sqlFilterSA;
 $pipelineCounts['Hot Prospek'] = (int)$db->query($sqlHot)->fetchColumn();
 
-// Lost Prospek
+// --- LOST DEAL ---
 $sqlLost = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
             WHERE sa.jenis_tugas = 'Negosiasi'
             AND sa.status = 'completed' 
             AND sa.customer_deal = 'No'" . $sqlFilterSA;
-$pipelineCounts['Lost Prospek'] = (int)$db->query($sqlLost)->fetchColumn();
+$pipelineCounts['Lost Deal'] = (int)$db->query($sqlLost)->fetchColumn();
 
-// Deal (Kontrak)
+// --- DEAL (Kontrak) ---
 $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
             WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilterSA;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
 // 3. Revenue Forecast (Dari Tabel detail_transaction_requests)
-// Menghitung total grand_total dari detail_tr yang terhubung ke sales_activity milik sales tersebut.
-// Kita menggunakan LEFT JOIN untuk memastikan data sales_activity yang belum punya detail_tr tetap muncul.
 if ($isSalesRole) {
     $sqlRevenue = "SELECT SUM(dtr.grand_total) 
                    FROM detail_transaction_requests dtr
@@ -142,10 +144,7 @@ if ($isSalesRole) {
                    WHERE 1=1" . $sqlFilterTR;
 }
 $totalRevenue = (float)$db->query($sqlRevenue)->fetchColumn();
-if ($totalRevenue == 0) {
-    // Jika belum ada data grand total, set default 0
-    $totalRevenue = 0;
-}
+if (!$totalRevenue) $totalRevenue = 0;
 
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
@@ -283,14 +282,16 @@ if ($filterSalesId > 0) {
         .pipeline-card h6 { font-weight: 600; margin-bottom: 15px; color: #1a1a2e; }
         .pipeline-bars { display: flex; height: 6px; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
         .pipeline-bars .bar { height: 100%; transition: width 0.5s; }
+        .pipeline-bars .bar.new { background: #3498db; }
         .pipeline-bars .bar.middle { background: #f39c12; }
         .pipeline-bars .bar.hot { background: #e74c3c; }
         .pipeline-bars .bar.deal { background: #2ecc71; }
         .pipeline-bars .bar.lost { background: #95a5a6; }
 
-        .pipeline-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
+        .pipeline-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; text-align: center; }
         .pipeline-stats .p-item .p-label { font-size: 11px; color: #888; display: block; }
         .pipeline-stats .p-item .p-value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+        .pipeline-stats .p-item .p-value.new { color: #3498db; }
         .pipeline-stats .p-item .p-value.middle { color: #f39c12; }
         .pipeline-stats .p-item .p-value.hot { color: #e74c3c; }
         .pipeline-stats .p-item .p-value.deal { color: #2ecc71; }
@@ -405,14 +406,14 @@ if ($filterSalesId > 0) {
                 <div class="stat-label">Total Leads</div>
             </div>
             
-            <!-- 2. OPEN DEALS (Sebelumnya Hot Prospek) -->
+            <!-- 2. OPEN DEALS -->
             <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
                 <div class="stat-number"><?= number_format($pipelineCounts['Hot Prospek']) ?></div>
                 <div class="stat-label">Open Deals</div>
             </div>
 
-            <!-- 3. REVENUE FORECAST (Sebelumnya Deal / Kontrak) -->
+            <!-- 3. REVENUE FORECAST -->
             <div class="stat-card">
                 <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
                 <div class="stat-number">Rp <?= number_format($totalRevenue, 0, ',', '.') ?></div>
@@ -434,28 +435,32 @@ if ($filterSalesId > 0) {
                 <h6><i class="fas fa-filter" style="color:#ffd700;"></i> Sales Pipeline</h6>
                 
                 <?php 
-                $totalPipeline = $pipelineCounts['Middle Prospek'] + $pipelineCounts['Hot Prospek'] + $pipelineCounts['Deal'] + $pipelineCounts['Lost Prospek'];
+                // Hitung total pipeline untuk persentase
+                $totalPipeline = array_sum($pipelineCounts);
+                $pctNew = $totalPipeline > 0 ? ($pipelineCounts['New Lead'] / $totalPipeline * 100) : 0;
                 $pctMid = $totalPipeline > 0 ? ($pipelineCounts['Middle Prospek'] / $totalPipeline * 100) : 0;
                 $pctHot = $totalPipeline > 0 ? ($pipelineCounts['Hot Prospek'] / $totalPipeline * 100) : 0;
                 $pctDeal = $totalPipeline > 0 ? ($pipelineCounts['Deal'] / $totalPipeline * 100) : 0;
-                $pctLost = $totalPipeline > 0 ? ($pipelineCounts['Lost Prospek'] / $totalPipeline * 100) : 0;
+                $pctLost = $totalPipeline > 0 ? ($pipelineCounts['Lost Deal'] / $totalPipeline * 100) : 0;
                 ?>
                 
                 <div class="pipeline-bars">
+                    <div class="bar new" style="width: <?= $pctNew ?>%;"></div>
                     <div class="bar middle" style="width: <?= $pctMid ?>%;"></div>
                     <div class="bar hot" style="width: <?= $pctHot ?>%;"></div>
                     <div class="bar deal" style="width: <?= $pctDeal ?>%;"></div>
                     <div class="bar lost" style="width: <?= $pctLost ?>%;"></div>
                 </div>
                 <div class="pipeline-stats">
+                    <div class="p-item"><span class="p-label">New Lead</span><span class="p-value new"><?= $pipelineCounts['New Lead'] ?></span></div>
                     <div class="p-item"><span class="p-label">Middle</span><span class="p-value middle"><?= $pipelineCounts['Middle Prospek'] ?></span></div>
-                    <div class="p-item"><span class="p-label">Hot (Open)</span><span class="p-value hot"><?= $pipelineCounts['Hot Prospek'] ?></span></div>
+                    <div class="p-item"><span class="p-label">Hot</span><span class="p-value hot"><?= $pipelineCounts['Hot Prospek'] ?></span></div>
                     <div class="p-item"><span class="p-label">Deal</span><span class="p-value deal"><?= $pipelineCounts['Deal'] ?></span></div>
-                    <div class="p-item"><span class="p-label">Lost</span><span class="p-value lost"><?= $pipelineCounts['Lost Prospek'] ?></span></div>
+                    <div class="p-item"><span class="p-label">Lost</span><span class="p-value lost"><?= $pipelineCounts['Lost Deal'] ?></span></div>
                 </div>
                 <div style="margin-top:15px; display:flex; justify-content:space-between; background:#f8f9fa; padding:10px 15px; border-radius:8px;">
-                    <span style="color:#888; font-size:13px;">Total Prospek Aktif</span>
-                    <span style="font-weight:700; color:#1a1a2e;"><?= $pipelineCounts['Middle Prospek'] + $pipelineCounts['Hot Prospek'] + $pipelineCounts['Deal'] ?></span>
+                    <span style="color:#888; font-size:13px;">Total Pipeline</span>
+                    <span style="font-weight:700; color:#1a1a2e;"><?= $totalPipeline ?></span>
                 </div>
             </div>
 
