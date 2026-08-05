@@ -47,7 +47,6 @@ if ($role === 'sales') {
 }
 
 // 2. DATA CHART HARIAN (7 HARI TERAKHIR)
-// LOGIKA SQL: GROUP BY DATE(created_at)
 $chartQueryDaily = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities";
 if ($role === 'sales') $chartQueryDaily .= " WHERE sales_id = $userId";
 $chartQueryDaily .= " GROUP BY DATE(created_at) ORDER BY date ASC LIMIT 7";
@@ -65,7 +64,6 @@ for ($i = 6; $i >= 0; $i--) {
 }
 
 // 3. DATA CHART BULANAN (12 BULAN TERAKHIR)
-// LOGIKA SQL: GROUP BY MONTH(created_at)
 $chartQueryMonthly = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total FROM sales_activities";
 if ($role === 'sales') $chartQueryMonthly .= " WHERE sales_id = $userId";
 $chartQueryMonthly .= " GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month ASC LIMIT 12";
@@ -82,11 +80,10 @@ for ($i = 11; $i >= 0; $i--) {
     $valuesMonthly[] = isset($tempMonthly[$date]) ? $tempMonthly[$date] : 0;
 }
 
-// 4. DATA CHART PER USER SALES (Hanya untuk Admin/Non-Sales)
+// 4. DATA CHART PER USER SALES (Hanya untuk Admin/Manager)
 $salesUsersData = [];
 $salesUsersLabels = [];
 if ($role !== 'sales') {
-    // Ambil nama user dan total aktivitasnya
     $stmt = $db->query("
         SELECT u.full_name, COUNT(sa.id) as total_activity 
         FROM users u 
@@ -103,6 +100,40 @@ if ($role !== 'sales') {
         $salesUsersData[] = $row['total_activity'];
     }
 }
+
+// ============================================
+// DATA UNTUK CHART PIPELINE PROSPEK (Middle, Hot, Deal, Lost)
+// ============================================
+// Asumsi: Status disimpan di kolom 'status' tabel 'sales_activities'
+// Anda bisa mengubah 'status' menjadi nama kolom lain jika berbeda.
+
+// Query untuk Menghitung Total Masing-Masing Status
+$statusQuery = "SELECT status, COUNT(*) as total FROM sales_activities";
+if ($role === 'sales') $statusQuery .= " WHERE sales_id = $userId";
+$statusQuery .= " GROUP BY status";
+
+$statusData = $db->query($statusQuery)->fetchAll(PDO::FETCH_ASSOC);
+
+// Inisialisasi default 0
+$statusCounts = [
+    'Middle Prospek' => 0,
+    'Hot Prospek'    => 0,
+    'Deal'           => 0,
+    'Lost Prospek'   => 0
+];
+
+// Mapping hasil query ke array
+foreach ($statusData as $row) {
+    $statusName = trim($row['status']);
+    // Jika status di database persis 'Middle Prospek', 'Hot Prospek', dll.
+    if (isset($statusCounts[$statusName])) {
+        $statusCounts[$statusName] = (int)$row['total'];
+    }
+}
+
+// Siapkan data untuk Chart.js (Label dan Value)
+$pipelineLabels = array_keys($statusCounts);
+$pipelineValues = array_values($statusCounts);
 ?>
 
 <!DOCTYPE html>
@@ -301,7 +332,7 @@ if ($role !== 'sales') {
             </div>
         </div>
 
-        <!-- CHART 1: HARIAN -->
+        <!-- CHART 1 & 2: HARIAN & BULANAN -->
         <div class="row mt-4">
             <div class="col-lg-6">
                 <div class="chart-container">
@@ -315,7 +346,6 @@ if ($role !== 'sales') {
                 </div>
             </div>
             
-            <!-- CHART 2: BULANAN -->
             <div class="col-lg-6">
                 <div class="chart-container">
                     <h5 style="font-weight:600; color:#1a1a2e; margin-bottom:20px;">
@@ -329,27 +359,45 @@ if ($role !== 'sales') {
             </div>
         </div>
 
-        <!-- CHART 3: PER SALES (Hanya untuk Admin/Manager) -->
-        <?php if ($role !== 'sales' && count($salesUsersLabels) > 0): ?>
+        <!-- CHART 3: PIPELINE PROSPEK (MIDDLE, HOT, DEAL, LOST) -->
         <div class="row mt-4">
-            <div class="col-12">
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
+                        <h5 style="font-weight:600; color:#1a1a2e; margin:0;">
+                            <i class="fas fa-filter" style="color:#ffd700; margin-right:8px;"></i> 
+                            Pipeline Prospek
+                        </h5>
+                        <span style="background:rgba(255,215,0,0.1); padding:4px 12px; border-radius:20px; font-size:12px; color:#d4a017;">
+                            <i class="fas fa-chart-pie"></i> Distribusi Status
+                        </span>
+                    </div>
+                    <div style="height: 280px; width: 100%;">
+                        <canvas id="pipelineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHART 4: PER USER SALES (Hanya untuk Admin/Manager) -->
+            <?php if ($role !== 'sales' && count($salesUsersLabels) > 0): ?>
+            <div class="col-lg-6">
                 <div class="chart-container">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
                         <h5 style="font-weight:600; color:#1a1a2e; margin:0;">
                             <i class="fas fa-user-tie" style="color:#ffd700; margin-right:8px;"></i> 
-                            Kontribusi Aktivitas Per Sales
+                            Kontribusi Per Sales
                         </h5>
                         <span style="background:rgba(255,215,0,0.1); padding:4px 12px; border-radius:20px; font-size:12px; color:#d4a017;">
                             <i class="fas fa-database"></i> Data All Sales
                         </span>
                     </div>
-                    <div style="height: 300px; width: 100%;">
+                    <div style="height: 280px; width: 100%;">
                         <canvas id="userChart"></canvas>
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
 
     </div>
 
@@ -427,7 +475,45 @@ if ($role !== 'sales') {
         });
 
         // ============================================
-        // CHART 3: PER USER SALES
+        // CHART 3: PIPELINE PROSPEK (Donut)
+        // ============================================
+        const ctxPipeline = document.getElementById('pipelineChart').getContext('2d');
+        new Chart(ctxPipeline, {
+            type: 'doughnut', // Tipe Donut / Cincin
+            data: {
+                labels: <?= json_encode($pipelineLabels) ?>,
+                datasets: [{
+                    data: <?= json_encode($pipelineValues) ?>,
+                    backgroundColor: [
+                        '#f39c12', // Middle Prospek (Kuning/Oranye)
+                        '#e74c3c', // Hot Prospek (Merah)
+                        '#2ecc71', // Deal (Hijau)
+                        '#95a5a6'  // Lost Prospek (Abu-Abu)
+                    ],
+                    borderColor: '#fff',
+                    borderWidth: 3,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%', // Membuat lubang di tengah donut lebih besar
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { family: 'Inter', size: 12, weight: '500' }
+                        }
+                    }
+                }
+            }
+        });
+
+        // ============================================
+        // CHART 4: PER USER SALES
         // ============================================
         <?php if ($role !== 'sales' && count($salesUsersLabels) > 0): ?>
         const ctxUser = document.getElementById('userChart').getContext('2d');
@@ -450,7 +536,7 @@ if ($role !== 'sales') {
                 }]
             },
             options: {
-                indexAxis: 'y', // MEMBUAT CHART MENDATAR (Lebih mudah dibaca untuk list nama)
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
