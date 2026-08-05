@@ -187,9 +187,9 @@ for ($day = 1; $day <= $totalDays; $day++) {
 }
 
 // ============================================
-// DATA LAPORAN PER BULAN (PERFORMA SALES)
+// DATA LAPORAN PER BULAN (PERFORMA SALES - SESUAI BULAN FILTER)
 // ============================================
-function getSalesMonthlyReport($db, $salesId) {
+function getSalesMonthlyReport($db, $salesId, $month) {
     $stmt = $db->prepare("
         SELECT DATE_FORMAT(created_at, '%M %Y') as month_label, 
                DATE_FORMAT(created_at, '%Y-%m') as month_sort, 
@@ -197,25 +197,24 @@ function getSalesMonthlyReport($db, $salesId) {
                SUM(CASE WHEN status = 'Deal' THEN 1 ELSE 0 END) as total_deal,
                SUM(CASE WHEN status = 'Lost Prospek' THEN 1 ELSE 0 END) as total_lost
         FROM sales_activities 
-        WHERE sales_id = ? 
+        WHERE sales_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?
         GROUP BY month_sort 
         ORDER BY month_sort DESC 
-        LIMIT 6
     ");
-    $stmt->execute([$salesId]);
+    $stmt->execute([$salesId, $month]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 $filteredReportData = [];
 if ($filterSalesId > 0) {
-    $filteredReportData = getSalesMonthlyReport($db, $filterSalesId);
+    $filteredReportData = getSalesMonthlyReport($db, $filterSalesId, $filterMonth);
 } else {
     $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
     $allUsersForReport = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($allUsersForReport as $u) {
         $filteredReportData[] = [
             'name' => $u['full_name'],
-            'data' => getSalesMonthlyReport($db, $u['id'])
+            'data' => getSalesMonthlyReport($db, $u['id'], $filterMonth)
         ];
     }
 }
@@ -392,7 +391,7 @@ if ($filterSalesId > 0) {
             <div class="filter-area">
                 <span style="font-weight:500; color:#555;">Filter:</span>
                 <?php if (!$isSalesRole): ?>
-                <select class="form-select form-select-sm" onchange="window.location.href='?sales_id='+this.value">
+                <select class="form-select form-select-sm" onchange="window.location.href='?sales_id='+this.value + '&month=' + document.getElementById('filterMonth').value">
                     <option value="0">Semua Sales</option>
                     <?php foreach ($allSalesList as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
@@ -401,6 +400,7 @@ if ($filterSalesId > 0) {
                     <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
+                <input type="month" id="filterMonth" class="form-control form-control-sm" style="width:160px;" value="<?= $filterMonth ?>" onchange="applyFilter()">
             </div>
         </div>
 
@@ -475,9 +475,6 @@ if ($filterSalesId > 0) {
             <div class="chart-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas</h6>
-                    <div>
-                        <input type="month" id="filterMonth" class="form-control form-control-sm" value="<?= $filterMonth ?>" onchange="applyMonthFilter()">
-                    </div>
                 </div>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
@@ -508,10 +505,10 @@ if ($filterSalesId > 0) {
                 <?php endif; ?>
             </div>
 
-            <!-- Monthly Sales Report (Ringkasan Sales REAL) -->
+            <!-- Monthly Sales Report (Ringkasan Sales REAL - Filtered by Month) -->
             <div class="activity-card">
                 <div style="display:flex; justify-content:space-between;">
-                    <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Performa Sales (Bulan Ini)</h6>
+                    <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Performa Sales (<?= date('F Y', strtotime($filterMonth . '-01')) ?>)</h6>
                 </div>
                 <div style="overflow-y:auto; max-height:300px;">
                     <table class="table table-sm table-hover" style="font-size:14px; margin:0;">
@@ -618,27 +615,14 @@ if ($filterSalesId > 0) {
         });
 
         // ============================================
-        // FUNGSI APPLY FILTER BULAN (Tanpa Reload Halaman)
+        // FUNGSI APPLY FILTER (Reload untuk Table & Pipeline)
         // ============================================
-        function applyMonthFilter() {
+        function applyFilter() {
             const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
             const month = document.getElementById('filterMonth').value;
-
-            // Fetch data AJAX
-            fetch(`api/get_trend_data.php?sales_id=${salesId}&month=${month}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Update Chart
-                    trendChart.data.labels = data.labels;
-                    trendChart.data.datasets[0].data = data.values;
-                    trendChart.update();
-                    
-                    // Update URL tanpa reload (opsional)
-                    const url = new URL(window.location);
-                    url.searchParams.set('month', month);
-                    window.history.replaceState({}, '', url);
-                })
-                .catch(error => console.error('Error:', error));
+            
+            // Refresh halaman dengan filter bulan dan sales terbaru agar semua elemen tabel berubah
+            window.location.href = '?sales_id=' + salesId + '&month=' + month;
         }
     </script>
 </body>
