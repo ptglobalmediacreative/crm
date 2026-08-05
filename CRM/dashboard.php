@@ -570,7 +570,7 @@ if ($filterSalesId > 0) {
                 <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h4>Sales <span>Dashboard</span></h4>
+                <h4>Dashboard</h4>
             </div>
             <div class="filter-area">
                 <span style="font-weight:600; color:#555; font-size:14px;">Filter:</span>
