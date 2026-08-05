@@ -501,7 +501,7 @@ if ($filterSalesId > 0) {
                 <span style="font-weight:500; color:#555;">Filter:</span>
                 <?php if (!$isSalesRole): ?>
                 <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()">
-                    <option value="0">Semua Sales (Perbandingan)</option>
+                    <option value="0">Semua Sales</option>
                     <?php foreach ($allSalesList as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
                         <?= htmlspecialchars($s['full_name']) ?>
