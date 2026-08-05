@@ -457,7 +457,7 @@ if ($filterSalesId > 0) {
                 </div>
             </div>
 
-            <!-- Chart Tren (Filter by Month) -->
+            <!-- Chart Tren (Filter by Month - Area Chart Style) -->
             <div class="chart-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas</h6>
@@ -537,11 +537,15 @@ if ($filterSalesId > 0) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // CHART TREN (REAL DATA)
+        // ============================================
+        // CHART TREN (AREA CHART + CUSTOM TOOLTIP)
+        // ============================================
         const ctx = document.getElementById('trendChart').getContext('2d');
-        const grad = ctx.createLinearGradient(0, 0, 0, 200);
-        grad.addColorStop(0, 'rgba(52, 152, 219, 0.6)');
-        grad.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
+        
+        // Gradient Fill yang cantik (Biru transparan ke bawah)
+        const grad = ctx.createLinearGradient(0, 0, 0, 220);
+        grad.addColorStop(0, 'rgba(41, 128, 185, 0.6)');  // Bagian atas
+        grad.addColorStop(1, 'rgba(41, 128, 185, 0.0)');  // Bagian bawah transparan
 
         let trendChart = new Chart(ctx, {
             type: 'line',
@@ -550,23 +554,50 @@ if ($filterSalesId > 0) {
                 datasets: [{
                     label: 'Aktivitas',
                     data: <?= json_encode($chartValues) ?>,
-                    backgroundColor: grad,
-                    borderColor: '#2980b9',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#2980b9',
-                    pointBorderWidth: 2
+                    backgroundColor: grad,         // Warna area gradasi
+                    borderColor: '#2980b9',       // Warna garis
+                    borderWidth: 3,               // Ketebalan garis
+                    fill: true,                   // Mengaktifkan area di bawah garis
+                    tension: 0.4,                 // Melengkungkan garis secara halus
+                    pointRadius: 5,               // Ukuran titik data
+                    pointBackgroundColor: '#fff', // Warna titik data (putih)
+                    pointBorderColor: '#2980b9',  // Pinggiran titik data
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 7           // Titik membesar saat di-hover
                 }]
             },
             options: {
                 responsive: true, 
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#2980b9',
+                        titleFont: { weight: 'bold', size: 14 },
+                        bodyColor: '#1a1a2e',
+                        bodyFont: { size: 13 },
+                        borderColor: '#2980b9',
+                        borderWidth: 2,
+                        cornerRadius: 10,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Total: ' + context.parsed.y + ' Aktivitas';
+                            },
+                            title: function(context) {
+                                return context[0].label;
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } },
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: 'rgba(0,0,0,0.04)' }, 
+                        ticks: { stepSize: 1 } 
+                    },
                     x: { grid: { display: false } }
                 }
             }
