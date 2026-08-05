@@ -1063,7 +1063,9 @@ function addTRLinkStyle() {
             padding-bottom: 70px;
         }
 
-        /* SIDEBAR STYLING - SAMA SEPERTI DASHBOARD */
+        /* ============================================
+           SIDEBAR STYLING (DEEP NAVY BLUE) - SAMA SEPERTI DASHBOARD
+           ============================================ */
         .sidebar {
             width: 260px;
             height: 100vh;
@@ -1123,7 +1125,9 @@ function addTRLinkStyle() {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        /* MAIN CONTENT */
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
         .main-content { margin-left: 260px; padding: 30px; width: 100%; min-height: 100vh; }
         
         .page-header { 
@@ -1138,7 +1142,9 @@ function addTRLinkStyle() {
         .page-header .filter-area { display: flex; gap: 10px; align-items: center; }
         .page-header .filter-area select, .page-header .filter-area input { border-radius: 8px; border: 1px solid #e0e4ea; font-size: 13px; }
 
-        /* STAT CARDS */
+        /* ============================================
+           STAT CARDS
+           ============================================ */
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
         .stat-card { 
             background: #fff; border-radius: 16px; padding: 20px; 
@@ -1159,7 +1165,9 @@ function addTRLinkStyle() {
         .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
 
-        /* ROW PIPELINE & CHART */
+        /* ============================================
+           ROW PIPELINE & CHART
+           ============================================ */
         .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
         @media (max-width: 991px) { .grid-2-col { grid-template-columns: 1fr; } }
         
@@ -1190,7 +1198,9 @@ function addTRLinkStyle() {
 
         .chart-wrapper { height: 220px; width: 100%; }
 
-        /* RECENT ACTIVITIES */
+        /* ============================================
+           RECENT ACTIVITIES
+           ============================================ */
         .activity-card { 
             background: #fff; border-radius: 16px; padding: 24px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
@@ -1217,7 +1227,9 @@ function addTRLinkStyle() {
         .activity-item .act-info .act-desc { font-size: 13px; color: #7f8c8d; margin-top: 2px; }
         .activity-item .act-info .act-time { font-size: 11px; color: #bdc3c7; margin-top: 4px; display: block; }
 
-        /* MOBILE */
+        /* ============================================
+           MOBILE
+           ============================================ */
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
@@ -1229,13 +1241,10 @@ function addTRLinkStyle() {
             }
         }
         .mobile-toggle { display: none; }
-        
-        @media (min-width: 769px) {
-            .bottom-nav { display: none !important; }
-            body { padding-bottom: 0; }
-        }
-        
-        /* BOTTOM NAV (MOBILE) */
+
+        /* ============================================
+           BOTTOM NAV (MOBILE)
+           ============================================ */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff;
             border-top: 1px solid rgba(0,0,0,0.05); padding: 5px 0 env(safe-area-inset-bottom);
@@ -1251,10 +1260,13 @@ function addTRLinkStyle() {
         .bottom-nav .nav-item .badge-nav { position: absolute; top: -2px; right: -2px; background: #d63031; color: #fff; font-size: 7px; padding: 1px 5px; border-radius: 50%; min-width: 15px; text-align: center; }
         .bottom-nav .nav-item:hover .nav-icon { color: #0e1a2e; }
         
+        @media (min-width: 769px) {
+            .bottom-nav { display: none !important; }
+            body { padding-bottom: 0; }
+        }
         @media (max-width: 768px) {
             .bottom-nav { display: flex !important; }
         }
-        
         @media (min-width: 769px) {
             .bottom-nav { display: none !important; }
         }
@@ -1470,54 +1482,6 @@ function addTRLinkStyle() {
         <div class="text-center mt-4 text-muted" style="font-size:12px;">&copy; <?= date('Y') ?> PT Ganda Elang Tangguh - CRM</div>
 
     </div>
-
-    <!-- BOTTOM NAVIGATION (MOBILE) -->
-    <nav class="bottom-nav">
-        <a href="dashboard.php" class="nav-item">
-            <i class="fas fa-th-large nav-icon"></i>
-            <span class="nav-label">Home</span>
-        </a>
-        <?php if (canAccessMenu('account_management')): ?>
-            <a href="account_management.php" class="nav-item">
-                <i class="fas fa-building nav-icon"></i>
-                <span class="nav-label">Account</span>
-            </a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('sales_activity')): ?>
-            <a href="salesactivity.php" class="nav-item active">
-                <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales Activity</span>
-            </a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('transaction_request')): ?>
-            <a href="transactionrequest.php" class="nav-item">
-                <i class="fas fa-file-signature nav-icon"></i>
-                <span class="nav-label">TR Request</span>
-            </a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('produk')): ?>
-            <a href="produk.php" class="nav-item">
-                <i class="fas fa-box nav-icon"></i>
-                <span class="nav-label">Produk</span>
-            </a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('delivery_order')): ?>
-            <a href="#" class="nav-item">
-                <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">Delivery Order</span>
-            </a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('data_user')): ?>
-            <a href="data_user.php" class="nav-item">
-                <i class="fas fa-users nav-icon"></i>
-                <span class="nav-label">User</span>
-            </a>
-        <?php endif; ?>
-        <a href="logout.php" class="nav-item">
-            <i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i>
-            <span class="nav-label" style="color:#d63031;">Logout</span>
-        </a>
-    </nav>
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
