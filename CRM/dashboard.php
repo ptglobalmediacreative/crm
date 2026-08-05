@@ -63,15 +63,20 @@ if ($filterSalesId > 0) {
     $sqlFilterAcc = " AND sales_id = $filterSalesId";
 }
 
+// Filter SQL untuk Detail TR (Revenue Forecast)
+// Karena detail_tr terhubung ke sales_activity melalui trf_number, kita join sales_activities
+$sqlFilterTR = "";
+if ($filterSalesId > 0) {
+    $sqlFilterTR = " AND sa.sales_id = $filterSalesId";
+}
+
 // ============================================
 // DATA STATISTIK & PIPELINE
 // ============================================
 // 1. Total Leads (Dari tabel accounts)
 if ($isSalesRole) {
-    // Sales hanya melihat leads (account) miliknya sendiri
     $sqlTotalLeads = "SELECT COUNT(*) FROM accounts WHERE sales_id = $userId";
 } else {
-    // Admin/Full Access bisa melihat semua leads (atau sesuai filter)
     $sqlTotalLeads = "SELECT COUNT(*) FROM accounts WHERE 1=1" . $sqlFilterAcc;
 }
 $totalLeads = $db->query($sqlTotalLeads)->fetchColumn();
@@ -96,7 +101,7 @@ $sqlMid = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
            )" . $sqlFilterSA;
 $pipelineCounts['Middle Prospek'] = (int)$db->query($sqlMid)->fetchColumn();
 
-// Hot Prospek
+// Hot Prospek (Ini akan menjadi label "Open Deals")
 $sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
            WHERE sa.jenis_tugas = 'Negosiasi'
            AND sa.account_id NOT IN (
@@ -121,6 +126,26 @@ $pipelineCounts['Lost Prospek'] = (int)$db->query($sqlLost)->fetchColumn();
 $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
             WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilterSA;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
+
+// 3. Revenue Forecast (Dari Tabel detail_transaction_requests)
+// Menghitung total grand_total dari detail_tr yang terhubung ke sales_activity milik sales tersebut.
+// Kita menggunakan LEFT JOIN untuk memastikan data sales_activity yang belum punya detail_tr tetap muncul.
+if ($isSalesRole) {
+    $sqlRevenue = "SELECT SUM(dtr.grand_total) 
+                   FROM detail_transaction_requests dtr
+                   LEFT JOIN sales_activities sa ON dtr.trf_number = sa.trf_number
+                   WHERE sa.sales_id = $userId";
+} else {
+    $sqlRevenue = "SELECT SUM(dtr.grand_total) 
+                   FROM detail_transaction_requests dtr
+                   LEFT JOIN sales_activities sa ON dtr.trf_number = sa.trf_number
+                   WHERE 1=1" . $sqlFilterTR;
+}
+$totalRevenue = (float)$db->query($sqlRevenue)->fetchColumn();
+if ($totalRevenue == 0) {
+    // Jika belum ada data grand total, set default 0
+    $totalRevenue = 0;
+}
 
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
@@ -373,23 +398,28 @@ if ($filterSalesId > 0) {
 
         <!-- STAT CARDS (REAL DATA) -->
         <div class="stat-grid">
-            <!-- 1. TOTAL LEADS (DARI TABLE ACCOUNTS) -->
+            <!-- 1. TOTAL LEADS -->
             <div class="stat-card">
                 <div class="stat-icon gold"><i class="fas fa-users"></i></div>
                 <div class="stat-number"><?= number_format($totalLeads) ?></div>
                 <div class="stat-label">Total Leads</div>
             </div>
             
+            <!-- 2. OPEN DEALS (Sebelumnya Hot Prospek) -->
             <div class="stat-card">
-                <div class="stat-icon red"><i class="fas fa-fire"></i></div>
+                <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
                 <div class="stat-number"><?= number_format($pipelineCounts['Hot Prospek']) ?></div>
-                <div class="stat-label">Hot Prospek</div>
+                <div class="stat-label">Open Deals</div>
             </div>
+
+            <!-- 3. REVENUE FORECAST (Sebelumnya Deal / Kontrak) -->
             <div class="stat-card">
-                <div class="stat-icon green"><i class="fas fa-handshake"></i></div>
-                <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
-                <div class="stat-label">Deal (Kontrak)</div>
+                <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="stat-number">Rp <?= number_format($totalRevenue, 0, ',', '.') ?></div>
+                <div class="stat-label">Revenue Forecast</div>
             </div>
+            
+            <!-- 4. FILTERED SALES NAME -->
             <div class="stat-card">
                 <div class="stat-icon blue"><i class="fas fa-users"></i></div>
                 <div class="stat-number" style="font-size:18px;"><?= htmlspecialchars($filteredSalesName) ?></div>
@@ -419,7 +449,7 @@ if ($filterSalesId > 0) {
                 </div>
                 <div class="pipeline-stats">
                     <div class="p-item"><span class="p-label">Middle</span><span class="p-value middle"><?= $pipelineCounts['Middle Prospek'] ?></span></div>
-                    <div class="p-item"><span class="p-label">Hot</span><span class="p-value hot"><?= $pipelineCounts['Hot Prospek'] ?></span></div>
+                    <div class="p-item"><span class="p-label">Hot (Open)</span><span class="p-value hot"><?= $pipelineCounts['Hot Prospek'] ?></span></div>
                     <div class="p-item"><span class="p-label">Deal</span><span class="p-value deal"><?= $pipelineCounts['Deal'] ?></span></div>
                     <div class="p-item"><span class="p-label">Lost</span><span class="p-value lost"><?= $pipelineCounts['Lost Prospek'] ?></span></div>
                 </div>
