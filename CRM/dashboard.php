@@ -53,38 +53,67 @@ if (!$isSalesRole) {
     $allSalesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Bangun Query Filter SQL
+// Bangun Query Filter SQL dasar
 $sqlFilter = "";
 if ($filterSalesId > 0) {
-    $sqlFilter = " WHERE sales_id = $filterSalesId";
-} elseif ($isSalesRole) {
-    $sqlFilter = " WHERE sales_id = $userId";
+    $sqlFilter = " AND sa.sales_id = $filterSalesId";
 }
 
 // ============================================
-// DATA STATISTIK & CHART
+// DATA STATISTIK
 // ============================================
-$totalActivities = $db->query("SELECT COUNT(*) FROM sales_activities" . $sqlFilter)->fetchColumn();
+// Total Aktivitas
+$sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilter;
+$totalActivities = $db->query($sqlTotal)->fetchColumn();
 
+// ============================================
 // DATA PIPELINE PROSPEK (Donut Chart)
-$statusQuery = "SELECT status, COUNT(*) as total FROM sales_activities" . $sqlFilter . " GROUP BY status";
-$statusData = $db->query($statusQuery)->fetchAll(PDO::FETCH_ASSOC);
-
-$statusCounts = [
+// Menggunakan logika query lanjutan seperti di salesactivity.php
+// ============================================
+$pipelineCounts = [
     'Middle Prospek' => 0,
     'Hot Prospek'    => 0,
     'Deal'           => 0,
     'Lost Prospek'   => 0
 ];
 
-foreach ($statusData as $row) {
-    $statusName = trim($row['status']);
-    if (isset($statusCounts[$statusName])) {
-        $statusCounts[$statusName] = (int)$row['total'];
-    }
-}
-$pipelineLabels = array_keys($statusCounts);
-$pipelineValues = array_values($statusCounts);
+// Middle Prospek
+$sqlMid = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+           WHERE sa.jenis_tugas = 'Prospecting'
+           AND sa.account_id NOT IN (
+               SELECT DISTINCT account_id FROM sales_activities 
+               WHERE jenis_tugas IN ('Negosiasi', 'Kontrak') AND account_id IS NOT NULL
+           )" . $sqlFilter;
+$pipelineCounts['Middle Prospek'] = (int)$db->query($sqlMid)->fetchColumn();
+
+// Hot Prospek
+$sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+           WHERE sa.jenis_tugas = 'Negosiasi'
+           AND sa.account_id NOT IN (
+               SELECT DISTINCT account_id FROM sales_activities 
+               WHERE jenis_tugas = 'Kontrak' AND account_id IS NOT NULL
+           )
+           AND sa.account_id NOT IN (
+               SELECT DISTINCT account_id FROM sales_activities 
+               WHERE jenis_tugas = 'Negosiasi' AND status = 'completed' AND customer_deal = 'No' AND account_id IS NOT NULL
+           )
+           AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')" . $sqlFilter;
+$pipelineCounts['Hot Prospek'] = (int)$db->query($sqlHot)->fetchColumn();
+
+// Lost Prospek
+$sqlLost = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+            WHERE sa.jenis_tugas = 'Negosiasi'
+            AND sa.status = 'completed' 
+            AND sa.customer_deal = 'No'" . $sqlFilter;
+$pipelineCounts['Lost Prospek'] = (int)$db->query($sqlLost)->fetchColumn();
+
+// Deal (Kontrak)
+$sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+            WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilter;
+$pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
+
+$pipelineLabels = array_keys($pipelineCounts);
+$pipelineValues = array_values($pipelineCounts);
 
 // ============================================
 // DATA LAPORAN PER BULAN (Untuk Tabel di Bawah)
@@ -116,7 +145,6 @@ if ($filterSalesId > 0) {
     $filteredReportData = getSalesMonthlyReport($db, $filterSalesId);
 } else {
     // Jika Admin memilih "Semua Sales", kita ambil report dari semua sales
-    // Untuk tabel laporan, kita akan looping di view
     $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
     $allUsersForReport = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($allUsersForReport as $u) {
