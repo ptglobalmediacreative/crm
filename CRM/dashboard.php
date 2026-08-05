@@ -536,9 +536,6 @@ if ($filterSalesId > 0) {
         <?php if (in_array('transaction_request', $menuNames)): ?>
             <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
         <?php endif; ?>
-        <?php if (in_array('detail_transaction_request', $menuNames)): ?>
-            <a href="detailtr.php" class="nav-item"><i class="fas fa-file-alt"></i> Detail TR</a>
-        <?php endif; ?>
         <?php if (in_array('produk', $menuNames)): ?>
             <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
         <?php endif; ?>
