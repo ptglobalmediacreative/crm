@@ -580,7 +580,7 @@ if ($filterSalesId > 0) {
             <!-- Chart Tren (Multi Sales Comparison) -->
             <div class="chart-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas <?= ($filterSalesId == 0) ? '<span class="badge bg-info ms-2">Perbandingan Sales</span>' : '' ?></h6>
+                    <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas <?= ($filterSalesId == 0) ? : '' ?></h6>
                 </div>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
