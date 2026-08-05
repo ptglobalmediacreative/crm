@@ -20,6 +20,12 @@ if (!isLoggedIn()) {
 requirePermission('sales_activity', 'view');
 
 // ============================================
+// AMBIL MENU YANG BOLEH DIAKSES USER (DITAMBAHKAN UNTUK MENGATASI ERROR)
+// ============================================
+$userMenus = getUserMenus();
+$menuNames = array_column($userMenus, 'module_name');
+
+// ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
 function getRoleLabel($role) {
