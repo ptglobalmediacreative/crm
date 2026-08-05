@@ -36,10 +36,13 @@ function getRoleLabel($role) {
 }
 
 // ============================================
-// FILTER SALES (GET PARAMETER)
+// HANDLE FILTER SALES & BULAN
 // ============================================
 $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $isSalesRole = ($role === 'sales');
+
+// Filter Bulan (Default ke bulan sekarang)
+$filterMonth = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 
 if ($isSalesRole) {
     $filterSalesId = $userId;
@@ -149,35 +152,22 @@ if (!$totalRevenue) $totalRevenue = 0;
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
 // ============================================
-// DATA AKTIVITAS TERBARU (TIMELINE)
-// ============================================
-$activityLimit = 5;
-$sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name
-                  FROM sales_activities sa 
-                  LEFT JOIN accounts a ON sa.account_id = a.id 
-                  LEFT JOIN users u ON sa.sales_id = u.id
-                  WHERE 1=1" . $sqlFilterSA . "
-                  ORDER BY sa.created_at DESC 
-                  LIMIT $activityLimit";
-$recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
-
-// ============================================
-// DATA CHART TREN (SEMUA DATA - TANPA BATASAN 7 HARI)
+// DATA CHART TREN (BERDASARKAN BULAN TERPILIH)
 // ============================================
 $chartLabels = [];
 $chartValues = [];
 
-// HAPUS LIMIT 7, AMBIL SEMUA DATA DARI AWAL SAMPAI SEKARANG
-$chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities";
-if ($filterSalesId > 0) $chartQuery .= " WHERE sales_id = $filterSalesId";
+// Query dengan filter BULAN
+$chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities 
+               WHERE DATE_FORMAT(created_at, '%Y-%m') = ?";
+if ($filterSalesId > 0) $chartQuery .= " AND sales_id = $filterSalesId";
 $chartQuery .= " GROUP BY DATE(created_at) ORDER BY date ASC"; 
 
-$chartData = $db->query($chartQuery)->fetchAll(PDO::FETCH_ASSOC);
+$stmt = $db->prepare($chartQuery);
+$stmt->execute([$filterMonth]);
+$chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$tempData = [];
 foreach ($chartData as $row) {
-    $tempData[$row['date']] = $row['total'];
-    // Ambil label tanggal
     $chartLabels[] = date('d M Y', strtotime($row['date']));
     $chartValues[] = $row['total'];
 }
@@ -227,11 +217,7 @@ if ($filterSalesId > 0) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- Chart.js & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -471,9 +457,14 @@ if ($filterSalesId > 0) {
                 </div>
             </div>
 
-            <!-- Chart Tren (REAL DATA - Bisa Digeser) -->
+            <!-- Chart Tren (Filter by Month) -->
             <div class="chart-card">
-                <h6><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas (Geser untuk Lihat Semua)</h6>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h6 class="mb-0" style="font-weight:600;"><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas</h6>
+                    <div>
+                        <input type="month" id="filterMonth" class="form-control form-control-sm" value="<?= $filterMonth ?>" onchange="applyMonthFilter()">
+                    </div>
+                </div>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
         </div>
@@ -546,13 +537,13 @@ if ($filterSalesId > 0) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // CHART TREN (REAL DATA) + FITUR ZOOM/PAN (GESER)
+        // CHART TREN (REAL DATA)
         const ctx = document.getElementById('trendChart').getContext('2d');
         const grad = ctx.createLinearGradient(0, 0, 0, 200);
         grad.addColorStop(0, 'rgba(52, 152, 219, 0.6)');
         grad.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
 
-        new Chart(ctx, {
+        let trendChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: <?= json_encode($chartLabels) ?>,
@@ -573,35 +564,37 @@ if ($filterSalesId > 0) {
             options: {
                 responsive: true, 
                 maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    zoom: {
-                        pan: {
-                            enabled: true,
-                            mode: 'x', // Bisa digeser secara horizontal (kiri/kanan)
-                            modifierKey: 'shift',
-                        },
-                        zoom: {
-                            wheel: {
-                                enabled: true,
-                                modifierKey: 'shift',
-                            },
-                            pinch: {
-                                enabled: true
-                            },
-                            mode: 'x',
-                        },
-                        limits: {
-                            x: {minRange: 10} // Minimal menampilkan 10 data titik saat di-zoom
-                        }
-                    }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
                     y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } },
                     x: { grid: { display: false } }
                 }
             }
         });
+
+        // ============================================
+        // FUNGSI APPLY FILTER BULAN (Tanpa Reload Halaman)
+        // ============================================
+        function applyMonthFilter() {
+            const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
+            const month = document.getElementById('filterMonth').value;
+
+            // Fetch data AJAX
+            fetch(`api/get_trend_data.php?sales_id=${salesId}&month=${month}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update Chart
+                    trendChart.data.labels = data.labels;
+                    trendChart.data.datasets[0].data = data.values;
+                    trendChart.update();
+                    
+                    // Update URL tanpa reload (opsional)
+                    const url = new URL(window.location);
+                    url.searchParams.set('month', month);
+                    window.history.replaceState({}, '', url);
+                })
+                .catch(error => console.error('Error:', error));
+        }
     </script>
 </body>
 </html>
