@@ -51,15 +51,33 @@ if (!$isSalesRole) {
     $allSalesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-$sqlFilter = "";
+// Filter SQL untuk Sales_Activities (Pipeline, Chart, Recent Activities)
+$sqlFilterSA = "";
 if ($filterSalesId > 0) {
-    $sqlFilter = " AND sa.sales_id = $filterSalesId";
+    $sqlFilterSA = " AND sa.sales_id = $filterSalesId";
+}
+
+// Filter SQL untuk Accounts (Total Leads)
+$sqlFilterAcc = "";
+if ($filterSalesId > 0) {
+    $sqlFilterAcc = " AND sales_id = $filterSalesId";
 }
 
 // ============================================
-// DATA STATISTIK & PIPELINE (LOGIKA REAL)
+// DATA STATISTIK & PIPELINE
 // ============================================
-$sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilter;
+// 1. Total Leads (Dari tabel accounts)
+if ($isSalesRole) {
+    // Sales hanya melihat leads (account) miliknya sendiri
+    $sqlTotalLeads = "SELECT COUNT(*) FROM accounts WHERE sales_id = $userId";
+} else {
+    // Admin/Full Access bisa melihat semua leads (atau sesuai filter)
+    $sqlTotalLeads = "SELECT COUNT(*) FROM accounts WHERE 1=1" . $sqlFilterAcc;
+}
+$totalLeads = $db->query($sqlTotalLeads)->fetchColumn();
+
+// 2. Pipeline Data (Dari sales_activities)
+$sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilterSA;
 $totalActivities = $db->query($sqlTotal)->fetchColumn();
 
 $pipelineCounts = [
@@ -75,7 +93,7 @@ $sqlMid = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
            AND sa.account_id NOT IN (
                SELECT DISTINCT account_id FROM sales_activities 
                WHERE jenis_tugas IN ('Negosiasi', 'Kontrak') AND account_id IS NOT NULL
-           )" . $sqlFilter;
+           )" . $sqlFilterSA;
 $pipelineCounts['Middle Prospek'] = (int)$db->query($sqlMid)->fetchColumn();
 
 // Hot Prospek
@@ -89,19 +107,19 @@ $sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
                SELECT DISTINCT account_id FROM sales_activities 
                WHERE jenis_tugas = 'Negosiasi' AND status = 'completed' AND customer_deal = 'No' AND account_id IS NOT NULL
            )
-           AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')" . $sqlFilter;
+           AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')" . $sqlFilterSA;
 $pipelineCounts['Hot Prospek'] = (int)$db->query($sqlHot)->fetchColumn();
 
 // Lost Prospek
 $sqlLost = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
             WHERE sa.jenis_tugas = 'Negosiasi'
             AND sa.status = 'completed' 
-            AND sa.customer_deal = 'No'" . $sqlFilter;
+            AND sa.customer_deal = 'No'" . $sqlFilterSA;
 $pipelineCounts['Lost Prospek'] = (int)$db->query($sqlLost)->fetchColumn();
 
 // Deal (Kontrak)
 $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-            WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilter;
+            WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilterSA;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
@@ -114,7 +132,7 @@ $sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name
                   FROM sales_activities sa 
                   LEFT JOIN accounts a ON sa.account_id = a.id 
                   LEFT JOIN users u ON sa.sales_id = u.id
-                  WHERE 1=1" . $sqlFilter . "
+                  WHERE 1=1" . $sqlFilterSA . "
                   ORDER BY sa.created_at DESC 
                   LIMIT $activityLimit";
 $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
@@ -355,11 +373,13 @@ if ($filterSalesId > 0) {
 
         <!-- STAT CARDS (REAL DATA) -->
         <div class="stat-grid">
+            <!-- 1. TOTAL LEADS (DARI TABLE ACCOUNTS) -->
             <div class="stat-card">
-                <div class="stat-icon gold"><i class="fas fa-chart-line"></i></div>
-                <div class="stat-number"><?= number_format($totalActivities) ?></div>
-                <div class="stat-label">Total Aktivitas</div>
+                <div class="stat-icon gold"><i class="fas fa-users"></i></div>
+                <div class="stat-number"><?= number_format($totalLeads) ?></div>
+                <div class="stat-label">Total Leads</div>
             </div>
+            
             <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-fire"></i></div>
                 <div class="stat-number"><?= number_format($pipelineCounts['Hot Prospek']) ?></div>
