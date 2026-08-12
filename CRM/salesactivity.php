@@ -2522,6 +2522,8 @@ if (isset($_GET['complete'])) {
                     var containerWidth = $select.closest('.select2-container').width();
                     $dropdown.css('min-width', containerWidth + 'px');
                     $dropdown.css('max-width', containerWidth + 'px');
+                    $dropdown.css('left', '0');
+                    $dropdown.css('right', 'auto');
                 }
             });
             
