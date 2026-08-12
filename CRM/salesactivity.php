@@ -2480,8 +2480,10 @@ if (isset($_GET['complete'])) {
         // INIT SELECT2 - RAPIH DI DALAM KOTAK
         // ============================================
         $(document).ready(function() {
+            // Pastikan modal sudah terbuka sebelum inisialisasi Select2
             var $select = $('#account_id');
             
+            // Inisialisasi Select2
             $select.select2({
                 theme: 'bootstrap-5',
                 dropdownParent: $('#modalSalesActivity'),
@@ -2499,7 +2501,7 @@ if (isset($_GET['complete'])) {
                 templateSelection: formatAccountSelection
             });
             
-            // Pastikan dropdown tidak overflow
+            // Pastikan dropdown tidak overflow dengan mengatur lebar
             $select.on('select2:open', function() {
                 var $dropdown = $('.select2-dropdown');
                 if ($dropdown.length) {
@@ -2542,6 +2544,12 @@ if (isset($_GET['complete'])) {
                     document.getElementById('di_number_add').value = '';
                     document.getElementById('trf_number_add').value = '';
                 }
+            });
+            
+            // Fix untuk modal yang terbuka
+            $('#modalSalesActivity').on('shown.bs.modal', function() {
+                $select.select2('open');
+                $select.select2('close');
             });
         });
 
