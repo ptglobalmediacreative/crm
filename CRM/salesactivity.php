@@ -504,9 +504,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($errors)) {
             $status = empty($result) ? 'in_progress' : 'completed';
             
-            // Generate TRF Number jika jenis tugas = Negosiasi
-            if ($jenis_tugas === 'Negosiasi' && empty($trf_number)) {
-                $trf_number = generateTRFNumber($db);
+            // Generate TRF Number jika jenis tugas = Negosiasi atau Kontrak
+            if (($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak') && empty($trf_number)) {
+                // Cek apakah sudah ada TRF dari Negosiasi sebelumnya (untuk Kontrak)
+                if ($jenis_tugas === 'Kontrak' && $account_id) {
+                    $existing_trf = getLastTRFNumberByAccount($db, $account_id);
+                    if ($existing_trf) {
+                        $trf_number = $existing_trf;
+                    } else {
+                        $trf_number = generateTRFNumber($db);
+                    }
+                } else {
+                    $trf_number = generateTRFNumber($db);
+                }
             }
             
             // Generate DI Number jika jenis tugas = Kontrak dan customer_deal = Yes
@@ -550,7 +560,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // ============================================
             // INSERT KE TRANSACTION REQUESTS
             // ============================================
-            if (!empty($trf_number) && ($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales')) {
+            if (!empty($trf_number) && ($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales')) {
                 try {
                     $stmt_tr = $db->prepare("INSERT INTO transaction_requests 
                                               (trf_number, sales_activity_id, account_id, sales_id, 
@@ -627,8 +637,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Gunakan TRF number yang sudah ada, jangan generate ulang
         if (!empty($existing_trf)) {
             $trf_number = $existing_trf;
-        } elseif (empty($trf_number) && ($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales')) {
-            // Jika belum ada TRF number dan jenis tugas = Negosiasi/Collect Payment/Aftersales, generate
+        } elseif (empty($trf_number) && ($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales')) {
+            // Jika belum ada TRF number, generate
             $trf_number = generateTRFNumber($db);
         }
         
@@ -2228,13 +2238,13 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Transaction Request Form Number - Muncul untuk Negosiasi, Collect Payment, Aftersales -->
+                        <!-- Transaction Request Form Number - Muncul untuk Negosiasi, Kontrak, Collect Payment, Aftersales -->
                         <div class="trf-field" id="trfField">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
                                     <label class="form-label">Transaction Request Form</label>
                                     <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis untuk Negosiasi, Collect Payment & Aftersales</small>
+                                    <small class="text-muted">Akan digenerate otomatis untuk Negosiasi, Kontrak, Collect Payment & Aftersales</small>
                                 </div>
                             </div>
                         </div>
@@ -2540,16 +2550,17 @@ if (isset($_GET['complete'])) {
             var trfInput = document.getElementById('trf_number_add');
             var diInput = document.getElementById('di_number_add');
             var customerDeal = document.getElementById('customer_deal_add');
+            var accountId = document.getElementById('account_id');
             
             if (!jenisTugas) return;
             
             var value = jenisTugas.value;
             
-            // TRF Field: tampilkan untuk Negosiasi, Collect Payment, Aftersales
-            if (value === 'Negosiasi' || value === 'Collect Payment' || value === 'Aftersales') {
+            // TRF Field: tampilkan untuk Negosiasi, Kontrak, Collect Payment, Aftersales
+            if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
                 trfField.classList.add('show');
-                // Generate TRF jika kosong
-                if (trfInput && trfInput.value === '') {
+                // Generate TRF jika kosong dan jenis tugas = Negosiasi
+                if (value === 'Negosiasi' && trfInput && trfInput.value === '') {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(response => response.json())
                         .then(data => {
@@ -2566,6 +2577,17 @@ if (isset($_GET['complete'])) {
                             trfInput.value = '0001/GET-TR/JKT/' + romanMonth + '/' + year;
                         });
                 }
+                // Jika bukan Negosiasi, cek apakah ada TRF dari account yang sama
+                else if (value !== 'Negosiasi' && trfInput && trfInput.value === '' && accountId && accountId.value) {
+                    fetch('salesactivity.php?get_account_numbers=' + accountId.value)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.trf_number) {
+                                trfInput.value = data.trf_number;
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
             } else {
                 trfField.classList.remove('show');
                 if (trfInput) trfInput.value = '';
@@ -2581,7 +2603,6 @@ if (isset($_GET['complete'])) {
                     var year = now.getFullYear();
                     var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
                     var romanMonth = romanMonths[month];
-                    // Generate sementara, nanti akan di-generate ulang di server
                     diInput.value = '001/GET-DI/' + romanMonth + '/' + year;
                 }
             } else {
@@ -2603,12 +2624,14 @@ if (isset($_GET['complete'])) {
             
             var value = jenisTugas.value;
             
-            if (value === 'Negosiasi' || value === 'Collect Payment' || value === 'Aftersales') {
+            // TRF Field: tampilkan untuk Negosiasi, Kontrak, Collect Payment, Aftersales
+            if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
                 trfFieldComplete.classList.add('show');
             } else {
                 trfFieldComplete.classList.remove('show');
             }
             
+            // Deal Fields: tampilkan hanya untuk Kontrak
             if (value === 'Kontrak') {
                 dealFieldsComplete.classList.add('show');
             } else {
@@ -2669,6 +2692,17 @@ if (isset($_GET['complete'])) {
                     toggleFields();
                 });
                 setTimeout(toggleFields, 100);
+            }
+            
+            // Account ID change untuk update TRF & DI
+            var accountId = document.getElementById('account_id');
+            if (accountId) {
+                accountId.addEventListener('change', function() {
+                    var jenisTugasVal = document.getElementById('jenis_tugas').value;
+                    if (jenisTugasVal === 'Kontrak' || jenisTugasVal === 'Collect Payment' || jenisTugasVal === 'Aftersales') {
+                        toggleFields();
+                    }
+                });
             }
         });
 
@@ -2743,6 +2777,14 @@ if (isset($_GET['complete'])) {
                     toggleFields();
                 });
                 setTimeout(toggleFields, 100);
+            }
+            
+            // Account ID change
+            var accountId = document.getElementById('account_id');
+            if (accountId) {
+                accountId.addEventListener('change', function() {
+                    toggleFields();
+                });
             }
         });
 
@@ -2870,8 +2912,8 @@ if (isset($_GET['complete'])) {
                 document.getElementById('di_number_complete').value = diNumber;
                 document.getElementById('di_number_complete_hidden').value = diNumber;
                 
-                // Generate TRF jika jenis tugas = Negosiasi/Collect Payment/Aftersales dan belum ada
-                if ((data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') && !trfNumber) {
+                // Generate TRF jika jenis tugas = Negosiasi/Kontrak/Collect Payment/Aftersales dan belum ada
+                if ((data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') && !trfNumber) {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(response => response.json())
                         .then(response => {
