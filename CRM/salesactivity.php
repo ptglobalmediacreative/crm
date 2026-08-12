@@ -81,7 +81,7 @@ function generateTRFNumber($db) {
 }
 
 // ============================================
-// GENERATE DI NUMBER (Leads Number baru)
+// GENERATE DI NUMBER
 // ============================================
 function generateDINumber($db, $date) {
     $month = date('m', strtotime($date));
@@ -110,14 +110,10 @@ function generateDINumber($db, $date) {
 // FUNGSI KOMPRESI GAMBAR
 // ============================================
 function compressImage($source_path, $destination_path, $quality = 80) {
-    if (!file_exists($source_path)) {
-        return false;
-    }
+    if (!file_exists($source_path)) return false;
     
     $image_info = getimagesize($source_path);
-    if (!$image_info) {
-        return false;
-    }
+    if (!$image_info) return false;
     
     $mime_type = $image_info['mime'];
     $max_width = 1920;
@@ -141,9 +137,7 @@ function compressImage($source_path, $destination_path, $quality = 80) {
             return copy($source_path, $destination_path);
     }
     
-    if (!$image) {
-        return false;
-    }
+    if (!$image) return false;
     
     $orig_width = imagesx($image);
     $orig_height = imagesy($image);
@@ -362,7 +356,6 @@ try {
     
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_deal VARCHAR(10) NULL");
     
-    // Ganti leads_number menjadi di_number
     try {
         $db->exec("ALTER TABLE sales_activities CHANGE COLUMN leads_number di_number VARCHAR(50) NULL");
     } catch(PDOException $e) {
@@ -405,6 +398,19 @@ if (isset($_GET['generate_trf'])) {
     $trf_number = generateTRFNumber($db);
     header('Content-Type: application/json');
     echo json_encode(['trf_number' => $trf_number]);
+    exit;
+}
+
+// ============================================
+// API ENDPOINT untuk get Account Data (AJAX)
+// ============================================
+if (isset($_GET['get_account'])) {
+    $account_id = (int)$_GET['get_account'];
+    $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
+    $stmt->execute([$account_id]);
+    $data = $stmt->fetch(PDO::FETCH_ASSOC);
+    header('Content-Type: application/json');
+    echo json_encode($data ?: []);
     exit;
 }
 
@@ -504,9 +510,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($errors)) {
             $status = empty($result) ? 'in_progress' : 'completed';
             
-            // Generate TRF Number jika jenis tugas = Negosiasi atau Kontrak
             if (($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak') && empty($trf_number)) {
-                // Cek apakah sudah ada TRF dari Negosiasi sebelumnya (untuk Kontrak)
                 if ($jenis_tugas === 'Kontrak' && $account_id) {
                     $existing_trf = getLastTRFNumberByAccount($db, $account_id);
                     if ($existing_trf) {
@@ -519,12 +523,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             
-            // Generate DI Number jika jenis tugas = Kontrak dan customer_deal = Yes
             if ($jenis_tugas === 'Kontrak' && $customer_deal === 'Yes' && empty($di_number)) {
                 $di_number = generateDINumber($db, $due_date);
             }
             
-            // Untuk Collect Payment & Aftersales - ambil dari account yang sama
             if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
                 if (empty($trf_number)) {
                     $trf_number = getLastTRFNumberByAccount($db, $account_id);
@@ -557,9 +559,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             $salesActivityId = $db->lastInsertId();
             
-            // ============================================
-            // INSERT KE TRANSACTION REQUESTS
-            // ============================================
             if (!empty($trf_number) && ($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales')) {
                 try {
                     $stmt_tr = $db->prepare("INSERT INTO transaction_requests 
@@ -626,7 +625,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $trf_number = bersihkan($_POST['trf_number'] ?? '');
         $di_number = bersihkan($_POST['di_number'] ?? '');
         
-        // AMBIL TRF NUMBER YANG SUDAH ADA DARI DATABASE
         $stmt = $db->prepare("SELECT trf_number, account_id, due_date FROM sales_activities WHERE id = ?");
         $stmt->execute([$id]);
         $existing = $stmt->fetch();
@@ -634,20 +632,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $account_id = $existing['account_id'] ?? null;
         $due_date = $existing['due_date'] ?? null;
         
-        // Gunakan TRF number yang sudah ada, jangan generate ulang
         if (!empty($existing_trf)) {
             $trf_number = $existing_trf;
         } elseif (empty($trf_number) && ($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales')) {
-            // Jika belum ada TRF number, generate
             $trf_number = generateTRFNumber($db);
         }
         
-        // Generate DI Number jika jenis tugas = Kontrak dan customer_deal = Yes
         if ($jenis_tugas === 'Kontrak' && $customer_deal === 'Yes' && empty($di_number)) {
             $di_number = generateDINumber($db, $due_date);
         }
         
-        // Untuk Collect Payment & Aftersales - ambil dari account yang sama jika belum ada
         if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
             if (empty($trf_number)) {
                 $trf_number = getLastTRFNumberByAccount($db, $account_id);
@@ -715,7 +709,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'names' => $attachment_file_names
             ]);
             
-            // UPDATE TANPA MENGUBAH TRF NUMBER & DI NUMBER (kecuali jika belum ada)
             if (!empty($trf_number) && !empty($di_number)) {
                 $stmt = $db->prepare("UPDATE sales_activities SET 
                                       result = ?, customer_deal = ?, di_number = ?, 
@@ -742,9 +735,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $id]);
             }
             
-            // ============================================
-            // UPDATE TRANSACTION REQUESTS
-            // ============================================
             if (!empty($trf_number)) {
                 try {
                     $stmt_tr = $db->prepare("UPDATE transaction_requests SET 
@@ -844,7 +834,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $id = (int)$_POST['id'];
         
-        // Ambil trf_number sebelum delete
         $stmt = $db->prepare("SELECT trf_number FROM sales_activities WHERE id = ?");
         $stmt->execute([$id]);
         $trf_number = $stmt->fetchColumn();
@@ -866,9 +855,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // ============================================
-        // HAPUS TRANSACTION REQUESTS
-        // ============================================
         if (!empty($trf_number)) {
             try {
                 $stmt_tr = $db->prepare("DELETE FROM transaction_requests WHERE trf_number = ?");
@@ -1094,29 +1080,6 @@ if (isset($_GET['edit'])) {
     $editData = $stmt->fetch();
 }
 
-if (isset($_GET['get_account'])) {
-    $account_id = (int)$_GET['get_account'];
-    $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
-    $stmt->execute([$account_id]);
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
-    header('Content-Type: application/json');
-    echo json_encode($data ?: []);
-    exit;
-}
-
-// API untuk mendapatkan DI Number & TRF Number berdasarkan Account
-if (isset($_GET['get_account_numbers'])) {
-    $account_id = (int)$_GET['get_account_numbers'];
-    $di_number = getLastDINumberByAccount($db, $account_id);
-    $trf_number = getLastTRFNumberByAccount($db, $account_id);
-    header('Content-Type: application/json');
-    echo json_encode([
-        'di_number' => $di_number,
-        'trf_number' => $trf_number
-    ]);
-    exit;
-}
-
 $completeData = null;
 if (isset($_GET['complete'])) {
     $id = (int)$_GET['complete'];
@@ -1135,25 +1098,16 @@ if (isset($_GET['complete'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sales Activity - PT Ganda Elang Tangguh</title>
     
-    <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
-        /* ============================================
-           RESET & BASE
-           ============================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1161,9 +1115,6 @@ if (isset($_GET['complete'])) {
             padding-bottom: 70px;
         }
         
-        /* ============================================
-           SIDEBAR
-           ============================================ */
         .sidebar {
             width: 260px;
             height: 100vh;
@@ -1223,9 +1174,6 @@ if (isset($_GET['complete'])) {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        /* ============================================
-           MAIN CONTENT
-           ============================================ */
         .main-content { margin-left: 260px; padding: 30px; width: 100%; }
 
         .page-header { 
@@ -1254,7 +1202,6 @@ if (isset($_GET['complete'])) {
         .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
         .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
-        .stat-card .stat-icon.purple { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
         .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
 
@@ -1464,249 +1411,20 @@ if (isset($_GET['complete'])) {
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
 
-        /* ============================================
-           SELECT2 CUSTOM STYLE
-           ============================================ */
-        .select2-container--bootstrap-5 {
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-        }
-
         .select2-container--bootstrap-5 .select2-selection {
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
             border: 2px solid #e8edf2 !important;
             border-radius: 8px !important;
             min-height: 46px !important;
-            background: #fff !important;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
         }
-
-        .select2-container--bootstrap-5 .select2-selection--single {
-            padding: 4px 0 !important;
-            width: 100% !important;
-        }
-
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
             padding: 6px 14px !important;
             line-height: 28px !important;
-            color: #333 !important;
             font-size: 14px !important;
-            font-family: 'Inter', sans-serif !important;
-            display: block !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            white-space: nowrap !important;
-            max-width: calc(100% - 40px) !important;
-            float: none !important;
         }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
-            color: #999 !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
-            height: 44px !important;
-            width: 34px !important;
-            right: 4px !important;
-            position: absolute !important;
-            top: 0 !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
-            border-color: #999 transparent transparent transparent !important;
-            border-width: 6px 5px 0 5px !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
-            margin-right: 8px !important;
-            font-size: 18px !important;
-            color: #999 !important;
-            font-weight: 300 !important;
-            position: absolute !important;
-            right: 34px !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            z-index: 1 !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
-            color: #e74c3c !important;
-        }
-
-        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
-        .select2-container--bootstrap-5.select2-container--open .select2-selection {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
-            outline: none !important;
-        }
-
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
             border-radius: 0 0 8px 8px !important;
-            overflow: hidden !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-            margin-top: 2px !important;
-            background: #fff !important;
-            z-index: 1060 !important;
-            width: auto !important;
-            min-width: 0 !important;
-            max-width: 100% !important;
-            position: absolute !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-search--dropdown {
-            padding: 8px 12px !important;
-            background: #fafafa !important;
-            border-bottom: 1px solid #f0f2f5 !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-search__field {
-            border: 2px solid #e8edf2 !important;
-            border-radius: 8px !important;
-            padding: 8px 14px !important;
-            font-size: 13px !important;
-            font-family: 'Inter', sans-serif !important;
-            width: 100% !important;
-            background: #fff !important;
-            transition: border-color 0.3s ease !important;
-            box-sizing: border-box !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-search__field:focus {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
-            outline: none !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__options {
-            padding: 4px 0 !important;
-            max-height: 200px !important;
-            overflow-y: auto !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__option {
-            padding: 8px 14px !important;
-            font-size: 13px !important;
-            font-family: 'Inter', sans-serif !important;
-            color: #333 !important;
-            transition: all 0.15s ease !important;
-            cursor: pointer !important;
-            border-bottom: 1px solid #f8f9fa !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__option:last-child {
-            border-bottom: none !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
-            background: #0e1a2b !important;
-            color: #ffd700 !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
-            background: #f0f2f5 !important;
-            color: #0e1a2b !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__option .badge-badan-usaha {
-            font-size: 9px !important;
-            padding: 1px 8px !important;
-            margin-left: 6px !important;
-            display: inline-block !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__message {
-            padding: 12px !important;
-            color: #999 !important;
-            font-size: 13px !important;
-            text-align: center !important;
-        }
-
-        .select2-container--bootstrap-5.select2-container--disabled .select2-selection {
-            background: #f8f9fa !important;
-            cursor: not-allowed !important;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-track {
-            background: #f0f2f5;
-            border-radius: 0 0 8px 0;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-thumb {
-            background: #c0c4c8;
-            border-radius: 3px;
-        }
-
-        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-thumb:hover {
-            background: #a0a4a8;
-        }
-
-        @media (max-width: 768px) {
-            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-                font-size: 13px !important;
-                padding: 4px 12px !important;
-                max-width: calc(100% - 36px) !important;
-            }
-            .select2-container--bootstrap-5 .select2-selection {
-                min-height: 40px !important;
-            }
-            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
-                height: 38px !important;
-                width: 30px !important;
-            }
-            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
-                right: 30px !important;
-                font-size: 16px !important;
-            }
-            .select2-container--bootstrap-5 .select2-results__option {
-                padding: 6px 12px !important;
-                font-size: 12px !important;
-            }
-        }
-
-        .modal-body .select2-container--bootstrap-5 {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        .modal-body .select2-container--bootstrap-5 .select2-selection {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        .select2-dropdown {
-            z-index: 1060 !important;
-            max-width: 100% !important;
-        }
-
-        .select2-container--open .select2-dropdown--below {
-            max-width: 100% !important;
-            width: auto !important;
-            left: 0 !important;
-            right: auto !important;
-        }
-
-        .select2-container--open {
-            position: relative !important;
-        }
-
-        .select2-container .select2-dropdown {
-            left: 0 !important;
-            right: auto !important;
         }
 
         .btn-primary-custom {
@@ -1738,22 +1456,6 @@ if (isset($_GET['complete'])) {
             color: #555;
         }
         .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
-
-        .btn-success-custom {
-            background: #27ae60;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-success-custom:hover { background: #219a52; color: #fff; }
 
         .btn-complete-custom {
             background: #f39c12;
@@ -1821,8 +1523,6 @@ if (isset($_GET['complete'])) {
         .deal-fields.show { display: block; }
         .trf-field { display: none; }
         .trf-field.show { display: block; }
-        .di-field { display: none; }
-        .di-field.show { display: block; }
 
         .auto-fill-field { background: #f8f9fa !important; cursor: default; }
 
@@ -2060,7 +1760,6 @@ if (isset($_GET['complete'])) {
                                     <?php 
                                     $deadline = getDeadlineStatus($activity['due_date'], $activity['status']);
                                     $isOverdue = $activity['status'] == 'overdue' || ($deadline['status'] == 'overdue' && $activity['status'] == 'in_progress');
-                                    $isApproaching = $deadline['status'] == 'approaching' && $activity['status'] == 'in_progress';
                                     $rowClass = $isOverdue ? 'table-overdue' : '';
                                     
                                     $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && $activity['has_negosiasi_kontrak'] == 0);
@@ -2206,7 +1905,9 @@ if (isset($_GET['complete'])) {
 
     </div>
 
-    <!-- MODALS -->
+    <!-- ============================================
+    MODALS
+    ============================================ -->
     <!-- Modal Tambah / Edit -->
     <div class="modal fade" id="modalSalesActivity" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
@@ -2225,7 +1926,6 @@ if (isset($_GET['complete'])) {
                             <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject" required>
                         </div>
                         
-                        <!-- Account Management dengan Select2 -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
                             <select name="account_id" id="account_id" style="width: 100%;" required>
@@ -2275,7 +1975,6 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Transaction Request Form -->
                         <div class="trf-field" id="trfField">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
@@ -2286,7 +1985,6 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & DI Number -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
                             <div class="row">
@@ -2382,7 +2080,6 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- TRF Number -->
                         <div class="trf-field" id="trfFieldComplete">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
@@ -2393,7 +2090,6 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & DI Number -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
                             <div class="row">
@@ -2452,9 +2148,7 @@ if (isset($_GET['complete'])) {
                     <h5 class="modal-title"><i class="fas fa-chart-bar" style="color:#ffd700;"></i> Detail Sales Activity</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="detailBody">
-                    <!-- Detail akan diisi oleh JavaScript -->
-                </div>
+                <div class="modal-body" id="detailBody"></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
                 </div>
@@ -2492,122 +2186,58 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // FORMAT FUNCTIONS
-        // ============================================
-        function formatAccountResult(option) {
-            if (!option.id) return option.text;
-            var badge = $(option.element).data('badge') || 'PT';
-            return $(
-                '<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;">' + badge + '</span></span>'
-            );
-        }
-
-        function formatAccountSelection(option) {
-            if (!option.id) return option.text;
-            return option.text;
-        }
-
-        // ============================================
-        // INIT SELECT2
-        // ============================================
-        var $select = $('#account_id');
-        var select2Initialized = false;
-
-        function initSelect2() {
-            if ($select.length && !select2Initialized) {
-                $select.select2({
-                    theme: 'bootstrap-5',
-                    dropdownParent: $('#modalSalesActivity'),
-                    placeholder: 'Cari account...',
-                    allowClear: true,
-                    width: '100%',
-                    minimumInputLength: 0,
-                    dropdownAutoWidth: false,
-                    language: {
-                        searching: function() { return 'Mencari...'; },
-                        noResults: function() { return 'Tidak ada account ditemukan'; },
-                        errorLoading: function() { return 'Gagal memuat data'; }
-                    },
-                    templateResult: formatAccountResult,
-                    templateSelection: formatAccountSelection
-                });
-                
-                $select.on('select2:open', function() {
-                    var $dropdown = $('.select2-dropdown');
-                    if ($dropdown.length) {
-                        var containerWidth = $select.closest('.select2-container').width();
-                        $dropdown.css('min-width', containerWidth + 'px');
-                        $dropdown.css('max-width', containerWidth + 'px');
-                        $dropdown.css('left', '0');
-                        $dropdown.css('right', 'auto');
-                    }
-                });
-                
-                $select.on('change', function() {
-                    var accountId = this.value;
-                    if (accountId) {
-                        fetch('salesactivity.php?get_account=' + accountId)
-                            .then(response => response.json())
-                            .then(data => {
-                                document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
-                                document.getElementById('business_segment').value = data.bidang_usaha || '';
-                                document.getElementById('contact_mobile').value = data.no_hp_pic || '';
-                            })
-                            .catch(error => console.error('Error:', error));
-                        
-                        fetch('salesactivity.php?get_account_numbers=' + accountId)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.di_number) {
-                                    document.getElementById('di_number_add').value = data.di_number;
-                                }
-                                if (data.trf_number) {
-                                    document.getElementById('trf_number_add').value = data.trf_number;
-                                }
-                            })
-                            .catch(error => console.error('Error:', error));
-                    } else {
-                        document.getElementById('badan_usaha_field').value = '';
-                        document.getElementById('business_segment').value = '';
-                        document.getElementById('contact_mobile').value = '';
-                        document.getElementById('di_number_add').value = '';
-                        document.getElementById('trf_number_add').value = '';
-                    }
-                });
-                
-                select2Initialized = true;
-            }
-        }
-
-        // ============================================
-        // INITIALIZE ON DOM READY
+        // SELECT2 INITIALIZATION
         // ============================================
         $(document).ready(function() {
-            initSelect2();
-        });
-
-        // ============================================
-        // RE-INITIALIZE WHEN MODAL SHOWN
-        // ============================================
-        $('#modalSalesActivity').on('shown.bs.modal', function() {
-            if ($select.length) {
-                if ($select.data('select2')) {
-                    $select.select2('destroy');
-                    select2Initialized = false;
+            $('#account_id').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalSalesActivity'),
+                placeholder: 'Cari account...',
+                allowClear: true,
+                width: '100%',
+                minimumInputLength: 0,
+                templateResult: function(option) {
+                    if (!option.id) return option.text;
+                    var badge = $(option.element).data('badge') || 'PT';
+                    return $('<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;">' + badge + '</span></span>');
+                },
+                templateSelection: function(option) {
+                    if (!option.id) return option.text;
+                    return option.text;
                 }
-                initSelect2();
-                $select.select2('open');
-                $select.select2('close');
-            }
-        });
-
-        // ============================================
-        // RESET SELECT2 ON MODAL HIDDEN
-        // ============================================
-        $('#modalSalesActivity').on('hidden.bs.modal', function() {
-            if ($select.length && $select.data('select2')) {
-                $select.val('').trigger('change');
-            }
+            });
+            
+            $('#account_id').on('change', function() {
+                var accountId = this.value;
+                if (accountId) {
+                    fetch('salesactivity.php?get_account=' + accountId)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
+                            document.getElementById('business_segment').value = data.bidang_usaha || '';
+                            document.getElementById('contact_mobile').value = data.no_hp_pic || '';
+                        })
+                        .catch(error => console.error('Error:', error));
+                    
+                    fetch('salesactivity.php?get_account_numbers=' + accountId)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.di_number) {
+                                document.getElementById('di_number_add').value = data.di_number;
+                            }
+                            if (data.trf_number) {
+                                document.getElementById('trf_number_add').value = data.trf_number;
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                } else {
+                    document.getElementById('badan_usaha_field').value = '';
+                    document.getElementById('business_segment').value = '';
+                    document.getElementById('contact_mobile').value = '';
+                    document.getElementById('di_number_add').value = '';
+                    document.getElementById('trf_number_add').value = '';
+                }
+            });
         });
 
         // ============================================
@@ -2623,7 +2253,6 @@ if (isset($_GET['complete'])) {
             var accountId = document.getElementById('account_id');
             
             if (!jenisTugas) return;
-            
             var value = jenisTugas.value;
             
             if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
@@ -2632,25 +2261,20 @@ if (isset($_GET['complete'])) {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(response => response.json())
                         .then(data => {
-                            if (data.trf_number) {
-                                trfInput.value = data.trf_number;
-                            }
+                            if (data.trf_number) trfInput.value = data.trf_number;
                         })
-                        .catch(error => {
+                        .catch(function() {
                             var now = new Date();
                             var month = now.getMonth() + 1;
                             var year = now.getFullYear();
                             var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                            var romanMonth = romanMonths[month];
-                            trfInput.value = '0001/GET-TR/JKT/' + romanMonth + '/' + year;
+                            trfInput.value = '0001/GET-TR/JKT/' + romanMonths[month] + '/' + year;
                         });
                 } else if (value !== 'Negosiasi' && trfInput && trfInput.value === '' && accountId && accountId.value) {
                     fetch('salesactivity.php?get_account_numbers=' + accountId.value)
                         .then(response => response.json())
                         .then(data => {
-                            if (data.trf_number) {
-                                trfInput.value = data.trf_number;
-                            }
+                            if (data.trf_number) trfInput.value = data.trf_number;
                         })
                         .catch(error => console.error('Error:', error));
                 }
@@ -2666,8 +2290,7 @@ if (isset($_GET['complete'])) {
                     var month = now.getMonth() + 1;
                     var year = now.getFullYear();
                     var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                    var romanMonth = romanMonths[month];
-                    diInput.value = '001/GET-DI/' + romanMonth + '/' + year;
+                    diInput.value = '001/GET-DI/' + romanMonths[month] + '/' + year;
                 }
             } else {
                 dealFields.classList.remove('show');
@@ -2682,7 +2305,6 @@ if (isset($_GET['complete'])) {
             var dealFieldsComplete = document.getElementById('dealFieldsComplete');
             
             if (!jenisTugas) return;
-            
             var value = jenisTugas.value;
             
             if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
@@ -2702,68 +2324,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // EVENT LISTENERS
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            var customerDealAdd = document.getElementById('customer_deal_add');
-            var diInputAdd = document.getElementById('di_number_add');
-            
-            if (customerDealAdd) {
-                customerDealAdd.addEventListener('change', function() {
-                    if (this.value === 'Yes' && diInputAdd && diInputAdd.value === '') {
-                        var now = new Date();
-                        var month = now.getMonth() + 1;
-                        var year = now.getFullYear();
-                        var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                        var romanMonth = romanMonths[month];
-                        diInputAdd.value = '001/GET-DI/' + romanMonth + '/' + year;
-                    } else if (this.value === 'No' && diInputAdd) {
-                        diInputAdd.value = '';
-                    }
-                });
-            }
-            
-            var customerDealComplete = document.getElementById('customer_deal');
-            var diInputComplete = document.getElementById('di_number_complete');
-            
-            if (customerDealComplete) {
-                customerDealComplete.addEventListener('change', function() {
-                    if (this.value === 'Yes' && diInputComplete && diInputComplete.value === '') {
-                        var now = new Date();
-                        var month = now.getMonth() + 1;
-                        var year = now.getFullYear();
-                        var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                        var romanMonth = romanMonths[month];
-                        diInputComplete.value = '001/GET-DI/' + romanMonth + '/' + year;
-                        document.getElementById('di_number_complete_hidden').value = diInputComplete.value;
-                    } else if (this.value === 'No' && diInputComplete) {
-                        diInputComplete.value = '';
-                        document.getElementById('di_number_complete_hidden').value = '';
-                    }
-                });
-            }
-            
-            var jenisTugas = document.getElementById('jenis_tugas');
-            if (jenisTugas) {
-                jenisTugas.addEventListener('change', function() {
-                    toggleFields();
-                });
-                setTimeout(toggleFields, 100);
-            }
-            
-            var accountId = document.getElementById('account_id');
-            if (accountId) {
-                accountId.addEventListener('change', function() {
-                    var jenisTugasVal = document.getElementById('jenis_tugas').value;
-                    if (jenisTugasVal === 'Kontrak' || jenisTugasVal === 'Collect Payment' || jenisTugasVal === 'Aftersales') {
-                        toggleFields();
-                    }
-                });
-            }
-        });
-
-        // ============================================
-        // GET DATE WIB (GMT+7)
+        // DATE FUNCTIONS
         // ============================================
         function getDateWIB(offsetDays) {
             var now = new Date();
@@ -2778,18 +2339,6 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // SET DEFAULT DATE
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                var dateInput = document.getElementById('due_date');
-                if (dateInput && !dateInput.value) {
-                    dateInput.value = getDateWIB(7);
-                }
-            }, 100);
-        });
-
-        // ============================================
         // CHARACTER COUNTER
         // ============================================
         function updateCharCount(textareaId, counterId) {
@@ -2802,49 +2351,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // PREVIEW MULTIPLE FILES
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            var attachmentInput = document.getElementById('attachment_files');
-            if (attachmentInput) {
-                attachmentInput.addEventListener('change', function() {
-                    var fileList = document.getElementById('fileList');
-                    if (!fileList) return;
-                    fileList.innerHTML = '';
-                    if (this.files.length === 0) {
-                        fileList.innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
-                        return;
-                    }
-                    var html = '<div class="alert alert-info"><i class="fas fa-file"></i> <strong>' + this.files.length + ' file</strong> dipilih:<br>';
-                    for (var i = 0; i < this.files.length; i++) {
-                        var file = this.files[i];
-                        var size = (file.size / 1024).toFixed(1);
-                        size = size > 1024 ? (size / 1024).toFixed(1) + ' MB' : size + ' KB';
-                        html += '<span class="badge bg-secondary me-1 mb-1"><i class="fas fa-file"></i> ' + file.name + ' (' + size + ')</span> ';
-                    }
-                    html += '</div>';
-                    fileList.innerHTML = html;
-                });
-            }
-            
-            var jenisTugas = document.getElementById('jenis_tugas');
-            if (jenisTugas) {
-                jenisTugas.addEventListener('change', function() {
-                    toggleFields();
-                });
-                setTimeout(toggleFields, 100);
-            }
-            
-            var accountId = document.getElementById('account_id');
-            if (accountId) {
-                accountId.addEventListener('change', function() {
-                    toggleFields();
-                });
-            }
-        });
-
-        // ============================================
-        // VALIDASI FORM
+        // VALIDATION FUNCTIONS
         // ============================================
         function validateFormAdd() {
             var deskripsi = document.getElementById('deskripsi');
@@ -2907,150 +2414,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // RESET FORM
-        // ============================================
-        document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
-            document.getElementById('formSalesActivity').reset();
-            document.getElementById('formAction').value = 'add';
-            document.getElementById('formId').value = '';
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
-            document.getElementById('badan_usaha_field').value = '';
-            document.getElementById('business_segment').value = '';
-            document.getElementById('contact_mobile').value = '';
-            document.getElementById('due_date').value = getDateWIB(7);
-            document.getElementById('result_add').value = '';
-            document.getElementById('attachment_file_add').value = '';
-            document.getElementById('di_number_add').value = '';
-            document.getElementById('trf_number_add').value = '';
-            document.getElementById('attachment_required').style.display = 'none';
-            document.getElementById('attachment_file_add').required = false;
-            document.getElementById('customer_deal_add').value = 'No';
-            document.getElementById('dealFields').classList.remove('show');
-            document.getElementById('trfField').classList.remove('show');
-            var note = document.getElementById('resultNotification');
-            if (note) note.remove();
-            
-            $('#account_id').val('').trigger('change');
-            
-            var deskripsiCounter = document.getElementById('deskripsiCounter');
-            if (deskripsiCounter) {
-                deskripsiCounter.textContent = '0';
-                deskripsiCounter.className = 'count invalid';
-            }
-            var resultCounterAdd = document.getElementById('resultCounterAdd');
-            if (resultCounterAdd) {
-                resultCounterAdd.textContent = '0';
-                resultCounterAdd.className = 'count invalid';
-            }
-        });
-
-        // ============================================
-        // COMPLETE ACTIVITY
-        // ============================================
-        function completeActivity(id, data) {
-            if (data) {
-                document.getElementById('completeId').value = data.id;
-                document.getElementById('completeSubject').value = data.subject;
-                document.getElementById('completeAccount').value = data.nama_pt || '-';
-                document.getElementById('completeJenisTugas').value = data.jenis_tugas;
-                document.getElementById('jenis_tugas_hidden').value = data.jenis_tugas;
-                document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-                document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
-                document.getElementById('customer_deal').value = data.customer_deal || 'No';
-                
-                var trfNumber = data.trf_number || '';
-                var diNumber = data.di_number || '';
-                
-                document.getElementById('trf_number_complete').value = trfNumber;
-                document.getElementById('trf_number_complete_hidden').value = trfNumber;
-                document.getElementById('di_number_complete').value = diNumber;
-                document.getElementById('di_number_complete_hidden').value = diNumber;
-                
-                if ((data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') && !trfNumber) {
-                    fetch('salesactivity.php?generate_trf=1')
-                        .then(response => response.json())
-                        .then(response => {
-                            if (response.trf_number) {
-                                document.getElementById('trf_number_complete').value = response.trf_number;
-                                document.getElementById('trf_number_complete_hidden').value = response.trf_number;
-                            }
-                        })
-                        .catch(error => console.error('Error generating TRF:', error));
-                }
-                
-                if (data.jenis_tugas === 'Kontrak' && data.customer_deal === 'Yes' && !diNumber) {
-                    var now = new Date();
-                    var month = now.getMonth() + 1;
-                    var year = now.getFullYear();
-                    var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                    var romanMonth = romanMonths[month];
-                    var newDi = '001/GET-DI/' + romanMonth + '/' + year;
-                    document.getElementById('di_number_complete').value = newDi;
-                    document.getElementById('di_number_complete_hidden').value = newDi;
-                }
-                
-                document.getElementById('result').value = '';
-                document.getElementById('attachment_files').value = '';
-                
-                setTimeout(function() {
-                    toggleFieldsComplete();
-                }, 100);
-                
-                var fileList = document.getElementById('fileList');
-                if (fileList) fileList.innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
-                
-                var resultCounter = document.getElementById('resultCounter');
-                if (resultCounter) {
-                    resultCounter.textContent = '0';
-                    resultCounter.className = 'count invalid';
-                }
-                
-                var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
-                modal.show();
-            } else {
-                alert('Data tidak ditemukan!');
-            }
-        }
-
-        // ============================================
-        // RESULT VALIDATION
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            var resultInput = document.getElementById('result_add');
-            var attachmentInput = document.getElementById('attachment_file_add');
-            var attachmentRequired = document.getElementById('attachment_required');
-            
-            if (resultInput) {
-                resultInput.addEventListener('input', function() {
-                    if (this.value.trim() !== '') {
-                        attachmentRequired.style.display = 'inline';
-                        attachmentInput.required = true;
-                        if (!document.getElementById('resultNotification')) {
-                            var note = document.createElement('div');
-                            note.id = 'resultNotification';
-                            note.className = 'alert alert-warning mt-2';
-                            note.innerHTML = '<i class="fas fa-info-circle"></i> Karena Anda mengisi Result, file attachment wajib diupload.';
-                            resultInput.parentNode.appendChild(note);
-                        }
-                    } else {
-                        attachmentRequired.style.display = 'none';
-                        attachmentInput.required = false;
-                        var note = document.getElementById('resultNotification');
-                        if (note) note.remove();
-                    }
-                });
-            }
-            
-            var deskripsi = document.getElementById('deskripsi');
-            if (deskripsi) updateCharCount('deskripsi', 'deskripsiCounter');
-            var resultAdd = document.getElementById('result_add');
-            if (resultAdd) updateCharCount('result_add', 'resultCounterAdd');
-            var resultComplete = document.getElementById('result');
-            if (resultComplete) updateCharCount('result', 'resultCounter');
-        });
-
-        // ============================================
-        // DETAIL ACTIVITY
+        // ACTIVITY FUNCTIONS
         // ============================================
         function detailActivity(data) {
             var statusLabel = data.status == 'in_progress' ? 'In Progress' : (data.status == 'overdue' ? 'Overdue' : 'Completed');
@@ -3110,7 +2474,7 @@ if (isset($_GET['complete'])) {
                 <div class="detail-item">
                     <div class="detail-label">TR Number</div>
                     <div class="detail-value">
-                        ${data.trf_number ? `<a href="detailtr.php?trf=${encodeURIComponent(data.trf_number)}" target="_blank" class="trf-link"><span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span></a>` : '-'}
+                        ${data.trf_number ? `<a href="detailtr.php?trf=${encodeURIComponent(data.trf_number)}" target="_blank"><span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span></a>` : '-'}
                     </div>
                 </div>
                 <div class="detail-item">
@@ -3179,9 +2543,6 @@ if (isset($_GET['complete'])) {
             modal.show();
         }
 
-        // ============================================
-        // EDIT ACTIVITY
-        // ============================================
         function editActivity(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Sales Activity';
             document.getElementById('formAction').value = 'edit';
@@ -3202,9 +2563,6 @@ if (isset($_GET['complete'])) {
             
             setTimeout(function() {
                 toggleFields();
-            }, 100);
-            
-            setTimeout(function() {
                 updateCharCount('deskripsi', 'deskripsiCounter');
             }, 300);
             
@@ -3212,14 +2570,223 @@ if (isset($_GET['complete'])) {
             modal.show();
         }
 
-        // ============================================
-        // DELETE ACTIVITY
-        // ============================================
+        function completeActivity(id, data) {
+            if (!data) {
+                alert('Data tidak ditemukan!');
+                return;
+            }
+            
+            document.getElementById('completeId').value = data.id;
+            document.getElementById('completeSubject').value = data.subject;
+            document.getElementById('completeAccount').value = data.nama_pt || '-';
+            document.getElementById('completeJenisTugas').value = data.jenis_tugas;
+            document.getElementById('jenis_tugas_hidden').value = data.jenis_tugas;
+            document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+            document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
+            document.getElementById('customer_deal').value = data.customer_deal || 'No';
+            
+            var trfNumber = data.trf_number || '';
+            var diNumber = data.di_number || '';
+            
+            document.getElementById('trf_number_complete').value = trfNumber;
+            document.getElementById('trf_number_complete_hidden').value = trfNumber;
+            document.getElementById('di_number_complete').value = diNumber;
+            document.getElementById('di_number_complete_hidden').value = diNumber;
+            
+            if ((data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') && !trfNumber) {
+                fetch('salesactivity.php?generate_trf=1')
+                    .then(response => response.json())
+                    .then(response => {
+                        if (response.trf_number) {
+                            document.getElementById('trf_number_complete').value = response.trf_number;
+                            document.getElementById('trf_number_complete_hidden').value = response.trf_number;
+                        }
+                    })
+                    .catch(error => console.error('Error generating TRF:', error));
+            }
+            
+            if (data.jenis_tugas === 'Kontrak' && data.customer_deal === 'Yes' && !diNumber) {
+                var now = new Date();
+                var month = now.getMonth() + 1;
+                var year = now.getFullYear();
+                var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                var newDi = '001/GET-DI/' + romanMonths[month] + '/' + year;
+                document.getElementById('di_number_complete').value = newDi;
+                document.getElementById('di_number_complete_hidden').value = newDi;
+            }
+            
+            document.getElementById('result').value = '';
+            document.getElementById('attachment_files').value = '';
+            document.getElementById('fileList').innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
+            
+            setTimeout(function() {
+                toggleFieldsComplete();
+            }, 100);
+            
+            var resultCounter = document.getElementById('resultCounter');
+            if (resultCounter) {
+                resultCounter.textContent = '0';
+                resultCounter.className = 'count invalid';
+            }
+            
+            var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
+            modal.show();
+        }
+
         function deleteActivity(id) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
         }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date
+            setTimeout(function() {
+                var dateInput = document.getElementById('due_date');
+                if (dateInput && !dateInput.value) {
+                    dateInput.value = getDateWIB(7);
+                }
+            }, 100);
+            
+            // Jenis Tugas change
+            var jenisTugas = document.getElementById('jenis_tugas');
+            if (jenisTugas) {
+                jenisTugas.addEventListener('change', toggleFields);
+                setTimeout(toggleFields, 100);
+            }
+            
+            // Customer Deal change for add
+            var customerDealAdd = document.getElementById('customer_deal_add');
+            if (customerDealAdd) {
+                customerDealAdd.addEventListener('change', function() {
+                    var diInputAdd = document.getElementById('di_number_add');
+                    if (this.value === 'Yes' && diInputAdd && diInputAdd.value === '') {
+                        var now = new Date();
+                        var month = now.getMonth() + 1;
+                        var year = now.getFullYear();
+                        var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                        diInputAdd.value = '001/GET-DI/' + romanMonths[month] + '/' + year;
+                    } else if (this.value === 'No' && diInputAdd) {
+                        diInputAdd.value = '';
+                    }
+                });
+            }
+            
+            // Customer Deal change for complete
+            var customerDealComplete = document.getElementById('customer_deal');
+            if (customerDealComplete) {
+                customerDealComplete.addEventListener('change', function() {
+                    var diInputComplete = document.getElementById('di_number_complete');
+                    if (this.value === 'Yes' && diInputComplete && diInputComplete.value === '') {
+                        var now = new Date();
+                        var month = now.getMonth() + 1;
+                        var year = now.getFullYear();
+                        var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                        diInputComplete.value = '001/GET-DI/' + romanMonths[month] + '/' + year;
+                        document.getElementById('di_number_complete_hidden').value = diInputComplete.value;
+                    } else if (this.value === 'No' && diInputComplete) {
+                        diInputComplete.value = '';
+                        document.getElementById('di_number_complete_hidden').value = '';
+                    }
+                });
+            }
+            
+            // Result validation
+            var resultInput = document.getElementById('result_add');
+            var attachmentInput = document.getElementById('attachment_file_add');
+            var attachmentRequired = document.getElementById('attachment_required');
+            
+            if (resultInput) {
+                resultInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        attachmentRequired.style.display = 'inline';
+                        attachmentInput.required = true;
+                        if (!document.getElementById('resultNotification')) {
+                            var note = document.createElement('div');
+                            note.id = 'resultNotification';
+                            note.className = 'alert alert-warning mt-2';
+                            note.innerHTML = '<i class="fas fa-info-circle"></i> Karena Anda mengisi Result, file attachment wajib diupload.';
+                            resultInput.parentNode.appendChild(note);
+                        }
+                    } else {
+                        attachmentRequired.style.display = 'none';
+                        attachmentInput.required = false;
+                        var note = document.getElementById('resultNotification');
+                        if (note) note.remove();
+                    }
+                });
+            }
+            
+            // File preview
+            var attachmentFiles = document.getElementById('attachment_files');
+            if (attachmentFiles) {
+                attachmentFiles.addEventListener('change', function() {
+                    var fileList = document.getElementById('fileList');
+                    if (!fileList) return;
+                    fileList.innerHTML = '';
+                    if (this.files.length === 0) {
+                        fileList.innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
+                        return;
+                    }
+                    var html = '<div class="alert alert-info"><i class="fas fa-file"></i> <strong>' + this.files.length + ' file</strong> dipilih:<br>';
+                    for (var i = 0; i < this.files.length; i++) {
+                        var file = this.files[i];
+                        var size = (file.size / 1024).toFixed(1);
+                        size = size > 1024 ? (size / 1024).toFixed(1) + ' MB' : size + ' KB';
+                        html += '<span class="badge bg-secondary me-1 mb-1"><i class="fas fa-file"></i> ' + file.name + ' (' + size + ')</span> ';
+                    }
+                    html += '</div>';
+                    fileList.innerHTML = html;
+                });
+            }
+            
+            // Reset modal
+            document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
+                document.getElementById('formSalesActivity').reset();
+                document.getElementById('formAction').value = 'add';
+                document.getElementById('formId').value = '';
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
+                document.getElementById('badan_usaha_field').value = '';
+                document.getElementById('business_segment').value = '';
+                document.getElementById('contact_mobile').value = '';
+                document.getElementById('due_date').value = getDateWIB(7);
+                document.getElementById('result_add').value = '';
+                document.getElementById('attachment_file_add').value = '';
+                document.getElementById('di_number_add').value = '';
+                document.getElementById('trf_number_add').value = '';
+                document.getElementById('attachment_required').style.display = 'none';
+                document.getElementById('attachment_file_add').required = false;
+                document.getElementById('customer_deal_add').value = 'No';
+                document.getElementById('dealFields').classList.remove('show');
+                document.getElementById('trfField').classList.remove('show');
+                var note = document.getElementById('resultNotification');
+                if (note) note.remove();
+                
+                $('#account_id').val('').trigger('change');
+                
+                var deskripsiCounter = document.getElementById('deskripsiCounter');
+                if (deskripsiCounter) {
+                    deskripsiCounter.textContent = '0';
+                    deskripsiCounter.className = 'count invalid';
+                }
+                var resultCounterAdd = document.getElementById('resultCounterAdd');
+                if (resultCounterAdd) {
+                    resultCounterAdd.textContent = '0';
+                    resultCounterAdd.className = 'count invalid';
+                }
+            });
+            
+            // Character counters
+            var deskripsi = document.getElementById('deskripsi');
+            if (deskripsi) updateCharCount('deskripsi', 'deskripsiCounter');
+            var resultAdd = document.getElementById('result_add');
+            if (resultAdd) updateCharCount('result_add', 'resultCounterAdd');
+            var resultComplete = document.getElementById('result');
+            if (resultComplete) updateCharCount('result', 'resultCounter');
+        });
 
         // ============================================
         // INIT CHARTS
