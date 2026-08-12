@@ -1464,6 +1464,7 @@ if (isset($_GET['complete'])) {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection {
@@ -1539,7 +1540,7 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
-        /* Dropdown - Pastikan di bawah modal dan tidak overflow */
+        /* Dropdown - Pastikan tidak overflow dan lebar sesuai container */
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1550,8 +1551,9 @@ if (isset($_GET['complete'])) {
             background: #fff !important;
             z-index: 1060 !important;
             width: auto !important;
-            min-width: 100% !important;
+            min-width: 0 !important;
             max-width: 100% !important;
+            position: absolute !important;
         }
 
         /* Search Field */
@@ -1698,6 +1700,18 @@ if (isset($_GET['complete'])) {
         .select2-container--open .select2-dropdown--below {
             max-width: 100% !important;
             width: auto !important;
+            left: 0 !important;
+            right: auto !important;
+        }
+
+        /* Fix untuk posisi dropdown */
+        .select2-container--open {
+            position: relative !important;
+        }
+
+        .select2-container .select2-dropdown {
+            left: 0 !important;
+            right: auto !important;
         }
 
         .btn-primary-custom {
@@ -1916,6 +1930,12 @@ if (isset($_GET['complete'])) {
                     <i class="fas fa-bars"></i>
                 </button>
                 <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="dashboard.php"><i class="fas fa-home"></i> Home</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Sales Activity</li>
+                        </ol>
+                    </nav>
                     <h4><span><i class="fas fa-chart-bar" style="color:#ffd700;"></i></span> Sales Activity</h4>
                 </div>
             </div>
@@ -2213,7 +2233,7 @@ if (isset($_GET['complete'])) {
                         <!-- Account Management dengan Select2 -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
+                            <select name="account_id" id="account_id" style="width: 100%;" required>
                                 <option value="">-- Pilih Account --</option>
                                 <?php foreach ($accounts as $account): ?>
                                     <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
@@ -2477,94 +2497,126 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // INIT SELECT2 - RAPIH DI DALAM KOTAK
+        // FORMAT FUNCTIONS
         // ============================================
-        $(document).ready(function() {
-            var $select = $('#account_id');
-            
-            $select.select2({
-                theme: 'bootstrap-5',
-                dropdownParent: $('#modalSalesActivity'),
-                placeholder: 'Cari account...',
-                allowClear: true,
-                width: '100%',
-                minimumInputLength: 0,
-                dropdownAutoWidth: false,
-                language: {
-                    searching: function() { return 'Mencari...'; },
-                    noResults: function() { return 'Tidak ada account ditemukan'; },
-                    errorLoading: function() { return 'Gagal memuat data'; }
-                },
-                templateResult: formatAccountResult,
-                templateSelection: formatAccountSelection
-            });
-            
-            // Pastikan dropdown tidak overflow
-            $select.on('select2:open', function() {
-                var $dropdown = $('.select2-dropdown');
-                if ($dropdown.length) {
-                    var containerWidth = $select.closest('.select2-container').width();
-                    $dropdown.css('min-width', containerWidth + 'px');
-                    $dropdown.css('max-width', containerWidth + 'px');
-                }
-            });
-            
-            // Auto-fill when account selected
-            $select.on('change', function() {
-                var accountId = this.value;
-                if (accountId) {
-                    // Ambil data account untuk auto-fill
-                    fetch('salesactivity.php?get_account=' + accountId)
-                        .then(response => response.json())
-                        .then(data => {
-                            document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
-                            document.getElementById('business_segment').value = data.bidang_usaha || '';
-                            document.getElementById('contact_mobile').value = data.no_hp_pic || '';
-                        })
-                        .catch(error => console.error('Error:', error));
-                    
-                    // Ambil DI Number & TRF Number terakhir untuk account ini
-                    fetch('salesactivity.php?get_account_numbers=' + accountId)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.di_number) {
-                                document.getElementById('di_number_add').value = data.di_number;
-                            }
-                            if (data.trf_number) {
-                                document.getElementById('trf_number_add').value = data.trf_number;
-                            }
-                        })
-                        .catch(error => console.error('Error:', error));
-                } else {
-                    document.getElementById('badan_usaha_field').value = '';
-                    document.getElementById('business_segment').value = '';
-                    document.getElementById('contact_mobile').value = '';
-                    document.getElementById('di_number_add').value = '';
-                    document.getElementById('trf_number_add').value = '';
-                }
-            });
-        });
-
-        // Format hasil dropdown dengan badge
         function formatAccountResult(option) {
             if (!option.id) return option.text;
-            
             var badge = $(option.element).data('badge') || 'PT';
-            
-            var $result = $(
+            return $(
                 '<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;">' + badge + '</span></span>'
             );
-            return $result;
         }
 
-        // Format selection (tampilan di input)
         function formatAccountSelection(option) {
             if (!option.id) return option.text;
             return option.text;
         }
 
         // ============================================
-        // TOGGLE FIELDS BERDASARKAN JENIS TUGAS
+        // INIT SELECT2
+        // ============================================
+        var $select = $('#account_id');
+        var select2Initialized = false;
+
+        function initSelect2() {
+            if ($select.length && !select2Initialized) {
+                $select.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: $('#modalSalesActivity'),
+                    placeholder: 'Cari account...',
+                    allowClear: true,
+                    width: '100%',
+                    minimumInputLength: 0,
+                    dropdownAutoWidth: false,
+                    language: {
+                        searching: function() { return 'Mencari...'; },
+                        noResults: function() { return 'Tidak ada account ditemukan'; },
+                        errorLoading: function() { return 'Gagal memuat data'; }
+                    },
+                    templateResult: formatAccountResult,
+                    templateSelection: formatAccountSelection
+                });
+                
+                $select.on('select2:open', function() {
+                    var $dropdown = $('.select2-dropdown');
+                    if ($dropdown.length) {
+                        var containerWidth = $select.closest('.select2-container').width();
+                        $dropdown.css('min-width', containerWidth + 'px');
+                        $dropdown.css('max-width', containerWidth + 'px');
+                        $dropdown.css('left', '0');
+                        $dropdown.css('right', 'auto');
+                    }
+                });
+                
+                $select.on('change', function() {
+                    var accountId = this.value;
+                    if (accountId) {
+                        fetch('salesactivity.php?get_account=' + accountId)
+                            .then(response => response.json())
+                            .then(data => {
+                                document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
+                                document.getElementById('business_segment').value = data.bidang_usaha || '';
+                                document.getElementById('contact_mobile').value = data.no_hp_pic || '';
+                            })
+                            .catch(error => console.error('Error:', error));
+                        
+                        fetch('salesactivity.php?get_account_numbers=' + accountId)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.di_number) {
+                                    document.getElementById('di_number_add').value = data.di_number;
+                                }
+                                if (data.trf_number) {
+                                    document.getElementById('trf_number_add').value = data.trf_number;
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    } else {
+                        document.getElementById('badan_usaha_field').value = '';
+                        document.getElementById('business_segment').value = '';
+                        document.getElementById('contact_mobile').value = '';
+                        document.getElementById('di_number_add').value = '';
+                        document.getElementById('trf_number_add').value = '';
+                    }
+                });
+                
+                select2Initialized = true;
+            }
+        }
+
+        // ============================================
+        // INITIALIZE ON DOM READY
+        // ============================================
+        $(document).ready(function() {
+            initSelect2();
+        });
+
+        // ============================================
+        // RE-INITIALIZE WHEN MODAL SHOWN
+        // ============================================
+        $('#modalSalesActivity').on('shown.bs.modal', function() {
+            if ($select.length) {
+                if ($select.data('select2')) {
+                    $select.select2('destroy');
+                    select2Initialized = false;
+                }
+                initSelect2();
+                $select.select2('open');
+                $select.select2('close');
+            }
+        });
+
+        // ============================================
+        // RESET SELECT2 ON MODAL HIDDEN
+        // ============================================
+        $('#modalSalesActivity').on('hidden.bs.modal', function() {
+            if ($select.length && $select.data('select2')) {
+                $select.val('').trigger('change');
+            }
+        });
+
+        // ============================================
+        // TOGGLE FIELDS
         // ============================================
         function toggleFields() {
             var jenisTugas = document.getElementById('jenis_tugas');
@@ -2579,10 +2631,8 @@ if (isset($_GET['complete'])) {
             
             var value = jenisTugas.value;
             
-            // TRF Field: tampilkan untuk Negosiasi, Kontrak, Collect Payment, Aftersales
             if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
                 trfField.classList.add('show');
-                // Generate TRF jika kosong dan jenis tugas = Negosiasi
                 if (value === 'Negosiasi' && trfInput && trfInput.value === '') {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(response => response.json())
@@ -2599,9 +2649,7 @@ if (isset($_GET['complete'])) {
                             var romanMonth = romanMonths[month];
                             trfInput.value = '0001/GET-TR/JKT/' + romanMonth + '/' + year;
                         });
-                }
-                // Jika bukan Negosiasi, cek apakah ada TRF dari account yang sama
-                else if (value !== 'Negosiasi' && trfInput && trfInput.value === '' && accountId && accountId.value) {
+                } else if (value !== 'Negosiasi' && trfInput && trfInput.value === '' && accountId && accountId.value) {
                     fetch('salesactivity.php?get_account_numbers=' + accountId.value)
                         .then(response => response.json())
                         .then(data => {
@@ -2616,10 +2664,8 @@ if (isset($_GET['complete'])) {
                 if (trfInput) trfInput.value = '';
             }
             
-            // Deal Fields: tampilkan hanya untuk Kontrak
             if (value === 'Kontrak') {
                 dealFields.classList.add('show');
-                // Generate DI jika customer_deal = Yes
                 if (customerDeal && customerDeal.value === 'Yes' && diInput && diInput.value === '') {
                     var now = new Date();
                     var month = now.getMonth() + 1;
@@ -2635,9 +2681,6 @@ if (isset($_GET['complete'])) {
             }
         }
 
-        // ============================================
-        // TOGGLE FIELDS UNTUK COMPLETE MODAL
-        // ============================================
         function toggleFieldsComplete() {
             var jenisTugas = document.getElementById('completeJenisTugas');
             var trfFieldComplete = document.getElementById('trfFieldComplete');
@@ -2647,14 +2690,12 @@ if (isset($_GET['complete'])) {
             
             var value = jenisTugas.value;
             
-            // TRF Field: tampilkan untuk Negosiasi, Kontrak, Collect Payment, Aftersales
             if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
                 trfFieldComplete.classList.add('show');
             } else {
                 trfFieldComplete.classList.remove('show');
             }
             
-            // Deal Fields: tampilkan hanya untuk Kontrak
             if (value === 'Kontrak') {
                 dealFieldsComplete.classList.add('show');
             } else {
@@ -2666,7 +2707,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // EVENT LISTENER UNTUK CUSTOMER DEAL
+        // EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             var customerDealAdd = document.getElementById('customer_deal_add');
@@ -2687,7 +2728,6 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Customer Deal di Complete Modal
             var customerDealComplete = document.getElementById('customer_deal');
             var diInputComplete = document.getElementById('di_number_complete');
             
@@ -2708,7 +2748,6 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Jenis Tugas change
             var jenisTugas = document.getElementById('jenis_tugas');
             if (jenisTugas) {
                 jenisTugas.addEventListener('change', function() {
@@ -2717,7 +2756,6 @@ if (isset($_GET['complete'])) {
                 setTimeout(toggleFields, 100);
             }
             
-            // Account ID change untuk update TRF & DI
             var accountId = document.getElementById('account_id');
             if (accountId) {
                 accountId.addEventListener('change', function() {
@@ -2745,7 +2783,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // SET DEFAULT DATE TO TODAY + 7 DAYS (WIB)
+        // SET DEFAULT DATE
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
@@ -2802,7 +2840,6 @@ if (isset($_GET['complete'])) {
                 setTimeout(toggleFields, 100);
             }
             
-            // Account ID change
             var accountId = document.getElementById('account_id');
             if (accountId) {
                 accountId.addEventListener('change', function() {
@@ -2898,7 +2935,6 @@ if (isset($_GET['complete'])) {
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
             
-            // Reset Select2
             $('#account_id').val('').trigger('change');
             
             var deskripsiCounter = document.getElementById('deskripsiCounter');
@@ -2935,7 +2971,6 @@ if (isset($_GET['complete'])) {
                 document.getElementById('di_number_complete').value = diNumber;
                 document.getElementById('di_number_complete_hidden').value = diNumber;
                 
-                // Generate TRF jika jenis tugas = Negosiasi/Kontrak/Collect Payment/Aftersales dan belum ada
                 if ((data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') && !trfNumber) {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(response => response.json())
@@ -2948,7 +2983,6 @@ if (isset($_GET['complete'])) {
                         .catch(error => console.error('Error generating TRF:', error));
                 }
                 
-                // Generate DI jika jenis tugas = Kontrak dan customer_deal = Yes
                 if (data.jenis_tugas === 'Kontrak' && data.customer_deal === 'Yes' && !diNumber) {
                     var now = new Date();
                     var month = now.getMonth() + 1;
@@ -3159,7 +3193,6 @@ if (isset($_GET['complete'])) {
             document.getElementById('formId').value = data.id;
             document.getElementById('subject').value = data.subject;
             
-            // Set Select2 value
             $('#account_id').val(data.account_id || '').trigger('change');
             
             document.getElementById('badan_usaha_field').value = data.account_badan_usaha || data.badan_usaha || '';
