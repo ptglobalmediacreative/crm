@@ -1113,12 +1113,6 @@ function canSalesEdit($db, $account_id, $userId) {
                     <i class="fas fa-bars"></i>
                 </button>
                 <div>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="dashboard.php"><i class="fas fa-home"></i> Home</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Account Management</li>
-                        </ol>
-                    </nav>
                     <h4><span><i class="fas fa-building" style="color:#ffd700;"></i></span> Account Management</h4>
                 </div>
             </div>
