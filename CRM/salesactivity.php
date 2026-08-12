@@ -1458,12 +1458,13 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-           SELECT2 CUSTOM STYLE - RAPIH DI DALAM KOTAK
-           ============================================ */
+        SELECT2 CUSTOM STYLE - RAPIH DI DALAM KOTAK
+        ============================================ */
         .select2-container--bootstrap-5 {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection {
@@ -1539,7 +1540,7 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
-        /* Dropdown - Pastikan di bawah modal dan tidak overflow */
+        /* Dropdown - Pastikan tidak overflow dan lebar sesuai container */
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1550,8 +1551,9 @@ if (isset($_GET['complete'])) {
             background: #fff !important;
             z-index: 1060 !important;
             width: auto !important;
-            min-width: 100% !important;
+            min-width: 0 !important;
             max-width: 100% !important;
+            position: absolute !important;
         }
 
         /* Search Field */
@@ -1698,6 +1700,18 @@ if (isset($_GET['complete'])) {
         .select2-container--open .select2-dropdown--below {
             max-width: 100% !important;
             width: auto !important;
+            left: 0 !important;
+            right: auto !important;
+        }
+
+        /* Fix untuk posisi dropdown */
+        .select2-container--open {
+            position: relative !important;
+        }
+
+        .select2-container .select2-dropdown {
+            left: 0 !important;
+            right: auto !important;
         }
 
         .btn-primary-custom {
