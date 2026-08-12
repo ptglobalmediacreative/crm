@@ -1346,22 +1346,29 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-           SELECT2 CUSTOM STYLE - RAPIH
+           SELECT2 CUSTOM STYLE - RAPIH DI DALAM KOTAK
            ============================================ */
         .select2-container--bootstrap-5 {
+            display: block !important;
             width: 100% !important;
+            max-width: 100% !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
             border: 2px solid #e8edf2 !important;
             border-radius: 8px !important;
             min-height: 46px !important;
             background: #fff !important;
             transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+            box-sizing: border-box !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection--single {
             padding: 4px 0 !important;
+            width: 100% !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
@@ -1370,6 +1377,11 @@ if (isset($_GET['complete'])) {
             color: #333 !important;
             font-size: 14px !important;
             font-family: 'Inter', sans-serif !important;
+            display: block !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            max-width: calc(100% - 40px) !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
@@ -1380,6 +1392,8 @@ if (isset($_GET['complete'])) {
             height: 44px !important;
             width: 34px !important;
             right: 4px !important;
+            position: absolute !important;
+            top: 0 !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
@@ -1392,6 +1406,11 @@ if (isset($_GET['complete'])) {
             font-size: 18px !important;
             color: #999 !important;
             font-weight: 300 !important;
+            position: absolute !important;
+            right: 34px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            z-index: 1 !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
@@ -1406,7 +1425,7 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
-        /* Dropdown */
+        /* Dropdown - Pastikan di bawah modal */
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1416,6 +1435,8 @@ if (isset($_GET['complete'])) {
             margin-top: 2px !important;
             background: #fff !important;
             z-index: 1060 !important;
+            width: auto !important;
+            min-width: 100% !important;
         }
 
         /* Search Field */
@@ -1434,6 +1455,7 @@ if (isset($_GET['complete'])) {
             width: 100% !important;
             background: #fff !important;
             transition: border-color 0.3s ease !important;
+            box-sizing: border-box !important;
         }
 
         .select2-container--bootstrap-5 .select2-search__field:focus {
@@ -1446,6 +1468,7 @@ if (isset($_GET['complete'])) {
         .select2-container--bootstrap-5 .select2-results__options {
             padding: 4px 0 !important;
             max-height: 240px !important;
+            overflow-y: auto !important;
         }
 
         .select2-container--bootstrap-5 .select2-results__option {
@@ -1456,6 +1479,9 @@ if (isset($_GET['complete'])) {
             transition: all 0.15s ease !important;
             cursor: pointer !important;
             border-bottom: 1px solid #f8f9fa !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         }
 
         .select2-container--bootstrap-5 .select2-results__option:last-child {
@@ -1476,6 +1502,7 @@ if (isset($_GET['complete'])) {
             font-size: 9px !important;
             padding: 1px 8px !important;
             margin-left: 6px !important;
+            display: inline-block !important;
         }
 
         /* Loading & No Results */
@@ -1523,6 +1550,20 @@ if (isset($_GET['complete'])) {
             .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
                 height: 40px !important;
             }
+        }
+
+        /* Fix untuk modal agar Select2 tidak overflow */
+        .modal-body .select2-container--bootstrap-5 {
+            width: 100% !important;
+        }
+
+        .modal-body .select2-container--bootstrap-5 .select2-selection {
+            width: 100% !important;
+        }
+
+        /* Pastikan Select2 tidak keluar dari modal */
+        .select2-dropdown {
+            z-index: 1060 !important;
         }
 
         .btn-primary-custom {
@@ -2036,7 +2077,7 @@ if (isset($_GET['complete'])) {
                             <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject" required>
                         </div>
                         
-                        <!-- Account Management dengan Select2 - RAPIH -->
+                        <!-- Account Management dengan Select2 - RAPIH DI DALAM KOTAK -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
                             <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
@@ -2302,16 +2343,19 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // INIT SELECT2 - RAPIH
+        // INIT SELECT2 - RAPIH DI DALAM KOTAK
         // ============================================
         $(document).ready(function() {
-            $('#account_id').select2({
+            var $select = $('#account_id');
+            
+            $select.select2({
                 theme: 'bootstrap-5',
                 dropdownParent: $('#modalSalesActivity'),
                 placeholder: 'Cari account...',
                 allowClear: true,
                 width: '100%',
                 minimumInputLength: 0,
+                dropdownAutoWidth: false,
                 language: {
                     searching: function() { return 'Mencari...'; },
                     noResults: function() { return 'Tidak ada account ditemukan'; },
@@ -2321,8 +2365,17 @@ if (isset($_GET['complete'])) {
                 templateSelection: formatAccountSelection
             });
             
+            // Force width agar tidak overflow
+            $select.on('select2:open', function() {
+                var $dropdown = $('.select2-dropdown');
+                if ($dropdown.length) {
+                    var containerWidth = $select.closest('.select2-container').width();
+                    $dropdown.css('min-width', containerWidth + 'px');
+                }
+            });
+            
             // Auto-fill when account selected
-            $('#account_id').on('change', function() {
+            $select.on('change', function() {
                 var accountId = this.value;
                 if (accountId) {
                     fetch('salesactivity.php?get_account=' + accountId)
