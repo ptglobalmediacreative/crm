@@ -1417,6 +1417,9 @@ if (isset($_GET['complete'])) {
             background: #f8f9fa;
         }
 
+        /* ============================================
+           BADGES
+           ============================================ */
         .badge-tugas {
             padding: 3px 10px;
             border-radius: 20px;
@@ -1618,20 +1621,207 @@ if (isset($_GET['complete'])) {
         .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
         .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
 
+        /* ============================================
+           SELECT2 CUSTOM STYLE - DIPERBAIKI
+           ============================================ */
+        .select2-container--bootstrap-5 {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
         .select2-container--bootstrap-5 .select2-selection {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
             border: 2px solid #e8edf2 !important;
             border-radius: 8px !important;
             min-height: 46px !important;
+            background: #fff !important;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
         }
+
+        .select2-container--bootstrap-5 .select2-selection--single {
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+        }
+
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            padding: 6px 14px !important;
-            line-height: 28px !important;
+            padding: 10px 14px !important;
+            line-height: 24px !important;
+            color: #333 !important;
             font-size: 14px !important;
+            font-family: 'Inter', sans-serif !important;
+            display: block !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            max-width: calc(100% - 40px) !important;
+            float: none !important;
         }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+            color: #999 !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+            height: 44px !important;
+            width: 34px !important;
+            right: 4px !important;
+            position: absolute !important;
+            top: 0 !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+            border-color: #999 transparent transparent transparent !important;
+            border-width: 6px 5px 0 5px !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+            margin-right: 8px !important;
+            font-size: 18px !important;
+            color: #999 !important;
+            font-weight: 300 !important;
+            position: absolute !important;
+            right: 34px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            z-index: 1 !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
+            color: #e74c3c !important;
+        }
+
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .select2-container--bootstrap-5.select2-container--open .select2-selection {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+            outline: none !important;
+        }
+
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
             border-radius: 0 0 8px 8px !important;
+            overflow: hidden !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            margin-top: 2px !important;
+            background: #fff !important;
+            z-index: 1060 !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-search--dropdown {
+            padding: 8px 12px !important;
+            background: #fafafa !important;
+            border-bottom: 1px solid #f0f2f5 !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-search__field {
+            border: 2px solid #e8edf2 !important;
+            border-radius: 8px !important;
+            padding: 8px 14px !important;
+            font-size: 13px !important;
+            font-family: 'Inter', sans-serif !important;
+            width: 100% !important;
+            background: #fff !important;
+            transition: border-color 0.3s ease !important;
+            box-sizing: border-box !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-search__field:focus {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+            outline: none !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__options {
+            padding: 4px 0 !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option {
+            padding: 8px 14px !important;
+            font-size: 13px !important;
+            font-family: 'Inter', sans-serif !important;
+            color: #333 !important;
+            transition: all 0.15s ease !important;
+            cursor: pointer !important;
+            border-bottom: 1px solid #f8f9fa !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option:last-child {
+            border-bottom: none !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+            background: #0e1a2b !important;
+            color: #ffd700 !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
+            background: #f0f2f5 !important;
+            color: #0e1a2b !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option .badge-badan-usaha {
+            font-size: 9px !important;
+            padding: 1px 8px !important;
+            margin-left: 6px !important;
+            display: inline-block !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__message {
+            padding: 12px !important;
+            color: #999 !important;
+            font-size: 13px !important;
+            text-align: center !important;
+        }
+
+        .modal-body .select2-container--bootstrap-5 {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .modal-body .select2-container--bootstrap-5 .select2-selection {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .select2-dropdown {
+            z-index: 1060 !important;
+            max-width: 100% !important;
+        }
+
+        @media (max-width: 768px) {
+            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+                font-size: 13px !important;
+                padding: 8px 12px !important;
+                max-width: calc(100% - 36px) !important;
+            }
+            .select2-container--bootstrap-5 .select2-selection {
+                min-height: 40px !important;
+            }
+            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+                height: 38px !important;
+                width: 30px !important;
+            }
+            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+                right: 30px !important;
+                font-size: 16px !important;
+            }
+            .select2-container--bootstrap-5 .select2-results__option {
+                padding: 6px 12px !important;
+                font-size: 12px !important;
+            }
         }
 
         .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
@@ -2072,16 +2262,19 @@ if (isset($_GET['complete'])) {
                             <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject" required>
                         </div>
                         
+                        <!-- Account Management dengan Select2 - DIPERBAIKI -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <select name="account_id" id="account_id" style="width: 100%;" required>
-                                <option value="">-- Pilih Account --</option>
-                                <?php foreach ($accounts as $account): ?>
-                                    <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
-                                        <?= htmlspecialchars($account['nama_pt']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div class="position-relative" style="width: 100%;">
+                                <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
+                                    <option value="">-- Pilih Account --</option>
+                                    <?php foreach ($accounts as $account): ?>
+                                        <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
+                                            <?= htmlspecialchars($account['nama_pt']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <small class="text-muted">Ketik untuk mencari account</small>
                         </div>
                         
@@ -2334,16 +2527,22 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // SELECT2 INITIALIZATION
+        // SELECT2 INITIALIZATION - DIPERBAIKI
         // ============================================
         $(document).ready(function() {
+            // Destroy existing select2 if any
+            if ($('#account_id').data('select2')) {
+                $('#account_id').select2('destroy');
+            }
+            
             $('#account_id').select2({
                 theme: 'bootstrap-5',
                 dropdownParent: $('#modalSalesActivity'),
-                placeholder: 'Cari account...',
+                placeholder: '-- Pilih Account --',
                 allowClear: true,
                 width: '100%',
                 minimumInputLength: 0,
+                dropdownAutoWidth: false,
                 templateResult: function(option) {
                     if (!option.id) return option.text;
                     var badge = $(option.element).data('badge') || 'PT';
@@ -2355,6 +2554,19 @@ if (isset($_GET['complete'])) {
                 }
             });
             
+            // Fix dropdown position
+            $('#account_id').on('select2:open', function() {
+                var $dropdown = $('.select2-dropdown');
+                if ($dropdown.length) {
+                    var containerWidth = $(this).closest('.select2-container').outerWidth();
+                    $dropdown.css('min-width', containerWidth + 'px');
+                    $dropdown.css('max-width', containerWidth + 'px');
+                    $dropdown.css('left', '0');
+                    $dropdown.css('right', 'auto');
+                }
+            });
+            
+            // Handle change event
             $('#account_id').on('change', function() {
                 var accountId = this.value;
                 if (accountId) {
@@ -2386,6 +2598,41 @@ if (isset($_GET['complete'])) {
                     document.getElementById('trf_number_add').value = '';
                 }
             });
+        });
+
+        // Re-initialize when modal is shown
+        $('#modalSalesActivity').on('shown.bs.modal', function() {
+            if ($('#account_id').data('select2')) {
+                $('#account_id').select2('destroy');
+            }
+            $('#account_id').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalSalesActivity'),
+                placeholder: '-- Pilih Account --',
+                allowClear: true,
+                width: '100%',
+                minimumInputLength: 0,
+                dropdownAutoWidth: false,
+                templateResult: function(option) {
+                    if (!option.id) return option.text;
+                    var badge = $(option.element).data('badge') || 'PT';
+                    return $('<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;">' + badge + '</span></span>');
+                },
+                templateSelection: function(option) {
+                    if (!option.id) return option.text;
+                    return option.text;
+                }
+            });
+            // Open and close to fix positioning
+            $('#account_id').select2('open');
+            $('#account_id').select2('close');
+        });
+
+        // Reset on modal hidden
+        $('#modalSalesActivity').on('hidden.bs.modal', function() {
+            if ($('#account_id').data('select2')) {
+                $('#account_id').val('').trigger('change');
+            }
         });
 
         // ============================================
