@@ -1042,6 +1042,8 @@ if (isset($_GET['complete'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
@@ -1341,6 +1343,51 @@ if (isset($_GET['complete'])) {
         .form-control:focus, .form-select:focus {
             border-color: #ffd700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        /* ---- Select2 Custom Style ---- */
+        .select2-container--bootstrap-5 .select2-selection {
+            border: 2px solid #e8edf2 !important;
+            border-radius: 8px !important;
+            min-height: 46px !important;
+            padding: 4px 0 !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            padding: 6px 12px !important;
+            line-height: 28px !important;
+            color: #333 !important;
+            font-size: 13px !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+            height: 44px !important;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown {
+            border: 2px solid #e8edf2 !important;
+            border-top: none !important;
+            border-radius: 0 0 8px 8px !important;
+            overflow: hidden !important;
+        }
+        .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+            background: #0e1a2b !important;
+            color: #ffd700 !important;
+        }
+        .select2-container--bootstrap-5 .select2-search__field {
+            border: 2px solid #e8edf2 !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            font-size: 13px !important;
+        }
+        .select2-container--bootstrap-5 .select2-search__field:focus {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+            margin-right: 8px !important;
+            font-size: 16px !important;
+            color: #999 !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
+            color: #e74c3c !important;
         }
 
         .btn-primary-custom {
@@ -1848,9 +1895,10 @@ if (isset($_GET['complete'])) {
                             <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject" required>
                         </div>
                         
+                        <!-- Account Management dengan Select2 -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <select name="account_id" id="account_id" class="form-select" required>
+                            <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
                                 <option value="">-- Pilih Account --</option>
                                 <?php foreach ($accounts as $account): ?>
                                     <option value="<?= $account['id'] ?>">
@@ -1858,6 +1906,7 @@ if (isset($_GET['complete'])) {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <small class="text-muted">Ketik untuk mencari account</small>
                         </div>
                         
                         <div class="row">
@@ -2108,7 +2157,46 @@ if (isset($_GET['complete'])) {
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+        // ============================================
+        // INIT SELECT2
+        // ============================================
+        $(document).ready(function() {
+            $('#account_id').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalSalesActivity'),
+                placeholder: 'Cari account...',
+                allowClear: true,
+                width: '100%',
+                language: {
+                    searching: function() { return 'Mencari...'; },
+                    noResults: function() { return 'Tidak ada account ditemukan'; },
+                    errorLoading: function() { return 'Gagal memuat data'; }
+                }
+            });
+            
+            // Auto-fill when account selected
+            $('#account_id').on('change', function() {
+                var accountId = this.value;
+                if (accountId) {
+                    fetch('salesactivity.php?get_account=' + accountId)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
+                            document.getElementById('business_segment').value = data.bidang_usaha || '';
+                            document.getElementById('contact_mobile').value = data.no_hp_pic || '';
+                        })
+                        .catch(error => console.error('Error:', error));
+                } else {
+                    document.getElementById('badan_usaha_field').value = '';
+                    document.getElementById('business_segment').value = '';
+                    document.getElementById('contact_mobile').value = '';
+                }
+            });
+        });
+
         // ============================================
         // GET DATE WIB (GMT+7)
         // ============================================
@@ -2123,27 +2211,6 @@ if (isset($_GET['complete'])) {
             var day = String(today.getDate()).padStart(2, '0');
             return year + '-' + month + '-' + day;
         }
-
-        // ============================================
-        // AUTO FILL ACCOUNT DATA
-        // ============================================
-        document.getElementById('account_id').addEventListener('change', function() {
-            var accountId = this.value;
-            if (accountId) {
-                fetch('salesactivity.php?get_account=' + accountId)
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
-                        document.getElementById('business_segment').value = data.bidang_usaha || '';
-                        document.getElementById('contact_mobile').value = data.no_hp_pic || '';
-                    })
-                    .catch(error => console.error('Error:', error));
-            } else {
-                document.getElementById('badan_usaha_field').value = '';
-                document.getElementById('business_segment').value = '';
-                document.getElementById('contact_mobile').value = '';
-            }
-        });
 
         // ============================================
         // SET DEFAULT DATE TO TODAY + 7 DAYS (WIB)
@@ -2369,6 +2436,9 @@ if (isset($_GET['complete'])) {
             document.getElementById('trfField').classList.remove('show');
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
+            
+            // Reset Select2
+            $('#account_id').val('').trigger('change');
             
             var deskripsiCounter = document.getElementById('deskripsiCounter');
             if (deskripsiCounter) {
@@ -2639,7 +2709,10 @@ if (isset($_GET['complete'])) {
             document.getElementById('formAction').value = 'edit';
             document.getElementById('formId').value = data.id;
             document.getElementById('subject').value = data.subject;
-            document.getElementById('account_id').value = data.account_id || '';
+            
+            // Set Select2 value
+            $('#account_id').val(data.account_id || '').trigger('change');
+            
             document.getElementById('badan_usaha_field').value = data.account_badan_usaha || data.badan_usaha || '';
             document.getElementById('business_segment').value = data.business_segment || '';
             document.getElementById('contact_mobile').value = data.contact_mobile || '';
