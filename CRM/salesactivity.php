@@ -2227,7 +2227,7 @@ if (isset($_GET['complete'])) {
                         <!-- Account Management dengan Select2 -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
+                            <select name="account_id" id="account_id" style="width: 100%;" required>
                                 <option value="">-- Pilih Account --</option>
                                 <?php foreach ($accounts as $account): ?>
                                     <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
@@ -2494,38 +2494,113 @@ if (isset($_GET['complete'])) {
         // INIT SELECT2 - RAPIH DI DALAM KOTAK
         // ============================================
         $(document).ready(function() {
-            // Pastikan modal sudah terbuka sebelum inisialisasi Select2
+            // Inisialisasi Select2 setelah modal siap
             var $select = $('#account_id');
             
-            // Inisialisasi Select2
-            $select.select2({
-                theme: 'bootstrap-5',
-                dropdownParent: $('#modalSalesActivity'),
-                placeholder: 'Cari account...',
-                allowClear: true,
-                width: '100%',
-                minimumInputLength: 0,
-                dropdownAutoWidth: false,
-                language: {
-                    searching: function() { return 'Mencari...'; },
-                    noResults: function() { return 'Tidak ada account ditemukan'; },
-                    errorLoading: function() { return 'Gagal memuat data'; }
-                },
-                templateResult: formatAccountResult,
-                templateSelection: formatAccountSelection
-            });
-            
-            // Pastikan dropdown tidak overflow dengan mengatur lebar
-            $select.on('select2:open', function() {
-                var $dropdown = $('.select2-dropdown');
-                if ($dropdown.length) {
-                    var containerWidth = $select.closest('.select2-container').width();
-                    $dropdown.css('min-width', containerWidth + 'px');
-                    $dropdown.css('max-width', containerWidth + 'px');
-                    $dropdown.css('left', '0');
-                    $dropdown.css('right', 'auto');
-                }
-            });
+            // Pastikan elemen ada sebelum inisialisasi
+            if ($select.length) {
+                // Inisialisasi Select2
+                $select.select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: $('#modalSalesActivity'),
+                    placeholder: 'Cari account...',
+                    allowClear: true,
+                    width: '100%',
+                    minimumInputLength: 0,
+                    dropdownAutoWidth: false,
+                    language: {
+                        searching: function() { return 'Mencari...'; },
+                        noResults: function() { return 'Tidak ada account ditemukan'; },
+                        errorLoading: function() { return 'Gagal memuat data'; }
+                    },
+                    templateResult: formatAccountResult,
+                    templateSelection: formatAccountSelection
+                });
+                
+                // Pastikan dropdown tidak overflow dengan mengatur lebar
+                $select.on('select2:open', function() {
+                    var $dropdown = $('.select2-dropdown');
+                    if ($dropdown.length) {
+                        var containerWidth = $select.closest('.select2-container').width();
+                        $dropdown.css('min-width', containerWidth + 'px');
+                        $dropdown.css('max-width', containerWidth + 'px');
+                        $dropdown.css('left', '0');
+                        $dropdown.css('right', 'auto');
+                    }
+                });
+                
+                // Auto-fill when account selected
+                $select.on('change', function() {
+                    var accountId = this.value;
+                    if (accountId) {
+                        // Ambil data account untuk auto-fill
+                        fetch('salesactivity.php?get_account=' + accountId)
+                            .then(response => response.json())
+                            .then(data => {
+                                document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
+                                document.getElementById('business_segment').value = data.bidang_usaha || '';
+                                document.getElementById('contact_mobile').value = data.no_hp_pic || '';
+                            })
+                            .catch(error => console.error('Error:', error));
+                        
+                        // Ambil DI Number & TRF Number terakhir untuk account ini
+                        fetch('salesactivity.php?get_account_numbers=' + accountId)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.di_number) {
+                                    document.getElementById('di_number_add').value = data.di_number;
+                                }
+                                if (data.trf_number) {
+                                    document.getElementById('trf_number_add').value = data.trf_number;
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    } else {
+                        document.getElementById('badan_usaha_field').value = '';
+                        document.getElementById('business_segment').value = '';
+                        document.getElementById('contact_mobile').value = '';
+                        document.getElementById('di_number_add').value = '';
+                        document.getElementById('trf_number_add').value = '';
+                    }
+                });
+                
+                // Fix untuk modal yang terbuka - re-inisialisasi saat modal ditampilkan
+                $('#modalSalesActivity').on('shown.bs.modal', function() {
+                    // Destroy dan re-init Select2 untuk memastikan bekerja
+                    if ($select.data('select2')) {
+                        $select.select2('destroy');
+                    }
+                    $select.select2({
+                        theme: 'bootstrap-5',
+                        dropdownParent: $('#modalSalesActivity'),
+                        placeholder: 'Cari account...',
+                        allowClear: true,
+                        width: '100%',
+                        minimumInputLength: 0,
+                        dropdownAutoWidth: false,
+                        language: {
+                            searching: function() { return 'Mencari...'; },
+                            noResults: function() { return 'Tidak ada account ditemukan'; },
+                            errorLoading: function() { return 'Gagal memuat data'; }
+                        },
+                        templateResult: formatAccountResult,
+                        templateSelection: formatAccountSelection
+                    });
+                    
+                    // Pastikan dropdown tidak overflow
+                    $select.on('select2:open', function() {
+                        var $dropdown = $('.select2-dropdown');
+                        if ($dropdown.length) {
+                            var containerWidth = $select.closest('.select2-container').width();
+                            $dropdown.css('min-width', containerWidth + 'px');
+                            $dropdown.css('max-width', containerWidth + 'px');
+                            $dropdown.css('left', '0');
+                            $dropdown.css('right', 'auto');
+                        }
+                    });
+                });
+            }
+        });
             
             // Auto-fill when account selected
             $select.on('change', function() {
