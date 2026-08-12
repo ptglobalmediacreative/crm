@@ -1151,6 +1151,9 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
+        /* ============================================
+           RESET & BASE
+           ============================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1158,7 +1161,9 @@ if (isset($_GET['complete'])) {
             padding-bottom: 70px;
         }
         
-        /* ---- SIDEBAR MODERN (Deep Navy Blue) ---- */
+        /* ============================================
+           SIDEBAR
+           ============================================ */
         .sidebar {
             width: 260px;
             height: 100vh;
@@ -1218,7 +1223,9 @@ if (isset($_GET['complete'])) {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        /* ---- MAIN CONTENT ---- */
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
         .main-content { margin-left: 260px; padding: 30px; width: 100%; }
 
         .page-header { 
@@ -1458,7 +1465,7 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-           SELECT2 CUSTOM STYLE - RAPIH DI DALAM KOTAK
+           SELECT2 CUSTOM STYLE
            ============================================ */
         .select2-container--bootstrap-5 {
             display: block !important;
@@ -1532,7 +1539,6 @@ if (isset($_GET['complete'])) {
             color: #e74c3c !important;
         }
 
-        /* Focus State */
         .select2-container--bootstrap-5.select2-container--focus .select2-selection,
         .select2-container--bootstrap-5.select2-container--open .select2-selection {
             border-color: #ffd700 !important;
@@ -1540,7 +1546,6 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
-        /* Dropdown - Pastikan tidak overflow dan lebar sesuai container */
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1556,7 +1561,6 @@ if (isset($_GET['complete'])) {
             position: absolute !important;
         }
 
-        /* Search Field */
         .select2-container--bootstrap-5 .select2-search--dropdown {
             padding: 8px 12px !important;
             background: #fafafa !important;
@@ -1581,7 +1585,6 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
-        /* Results */
         .select2-container--bootstrap-5 .select2-results__options {
             padding: 4px 0 !important;
             max-height: 200px !important;
@@ -1622,7 +1625,6 @@ if (isset($_GET['complete'])) {
             display: inline-block !important;
         }
 
-        /* Loading & No Results */
         .select2-container--bootstrap-5 .select2-results__message {
             padding: 12px !important;
             color: #999 !important;
@@ -1630,13 +1632,11 @@ if (isset($_GET['complete'])) {
             text-align: center !important;
         }
 
-        /* Disabled State */
         .select2-container--bootstrap-5.select2-container--disabled .select2-selection {
             background: #f8f9fa !important;
             cursor: not-allowed !important;
         }
 
-        /* Scrollbar styling */
         .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar {
             width: 6px;
         }
@@ -1655,7 +1655,6 @@ if (isset($_GET['complete'])) {
             background: #a0a4a8;
         }
 
-        /* Responsive Select2 */
         @media (max-width: 768px) {
             .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
                 font-size: 13px !important;
@@ -1679,7 +1678,6 @@ if (isset($_GET['complete'])) {
             }
         }
 
-        /* Fix untuk modal agar Select2 tidak overflow */
         .modal-body .select2-container--bootstrap-5 {
             width: 100% !important;
             max-width: 100% !important;
@@ -1690,13 +1688,11 @@ if (isset($_GET['complete'])) {
             max-width: 100% !important;
         }
 
-        /* Pastikan Select2 tidak keluar dari modal */
         .select2-dropdown {
             z-index: 1060 !important;
             max-width: 100% !important;
         }
 
-        /* Fix untuk dropdown agar tidak melebar */
         .select2-container--open .select2-dropdown--below {
             max-width: 100% !important;
             width: auto !important;
@@ -1704,7 +1700,6 @@ if (isset($_GET['complete'])) {
             right: auto !important;
         }
 
-        /* Fix untuk posisi dropdown */
         .select2-container--open {
             position: relative !important;
         }
@@ -1872,7 +1867,7 @@ if (isset($_GET['complete'])) {
 </head>
 <body>
 
-    <!-- SIDEBAR MODERN -->
+    <!-- SIDEBAR -->
     <nav class="sidebar" id="sidebar">
         <a href="dashboard.php" class="brand">
             <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
@@ -1946,7 +1941,7 @@ if (isset($_GET['complete'])) {
             <?php endif; ?>
         </div>
 
-        <!-- DEADLINE NOTIFICATION -->
+        <!-- NOTIFICATIONS -->
         <?php if ($overdueCount > 0): ?>
             <div class="alert alert-danger deadline-alert mb-3" role="alert">
                 <i class="fas fa-exclamation-circle me-2"></i>
@@ -2212,7 +2207,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- MODALS -->
-    <!-- Modal Tambah / Edit Sales Activity -->
+    <!-- Modal Tambah / Edit -->
     <div class="modal fade" id="modalSalesActivity" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -2280,7 +2275,7 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Transaction Request Form Number - Muncul untuk Negosiasi, Kontrak, Collect Payment, Aftersales -->
+                        <!-- Transaction Request Form -->
                         <div class="trf-field" id="trfField">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
@@ -2291,7 +2286,7 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & DI Number - Muncul untuk Jenis Tugas Kontrak -->
+                        <!-- Customer Deal & DI Number -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
                             <div class="row">
@@ -2387,7 +2382,7 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- TRF Number di Complete Modal -->
+                        <!-- TRF Number -->
                         <div class="trf-field" id="trfFieldComplete">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
@@ -2398,7 +2393,7 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Customer Deal & DI Number di Complete Modal (untuk Kontrak) -->
+                        <!-- Customer Deal & DI Number -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
                             <div class="row">
