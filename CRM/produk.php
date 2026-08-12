@@ -628,15 +628,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </div>
         </div>
 
-        <!-- STATISTIK -->
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-icon gold"><i class="fas fa-box"></i></div>
-                <div class="stat-number"><?= number_format($totalProducts) ?></div>
-                <div class="stat-label">Total Produk</div>
-            </div>
-        </div>
-
         <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
