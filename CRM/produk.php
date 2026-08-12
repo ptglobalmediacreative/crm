@@ -13,6 +13,12 @@ if (!isLoggedIn()) {
 requirePermission('produk', 'view');
 
 // ============================================
+// AMBIL MENU YANG BOLEH DIAKSES USER
+// ============================================
+$userMenus = getUserMenus();
+$menuNames = array_column($userMenus, 'module_name');
+
+// ============================================
 // BUAT TABEL PRODUCTS (HANYA NAMA PRODUK DAN HARGA JUAL SALES)
 // ============================================
 try {
@@ -58,7 +64,7 @@ function getRoleLabel($role) {
 // ============================================
 // CEK USER YANG BISA AKSES PENUH
 // ============================================
-$fullAccessRoles = ['finance', 'business', 'it_support', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
+$fullAccessRoles = ['finance', 'business', 'it_support', 'admin', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
 $userRole = $_SESSION['role'] ?? 'user';
 $hasFullAccess = in_array($userRole, $fullAccessRoles);
 
@@ -239,84 +245,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Produk - PT Ganda Elang Tangguh</title>
     
+    <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f0f2f5;
             padding-bottom: 70px;
         }
         
-        .top-header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 10px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .top-header .header-left { display: flex; align-items: center; gap: 10px; }
-        .top-header .header-left .logo-wrapper { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-        .top-header .header-left .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .top-header .header-left .brand-text .brand-name { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
-        .top-header .header-left .brand-text .brand-name span { color: #ffd700; }
-        .top-header .header-left .brand-text .brand-sub { font-size: 8px; color: rgba(255, 255, 255, 0.4); letter-spacing: 0.5px; text-transform: uppercase; }
-        
-        .top-header .header-right { display: flex; align-items: center; gap: 12px; }
-        .top-header .header-right .notif-icon { position: relative; color: rgba(255, 255, 255, 0.6); font-size: 16px; cursor: pointer; }
-        .top-header .header-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
-        .top-header .header-right .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 13px; text-decoration: none; border: 2px solid rgba(255, 215, 0, 0.2); transition: border-color 0.3s ease; }
-        .top-header .header-right .user-avatar:hover { border-color: #ffd700; }
-        
-        .welcome-banner {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-radius: 12px;
-            padding: 16px 24px;
-            color: #fff;
-            margin-bottom: 16px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .welcome-banner .welcome-text .greeting { font-size: 12px; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
-        .welcome-banner .welcome-text h3 { font-weight: 700; font-size: 18px; margin: 2px 0 0; }
-        .welcome-banner .welcome-text h3 span { color: #ffd700; }
-        .welcome-banner .welcome-icon { font-size: 32px; color: rgba(255, 215, 0, 0.05); position: absolute; right: 15px; bottom: 10px; }
-        
-        .stat-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 16px 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.03);
+        /* ---- SIDEBAR MODERN (Deep Navy Blue) ---- */
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: #0e1a2b;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            padding: 30px 20px;
+            overflow-y: auto;
+            z-index: 1000;
             transition: all 0.3s ease;
         }
-        
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
-        .stat-card .stat-number { font-size: 24px; font-weight: 700; color: #1a1a2e; }
-        .stat-card .stat-label { font-size: 12px; color: #888; font-weight: 500; }
-        .stat-card .stat-icon { font-size: 28px; opacity: 0.15; }
-        
-        .card-custom {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.03);
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
+
+        .sidebar .brand { 
+            display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; 
+            padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
+        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
+        .sidebar .brand .brand-text h5 span { color: #ffd700; }
+        .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+
+        .sidebar .nav-item { 
+            display: flex; align-items: center; padding: 12px 16px; 
+            color: rgba(255,255,255,0.6); text-decoration: none; 
+            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; 
+            font-size: 14px; position: relative;
+        }
+        .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
+        .sidebar .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .sidebar .nav-item.active { 
+            background: rgba(255, 215, 0, 0.1); 
+            color: #ffd700; 
+            box-shadow: inset 3px 0 0 #ffd700;
         }
         
+        .sidebar .user-profile { 
+            margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); 
+            display: flex; align-items: center; gap: 12px; 
+        }
+        .sidebar .user-profile .avatar { 
+            width: 42px; height: 42px; border-radius: 50%; 
+            background: linear-gradient(135deg, #1a1a2e, #16213e); 
+            color: #ffd700; display: flex; align-items: center; justify-content: center; 
+            font-weight: 700; font-size: 16px; border: 2px solid rgba(255,215,0,0.2);
+        }
+        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #fff; }
+        .sidebar .user-profile .user-info .role { font-size: 12px; color: rgba(255,255,255,0.4); }
+
+        .sidebar .logout-btn {
+            display: block; text-align: center; margin-top: 15px; 
+            padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; 
+            font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); 
+            transition: all 0.2s;
+        }
+        .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
+
+        /* ---- MAIN CONTENT ---- */
+        .main-content { margin-left: 260px; padding: 30px; width: 100%; }
+
+        .page-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
+        }
+        .page-header h4 { 
+            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
+            letter-spacing: -0.5px;
+        }
+        .page-header h4 span { color: #ffd700; }
+
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card { 
+            background: #fff; border-radius: 16px; padding: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        .stat-card .stat-icon { 
+            width: 44px; height: 44px; border-radius: 12px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 18px; margin-bottom: 10px; 
+        }
+        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
+        .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
+        .stat-card .stat-label { font-size: 13px; color: #888; }
+
+        .card-custom {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid #e0e4ea;
+            transition: all 0.3s ease;
+        }
+        .card-custom:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        
         .card-custom .card-header-custom {
-            padding: 16px 20px;
+            padding: 20px 24px;
             border-bottom: 1px solid #f0f2f5;
             display: flex;
             justify-content: space-between;
@@ -325,15 +372,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             gap: 10px;
         }
         
-        .card-custom .card-header-custom h6 { font-weight: 600; color: #1a1a2e; margin: 0; font-size: 14px; }
-        .card-custom .card-header-custom h6 i { color: #ffd700; margin-right: 8px; }
-        .card-custom .card-body-custom { padding: 0; overflow-x: auto; }
+        .card-custom .card-header-custom h6 {
+            font-weight: 600;
+            color: #0e1a2b;
+            margin: 0;
+            font-size: 16px;
+        }
         
-        .table-custom { margin-bottom: 0; font-size: 13px; }
-        .table-custom th { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; color: #999; border-bottom: 1px solid #f0f2f5; padding: 10px 15px; background: #fafafa; white-space: nowrap; }
-        .table-custom td { padding: 10px 15px; vertical-align: middle; border-bottom: 1px solid #f0f2f5; }
-        .table-custom tr:last-child td { border-bottom: none; }
-        .table-custom tr:hover { background: #f8f9fa; }
+        .card-custom .card-header-custom h6 i {
+            color: #ffd700;
+            margin-right: 8px;
+        }
+        
+        .card-custom .card-body-custom {
+            padding: 0;
+            overflow-x: auto;
+        }
+        
+        .table-custom {
+            margin-bottom: 0;
+            font-size: 13px;
+        }
+        
+        .table-custom th {
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: #7f8c8d;
+            border-bottom: 1px solid #f0f2f5;
+            padding: 12px 16px;
+            background: #fafafa;
+            white-space: nowrap;
+        }
+        
+        .table-custom td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        
+        .table-custom tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .table-custom tr:hover {
+            background: #f8f9fa;
+        }
         
         .btn-action {
             width: 30px;
@@ -347,7 +432,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             font-size: 13px;
             cursor: pointer;
         }
-        
         .btn-action:hover { transform: scale(1.1); }
         .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
         .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
@@ -355,14 +439,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
         .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
-        
+
         .modal-content { border: none; border-radius: 12px; }
         .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
-        .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #1a1a2e; }
+        .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
         .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
         .modal-body { padding: 20px 24px; }
         .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
-        
+
         .form-label { font-weight: 600; font-size: 13px; color: #333; }
         .form-control, .form-select {
             border-radius: 8px;
@@ -371,14 +455,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             transition: all 0.3s ease;
             font-size: 13px;
         }
-        
         .form-control:focus, .form-select:focus {
             border-color: #ffd700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
-        
+
         .btn-primary-custom {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            background: #0e1a2b;
             border: none;
             border-radius: 8px;
             padding: 10px 24px;
@@ -387,10 +470,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             transition: all 0.3s ease;
             color: #fff;
         }
-        
-        .btn-primary-custom:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3); color: #fff; }
+        .btn-primary-custom:hover {
+            background: #1a2d4a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(14, 26, 43, 0.3);
+            color: #fff;
+        }
         .btn-primary-custom i { margin-right: 6px; }
-        
+
         .btn-secondary-custom {
             background: #f0f2f5;
             border: none;
@@ -401,9 +488,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             transition: all 0.3s ease;
             color: #555;
         }
-        
         .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
-        
+
         .btn-success-custom {
             background: #27ae60;
             border: none;
@@ -418,97 +504,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             align-items: center;
             gap: 6px;
         }
-        
         .btn-success-custom:hover { background: #219a52; color: #fff; }
-        
+
         .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
-        
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #ffffff;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 5px 0 env(safe-area-inset-bottom);
-            z-index: 999;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+
+        .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
+        .detail-item:last-child { border-bottom: none; }
+        .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
+        .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
+
+        .currency-input { position: relative; }
+        .currency-input .currency-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; font-weight: 600; font-size: 13px; }
+        .currency-input .form-control { padding-left: 40px; }
+
+        .mobile-toggle { display: none; }
+
+        .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
+        .breadcrumb-item a { color: #2980b9; text-decoration: none; }
+        .breadcrumb-item a:hover { color: #ffd700; }
+        .breadcrumb-item.active { color: #0e1a2b; font-weight: 600; }
+
+        .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
+        .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
+        .footer-text a:hover { color: #ffd700; }
+
+        @media (max-width: 991px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 20px; }
+            .mobile-toggle { 
+                display: flex !important; background: #0e1a2b; border: none; 
+                width: 40px; height: 40px; border-radius: 8px; 
+                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
+            }
         }
-        
-        .bottom-nav .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            padding: 3px 8px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            position: relative;
-            min-width: 45px;
-        }
-        
-        .bottom-nav .nav-item .nav-icon { font-size: 17px; color: #999; transition: all 0.3s ease; }
-        .bottom-nav .nav-item .nav-label { font-size: 8px; color: #999; font-weight: 500; margin-top: 2px; transition: all 0.3s ease; }
-        .bottom-nav .nav-item.active .nav-icon { color: #ffd700; }
-        .bottom-nav .nav-item.active .nav-label { color: #1a1a2e; font-weight: 600; }
-        .bottom-nav .nav-item.active::before { content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 18px; height: 2px; background: #ffd700; border-radius: 0 0 2px 2px; }
-        
-        .desktop-nav-wrapper {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 0 30px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .desktop-nav-wrapper .brand-section { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
-        .desktop-nav-wrapper .brand-section .logo-wrapper { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-        .desktop-nav-wrapper .brand-section .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name span { color: #ffd700; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-sub { font-size: 8px; color: rgba(255, 255, 255, 0.4); letter-spacing: 1px; text-transform: uppercase; }
-        
-        .desktop-nav-wrapper .desktop-menu { display: flex; align-items: center; gap: 4px; }
-        .desktop-nav-wrapper .desktop-menu .nav-link { color: rgba(255, 255, 255, 0.6); padding: 8px 16px; display: flex; align-items: center; gap: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border-radius: 8px; transition: all 0.3s ease; }
-        .desktop-nav-wrapper .desktop-menu .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
-        .desktop-nav-wrapper .desktop-menu .nav-link.active { color: #ffd700; background: rgba(255, 215, 0, 0.08); }
-        .desktop-nav-wrapper .desktop-menu .nav-link i { font-size: 14px; }
-        
-        .desktop-nav-wrapper .nav-right { display: flex; align-items: center; gap: 16px; }
-        .desktop-nav-wrapper .nav-right .notif-icon { position: relative; color: rgba(255, 255, 255, 0.6); font-size: 17px; cursor: pointer; }
-        .desktop-nav-wrapper .nav-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
-        .desktop-nav-wrapper .nav-right .user-info { text-align: right; color: #fff; }
-        .desktop-nav-wrapper .nav-right .user-info .name { font-weight: 600; font-size: 13px; line-height: 1.2; }
-        .desktop-nav-wrapper .nav-right .user-info .role { font-size: 10px; color: rgba(255, 255, 255, 0.4); }
-        .desktop-nav-wrapper .nav-right .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 215, 0, 0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 14px; text-decoration: none; border: 2px solid rgba(255, 215, 0, 0.2); transition: border-color 0.3s ease; }
-        .desktop-nav-wrapper .nav-right .user-avatar:hover { border-color: #ffd700; }
-        .desktop-nav-wrapper .nav-right .logout-btn { color: rgba(255, 255, 255, 0.5); padding: 5px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; transition: all 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .desktop-nav-wrapper .nav-right .logout-btn:hover { color: #ff6b6b; background: rgba(214, 48, 49, 0.1); border-color: rgba(214, 48, 49, 0.3); }
-        
-        @media (min-width: 769px) {
-            .bottom-nav { display: none !important; }
-            body { padding-bottom: 0; }
-            .top-header { display: none !important; }
-        }
-        
-        @media (max-width: 768px) {
-            .desktop-nav-wrapper { display: none !important; }
-            body { padding-bottom: 65px; }
-            .stat-card .stat-number { font-size: 20px; }
-            .welcome-banner { padding: 14px 18px; }
-            .welcome-banner .welcome-text h3 { font-size: 16px; }
-            .welcome-banner .welcome-icon { display: none; }
-            .table-custom { font-size: 12px; }
-            .table-custom th, .table-custom td { padding: 8px 10px; }
-            .card-custom .card-header-custom { padding: 12px 16px; }
-        }
-        
+
         @media (max-width: 480px) {
             .stat-card .stat-number { font-size: 17px; }
             .stat-card { padding: 12px 14px; }
@@ -517,158 +547,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
             .btn-action { width: 26px; height: 26px; font-size: 11px; }
+            .detail-item { flex-direction: column; padding: 8px 0; }
+            .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
+            .detail-item .detail-value { font-size: 12px; }
         }
-        
-        .footer-text {
-            text-align: center;
-            padding: 16px 0 8px;
-            color: #999;
-            font-size: 11px;
-        }
-        
-        .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
-        .footer-text a:hover { color: #ffd700; }
-        
-        .currency-input { position: relative; }
-        .currency-input .currency-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; font-weight: 600; font-size: 13px; }
-        .currency-input .form-control { padding-left: 40px; }
-        
-        .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
-        .detail-item:last-child { border-bottom: none; }
-        .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
-        .detail-item .detail-value { color: #1a1a2e; font-size: 13px; word-break: break-word; }
     </style>
 </head>
 <body>
 
-    <!-- DESKTOP NAVBAR -->
-    <div class="desktop-nav-wrapper">
-        <div class="brand-section">
-            <div class="logo-wrapper">
-                <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
-            </div>
+    <!-- SIDEBAR MODERN -->
+    <nav class="sidebar" id="sidebar">
+        <a href="dashboard.php" class="brand">
+            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
             <div class="brand-text">
-                <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                <div class="brand-sub">Customer Relationship Management System</div>
+                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
+                <small>PT Ganda Elang Tangguh</small>
             </div>
-        </div>
+        </a>
+
+        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
         
-        <div class="desktop-menu">
-            <a href="dashboard.php" class="nav-link">
-                <i class="fas fa-th-large"></i> Dashboard
-            </a>
-            
-            <?php if (canAccessMenu('account_management')): ?>
-                <a href="account_management.php" class="nav-link">
-                    <i class="fas fa-building"></i> Account
-                </a>
-            <?php endif; ?>
-            
-            <?php if (canAccessMenu('sales_activity')): ?>
-                <a href="salesactivity.php" class="nav-link">
-                    <i class="fas fa-chart-bar"></i> Sales Activity
-                </a>
-            <?php endif; ?>
-            
-            <?php if (canAccessMenu('produk')): ?>
-                <a href="produk.php" class="nav-link active">
-                    <i class="fas fa-box"></i> Produk
-                </a>
-            <?php endif; ?>
-            
-            <?php if (canAccessMenu('delivery_order')): ?>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-tractor"></i> Delivery
-                </a>
-            <?php endif; ?>
-        </div>
+        <?php if (in_array('sales_activity', $menuNames)): ?>
+            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i> Sales Activity</a>
+        <?php endif; ?>
         
-        <div class="nav-right">
-            <div class="notif-icon">
-                <i class="fas fa-bell"></i>
-                <span class="badge-notif">3</span>
-            </div>
+        <?php if (in_array('account_management', $menuNames)): ?>
+            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('transaction_request', $menuNames)): ?>
+            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('produk', $menuNames)): ?>
+            <a href="produk.php" class="nav-item active"><i class="fas fa-box"></i> Produk</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('delivery_order', $menuNames)): ?>
+            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('data_user', $menuNames)): ?>
+            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
+        <?php endif; ?>
+
+        <div class="user-profile">
+            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
             <div class="user-info">
                 <div class="name"><?= htmlspecialchars($fullName) ?></div>
                 <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
-            <a href="logout.php" class="user-avatar">
-                <?= strtoupper(substr($fullName, 0, 1)) ?>
-            </a>
-            <a href="logout.php" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
         </div>
-    </div>
-
-    <!-- MOBILE HEADER -->
-    <header class="top-header">
-        <div class="header-left">
-            <div class="logo-wrapper">
-                <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
-            </div>
-            <div class="brand-text">
-                <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-                <div class="brand-sub">Customer Relationship Management</div>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="notif-icon">
-                <i class="fas fa-bell"></i>
-                <span class="badge-notif">3</span>
-            </div>
-            <a href="logout.php" class="user-avatar">
-                <?= strtoupper(substr($fullName, 0, 1)) ?>
-            </a>
-        </div>
-    </header>
+        <a href="logout.php" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </nav>
 
     <!-- MAIN CONTENT -->
-    <main style="padding: 16px 20px 0; max-width: 1400px; margin: 0 auto;">
-
-        <!-- WELCOME BANNER -->
-        <div class="welcome-banner">
-            <div class="welcome-text">
-                <div class="greeting">Produk</div>
-                <h3>Kelola Data Produk</h3>
+    <div class="main-content">
+        
+        <!-- HEADER -->
+        <div class="page-header">
+            <div style="display:flex; gap:15px; align-items:center;">
+                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <h4><span><i class="fas fa-box" style="color:#ffd700;"></i></span> Produk</h4>
+                </div>
             </div>
-            <i class="fas fa-box welcome-icon"></i>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="produk.php?export=excel" class="btn btn-success-custom">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <?php if ($hasFullAccess && canAdd('produk')): ?>
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalProduk">
+                        <i class="fas fa-plus"></i> Tambah Produk
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <!-- STATISTIK -->
-        <div class="row g-3 mb-4">
-            <div class="col-xl-4 col-lg-4 col-md-6">
-                <div class="stat-card d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number"><?= number_format($totalProducts) ?></div>
-                        <div class="stat-label">Total Produk</div>
-                    </div>
-                    <div class="stat-icon"><i class="fas fa-box"></i></div>
-                </div>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-icon gold"><i class="fas fa-box"></i></div>
+                <div class="stat-number"><?= number_format($totalProducts) ?></div>
+                <div class="stat-label">Total Produk</div>
             </div>
         </div>
 
         <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
-                <h6><i class="fas fa-list"></i>Daftar Produk</h6>
-                <div class="d-flex gap-2 flex-wrap">
-                    <form method="GET" class="d-flex gap-2">
-                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari produk..." value="<?= htmlspecialchars($search) ?>" style="width: 200px;">
-                        <button type="submit" class="btn btn-sm btn-primary-custom"><i class="fas fa-search"></i></button>
-                        <?php if (!empty($search)): ?>
-                            <a href="produk.php" class="btn btn-sm btn-secondary-custom"><i class="fas fa-times"></i></a>
-                        <?php endif; ?>
-                    </form>
-                    <a href="produk.php?export=excel" class="btn btn-sm btn-success-custom">
-                        <i class="fas fa-file-excel"></i> Export Excel
-                    </a>
-                    <?php if ($hasFullAccess && canAdd('produk')): ?>
-                        <button class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalProduk">
-                            <i class="fas fa-plus"></i> Tambah Produk
-                        </button>
+                <h6><i class="fas fa-list"></i> Daftar Produk</h6>
+                <form method="GET" class="d-flex gap-2">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari produk..." value="<?= htmlspecialchars($search) ?>" style="width: 220px;">
+                    <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
+                    <?php if (!empty($search)): ?>
+                        <a href="produk.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i></a>
                     <?php endif; ?>
-                </div>
+                </form>
             </div>
             <div class="card-body-custom">
                 <?= showFlash() ?>
@@ -750,7 +729,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
         </div>
 
-    </main>
+    </div>
 
     <!-- MODAL TAMBAH / EDIT PRODUK -->
     <?php if ($hasFullAccess): ?>
@@ -790,7 +769,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <?php endif; ?>
 
     <!-- MODAL DETAIL -->
-    <?php if ($hasFullAccess): ?>
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -805,7 +783,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </div>
         </div>
     </div>
-    <?php endif; ?>
 
     <!-- MODAL DELETE -->
     <?php if ($hasFullAccess): ?>
@@ -833,54 +810,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     </div>
     <?php endif; ?>
 
-    <!-- BOTTOM NAVIGATION - MOBILE -->
-    <nav class="bottom-nav">
-        <a href="dashboard.php" class="nav-item">
-            <i class="fas fa-th-large nav-icon"></i>
-            <span class="nav-label">Home</span>
-        </a>
-        
-        <?php if (canAccessMenu('account_management')): ?>
-            <a href="account_management.php" class="nav-item">
-                <i class="fas fa-building nav-icon"></i>
-                <span class="nav-label">Account</span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (canAccessMenu('sales_activity')): ?>
-            <a href="salesactivity.php" class="nav-item">
-                <i class="fas fa-chart-bar nav-icon"></i>
-                <span class="nav-label">Sales Activity</span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (canAccessMenu('produk')): ?>
-            <a href="produk.php" class="nav-item active">
-                <i class="fas fa-box nav-icon"></i>
-                <span class="nav-label">Produk</span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (canAccessMenu('delivery_order')): ?>
-            <a href="#" class="nav-item">
-                <i class="fas fa-tractor nav-icon"></i>
-                <span class="nav-label">Delivery Order</span>
-            </a>
-        <?php endif; ?>
-        
-        <?php if (canAccessMenu('data_user')): ?>
-            <a href="data_user.php" class="nav-item">
-                <i class="fas fa-users nav-icon"></i>
-                <span class="nav-label">User</span>
-            </a>
-        <?php endif; ?>
-        
-        <a href="logout.php" class="nav-item">
-            <i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i>
-            <span class="nav-label" style="color:#d63031;">Logout</span>
-        </a>
-    </nav>
-
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Format Rupiah untuk input
