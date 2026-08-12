@@ -1464,7 +1464,6 @@ if (isset($_GET['complete'])) {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
-            box-sizing: border-box !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection {
@@ -1540,7 +1539,7 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
-        /* Dropdown - Pastikan tidak overflow dan lebar sesuai container */
+        /* Dropdown - Pastikan di bawah modal dan tidak overflow */
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1551,9 +1550,8 @@ if (isset($_GET['complete'])) {
             background: #fff !important;
             z-index: 1060 !important;
             width: auto !important;
-            min-width: 0 !important;
+            min-width: 100% !important;
             max-width: 100% !important;
-            position: absolute !important;
         }
 
         /* Search Field */
@@ -1700,18 +1698,6 @@ if (isset($_GET['complete'])) {
         .select2-container--open .select2-dropdown--below {
             max-width: 100% !important;
             width: auto !important;
-            left: 0 !important;
-            right: auto !important;
-        }
-
-        /* Fix untuk posisi dropdown */
-        .select2-container--open {
-            position: relative !important;
-        }
-
-        .select2-container .select2-dropdown {
-            left: 0 !important;
-            right: auto !important;
         }
 
         .btn-primary-custom {
@@ -2227,7 +2213,7 @@ if (isset($_GET['complete'])) {
                         <!-- Account Management dengan Select2 -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <select name="account_id" id="account_id" style="width: 100%;" required>
+                            <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
                                 <option value="">-- Pilih Account --</option>
                                 <?php foreach ($accounts as $account): ?>
                                     <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
@@ -2496,70 +2482,67 @@ if (isset($_GET['complete'])) {
         $(document).ready(function() {
             var $select = $('#account_id');
             
-            if ($select.length) {
-                // Inisialisasi Select2
-                $select.select2({
-                    theme: 'bootstrap-5',
-                    dropdownParent: $('#modalSalesActivity'),
-                    placeholder: 'Cari account...',
-                    allowClear: true,
-                    width: '100%',
-                    minimumInputLength: 0,
-                    dropdownAutoWidth: false,
-                    language: {
-                        searching: function() { return 'Mencari...'; },
-                        noResults: function() { return 'Tidak ada account ditemukan'; },
-                        errorLoading: function() { return 'Gagal memuat data'; }
-                    },
-                    templateResult: formatAccountResult,
-                    templateSelection: formatAccountSelection
-                });
-                
-                // Pastikan dropdown tidak overflow
-                $select.on('select2:open', function() {
-                    var $dropdown = $('.select2-dropdown');
-                    if ($dropdown.length) {
-                        var containerWidth = $select.closest('.select2-container').width();
-                        $dropdown.css('min-width', containerWidth + 'px');
-                        $dropdown.css('max-width', containerWidth + 'px');
-                        $dropdown.css('left', '0');
-                        $dropdown.css('right', 'auto');
-                    }
-                });
-                
-                // Auto-fill when account selected
-                $select.on('change', function() {
-                    var accountId = this.value;
-                    if (accountId) {
-                        fetch('salesactivity.php?get_account=' + accountId)
-                            .then(response => response.json())
-                            .then(data => {
-                                document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
-                                document.getElementById('business_segment').value = data.bidang_usaha || '';
-                                document.getElementById('contact_mobile').value = data.no_hp_pic || '';
-                            })
-                            .catch(error => console.error('Error:', error));
-                        
-                        fetch('salesactivity.php?get_account_numbers=' + accountId)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.di_number) {
-                                    document.getElementById('di_number_add').value = data.di_number;
-                                }
-                                if (data.trf_number) {
-                                    document.getElementById('trf_number_add').value = data.trf_number;
-                                }
-                            })
-                            .catch(error => console.error('Error:', error));
-                    } else {
-                        document.getElementById('badan_usaha_field').value = '';
-                        document.getElementById('business_segment').value = '';
-                        document.getElementById('contact_mobile').value = '';
-                        document.getElementById('di_number_add').value = '';
-                        document.getElementById('trf_number_add').value = '';
-                    }
-                });
-            }
+            $select.select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalSalesActivity'),
+                placeholder: 'Cari account...',
+                allowClear: true,
+                width: '100%',
+                minimumInputLength: 0,
+                dropdownAutoWidth: false,
+                language: {
+                    searching: function() { return 'Mencari...'; },
+                    noResults: function() { return 'Tidak ada account ditemukan'; },
+                    errorLoading: function() { return 'Gagal memuat data'; }
+                },
+                templateResult: formatAccountResult,
+                templateSelection: formatAccountSelection
+            });
+            
+            // Pastikan dropdown tidak overflow
+            $select.on('select2:open', function() {
+                var $dropdown = $('.select2-dropdown');
+                if ($dropdown.length) {
+                    var containerWidth = $select.closest('.select2-container').width();
+                    $dropdown.css('min-width', containerWidth + 'px');
+                    $dropdown.css('max-width', containerWidth + 'px');
+                }
+            });
+            
+            // Auto-fill when account selected
+            $select.on('change', function() {
+                var accountId = this.value;
+                if (accountId) {
+                    // Ambil data account untuk auto-fill
+                    fetch('salesactivity.php?get_account=' + accountId)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
+                            document.getElementById('business_segment').value = data.bidang_usaha || '';
+                            document.getElementById('contact_mobile').value = data.no_hp_pic || '';
+                        })
+                        .catch(error => console.error('Error:', error));
+                    
+                    // Ambil DI Number & TRF Number terakhir untuk account ini
+                    fetch('salesactivity.php?get_account_numbers=' + accountId)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.di_number) {
+                                document.getElementById('di_number_add').value = data.di_number;
+                            }
+                            if (data.trf_number) {
+                                document.getElementById('trf_number_add').value = data.trf_number;
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                } else {
+                    document.getElementById('badan_usaha_field').value = '';
+                    document.getElementById('business_segment').value = '';
+                    document.getElementById('contact_mobile').value = '';
+                    document.getElementById('di_number_add').value = '';
+                    document.getElementById('trf_number_add').value = '';
+                }
+            });
         });
 
         // Format hasil dropdown dengan badge
@@ -2599,6 +2582,7 @@ if (isset($_GET['complete'])) {
             // TRF Field: tampilkan untuk Negosiasi, Kontrak, Collect Payment, Aftersales
             if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
                 trfField.classList.add('show');
+                // Generate TRF jika kosong dan jenis tugas = Negosiasi
                 if (value === 'Negosiasi' && trfInput && trfInput.value === '') {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(response => response.json())
@@ -2615,7 +2599,9 @@ if (isset($_GET['complete'])) {
                             var romanMonth = romanMonths[month];
                             trfInput.value = '0001/GET-TR/JKT/' + romanMonth + '/' + year;
                         });
-                } else if (value !== 'Negosiasi' && trfInput && trfInput.value === '' && accountId && accountId.value) {
+                }
+                // Jika bukan Negosiasi, cek apakah ada TRF dari account yang sama
+                else if (value !== 'Negosiasi' && trfInput && trfInput.value === '' && accountId && accountId.value) {
                     fetch('salesactivity.php?get_account_numbers=' + accountId.value)
                         .then(response => response.json())
                         .then(data => {
@@ -2633,6 +2619,7 @@ if (isset($_GET['complete'])) {
             // Deal Fields: tampilkan hanya untuk Kontrak
             if (value === 'Kontrak') {
                 dealFields.classList.add('show');
+                // Generate DI jika customer_deal = Yes
                 if (customerDeal && customerDeal.value === 'Yes' && diInput && diInput.value === '') {
                     var now = new Date();
                     var month = now.getMonth() + 1;
@@ -2660,12 +2647,14 @@ if (isset($_GET['complete'])) {
             
             var value = jenisTugas.value;
             
+            // TRF Field: tampilkan untuk Negosiasi, Kontrak, Collect Payment, Aftersales
             if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
                 trfFieldComplete.classList.add('show');
             } else {
                 trfFieldComplete.classList.remove('show');
             }
             
+            // Deal Fields: tampilkan hanya untuk Kontrak
             if (value === 'Kontrak') {
                 dealFieldsComplete.classList.add('show');
             } else {
@@ -2677,7 +2666,7 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // EVENT LISTENER
+        // EVENT LISTENER UNTUK CUSTOMER DEAL
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             var customerDealAdd = document.getElementById('customer_deal_add');
@@ -2698,6 +2687,7 @@ if (isset($_GET['complete'])) {
                 });
             }
             
+            // Customer Deal di Complete Modal
             var customerDealComplete = document.getElementById('customer_deal');
             var diInputComplete = document.getElementById('di_number_complete');
             
@@ -2718,6 +2708,7 @@ if (isset($_GET['complete'])) {
                 });
             }
             
+            // Jenis Tugas change
             var jenisTugas = document.getElementById('jenis_tugas');
             if (jenisTugas) {
                 jenisTugas.addEventListener('change', function() {
@@ -2726,6 +2717,7 @@ if (isset($_GET['complete'])) {
                 setTimeout(toggleFields, 100);
             }
             
+            // Account ID change untuk update TRF & DI
             var accountId = document.getElementById('account_id');
             if (accountId) {
                 accountId.addEventListener('change', function() {
@@ -2810,6 +2802,7 @@ if (isset($_GET['complete'])) {
                 setTimeout(toggleFields, 100);
             }
             
+            // Account ID change
             var accountId = document.getElementById('account_id');
             if (accountId) {
                 accountId.addEventListener('change', function() {
@@ -2905,6 +2898,7 @@ if (isset($_GET['complete'])) {
             var note = document.getElementById('resultNotification');
             if (note) note.remove();
             
+            // Reset Select2
             $('#account_id').val('').trigger('change');
             
             var deskripsiCounter = document.getElementById('deskripsiCounter');
@@ -2941,6 +2935,7 @@ if (isset($_GET['complete'])) {
                 document.getElementById('di_number_complete').value = diNumber;
                 document.getElementById('di_number_complete_hidden').value = diNumber;
                 
+                // Generate TRF jika jenis tugas = Negosiasi/Kontrak/Collect Payment/Aftersales dan belum ada
                 if ((data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') && !trfNumber) {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(response => response.json())
@@ -2953,6 +2948,7 @@ if (isset($_GET['complete'])) {
                         .catch(error => console.error('Error generating TRF:', error));
                 }
                 
+                // Generate DI jika jenis tugas = Kontrak dan customer_deal = Yes
                 if (data.jenis_tugas === 'Kontrak' && data.customer_deal === 'Yes' && !diNumber) {
                     var now = new Date();
                     var month = now.getMonth() + 1;
@@ -3028,14 +3024,164 @@ if (isset($_GET['complete'])) {
         // DETAIL ACTIVITY
         // ============================================
         function detailActivity(data) {
-            // ... (sama seperti sebelumnya)
+            var statusLabel = data.status == 'in_progress' ? 'In Progress' : (data.status == 'overdue' ? 'Overdue' : 'Completed');
+            var statusBadge = data.status == 'in_progress' ? 'in_progress' : (data.status == 'overdue' ? 'overdue' : 'completed');
+            
+            var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
+            var isHotProspek = data.jenis_tugas == 'Negosiasi' && data.has_kontrak == 0 && data.has_lost_prospek == 0 && !(data.status == 'completed' && data.customer_deal == 'No');
+            var isLostProspek = data.jenis_tugas == 'Negosiasi' && data.status == 'completed' && data.customer_deal == 'No';
+            var isDeal = data.jenis_tugas == 'Kontrak';
+            
+            var pipelineBadge = '';
+            if (isMiddleProspek) {
+                pipelineBadge = '<span class="badge-middle-prospek ms-2"><i class="fas fa-user-tie"></i> Middle Prospek</span>';
+            } else if (isHotProspek) {
+                pipelineBadge = '<span class="badge-hot-prospek ms-2"><i class="fas fa-fire"></i> Hot Prospek</span>';
+            } else if (isLostProspek) {
+                pipelineBadge = '<span class="badge-lost ms-2"><i class="fas fa-times-circle"></i> Lost Prospek</span>';
+            } else if (isDeal) {
+                pipelineBadge = '<span class="badge-deal ms-2"><i class="fas fa-handshake"></i> Deal</span>';
+            }
+            
+            var html = `
+                <div class="detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value">
+                        <span class="badge-status ${statusBadge}">${statusLabel}</span>
+                        ${data.status == 'completed' && data.completed_at ? `<small class="text-muted ms-2">Selesai pada: ${new Date(data.completed_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Subject</div>
+                    <div class="detail-value"><strong>${data.subject}</strong></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Account</div>
+                    <div class="detail-value">${data.nama_pt || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Badan Usaha</div>
+                    <div class="detail-value">${data.account_badan_usaha || data.badan_usaha || 'PT'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Business Segment</div>
+                    <div class="detail-value">${data.business_segment || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Contact Mobile</div>
+                    <div class="detail-value">${data.contact_mobile || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Jenis Tugas</div>
+                    <div class="detail-value">
+                        <span class="badge-tugas ${data.jenis_tugas ? data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_') : ''}">${data.jenis_tugas || '-'}</span>
+                        ${pipelineBadge}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">TR Number</div>
+                    <div class="detail-value">
+                        ${data.trf_number ? `<a href="detailtr.php?trf=${encodeURIComponent(data.trf_number)}" target="_blank" class="trf-link"><span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span></a>` : '-'}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">DI Number</div>
+                    <div class="detail-value">
+                        ${data.di_number ? `<span class="badge-di"><i class="fas fa-hashtag"></i> ${data.di_number}</span>` : '-'}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Due Date</div>
+                    <div class="detail-value">
+                        ${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Deskripsi</div>
+                    <div class="detail-value">${data.deskripsi || '-'}</div>
+                </div>
+                ${data.status == 'completed' ? `
+                <div class="detail-item">
+                    <div class="detail-label">Result</div>
+                    <div class="detail-value">${data.result || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Customer Deal</div>
+                    <div class="detail-value">
+                        <span class="badge-deal-status ${data.customer_deal}">${data.customer_deal}</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Attachment</div>
+                    <div class="detail-value">
+                        ${data.attachment_file ? (function() {
+                            try {
+                                var files = JSON.parse(data.attachment_file);
+                                if (files.files && files.files.length > 0) {
+                                    var html = '<div class="d-flex flex-wrap gap-2">';
+                                    for (var i = 0; i < files.files.length; i++) {
+                                        var filePath = files.files[i];
+                                        var fileName = files.names && files.names[i] ? files.names[i] : filePath.split('/').pop();
+                                        html += '<a href="' + filePath + '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file"></i> ' + fileName + '</a>';
+                                    }
+                                    html += '</div>';
+                                    return html;
+                                } else {
+                                    return '<a href="' + data.attachment_file + '" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>';
+                                }
+                            } catch(e) {
+                                return '<a href="' + data.attachment_file + '" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>';
+                            }
+                        })() : '-'}
+                    </div>
+                </div>
+                ` : ''}
+                <div class="detail-item">
+                    <div class="detail-label">Sales</div>
+                    <div class="detail-value">${data.sales_name || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Dibuat Pada</div>
+                    <div class="detail-value">${data.created_at ? new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                </div>
+            `;
+            document.getElementById('detailBody').innerHTML = html;
+            var modal = new bootstrap.Modal(document.getElementById('modalDetail'));
+            modal.show();
         }
 
         // ============================================
         // EDIT ACTIVITY
         // ============================================
         function editActivity(data) {
-            // ... (sama seperti sebelumnya)
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Sales Activity';
+            document.getElementById('formAction').value = 'edit';
+            document.getElementById('formId').value = data.id;
+            document.getElementById('subject').value = data.subject;
+            
+            // Set Select2 value
+            $('#account_id').val(data.account_id || '').trigger('change');
+            
+            document.getElementById('badan_usaha_field').value = data.account_badan_usaha || data.badan_usaha || '';
+            document.getElementById('business_segment').value = data.business_segment || '';
+            document.getElementById('contact_mobile').value = data.contact_mobile || '';
+            document.getElementById('jenis_tugas').value = data.jenis_tugas;
+            document.getElementById('deskripsi').value = data.deskripsi || '';
+            document.getElementById('due_date').value = data.due_date || '';
+            document.getElementById('customer_deal_add').value = data.customer_deal || 'No';
+            document.getElementById('di_number_add').value = data.di_number || '';
+            document.getElementById('trf_number_add').value = data.trf_number || '';
+            
+            setTimeout(function() {
+                toggleFields();
+            }, 100);
+            
+            setTimeout(function() {
+                updateCharCount('deskripsi', 'deskripsiCounter');
+            }, 300);
+            
+            var modal = new bootstrap.Modal(document.getElementById('modalSalesActivity'));
+            modal.show();
         }
 
         // ============================================
@@ -3051,7 +3197,74 @@ if (isset($_GET['complete'])) {
         // INIT CHARTS
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // ... (sama seperti sebelumnya)
+            var ctx1 = document.getElementById('statusChart').getContext('2d');
+            var inProgress = <?= $totalInProgress ?>;
+            var completed = <?= $totalCompleted ?>;
+            var overdue = <?= $overdueCount ?>;
+            
+            new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['In Progress', 'Completed', 'Overdue'],
+                    datasets: [{
+                        data: [inProgress, completed, overdue],
+                        backgroundColor: ['#2980b9', '#27ae60', '#e74c3c'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 11, weight: '600' }
+                            }
+                        }
+                    }
+                }
+            });
+
+            var ctx2 = document.getElementById('prospekChart').getContext('2d');
+            var middleProspek = <?= $totalMiddleProspek ?>;
+            var hotProspek = <?= $totalHotProspek ?>;
+            var lostProspek = <?= $totalLostProspek ?>;
+            var deal = <?= $totalDeal ?>;
+            
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Middle Prospek', 'Hot Prospek', 'Lost Prospek', 'Deal'],
+                    datasets: [{
+                        data: [middleProspek, hotProspek, lostProspek, deal],
+                        backgroundColor: ['#f39c12', '#ff6b6b', '#e74c3c', '#8e44ad'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 11, weight: '600' }
+                            }
+                        }
+                    }
+                }
+            });
         });
     </script>
 </body>
