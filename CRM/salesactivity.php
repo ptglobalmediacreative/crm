@@ -1174,49 +1174,121 @@ if (isset($_GET['complete'])) {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        .main-content { margin-left: 260px; padding: 30px; width: 100%; }
+        .main-content { 
+            margin-left: 260px; 
+            padding: 30px 35px; 
+            width: calc(100% - 260px);
+            min-height: 100vh;
+        }
 
         .page-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 30px; 
+            flex-wrap: wrap; 
+            gap: 15px; 
+        }
+        .page-header .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .page-header .header-left .breadcrumb-wrapper {
+            display: flex;
+            flex-direction: column;
         }
         .page-header h4 { 
-            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
+            font-weight: 800; 
+            color: #0e1a2b; 
+            font-size: 24px; 
+            margin: 0; 
             letter-spacing: -0.5px;
         }
         .page-header h4 span { color: #ffd700; }
 
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .stat-card { 
-            background: #fff; border-radius: 16px; padding: 20px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
-            transition: all 0.3s ease;
+        .stat-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 20px; 
+            margin-bottom: 25px; 
         }
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        .stat-card { 
+            background: #fff; 
+            border-radius: 16px; 
+            padding: 20px 24px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); 
+            border: 1px solid #e0e4ea; 
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .stat-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 8px 25px rgba(14,26,43,0.08); 
+            border-color: #ffd700; 
+        }
         .stat-card .stat-icon { 
-            width: 44px; height: 44px; border-radius: 12px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 18px; margin-bottom: 10px; 
+            width: 48px; 
+            height: 48px; 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 20px; 
+            flex-shrink: 0;
         }
         .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
         .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
-        .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
+        .stat-card .stat-info { flex: 1; }
+        .stat-card .stat-number { font-size: 22px; font-weight: 800; color: #0e1a2b; line-height: 1.2; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
 
-        .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        .grid-2-col { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 24px; 
+            margin-bottom: 24px; 
+        }
         @media (max-width: 991px) { .grid-2-col { grid-template-columns: 1fr; } }
         
         .chart-card { 
-            background: #fff; border-radius: 16px; padding: 24px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
+            background: #fff; 
+            border-radius: 16px; 
+            padding: 24px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); 
+            border: 1px solid #e0e4ea; 
             transition: all 0.3s ease;
         }
-        .chart-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
-        .chart-card h6 { font-weight: 600; margin-bottom: 20px; color: #0e1a2b; font-size: 16px; }
-        .chart-card h6 i { margin-right: 8px; }
-        .chart-wrapper { height: 220px; width: 100%; max-width: 320px; margin: 0 auto; }
+        .chart-card:hover { 
+            box-shadow: 0 8px 25px rgba(14,26,43,0.08); 
+            border-color: #ffd700; 
+        }
+        .chart-card .chart-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .chart-card .chart-header i {
+            font-size: 20px;
+            color: #2980b9;
+        }
+        .chart-card .chart-header h6 { 
+            font-weight: 600; 
+            margin: 0; 
+            color: #0e1a2b; 
+            font-size: 16px; 
+        }
+        .chart-wrapper { 
+            height: 220px; 
+            width: 100%; 
+            max-width: 320px; 
+            margin: 0 auto; 
+        }
 
         .card-custom {
             background: #fff;
@@ -1224,11 +1296,15 @@ if (isset($_GET['complete'])) {
             box-shadow: 0 2px 10px rgba(0,0,0,0.02);
             border: 1px solid #e0e4ea;
             transition: all 0.3s ease;
+            overflow: hidden;
         }
-        .card-custom:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        .card-custom:hover { 
+            box-shadow: 0 8px 25px rgba(14,26,43,0.08); 
+            border-color: #ffd700; 
+        }
         
         .card-custom .card-header-custom {
-            padding: 20px 24px;
+            padding: 18px 24px;
             border-bottom: 1px solid #f0f2f5;
             display: flex;
             justify-content: space-between;
@@ -1237,23 +1313,79 @@ if (isset($_GET['complete'])) {
             gap: 10px;
         }
         
-        .card-custom .card-header-custom h6 {
+        .card-custom .card-header-custom .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-custom .card-header-custom .header-title i {
+            color: #ffd700;
+            font-size: 18px;
+        }
+        .card-custom .card-header-custom .header-title h6 {
             font-weight: 600;
             color: #0e1a2b;
             margin: 0;
             font-size: 16px;
         }
         
-        .card-custom .card-header-custom h6 i {
-            color: #ffd700;
-            margin-right: 8px;
+        .card-custom .card-header-custom .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
         }
         
         .card-custom .card-body-custom {
             padding: 0;
             overflow-x: auto;
         }
-        
+
+        .filter-wrapper {
+            padding: 12px 24px;
+            border-bottom: 1px solid #f0f2f5;
+            background: #fafbfc;
+        }
+        .filter-buttons { 
+            display: flex; 
+            gap: 6px; 
+            flex-wrap: wrap; 
+        }
+        .filter-buttons .btn-filter {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 2px solid #e8edf2;
+            background: transparent;
+            color: #666;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .filter-buttons .btn-filter:hover { 
+            border-color: #ffd700; 
+            color: #0e1a2b; 
+            background: #fffbf0;
+        }
+        .filter-buttons .btn-filter.active { 
+            background: #0e1a2b; 
+            border-color: #0e1a2b; 
+            color: #fff; 
+        }
+        .filter-buttons .btn-filter .count {
+            background: rgba(0,0,0,0.08);
+            padding: 0 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .filter-buttons .btn-filter.active .count { 
+            background: rgba(255,255,255,0.2); 
+        }
+
         .table-custom {
             margin-bottom: 0;
             font-size: 13px;
@@ -1261,9 +1393,9 @@ if (isset($_GET['complete'])) {
         
         .table-custom th {
             font-weight: 600;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
             color: #7f8c8d;
             border-bottom: 1px solid #f0f2f5;
             padding: 12px 16px;
@@ -1327,37 +1459,6 @@ if (isset($_GET['complete'])) {
             font-weight: 600;
         }
 
-        .btn-action {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            transition: all 0.3s ease;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .btn-action:hover { transform: scale(1.1); }
-        .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
-        .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
-        .btn-action.edit { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
-        .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
-        .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
-        .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
-        .btn-action.complete { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
-        .btn-action.complete:hover { background: rgba(241, 196, 15, 0.2); }
-
-        .badge-badan-usaha {
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            background: rgba(26, 188, 156, 0.12);
-            color: #16a085;
-        }
-
         .badge-middle-prospek {
             background: rgba(243, 156, 18, 0.15);
             color: #f39c12;
@@ -1391,41 +1492,36 @@ if (isset($_GET['complete'])) {
             font-weight: 600;
         }
 
-        .modal-content { border: none; border-radius: 12px; }
-        .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
-        .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
-        .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
-        .modal-body { padding: 20px 24px; }
-        .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
+        .badge-badan-usaha {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(26, 188, 156, 0.12);
+            color: #16a085;
+        }
 
-        .form-label { font-weight: 600; font-size: 13px; color: #333; }
-        .form-control, .form-select {
-            border-radius: 8px;
-            padding: 10px 14px;
-            border: 2px solid #e8edf2;
+        .btn-action {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
             transition: all 0.3s ease;
             font-size: 13px;
+            cursor: pointer;
         }
-        .form-control:focus, .form-select:focus {
-            border-color: #ffd700;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-        }
-
-        .select2-container--bootstrap-5 .select2-selection {
-            border: 2px solid #e8edf2 !important;
-            border-radius: 8px !important;
-            min-height: 46px !important;
-        }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            padding: 6px 14px !important;
-            line-height: 28px !important;
-            font-size: 14px !important;
-        }
-        .select2-container--bootstrap-5 .select2-dropdown {
-            border: 2px solid #e8edf2 !important;
-            border-top: none !important;
-            border-radius: 0 0 8px 8px !important;
-        }
+        .btn-action:hover { transform: scale(1.1); }
+        .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
+        .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
+        .btn-action.edit { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
+        .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
+        .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
+        .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
+        .btn-action.complete { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
+        .btn-action.complete:hover { background: rgba(241, 196, 15, 0.2); }
 
         .btn-primary-custom {
             background: #0e1a2b;
@@ -1477,34 +1573,6 @@ if (isset($_GET['complete'])) {
         .alert.deadline-alert { border-left: 4px solid #dc3545; background: #fff5f5; }
         .alert.deadline-warning { border-left: 4px solid #ffc107; background: #fffbf0; }
 
-        .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
-        .detail-item:last-child { border-bottom: none; }
-        .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
-        .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
-
-        .filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-buttons .btn-filter {
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-            border: 2px solid #e8edf2;
-            background: transparent;
-            color: #666;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-        .filter-buttons .btn-filter:hover { border-color: #ffd700; color: #0e1a2b; }
-        .filter-buttons .btn-filter.active { background: #0e1a2b; border-color: #0e1a2b; color: #fff; }
-        .filter-buttons .btn-filter .count {
-            background: rgba(0,0,0,0.1);
-            padding: 0 6px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 4px;
-        }
-        .filter-buttons .btn-filter.active .count { background: rgba(255,255,255,0.2); }
-
         .deadline-overdue { animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         .badge-overdue { background: #dc3545 !important; animation: blink 1s infinite; }
@@ -1514,6 +1582,27 @@ if (isset($_GET['complete'])) {
         .table-overdue { background-color: #fff5f5 !important; }
         .table-overdue:hover { background-color: #ffe8e8 !important; }
 
+        .modal-content { border: none; border-radius: 12px; }
+        .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
+        .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
+        .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
+        .modal-body { padding: 20px 24px; }
+        .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
+
+        .form-label { font-weight: 600; font-size: 13px; color: #333; }
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 2px solid #e8edf2;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .auto-fill-field { background: #f8f9fa !important; cursor: default; }
         .char-counter { font-size: 12px; padding: 4px 0; }
         .char-counter .count { font-weight: 600; }
         .char-counter .count.valid { color: #27ae60; }
@@ -1524,30 +1613,65 @@ if (isset($_GET['complete'])) {
         .trf-field { display: none; }
         .trf-field.show { display: block; }
 
-        .auto-fill-field { background: #f8f9fa !important; cursor: default; }
+        .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
+        .detail-item:last-child { border-bottom: none; }
+        .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
+        .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
 
-        .mobile-toggle { display: none; }
+        .select2-container--bootstrap-5 .select2-selection {
+            border: 2px solid #e8edf2 !important;
+            border-radius: 8px !important;
+            min-height: 46px !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            padding: 6px 14px !important;
+            line-height: 28px !important;
+            font-size: 14px !important;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown {
+            border: 2px solid #e8edf2 !important;
+            border-top: none !important;
+            border-radius: 0 0 8px 8px !important;
+        }
 
         .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
         .breadcrumb-item a { color: #2980b9; text-decoration: none; }
         .breadcrumb-item a:hover { color: #ffd700; }
         .breadcrumb-item.active { color: #0e1a2b; font-weight: 600; }
 
-        .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
+        .footer-text { text-align: center; padding: 20px 0 8px; color: #999; font-size: 11px; }
         .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
         .footer-text a:hover { color: #ffd700; }
+
+        .mobile-toggle { display: none; }
 
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 20px; }
-            .mobile-toggle { 
-                display: flex !important; background: #0e1a2b; border: none; 
-                width: 40px; height: 40px; border-radius: 8px; 
-                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
+            .main-content { 
+                margin-left: 0; 
+                padding: 20px; 
+                width: 100%;
             }
-            .grid-2-col { grid-template-columns: 1fr; }
+            .mobile-toggle { 
+                display: flex !important; 
+                background: #0e1a2b; 
+                border: none; 
+                width: 40px; 
+                height: 40px; 
+                border-radius: 8px; 
+                color: #ffd700; 
+                font-size: 20px; 
+                align-items: center; 
+                justify-content: center;
+            }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .stat-grid { grid-template-columns: 1fr; }
+            .stat-card { padding: 14px 18px; }
+            .stat-card .stat-number { font-size: 18px; }
         }
 
         @media (max-width: 480px) {
@@ -1562,12 +1686,15 @@ if (isset($_GET['complete'])) {
             .detail-item { flex-direction: column; padding: 8px 0; }
             .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
+            .filter-buttons .btn-filter { font-size: 10px; padding: 3px 10px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR -->
+    <!-- ============================================
+    SIDEBAR
+    ============================================ -->
     <nav class="sidebar" id="sidebar">
         <a href="dashboard.php" class="brand">
             <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
@@ -1615,23 +1742,25 @@ if (isset($_GET['complete'])) {
         </a>
     </nav>
 
-    <!-- MAIN CONTENT -->
+    <!-- ============================================
+    MAIN CONTENT
+    ============================================ -->
     <div class="main-content">
         
-        <!-- HEADER -->
+        <!-- ===== PAGE HEADER ===== -->
         <div class="page-header">
-            <div style="display:flex; gap:15px; align-items:center;">
+            <div class="header-left">
                 <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div>
+                <div class="breadcrumb-wrapper">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="dashboard.php"><i class="fas fa-home"></i> Home</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Sales Activity</li>
                         </ol>
                     </nav>
-                    <h4><span><i class="fas fa-chart-bar" style="color:#ffd700;"></i></span> Sales Activity</h4>
+                    <h4><i class="fas fa-chart-bar" style="color:#ffd700; margin-right:8px;"></i> Sales Activity</h4>
                 </div>
             </div>
             <?php if (canAdd('sales_activity')): ?>
@@ -1641,7 +1770,7 @@ if (isset($_GET['complete'])) {
             <?php endif; ?>
         </div>
 
-        <!-- NOTIFICATIONS -->
+        <!-- ===== NOTIFICATIONS ===== -->
         <?php if ($overdueCount > 0): ?>
             <div class="alert alert-danger deadline-alert mb-3" role="alert">
                 <i class="fas fa-exclamation-circle me-2"></i>
@@ -1656,47 +1785,64 @@ if (isset($_GET['complete'])) {
             </div>
         <?php endif; ?>
 
-        <!-- STATISTIK -->
+        <!-- ===== STATISTIK ===== -->
         <div class="stat-grid">
             <div class="stat-card">
                 <div class="stat-icon blue"><i class="fas fa-spinner"></i></div>
-                <div class="stat-number"><?= number_format($totalInProgress) ?></div>
-                <div class="stat-label">In Progress</div>
+                <div class="stat-info">
+                    <div class="stat-number"><?= number_format($totalInProgress) ?></div>
+                    <div class="stat-label">In Progress</div>
+                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
-                <div class="stat-number"><?= number_format($totalCompleted) ?></div>
-                <div class="stat-label">Completed</div>
+                <div class="stat-info">
+                    <div class="stat-number"><?= number_format($totalCompleted) ?></div>
+                    <div class="stat-label">Completed</div>
+                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="stat-number"><?= number_format($overdueCount) ?></div>
-                <div class="stat-label">Overdue</div>
+                <div class="stat-info">
+                    <div class="stat-number"><?= number_format($overdueCount) ?></div>
+                    <div class="stat-label">Overdue</div>
+                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon gold"><i class="fas fa-tasks"></i></div>
-                <div class="stat-number"><?= number_format($totalActivities) ?></div>
-                <div class="stat-label">Total Aktivitas</div>
+                <div class="stat-info">
+                    <div class="stat-number"><?= number_format($totalActivities) ?></div>
+                    <div class="stat-label">Total Aktivitas</div>
+                </div>
             </div>
         </div>
 
-        <!-- CHARTS -->
+        <!-- ===== CHARTS ===== -->
         <div class="grid-2-col">
             <div class="chart-card">
-                <h6><i class="fas fa-chart-pie" style="color:#2980b9;"></i> Status Aktivitas</h6>
+                <div class="chart-header">
+                    <i class="fas fa-chart-pie" style="color:#2980b9;"></i>
+                    <h6>Status Aktivitas</h6>
+                </div>
                 <div class="chart-wrapper"><canvas id="statusChart"></canvas></div>
             </div>
             <div class="chart-card">
-                <h6><i class="fas fa-chart-pie" style="color:#f39c12;"></i> Status Prospek</h6>
+                <div class="chart-header">
+                    <i class="fas fa-chart-pie" style="color:#f39c12;"></i>
+                    <h6>Status Prospek</h6>
+                </div>
                 <div class="chart-wrapper"><canvas id="prospekChart"></canvas></div>
             </div>
         </div>
 
-        <!-- TABLE -->
+        <!-- ===== TABLE ===== -->
         <div class="card-custom">
             <div class="card-header-custom">
-                <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
-                <div class="d-flex gap-2 flex-wrap align-items-center">
+                <div class="header-title">
+                    <i class="fas fa-list"></i>
+                    <h6>Daftar Sales Activity</h6>
+                </div>
+                <div class="header-actions">
                     <form method="GET" class="d-flex gap-2">
                         <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 180px;">
                         <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
@@ -1708,7 +1854,7 @@ if (isset($_GET['complete'])) {
             </div>
             
             <!-- Filter Status -->
-            <div class="px-3 pt-3 pb-2 border-bottom">
+            <div class="filter-wrapper">
                 <div class="filter-buttons">
                     <a href="?status=all&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'all' ? 'active' : '' ?>">
                         Semua <span class="count"><?= $totalActivities ?></span>
@@ -1898,7 +2044,7 @@ if (isset($_GET['complete'])) {
             <?php endif; ?>
         </div>
 
-        <!-- FOOTER -->
+        <!-- ===== FOOTER ===== -->
         <div class="footer-text">
             &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
         </div>
@@ -2180,7 +2326,9 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- SCRIPTS -->
+    <!-- ============================================
+    SCRIPTS
+    ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
