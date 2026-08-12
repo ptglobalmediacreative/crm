@@ -1458,8 +1458,8 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-        SELECT2 CUSTOM STYLE - RAPIH DI DALAM KOTAK
-        ============================================ */
+           SELECT2 CUSTOM STYLE - RAPIH DI DALAM KOTAK
+           ============================================ */
         .select2-container--bootstrap-5 {
             display: block !important;
             width: 100% !important;
