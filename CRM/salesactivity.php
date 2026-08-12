@@ -1345,49 +1345,184 @@ if (isset($_GET['complete'])) {
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
 
-        /* ---- Select2 Custom Style ---- */
+        /* ============================================
+           SELECT2 CUSTOM STYLE - RAPIH
+           ============================================ */
+        .select2-container--bootstrap-5 {
+            width: 100% !important;
+        }
+
         .select2-container--bootstrap-5 .select2-selection {
             border: 2px solid #e8edf2 !important;
             border-radius: 8px !important;
             min-height: 46px !important;
+            background: #fff !important;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single {
             padding: 4px 0 !important;
         }
+
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            padding: 6px 12px !important;
+            padding: 6px 14px !important;
             line-height: 28px !important;
             color: #333 !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
+            font-family: 'Inter', sans-serif !important;
         }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+            color: #999 !important;
+        }
+
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
             height: 44px !important;
+            width: 34px !important;
+            right: 4px !important;
         }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+            border-color: #999 transparent transparent transparent !important;
+            border-width: 6px 5px 0 5px !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+            margin-right: 8px !important;
+            font-size: 18px !important;
+            color: #999 !important;
+            font-weight: 300 !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
+            color: #e74c3c !important;
+        }
+
+        /* Focus State */
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .select2-container--bootstrap-5.select2-container--open .select2-selection {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+            outline: none !important;
+        }
+
+        /* Dropdown */
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
             border-radius: 0 0 8px 8px !important;
             overflow: hidden !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            margin-top: 2px !important;
+            background: #fff !important;
+            z-index: 1060 !important;
         }
+
+        /* Search Field */
+        .select2-container--bootstrap-5 .select2-search--dropdown {
+            padding: 8px 12px !important;
+            background: #fafafa !important;
+            border-bottom: 1px solid #f0f2f5 !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-search__field {
+            border: 2px solid #e8edf2 !important;
+            border-radius: 8px !important;
+            padding: 8px 14px !important;
+            font-size: 13px !important;
+            font-family: 'Inter', sans-serif !important;
+            width: 100% !important;
+            background: #fff !important;
+            transition: border-color 0.3s ease !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-search__field:focus {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+            outline: none !important;
+        }
+
+        /* Results */
+        .select2-container--bootstrap-5 .select2-results__options {
+            padding: 4px 0 !important;
+            max-height: 240px !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option {
+            padding: 10px 14px !important;
+            font-size: 13px !important;
+            font-family: 'Inter', sans-serif !important;
+            color: #333 !important;
+            transition: all 0.15s ease !important;
+            cursor: pointer !important;
+            border-bottom: 1px solid #f8f9fa !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option:last-child {
+            border-bottom: none !important;
+        }
+
         .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
             background: #0e1a2b !important;
             color: #ffd700 !important;
         }
-        .select2-container--bootstrap-5 .select2-search__field {
-            border: 2px solid #e8edf2 !important;
-            border-radius: 8px !important;
-            padding: 8px 12px !important;
-            font-size: 13px !important;
+
+        .select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
+            background: #f0f2f5 !important;
+            color: #0e1a2b !important;
         }
-        .select2-container--bootstrap-5 .select2-search__field:focus {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+
+        .select2-container--bootstrap-5 .select2-results__option .badge-badan-usaha {
+            font-size: 9px !important;
+            padding: 1px 8px !important;
+            margin-left: 6px !important;
         }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
-            margin-right: 8px !important;
-            font-size: 16px !important;
+
+        /* Loading & No Results */
+        .select2-container--bootstrap-5 .select2-results__message {
+            padding: 12px !important;
             color: #999 !important;
+            font-size: 13px !important;
+            text-align: center !important;
         }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
-            color: #e74c3c !important;
+
+        /* Disabled State */
+        .select2-container--bootstrap-5.select2-container--disabled .select2-selection {
+            background: #f8f9fa !important;
+            cursor: not-allowed !important;
+        }
+
+        /* Scrollbar styling */
+        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-track {
+            background: #f0f2f5;
+            border-radius: 0 0 8px 0;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-thumb {
+            background: #c0c4c8;
+            border-radius: 3px;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__options::-webkit-scrollbar-thumb:hover {
+            background: #a0a4a8;
+        }
+
+        /* Responsive Select2 */
+        @media (max-width: 768px) {
+            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+                font-size: 13px !important;
+                padding: 4px 12px !important;
+            }
+            .select2-container--bootstrap-5 .select2-selection {
+                min-height: 42px !important;
+            }
+            .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+                height: 40px !important;
+            }
         }
 
         .btn-primary-custom {
@@ -1604,6 +1739,12 @@ if (isset($_GET['complete'])) {
                     <i class="fas fa-bars"></i>
                 </button>
                 <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="dashboard.php"><i class="fas fa-home"></i> Home</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Sales Activity</li>
+                        </ol>
+                    </nav>
                     <h4><span><i class="fas fa-chart-bar" style="color:#ffd700;"></i></span> Sales Activity</h4>
                 </div>
             </div>
@@ -1895,14 +2036,14 @@ if (isset($_GET['complete'])) {
                             <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject" required>
                         </div>
                         
-                        <!-- Account Management dengan Select2 -->
+                        <!-- Account Management dengan Select2 - RAPIH -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
                             <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
                                 <option value="">-- Pilih Account --</option>
                                 <?php foreach ($accounts as $account): ?>
-                                    <option value="<?= $account['id'] ?>">
-                                        <?= htmlspecialchars($account['nama_pt']) ?> (<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>)
+                                    <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
+                                        <?= htmlspecialchars($account['nama_pt']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -2161,7 +2302,7 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // INIT SELECT2
+        // INIT SELECT2 - RAPIH
         // ============================================
         $(document).ready(function() {
             $('#account_id').select2({
@@ -2170,11 +2311,14 @@ if (isset($_GET['complete'])) {
                 placeholder: 'Cari account...',
                 allowClear: true,
                 width: '100%',
+                minimumInputLength: 0,
                 language: {
                     searching: function() { return 'Mencari...'; },
                     noResults: function() { return 'Tidak ada account ditemukan'; },
                     errorLoading: function() { return 'Gagal memuat data'; }
-                }
+                },
+                templateResult: formatAccountResult,
+                templateSelection: formatAccountSelection
             });
             
             // Auto-fill when account selected
@@ -2196,6 +2340,24 @@ if (isset($_GET['complete'])) {
                 }
             });
         });
+
+        // Format hasil dropdown dengan badge
+        function formatAccountResult(option) {
+            if (!option.id) return option.text;
+            
+            var badge = $(option.element).data('badge') || 'PT';
+            
+            var $result = $(
+                '<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;">' + badge + '</span></span>'
+            );
+            return $result;
+        }
+
+        // Format selection (tampilan di input)
+        function formatAccountSelection(option) {
+            if (!option.id) return option.text;
+            return option.text;
+        }
 
         // ============================================
         // GET DATE WIB (GMT+7)
