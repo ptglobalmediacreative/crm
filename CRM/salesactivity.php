@@ -1622,14 +1622,15 @@ if (isset($_GET['complete'])) {
         .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
 
         /* ============================================
-           SELECT2 CUSTOM STYLE - FINAL FIX
-           ============================================ */
-        
+        SELECT2 CUSTOM STYLE - FINAL FIX
+        ============================================ */
+
         /* Container Select2 - pastikan tidak overflow */
         .select2-container {
             width: 100% !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
+            display: block !important;
         }
 
         /* Selection box */
@@ -1706,9 +1707,10 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-           DROPDOWN - PASTIKAN TIDAK KELUAR DARI BOX
-           ============================================ */
+        DROPDOWN - PASTIKAN TIDAK KELUAR DARI BOX
+        ============================================ */
 
+        /* Dropdown container - di dalam modal */
         .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1718,6 +1720,7 @@ if (isset($_GET['complete'])) {
             margin-top: 2px !important;
             background: #fff !important;
             z-index: 1060 !important;
+            /* PENTING: Lebar dropdown mengikuti selection */
             width: 100% !important;
             max-width: 100% !important;
             min-width: 0 !important;
@@ -1727,8 +1730,8 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-           SELECT2 DI DALAM MODAL
-           ============================================ */
+        SELECT2 DI DALAM MODAL - OVERRIDE
+        ============================================ */
 
         .modal-body .select2-container {
             width: 100% !important;
@@ -1740,6 +1743,7 @@ if (isset($_GET['complete'])) {
             max-width: 100% !important;
         }
 
+        /* PENTING: Dropdown dalam modal */
         .modal-body .select2-dropdown {
             width: 100% !important;
             max-width: 100% !important;
@@ -1748,9 +1752,16 @@ if (isset($_GET['complete'])) {
             right: auto !important;
         }
 
+        /* Untuk memastikan dropdown tidak keluar dari modal */
+        .modal .select2-dropdown {
+            max-width: 100% !important;
+            min-width: 100% !important;
+            width: 100% !important;
+        }
+
         /* ============================================
-           SEARCH & OPTIONS
-           ============================================ */
+        SEARCH & OPTIONS
+        ============================================ */
 
         .select2-dropdown .select2-search--dropdown {
             padding: 8px 12px !important;
@@ -1821,8 +1832,8 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-           RESPONSIVE MOBILE
-           ============================================ */
+        RESPONSIVE MOBILE
+        ============================================ */
 
         @media (max-width: 768px) {
             .select2-container .select2-selection--single .select2-selection__rendered {
@@ -2570,6 +2581,24 @@ if (isset($_GET['complete'])) {
                 }
             });
             
+            // FIX: Perbaiki posisi dropdown agar tidak keluar dari box
+            $('#account_id').on('select2:open', function() {
+                // Ambil container dropdown
+                var $dropdown = $('.select2-dropdown');
+                if ($dropdown.length) {
+                    // Ambil lebar container select2
+                    var containerWidth = $(this).closest('.select2-container').outerWidth();
+                    // Set lebar dropdown sama dengan container
+                    $dropdown.css({
+                        'min-width': containerWidth + 'px',
+                        'max-width': containerWidth + 'px',
+                        'width': containerWidth + 'px',
+                        'left': '0',
+                        'right': 'auto'
+                    });
+                }
+            });
+            
             // Handle change event
             $('#account_id').on('change', function() {
                 var accountId = this.value;
@@ -2627,6 +2656,24 @@ if (isset($_GET['complete'])) {
                     return option.text;
                 }
             });
+            
+            // FIX: Perbaiki posisi dropdown setelah modal ditampilkan
+            setTimeout(function() {
+                var $container = $('#account_id').closest('.select2-container');
+                if ($container.length) {
+                    var containerWidth = $container.outerWidth();
+                    var $dropdown = $('.select2-dropdown');
+                    if ($dropdown.length) {
+                        $dropdown.css({
+                            'min-width': containerWidth + 'px',
+                            'max-width': containerWidth + 'px',
+                            'width': containerWidth + 'px',
+                            'left': '0',
+                            'right': 'auto'
+                        });
+                    }
+                }
+            }, 100);
         });
 
         // Reset on modal hidden
