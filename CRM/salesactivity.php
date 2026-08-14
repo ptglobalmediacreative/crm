@@ -313,11 +313,12 @@ function getSalesIdFromAccount($db, $account_id) {
 }
 
 // ============================================
-// FUNGSI UNTUK MENDAPATKAN DI NUMBER TERAKHIR DARI ACCOUNT
+// FUNGSI UNTUK MENDAPATKAN DI NUMBER TERAKHIR DARI ACCOUNT (NEGOSIASI)
 // ============================================
 function getLastDINumberByAccount($db, $account_id) {
     $stmt = $db->prepare("SELECT di_number FROM sales_activities 
                           WHERE account_id = ? 
+                          AND jenis_tugas = 'Negosiasi'
                           AND di_number IS NOT NULL 
                           AND di_number != ''
                           ORDER BY created_at DESC LIMIT 1");
@@ -326,11 +327,12 @@ function getLastDINumberByAccount($db, $account_id) {
 }
 
 // ============================================
-// FUNGSI UNTUK MENDAPATKAN TRF NUMBER TERAKHIR DARI ACCOUNT
+// FUNGSI UNTUK MENDAPATKAN TRF NUMBER TERAKHIR DARI ACCOUNT (NEGOSIASI)
 // ============================================
 function getLastTRFNumberByAccount($db, $account_id) {
     $stmt = $db->prepare("SELECT trf_number FROM sales_activities 
                           WHERE account_id = ? 
+                          AND jenis_tugas = 'Negosiasi'
                           AND trf_number IS NOT NULL 
                           AND trf_number != ''
                           ORDER BY created_at DESC LIMIT 1");
@@ -598,7 +600,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             if (in_array($jenis_tugas, $trRequired)) {
                 if (empty($trf_number)) {
-                    $trf_number = generateTRFNumber($db);
+                    // Jika jenis tugas Kontrak, Collect Payment, Aftersales, ambil dari Negosiasi sebelumnya
+                    if ($jenis_tugas !== 'Negosiasi') {
+                        $lastTrf = getLastTRFNumberByAccount($db, $account_id);
+                        if (!empty($lastTrf)) {
+                            $trf_number = $lastTrf;
+                        } else {
+                            $trf_number = generateTRFNumber($db);
+                        }
+                    } else {
+                        $trf_number = generateTRFNumber($db);
+                    }
                 }
             }
 
@@ -617,16 +629,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $trf_number = $negotiationTrf;
                 }
                 
-                $di_number = '';
+                // Ambil DI dari Negosiasi sebelumnya
+                $lastDi = getLastDINumberByAccount($db, $account_id);
+                $di_number = $lastDi ?: '';
                 $customer_deal = 'No';
             }
 
             if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
-                if (empty($trf_number)) {
-                    $trf_number = getLastTRFNumberByAccount($db, $account_id);
+                // Ambil TR dari Negosiasi sebelumnya
+                $lastTrf = getLastTRFNumberByAccount($db, $account_id);
+                if (empty($trf_number) && !empty($lastTrf)) {
+                    $trf_number = $lastTrf;
                 }
-                if (empty($di_number)) {
-                    $di_number = getLastDINumberByAccount($db, $account_id);
+                // Ambil DI dari Negosiasi sebelumnya
+                $lastDi = getLastDINumberByAccount($db, $account_id);
+                if (empty($di_number) && !empty($lastDi)) {
+                    $di_number = $lastDi;
                 }
             }
 
@@ -742,7 +760,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!empty($existing_trf)) {
                 $trf_number = $existing_trf;
             } elseif (empty($trf_number)) {
-                $trf_number = generateTRFNumber($db);
+                // Ambil dari Negosiasi sebelumnya jika ada
+                $lastTrf = getLastTRFNumberByAccount($db, $account_id);
+                if (!empty($lastTrf)) {
+                    $trf_number = $lastTrf;
+                } else {
+                    $trf_number = generateTRFNumber($db);
+                }
             }
         }
 
@@ -775,18 +799,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     : generateTRFNumber($db);
             }
 
-            if (empty($di_number)) {
-                $di_number = generateDINumber($db, $due_date ?: date('Y-m-d'));
+            // Ambil DI dari Negosiasi sebelumnya
+            $lastDi = getLastDINumberByAccount($db, $account_id);
+            if (empty($di_number) && !empty($lastDi)) {
+                $di_number = $lastDi;
             }
             $customer_deal = 'Yes';
         }
 
         if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
             if (empty($trf_number)) {
-                $trf_number = getLastTRFNumberByAccount($db, $account_id);
+                $lastTrf = getLastTRFNumberByAccount($db, $account_id);
+                $trf_number = $lastTrf ?: '';
             }
             if (empty($di_number)) {
-                $di_number = getLastDINumberByAccount($db, $account_id);
+                $lastDi = getLastDINumberByAccount($db, $account_id);
+                $di_number = $lastDi ?: '';
             }
         }
 
