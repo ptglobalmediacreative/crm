@@ -81,32 +81,6 @@ function generateTRFNumber($db) {
 }
 
 // ============================================
-// GENERATE DI NUMBER
-// ============================================
-function generateDINumber($db, $date) {
-    $month = date('m', strtotime($date));
-    $year = date('Y', strtotime($date));
-    $romanMonth = getRomanMonth($month);
-    
-    $stmt = $db->prepare("SELECT di_number FROM sales_activities 
-                          WHERE di_number LIKE ? 
-                          ORDER BY di_number DESC LIMIT 1");
-    $pattern = "%/GET-DI/" . $romanMonth . "/" . $year;
-    $stmt->execute([$pattern]);
-    $last = $stmt->fetchColumn();
-    
-    if ($last) {
-        $parts = explode('/', $last);
-        $lastNumber = (int)$parts[0];
-        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-    } else {
-        $newNumber = '0001';
-    }
-    
-    return $newNumber . "/GET-DI/" . $romanMonth . "/" . $year;
-}
-
-// ============================================
 // FUNGSI KOMPRESI GAMBAR
 // ============================================
 function compressImage($source_path, $destination_path, $quality = 80) {
@@ -313,18 +287,6 @@ function getSalesIdFromAccount($db, $account_id) {
 }
 
 // ============================================
-// FUNGSI UNTUK MENDAPATKAN DI NUMBER TERAKHIR DARI ACCOUNT
-// ============================================
-function getLastDINumberByAccount($db, $account_id) {
-    $stmt = $db->prepare("SELECT di_number FROM sales_activities 
-                          WHERE account_id = ? 
-                          AND di_number IS NOT NULL 
-                          ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$account_id]);
-    return $stmt->fetchColumn();
-}
-
-// ============================================
 // FUNGSI UNTUK MENDAPATKAN TRF NUMBER TERAKHIR DARI ACCOUNT
 // ============================================
 function getLastTRFNumberByAccount($db, $account_id) {
@@ -337,7 +299,7 @@ function getLastTRFNumberByAccount($db, $account_id) {
 }
 
 // ============================================
-// TAMBAHKAN KOLOM DI NUMBER KE TABEL
+// TAMBAHKAN KOLOM KE TABEL
 // ============================================
 try {
     $stmt = $db->query("SHOW COLUMNS FROM sales_activities LIKE 'status'");
@@ -355,12 +317,6 @@ try {
     } catch(PDOException $e) {}
     
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_deal VARCHAR(10) NULL");
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN leads_number di_number VARCHAR(50) NULL");
-    } catch(PDOException $e) {
-        $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS di_number VARCHAR(50) NULL");
-    }
     
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file TEXT NULL");
     $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL");
@@ -415,15 +371,13 @@ if (isset($_GET['get_account'])) {
 }
 
 // ============================================
-// API ENDPOINT untuk get DI Number & TRF Number by Account (AJAX)
+// API ENDPOINT untuk get TRF Number by Account (AJAX)
 // ============================================
-if (isset($_GET['get_account_numbers'])) {
-    $account_id = (int)$_GET['get_account_numbers'];
-    $di_number = getLastDINumberByAccount($db, $account_id);
+if (isset($_GET['get_account_trf'])) {
+    $account_id = (int)$_GET['get_account_trf'];
     $trf_number = getLastTRFNumberByAccount($db, $account_id);
     header('Content-Type: application/json');
     echo json_encode([
-        'di_number' => $di_number,
         'trf_number' => $trf_number
     ]);
     exit;
@@ -449,7 +403,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $result = !empty($_POST['result']) ? bersihkan($_POST['result']) : '';
         $customer_deal = !empty($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : 'No';
         $trf_number = !empty($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
-        $di_number = !empty($_POST['di_number']) ? bersihkan($_POST['di_number']) : '';
         
         $contact_name = '';
         $contact_mobile = '';
@@ -510,8 +463,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($errors)) {
             $status = empty($result) ? 'in_progress' : 'completed';
             
-            if (($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak') && empty($trf_number)) {
-                if ($jenis_tugas === 'Kontrak' && $account_id) {
+            if (($jenis_tugas === 'Negosiasi' || $jenis_tugas === 'Kontrak' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && empty($trf_number)) {
+                if (($jenis_tugas === 'Kontrak' || $jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
                     $existing_trf = getLastTRFNumberByAccount($db, $account_id);
                     if ($existing_trf) {
                         $trf_number = $existing_trf;
@@ -523,19 +476,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             
-            if ($jenis_tugas === 'Kontrak' && $customer_deal === 'Yes' && empty($di_number)) {
-                $di_number = generateDINumber($db, $due_date);
-            }
-            
-            if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
-                if (empty($trf_number)) {
-                    $trf_number = getLastTRFNumberByAccount($db, $account_id);
-                }
-                if (empty($di_number)) {
-                    $di_number = getLastDINumberByAccount($db, $account_id);
-                }
-            }
-            
             $targetSalesId = $userId;
             if (in_array($userRole, $direkturRoles) && $account_id) {
                 $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
@@ -544,15 +484,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             
+            // INSERT tanpa di_number
             $stmt = $db->prepare("INSERT INTO sales_activities 
                                   (subject, account_id, contact_name, contact_mobile, business_segment, 
                                    badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id,
-                                   result, customer_deal, di_number, attachment_file, completed_at, trf_number) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                   result, customer_deal, attachment_file, completed_at, trf_number) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
                 $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $status, $targetSalesId,
-                $result, $customer_deal, $di_number, $attachment_file,
+                $result, $customer_deal, $attachment_file,
                 $status === 'completed' ? date('Y-m-d H:i:s') : NULL,
                 $trf_number
             ]);
@@ -564,8 +505,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $stmt_tr = $db->prepare("INSERT INTO transaction_requests 
                                               (trf_number, sales_activity_id, account_id, sales_id, 
                                                subject, jenis_tugas, description, request_date, due_date, 
-                                               customer_deal, di_number, attachment_file, result, status) 
-                                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
+                                               customer_deal, attachment_file, result, status) 
+                                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
                     $stmt_tr->execute([
                         $trf_number,
                         $salesActivityId,
@@ -577,7 +518,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         date('Y-m-d'),
                         $due_date,
                         $customer_deal,
-                        $di_number,
                         $attachment_file,
                         $result
                     ]);
@@ -623,7 +563,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $customer_deal = bersihkan($_POST['customer_deal']);
         $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
         $trf_number = bersihkan($_POST['trf_number'] ?? '');
-        $di_number = bersihkan($_POST['di_number'] ?? '');
         
         $stmt = $db->prepare("SELECT trf_number, account_id, due_date FROM sales_activities WHERE id = ?");
         $stmt->execute([$id]);
@@ -638,16 +577,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $trf_number = generateTRFNumber($db);
         }
         
-        if ($jenis_tugas === 'Kontrak' && $customer_deal === 'Yes' && empty($di_number)) {
-            $di_number = generateDINumber($db, $due_date);
-        }
-        
-        if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
+        if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales' || $jenis_tugas === 'Kontrak') && $account_id) {
             if (empty($trf_number)) {
                 $trf_number = getLastTRFNumberByAccount($db, $account_id);
-            }
-            if (empty($di_number)) {
-                $di_number = getLastDINumberByAccount($db, $account_id);
             }
         }
         
@@ -709,42 +641,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'names' => $attachment_file_names
             ]);
             
-            if (!empty($trf_number) && !empty($di_number)) {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $trf_number, $id]);
-            } elseif (!empty($trf_number)) {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $trf_number, $id]);
-            } elseif (!empty($di_number)) {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW() 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $id]);
-            } else {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW() 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $id]);
-            }
+            // UPDATE tanpa di_number
+            $stmt = $db->prepare("UPDATE sales_activities SET 
+                                  result = ?, customer_deal = ?, 
+                                  attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
+                                  WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
+            $stmt->execute([$result, $customer_deal, $attachment_json, $trf_number, $id]);
             
             if (!empty($trf_number)) {
                 try {
                     $stmt_tr = $db->prepare("UPDATE transaction_requests SET 
                                               status = 'completed',
                                               customer_deal = ?,
-                                              di_number = ?,
                                               result = ?,
                                               attachment_file = ?
                                               WHERE trf_number = ?");
-                    $stmt_tr->execute([$customer_deal, $di_number, $result, $attachment_json, $trf_number]);
+                    $stmt_tr->execute([$customer_deal, $result, $attachment_json, $trf_number]);
                 } catch(PDOException $e) {
                     error_log("Error updating transaction_request: " . $e->getMessage());
                 }
@@ -906,21 +818,13 @@ if ($status_filter !== 'all') {
                     )";
     } elseif ($status_filter === 'hot_prospek') {
         $where .= " AND sa.jenis_tugas = 'Negosiasi' 
+                    AND (sa.customer_deal IS NULL OR sa.customer_deal = 'No')
                     AND NOT EXISTS (
                         SELECT 1 FROM sales_activities sa2 
                         WHERE sa2.account_id = sa.account_id 
                         AND sa2.jenis_tugas = 'Kontrak'
                         AND sa2.id != sa.id
-                    )
-                    AND NOT EXISTS (
-                        SELECT 1 FROM sales_activities sa3 
-                        WHERE sa3.account_id = sa.account_id 
-                        AND sa3.jenis_tugas = 'Negosiasi'
-                        AND sa3.status = 'completed'
-                        AND sa3.customer_deal = 'No'
-                        AND sa3.id != sa.id
-                    )
-                    AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')";
+                    )";
     } elseif ($status_filter === 'lost_prospek') {
         $where .= " AND sa.jenis_tugas = 'Negosiasi' 
                     AND sa.status = 'completed' 
@@ -934,8 +838,8 @@ if ($status_filter !== 'all') {
 }
 
 if (!empty($search)) {
-    $where .= " AND (sa.subject LIKE ? OR sa.contact_name LIKE ? OR sa.contact_mobile LIKE ? OR a.nama_pt LIKE ? OR sa.trf_number LIKE ? OR sa.di_number LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
+    $where .= " AND (sa.subject LIKE ? OR sa.contact_name LIKE ? OR sa.contact_mobile LIKE ? OR a.nama_pt LIKE ? OR sa.trf_number LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
 }
 
 $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
@@ -1548,16 +1452,6 @@ if (isset($_GET['complete'])) {
         }
         .badge-trf:hover { background: rgba(52, 152, 219, 0.2); color: #2980b9; }
 
-        .badge-di {
-            background: rgba(155, 89, 182, 0.14);
-            color: #8e44ad;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
         .badge-middle-prospek {
             background: rgba(243, 156, 18, 0.14);
             color: #f39c12;
@@ -1779,7 +1673,6 @@ if (isset($_GET['complete'])) {
             box-sizing: border-box !important;
         }
 
-        /* Tombol X / clear selalu berada di samping kanan teks */
         .select2-container .select2-selection--single .select2-selection__clear {
             position: absolute !important;
             right: 34px !important;
@@ -1815,12 +1708,6 @@ if (isset($_GET['complete'])) {
             z-index: 4 !important;
         }
 
-        /*
-         * PENTING:
-         * Jangan mengatur width/left/right/position dropdown secara manual.
-         * Select2 akan menghitung posisi dan ukuran dropdown sendiri berdasarkan
-         * select element. dropdownParent diarahkan ke modal-content di JavaScript.
-         */
         .modal-content {
             overflow: visible !important;
         }
@@ -1862,7 +1749,6 @@ if (isset($_GET['complete'])) {
             box-shadow: 0 0 0 3px rgba(255,215,0,0.08) !important;
         }
 
-        /* ===== OPTION DI DALAM DROPDOWN ===== */
         .select2-dropdown .select2-results__options {
             padding: 4px 0 !important;
             max-height: 220px !important;
@@ -1900,7 +1786,6 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
         }
 
-        /* ===== RESPONSIVE SELECT2 ===== */
         @media (max-width: 768px) {
             .select2-container .select2-selection--single .select2-selection__rendered {
                 font-size: 12.5px !important;
@@ -1923,9 +1808,6 @@ if (isset($_GET['complete'])) {
             }
         }
 
-        /* ============================================
-           SELECT2 CLEAR BUTTON - FINAL POSITION FIX
-           ============================================ */
         #modalSalesActivity .select2-container .select2-selection--single {
             position: relative !important;
         }
@@ -1961,21 +1843,12 @@ if (isset($_GET['complete'])) {
             z-index: 10 !important;
         }
 
-        /* ============================================
-           FOOTER
-           ============================================ */
         .footer-text { text-align: center; padding: 20px 0 4px; color: #aab8c8; font-size: 11px; }
         .footer-text a { color: #0a1628; text-decoration: none; font-weight: 500; }
         .footer-text a:hover { color: #ffd700; }
 
-        /* ============================================
-           MOBILE TOGGLE
-           ============================================ */
         .mobile-toggle { display: none; }
 
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
@@ -2262,8 +2135,8 @@ if (isset($_GET['complete'])) {
                                             <?php if ($isDeal): ?>
                                                 <br><span class="badge-deal"><i class="fas fa-handshake"></i> Deal</span>
                                             <?php endif; ?>
-                                            <?php if (!empty($activity['di_number'])): ?>
-                                                <br><span class="badge-di"><i class="fas fa-hashtag"></i> <?= htmlspecialchars($activity['di_number']) ?></span>
+                                            <?php if (!empty($activity['trf_number'])): ?>
+                                                <br><span class="badge-trf"><i class="fas fa-file-signature"></i> <?= htmlspecialchars($activity['trf_number']) ?></span>
                                             <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($activity['nama_pt'] ?? '-') ?></td>
@@ -2464,20 +2337,19 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
+                        <!-- Customer Deal hanya untuk Negosiasi -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Customer Deal</label>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
                                     <select name="customer_deal" id="customer_deal_add" class="form-select">
                                         <option value="No">No</option>
                                         <option value="Yes">Yes</option>
                                     </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">DI Number</label>
-                                    <input type="text" name="di_number" id="di_number_add" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
+                                    <small class="text-muted">
+                                        <span class="text-danger">* Jika memilih "No", aktivitas akan otomatis masuk ke Lost Prospek</span>
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -2569,20 +2441,19 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
+                        <!-- Customer Deal hanya untuk Negosiasi -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Customer Deal</label>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
                                     <select name="customer_deal" id="customer_deal" class="form-select">
                                         <option value="No">No</option>
                                         <option value="Yes">Yes</option>
                                     </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">DI Number</label>
-                                    <input type="text" name="di_number" id="di_number_complete" class="form-control" readonly>
-                                    <input type="hidden" name="di_number_hidden" id="di_number_complete_hidden" value="">
+                                    <small class="text-muted">
+                                        <span class="text-danger">* Jika memilih "No", aktivitas akan otomatis masuk ke Lost Prospek</span>
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -2677,18 +2548,13 @@ if (isset($_GET['complete'])) {
             function initAccountSelect() {
                 if (!$account.length) return;
 
-                // Hindari inisialisasi Select2 lebih dari satu kali.
                 if ($account.hasClass('select2-hidden-accessible')) {
                     $account.select2('destroy');
                 }
 
                 $account.select2({
                     theme: 'bootstrap-5',
-
-                    // PENTING: dropdown berada di dalam modal-content,
-                    // bukan langsung di body atau modal wrapper.
                     dropdownParent: $salesModal.find('.modal-content'),
-
                     placeholder: '-- Pilih Account --',
                     allowClear: true,
                     width: '100%',
@@ -2719,10 +2585,8 @@ if (isset($_GET['complete'])) {
                 });
             }
 
-            // Inisialisasi sekali ketika halaman siap.
             initAccountSelect();
 
-            // Isi data Account ketika dipilih.
             $account.off('change.account').on('change.account', function() {
                 var accountId = this.value;
 
@@ -2742,40 +2606,30 @@ if (isset($_GET['complete'])) {
                             console.error('Error get account:', error);
                         });
 
-                    fetch('salesactivity.php?get_account_numbers=' + encodeURIComponent(accountId))
+                    fetch('salesactivity.php?get_account_trf=' + encodeURIComponent(accountId))
                         .then(function(response) { return response.json(); })
                         .then(function(data) {
-                            var diNumber = document.getElementById('di_number_add');
                             var trfNumber = document.getElementById('trf_number_add');
-
-                            if (diNumber && data.di_number) {
-                                diNumber.value = data.di_number;
-                            }
-
                             if (trfNumber && data.trf_number) {
                                 trfNumber.value = data.trf_number;
                             }
                         })
                         .catch(function(error) {
-                            console.error('Error get account numbers:', error);
+                            console.error('Error get account trf:', error);
                         });
                 } else {
                     var badanUsaha = document.getElementById('badan_usaha_field');
                     var businessSegment = document.getElementById('business_segment');
                     var contactMobile = document.getElementById('contact_mobile');
-                    var diNumber = document.getElementById('di_number_add');
                     var trfNumber = document.getElementById('trf_number_add');
 
                     if (badanUsaha) badanUsaha.value = '';
                     if (businessSegment) businessSegment.value = '';
                     if (contactMobile) contactMobile.value = '';
-                    if (diNumber) diNumber.value = '';
                     if (trfNumber) trfNumber.value = '';
                 }
             });
 
-            // Ketika modal dibuka, pastikan Select2 tetap memiliki lebar field.
-            // Tidak ada lagi pengaturan left/right/width dropdown secara manual.
             $salesModal.on('shown.bs.modal', function() {
                 if (!$account.hasClass('select2-hidden-accessible')) {
                     initAccountSelect();
@@ -2790,7 +2644,6 @@ if (isset($_GET['complete'])) {
                 }
             });
 
-            // Reset Select2 saat modal ditutup.
             $salesModal.on('hidden.bs.modal', function() {
                 if ($account.hasClass('select2-hidden-accessible')) {
                     $account.val(null).trigger('change');
@@ -2806,13 +2659,13 @@ if (isset($_GET['complete'])) {
             var trfField = document.getElementById('trfField');
             var dealFields = document.getElementById('dealFields');
             var trfInput = document.getElementById('trf_number_add');
-            var diInput = document.getElementById('di_number_add');
             var customerDeal = document.getElementById('customer_deal_add');
             var accountId = document.getElementById('account_id');
             
             if (!jenisTugas) return;
             var value = jenisTugas.value;
             
+            // TRF Field untuk Negosiasi, Kontrak, Collect Payment, Aftersales
             if (value === 'Negosiasi' || value === 'Kontrak' || value === 'Collect Payment' || value === 'Aftersales') {
                 trfField.classList.add('show');
                 if (value === 'Negosiasi' && trfInput && trfInput.value === '') {
@@ -2829,7 +2682,7 @@ if (isset($_GET['complete'])) {
                             trfInput.value = '0001/GET-TR/JKT/' + romanMonths[month] + '/' + year;
                         });
                 } else if (value !== 'Negosiasi' && trfInput && trfInput.value === '' && accountId && accountId.value) {
-                    fetch('salesactivity.php?get_account_numbers=' + accountId.value)
+                    fetch('salesactivity.php?get_account_trf=' + accountId.value)
                         .then(response => response.json())
                         .then(data => {
                             if (data.trf_number) trfInput.value = data.trf_number;
@@ -2841,19 +2694,14 @@ if (isset($_GET['complete'])) {
                 if (trfInput) trfInput.value = '';
             }
             
-            if (value === 'Kontrak') {
+            // Customer Deal HANYA untuk Negosiasi
+            if (value === 'Negosiasi') {
                 dealFields.classList.add('show');
-                if (customerDeal && customerDeal.value === 'Yes' && diInput && diInput.value === '') {
-                    var now = new Date();
-                    var month = now.getMonth() + 1;
-                    var year = now.getFullYear();
-                    var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                    diInput.value = '001/GET-DI/' + romanMonths[month] + '/' + year;
-                }
             } else {
                 dealFields.classList.remove('show');
-                if (diInput) diInput.value = '';
-                if (customerDeal) customerDeal.value = 'No';
+                if (customerDeal) {
+                    customerDeal.value = 'No';
+                }
             }
         }
 
@@ -2871,13 +2719,12 @@ if (isset($_GET['complete'])) {
                 trfFieldComplete.classList.remove('show');
             }
             
-            if (value === 'Kontrak') {
+            // Customer Deal HANYA untuk Negosiasi
+            if (value === 'Negosiasi') {
                 dealFieldsComplete.classList.add('show');
             } else {
                 dealFieldsComplete.classList.remove('show');
                 document.getElementById('customer_deal').value = 'No';
-                document.getElementById('di_number_complete').value = '';
-                document.getElementById('di_number_complete_hidden').value = '';
             }
         }
 
@@ -3036,12 +2883,6 @@ if (isset($_GET['complete'])) {
                     </div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">DI Number</div>
-                    <div class="detail-value">
-                        ${data.di_number ? `<span class="badge-di"><i class="fas fa-hashtag"></i> ${data.di_number}</span>` : '-'}
-                    </div>
-                </div>
-                <div class="detail-item">
                     <div class="detail-label">Due Date</div>
                     <div class="detail-value">
                         ${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
@@ -3116,7 +2957,6 @@ if (isset($_GET['complete'])) {
             document.getElementById('deskripsi').value = data.deskripsi || '';
             document.getElementById('due_date').value = data.due_date || '';
             document.getElementById('customer_deal_add').value = data.customer_deal || 'No';
-            document.getElementById('di_number_add').value = data.di_number || '';
             document.getElementById('trf_number_add').value = data.trf_number || '';
             
             setTimeout(function() {
@@ -3144,12 +2984,9 @@ if (isset($_GET['complete'])) {
             document.getElementById('customer_deal').value = data.customer_deal || 'No';
             
             var trfNumber = data.trf_number || '';
-            var diNumber = data.di_number || '';
             
             document.getElementById('trf_number_complete').value = trfNumber;
             document.getElementById('trf_number_complete_hidden').value = trfNumber;
-            document.getElementById('di_number_complete').value = diNumber;
-            document.getElementById('di_number_complete_hidden').value = diNumber;
             
             if ((data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') && !trfNumber) {
                 fetch('salesactivity.php?generate_trf=1')
@@ -3161,16 +2998,6 @@ if (isset($_GET['complete'])) {
                         }
                     })
                     .catch(error => console.error('Error generating TRF:', error));
-            }
-            
-            if (data.jenis_tugas === 'Kontrak' && data.customer_deal === 'Yes' && !diNumber) {
-                var now = new Date();
-                var month = now.getMonth() + 1;
-                var year = now.getFullYear();
-                var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                var newDi = '001/GET-DI/' + romanMonths[month] + '/' + year;
-                document.getElementById('di_number_complete').value = newDi;
-                document.getElementById('di_number_complete_hidden').value = newDi;
             }
             
             document.getElementById('result').value = '';
@@ -3214,42 +3041,6 @@ if (isset($_GET['complete'])) {
             if (jenisTugas) {
                 jenisTugas.addEventListener('change', toggleFields);
                 setTimeout(toggleFields, 100);
-            }
-            
-            // Customer Deal change for add
-            var customerDealAdd = document.getElementById('customer_deal_add');
-            if (customerDealAdd) {
-                customerDealAdd.addEventListener('change', function() {
-                    var diInputAdd = document.getElementById('di_number_add');
-                    if (this.value === 'Yes' && diInputAdd && diInputAdd.value === '') {
-                        var now = new Date();
-                        var month = now.getMonth() + 1;
-                        var year = now.getFullYear();
-                        var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                        diInputAdd.value = '001/GET-DI/' + romanMonths[month] + '/' + year;
-                    } else if (this.value === 'No' && diInputAdd) {
-                        diInputAdd.value = '';
-                    }
-                });
-            }
-            
-            // Customer Deal change for complete
-            var customerDealComplete = document.getElementById('customer_deal');
-            if (customerDealComplete) {
-                customerDealComplete.addEventListener('change', function() {
-                    var diInputComplete = document.getElementById('di_number_complete');
-                    if (this.value === 'Yes' && diInputComplete && diInputComplete.value === '') {
-                        var now = new Date();
-                        var month = now.getMonth() + 1;
-                        var year = now.getFullYear();
-                        var romanMonths = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-                        diInputComplete.value = '001/GET-DI/' + romanMonths[month] + '/' + year;
-                        document.getElementById('di_number_complete_hidden').value = diInputComplete.value;
-                    } else if (this.value === 'No' && diInputComplete) {
-                        diInputComplete.value = '';
-                        document.getElementById('di_number_complete_hidden').value = '';
-                    }
-                });
             }
             
             // Result validation
@@ -3301,8 +3092,7 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Reset modal
-            document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
+            // Reset modal            document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
                 document.getElementById('formSalesActivity').reset();
                 document.getElementById('formAction').value = 'add';
                 document.getElementById('formId').value = '';
@@ -3313,7 +3103,6 @@ if (isset($_GET['complete'])) {
                 document.getElementById('due_date').value = getDateWIB(7);
                 document.getElementById('result_add').value = '';
                 document.getElementById('attachment_file_add').value = '';
-                document.getElementById('di_number_add').value = '';
                 document.getElementById('trf_number_add').value = '';
                 document.getElementById('attachment_required').style.display = 'none';
                 document.getElementById('attachment_file_add').required = false;
