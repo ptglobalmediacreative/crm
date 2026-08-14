@@ -1754,8 +1754,21 @@ if (isset($_GET['complete'])) {
             min-height: 44px !important;
         }
 
+        .select2-container .select2-selection--single {
+            position: relative !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
         .select2-container .select2-selection--single .select2-selection__rendered {
-            padding: 9px 14px !important;
+            position: relative !important;
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 40px !important;
+            padding: 8px 68px 8px 14px !important;
             line-height: 24px !important;
             color: #333 !important;
             font-size: 13px !important;
@@ -1763,16 +1776,43 @@ if (isset($_GET['complete'])) {
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: nowrap !important;
-            max-width: calc(100% - 40px) !important;
-            min-height: 24px !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Tombol X / clear selalu berada di samping kanan teks */
+        .select2-container .select2-selection--single .select2-selection__clear {
+            position: absolute !important;
+            right: 34px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            float: none !important;
+            width: 22px !important;
+            height: 22px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 0 !important;
+            background: transparent !important;
+            color: #7b8794 !important;
+            font-size: 18px !important;
+            line-height: 22px !important;
+            z-index: 5 !important;
+            cursor: pointer !important;
+        }
+
+        .select2-container .select2-selection--single .select2-selection__clear:hover {
+            color: #e74c3c !important;
         }
 
         .select2-container .select2-selection--single .select2-selection__arrow {
             height: 42px !important;
-            width: 32px !important;
-            right: 4px !important;
+            width: 30px !important;
+            right: 3px !important;
             position: absolute !important;
             top: 0 !important;
+            z-index: 4 !important;
         }
 
         /*
@@ -1884,6 +1924,44 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
+           SELECT2 CLEAR BUTTON - FINAL POSITION FIX
+           ============================================ */
+        #modalSalesActivity .select2-container .select2-selection--single {
+            position: relative !important;
+        }
+
+        #modalSalesActivity .select2-container .select2-selection--single .select2-selection__rendered {
+            position: relative !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 8px 68px 8px 14px !important;
+            box-sizing: border-box !important;
+        }
+
+        #modalSalesActivity .select2-container .select2-selection--single .select2-selection__clear {
+            position: absolute !important;
+            right: 34px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            float: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 22px !important;
+            height: 22px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 20 !important;
+        }
+
+        #modalSalesActivity .select2-container .select2-selection--single .select2-selection__arrow {
+            position: absolute !important;
+            right: 3px !important;
+            top: 0 !important;
+            z-index: 10 !important;
+        }
+
+        /* ============================================
            FOOTER
            ============================================ */
         .footer-text { text-align: center; padding: 20px 0 4px; color: #aab8c8; font-size: 11px; }
@@ -1928,7 +2006,12 @@ if (isset($_GET['complete'])) {
             .select2-container .select2-selection--single .select2-selection__rendered { font-size: 12.5px !important; padding: 7px 12px !important; max-width: calc(100% - 34px) !important; }
             .select2-container .select2-selection { min-height: 38px !important; }
             .select2-container .select2-selection--single .select2-selection__arrow { height: 36px !important; width: 28px !important; }
-            .select2-container .select2-selection--single .select2-selection__clear { right: 28px !important; font-size: 16px !important; }
+            .select2-container .select2-selection--single .select2-selection__clear {
+                right: 30px !important;
+                width: 20px !important;
+                height: 20px !important;
+                font-size: 16px !important;
+            }
             .select2-dropdown .select2-results__option { padding: 6px 10px !important; font-size: 12px !important; }
         }
 
