@@ -1731,34 +1731,218 @@ if (isset($_GET['complete'])) {
         .detail-item .detail-value { color: #0a1628; font-size: 13px; word-break: break-word; }
 
         /* ============================================
-           SELECT2 - FIXED
-           ============================================ */
-        .select2-container { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; display: block !important; }
-        .select2-container .select2-selection { width: 100% !important; max-width: 100% !important; min-width: 100% !important; border: 2px solid #e8ecf0 !important; border-radius: 10px !important; min-height: 44px !important; background: #fff !important; box-sizing: border-box !important; overflow: hidden !important; }
-        .select2-container .select2-selection--single { padding: 0 !important; width: 100% !important; height: auto !important; min-height: 44px !important; }
-        .select2-container .select2-selection--single .select2-selection__rendered { padding: 9px 14px !important; line-height: 24px !important; color: #333 !important; font-size: 13px !important; font-family: 'Inter', sans-serif !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; max-width: calc(100% - 40px) !important; min-height: 24px !important; }
-        .select2-container .select2-selection--single .select2-selection__placeholder { color: #999 !important; }
-        .select2-container .select2-selection--single .select2-selection__arrow { height: 42px !important; width: 32px !important; right: 4px !important; position: absolute !important; top: 0 !important; }
-        .select2-container .select2-selection--single .select2-selection__arrow b { border-color: #999 transparent transparent transparent !important; border-width: 6px 5px 0 5px !important; }
-        .select2-container .select2-selection--single .select2-selection__clear { margin-right: 6px !important; font-size: 18px !important; color: #999 !important; font-weight: 300 !important; position: absolute !important; right: 32px !important; top: 50% !important; transform: translateY(-50%) !important; z-index: 1 !important; }
-        .select2-container .select2-selection--single .select2-selection__clear:hover { color: #e74c3c !important; }
+        SELECT2 - FIXED (Perbaikan untuk dropdown tidak keluar box)
+        ============================================ */
+        .select2-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            display: block !important;
+        }
+
+        .select2-container .select2-selection {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+            border: 2px solid #e8ecf0 !important;
+            border-radius: 10px !important;
+            min-height: 44px !important;
+            background: #fff !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+
+        .select2-container .select2-selection--single {
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 44px !important;
+        }
+
+        .select2-container .select2-selection--single .select2-selection__rendered {
+            padding: 9px 14px !important;
+            line-height: 24px !important;
+            color: #333 !important;
+            font-size: 13px !important;
+            font-family: 'Inter', sans-serif !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            max-width: calc(100% - 40px) !important;
+            min-height: 24px !important;
+        }
+
+        .select2-container .select2-selection--single .select2-selection__placeholder {
+            color: #999 !important;
+        }
+
+        .select2-container .select2-selection--single .select2-selection__arrow {
+            height: 42px !important;
+            width: 32px !important;
+            right: 4px !important;
+            position: absolute !important;
+            top: 0 !important;
+        }
+
+        .select2-container .select2-selection--single .select2-selection__arrow b {
+            border-color: #999 transparent transparent transparent !important;
+            border-width: 6px 5px 0 5px !important;
+        }
+
+        .select2-container .select2-selection--single .select2-selection__clear {
+            margin-right: 6px !important;
+            font-size: 18px !important;
+            color: #999 !important;
+            font-weight: 300 !important;
+            position: absolute !important;
+            right: 32px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            z-index: 1 !important;
+        }
+
+        .select2-container .select2-selection--single .select2-selection__clear:hover {
+            color: #e74c3c !important;
+        }
+
         .select2-container.select2-container--focus .select2-selection,
-        .select2-container.select2-container--open .select2-selection { border-color: #ffd700 !important; box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.08) !important; outline: none !important; }
-        .select2-dropdown { border: 2px solid #e8ecf0 !important; border-top: none !important; border-radius: 0 0 10px 10px !important; overflow: hidden !important; box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important; margin-top: 2px !important; background: #fff !important; z-index: 1060 !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; left: 0 !important; right: auto !important; position: absolute !important; }
-        .modal-body .select2-container { width: 100% !important; max-width: 100% !important; }
-        .modal-body .select2-container .select2-selection { width: 100% !important; max-width: 100% !important; }
-        .modal-body .select2-dropdown { width: 100% !important; max-width: 100% !important; min-width: 100% !important; left: 0 !important; right: auto !important; }
-        .modal .select2-dropdown { max-width: 100% !important; min-width: 100% !important; width: 100% !important; }
-        .select2-dropdown .select2-search--dropdown { padding: 6px 10px !important; background: #fafbfc !important; border-bottom: 1px solid #f0f2f5 !important; }
-        .select2-dropdown .select2-search__field { border: 2px solid #e8ecf0 !important; border-radius: 8px !important; padding: 7px 12px !important; font-size: 12.5px !important; width: 100% !important; background: #fff !important; box-sizing: border-box !important; }
-        .select2-dropdown .select2-search__field:focus { border-color: #ffd700 !important; box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.08) !important; outline: none !important; }
-        .select2-dropdown .select2-results__options { padding: 4px 0 !important; max-height: 200px !important; overflow-y: auto !important; }
-        .select2-dropdown .select2-results__option { padding: 7px 12px !important; font-size: 12.5px !important; color: #333 !important; transition: all 0.15s ease !important; cursor: pointer !important; border-bottom: 1px solid #f8f9fa !important; }
-        .select2-dropdown .select2-results__option:last-child { border-bottom: none !important; }
-        .select2-dropdown .select2-results__option--highlighted[aria-selected] { background: #0a1628 !important; color: #ffd700 !important; }
-        .select2-dropdown .select2-results__option[aria-selected=true] { background: #f0f2f5 !important; color: #0a1628 !important; }
-        .select2-dropdown .select2-results__option .badge-badan-usaha { font-size: 9px !important; padding: 1px 7px !important; margin-left: 5px !important; display: inline-block !important; background: rgba(26, 188, 156, 0.12); color: #16a085; border-radius: 20px; }
-        .select2-dropdown .select2-results__message { padding: 12px !important; color: #999 !important; font-size: 12.5px !important; text-align: center !important; }
+        .select2-container.select2-container--open .select2-selection {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.08) !important;
+            outline: none !important;
+        }
+
+        /* ===== DROPDOWN - PASTIKAN TIDAK KELUAR BOX ===== */
+        .select2-dropdown {
+            border: 2px solid #e8ecf0 !important;
+            border-top: none !important;
+            border-radius: 0 0 10px 10px !important;
+            overflow: hidden !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+            margin-top: 2px !important;
+            background: #fff !important;
+            z-index: 1060 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            left: 0 !important;
+            right: auto !important;
+            position: absolute !important;
+        }
+
+        /* Pastikan dropdown di dalam modal tidak keluar */
+        .modal-body .select2-container {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .modal-body .select2-container .select2-selection {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .modal-body .select2-dropdown {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+            left: 0 !important;
+            right: auto !important;
+        }
+
+        .modal .select2-dropdown {
+            max-width: 100% !important;
+            min-width: 100% !important;
+            width: 100% !important;
+        }
+
+        /* ===== OPTION DI DALAM DROPDOWN ===== */
+        .select2-dropdown .select2-search--dropdown {
+            padding: 6px 10px !important;
+            background: #fafbfc !important;
+            border-bottom: 1px solid #f0f2f5 !important;
+        }
+
+        .select2-dropdown .select2-search__field {
+            border: 2px solid #e8ecf0 !important;
+            border-radius: 8px !important;
+            padding: 7px 12px !important;
+            font-size: 12.5px !important;
+            width: 100% !important;
+            background: #fff !important;
+            box-sizing: border-box !important;
+        }
+
+        .select2-dropdown .select2-search__field:focus {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.08) !important;
+            outline: none !important;
+        }
+
+        .select2-dropdown .select2-results__options {
+            padding: 4px 0 !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+        }
+
+        .select2-dropdown .select2-results__option {
+            padding: 7px 12px !important;
+            font-size: 12.5px !important;
+            color: #333 !important;
+            transition: all 0.15s ease !important;
+            cursor: pointer !important;
+            border-bottom: 1px solid #f8f9fa !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        .select2-dropdown .select2-results__option:last-child {
+            border-bottom: none !important;
+        }
+
+        .select2-dropdown .select2-results__option--highlighted[aria-selected] {
+            background: #0a1628 !important;
+            color: #ffd700 !important;
+        }
+
+        .select2-dropdown .select2-results__option[aria-selected=true] {
+            background: #f0f2f5 !important;
+            color: #0a1628 !important;
+        }
+
+        .select2-dropdown .select2-results__option .badge-badan-usaha {
+            font-size: 9px !important;
+            padding: 1px 7px !important;
+            margin-left: 5px !important;
+            display: inline-block !important;
+            background: rgba(26, 188, 156, 0.12);
+            color: #16a085;
+            border-radius: 20px;
+        }
+
+        .select2-dropdown .select2-results__message {
+            padding: 12px !important;
+            color: #999 !important;
+            font-size: 12.5px !important;
+            text-align: center !important;
+        }
+
+        /* ===== PERBAIKAN UNTUK DROPDOWN DI DALAM MODAL ===== */
+        .modal .select2-dropdown {
+            position: absolute !important;
+            left: 0 !important;
+            right: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+        }
+
+        .modal .select2-container--open .select2-dropdown {
+            left: 0 !important;
+            right: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
 
         /* ============================================
            FOOTER
