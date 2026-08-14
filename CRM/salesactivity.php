@@ -523,7 +523,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $deskripsi = bersihkan($_POST['deskripsi']);
         $due_date = $_POST['due_date'];
         $result = !empty($_POST['result']) ? bersihkan($_POST['result']) : '';
-        $customer_deal = !empty($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : 'No';
+        $customer_deal = 'No'; // Default No untuk In Progress
         $trf_number = !empty($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
         $di_number = !empty($_POST['di_number']) ? bersihkan($_POST['di_number']) : '';
         
@@ -609,21 +609,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             // ============================================
-            // NEGOSIASI
+            // NEGOSIASI - In Progress tidak butuh DI
             // ============================================
             if ($jenis_tugas === 'Negosiasi') {
-                // Jika Customer Deal = Yes, generate DI Number
-                if ($customer_deal === 'Yes') {
-                    if (empty($di_number)) {
-                        $di_number = generateDINumber($db, $due_date);
-                    }
-                } else {
-                    $di_number = '';
-                }
+                // DI Number akan diisi saat complete
+                $di_number = '';
             }
 
             // ============================================
-            // KONTRAK
+            // KONTRAK - In Progress tidak butuh DI
             // ============================================
             if ($jenis_tugas === 'Kontrak') {
                 // Ambil TR dari Negosiasi sebelumnya dengan user yang sama
@@ -637,11 +631,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $trf_number = $negotiationTrf;
                 }
                 
-                // Kontrak = Deal, generate DI Number
-                if (empty($di_number)) {
-                    $di_number = generateDINumber($db, $due_date);
-                }
-                $customer_deal = 'Yes';
+                // DI Number akan diisi saat complete
+                $di_number = '';
+                $customer_deal = 'No'; // Belum deal sampai complete
             }
 
             // ============================================
@@ -744,6 +736,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
         $trf_number = bersihkan($_POST['trf_number'] ?? '');
         $di_number = bersihkan($_POST['di_number'] ?? '');
+        
+        // VALIDASI: Customer Deal wajib untuk Negosiasi dan Kontrak
+        if (in_array($jenis_tugas, ['Negosiasi', 'Kontrak']) && empty($customer_deal)) {
+            setFlash('Customer Deal wajib diisi untuk Negosiasi dan Kontrak!', 'danger');
+            redirect('salesactivity.php');
+        }
         
         $stmt = $db->prepare("SELECT trf_number, account_id, due_date, sales_id
                               FROM sales_activities
@@ -2642,10 +2640,10 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Deal Fields -->
-                        <div class="deal-fields" id="dealFields">
-                            <hr>
-                            <div class="row">
+                        <!-- Deal Fields - Hanya untuk Complete, tidak untuk Tambah -->
+                        <div class="deal-fields" id="dealFields" style="display:none;">
+                            <!-- Customer Deal dan DI Field disembunyikan -->
+                        </div>
                                 <!-- Customer Deal - Untuk Negosiasi -->
                                 <div class="col-md-6 mb-3" id="customerDealWrapper">
                                     <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
@@ -2752,24 +2750,22 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
-                        <!-- Deal Fields Complete -->
+                        <!-- Deal Fields Complete - Customer Deal dan DI muncul saat Complete -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
                             <div class="row">
-                                <!-- Customer Deal - Untuk Negosiasi -->
                                 <div class="col-md-6 mb-3" id="customerDealWrapperComplete">
                                     <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
-                                    <select name="customer_deal" id="customer_deal_complete" class="form-select">
+                                    <select name="customer_deal" id="customer_deal_complete" class="form-select" required>
+                                        <option value="">-- Pilih --</option>
                                         <option value="No">No - Lost Prospek</option>
                                         <option value="Yes">Yes - Deal</option>
                                     </select>
                                 </div>
-                                <!-- DI Field Complete -->
                                 <div class="col-md-6 mb-3 di-field" id="diFieldComplete">
                                     <label class="form-label">Delivery Order Number (DI)</label>
                                     <input type="text" name="di_number" id="di_number_complete" class="form-control" readonly>
                                     <input type="hidden" name="di_number_hidden" id="di_number_complete_hidden" value="">
-                                    <small class="text-muted">DI Number akan digenerate otomatis untuk Kontrak atau jika Customer Deal = Yes</small>
                                 </div>
                             </div>
                         </div>
@@ -3001,51 +2997,72 @@ if (isset($_GET['complete'])) {
             });
         });
 
-        // ============================================
-        // TOGGLE FIELDS - MODAL TAMBAH (DIPERBAIKI)
-        // ============================================
-        function toggleFields() {
-            var jenisTugas = document.getElementById('jenis_tugas');
-            var trfField = document.getElementById('trfField');
-            var dealFields = document.getElementById('dealFields');
-            var trfInput = document.getElementById('trf_number_add');
-            var diInput = document.getElementById('di_number_add');
-            var customerDeal = document.getElementById('customer_deal_add');
-            var accountId = document.getElementById('account_id');
-            var dueDate = document.getElementById('due_date');
-            var diField = document.getElementById('diField');
-            var customerDealWrapper = document.getElementById('customerDealWrapper');
-
-            if (!jenisTugas) return;
-
-            var value = jenisTugas.value;
-            var accountValue = accountId ? accountId.value : '';
-
             // ============================================
-            // JENIS TUGAS YANG MEMERLUKAN TR DAN DI
+            // TOGGLE FIELDS - MODAL TAMBAH (SEMBUNYIKAN DEAL)
             // ============================================
-            var trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
-            
-            if (trRequired.includes(value)) {
-                // TAMPILKAN TR FIELD
-                trfField.classList.add('show');
+            function toggleFields() {
+                var jenisTugas = document.getElementById('jenis_tugas');
+                var trfField = document.getElementById('trfField');
+                var dealFields = document.getElementById('dealFields');
+                var trfInput = document.getElementById('trf_number_add');
+                var diInput = document.getElementById('di_number_add');
+                var accountId = document.getElementById('account_id');
+                var dueDate = document.getElementById('due_date');
+
+                if (!jenisTugas) return;
+
+                var value = jenisTugas.value;
+                var accountValue = accountId ? accountId.value : '';
+
+                // ============================================
+                // JENIS TUGAS YANG MEMERLUKAN TR
+                // ============================================
+                var trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
                 
-                // Generate TR Number jika kosong
-                if (trfInput && !trfInput.value) {
-                    fetch('salesactivity.php?generate_trf=1')
+                if (trRequired.includes(value)) {
+                    trfField.classList.add('show');
+                    
+                    if (trfInput && !trfInput.value) {
+                        fetch('salesactivity.php?generate_trf=1')
+                            .then(function(response) { return response.json(); })
+                            .then(function(data) {
+                                if (data.trf_number && trfInput) {
+                                    trfInput.value = data.trf_number;
+                                }
+                            })
+                            .catch(function(error) {
+                                console.error('Error generating TR:', error);
+                            });
+                    }
+                } else {
+                    trfField.classList.remove('show');
+                    if (trfInput) trfInput.value = '';
+                }
+
+                // ============================================
+                // DEAL FIELDS - SEMBUNYIKAN UNTUK TAMBAH
+                // ============================================
+                dealFields.classList.remove('show');
+                if (diInput) diInput.value = '';
+
+                // ============================================
+                // COLLECT PAYMENT & AFTERSALES - Ambil TR & DI dari account
+                // ============================================
+                if ((value === 'Collect Payment' || value === 'Aftersales') && accountValue) {
+                    fetch('salesactivity.php?get_account_numbers=' + encodeURIComponent(accountValue))
                         .then(function(response) { return response.json(); })
                         .then(function(data) {
-                            if (data.trf_number && trfInput) {
+                            if (trfInput && data.trf_number) {
                                 trfInput.value = data.trf_number;
+                            }
+                            if (diInput && data.di_number) {
+                                diInput.value = data.di_number;
                             }
                         })
                         .catch(function(error) {
-                            console.error('Error generating TR:', error);
+                            console.error('Error getting account numbers:', error);
                         });
                 }
-            } else {
-                trfField.classList.remove('show');
-                if (trfInput) trfInput.value = '';
             }
 
             // ============================================
