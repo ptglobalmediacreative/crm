@@ -2022,12 +2022,6 @@ if (isset($_GET['complete'])) {
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="breadcrumb-wrapper">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="dashboard.php"><i class="fas fa-home"></i> Home</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Sales Activity</li>
-                        </ol>
-                    </nav>
                     <h4><i class="fas fa-chart-bar" style="color:#ffd700; margin-right:8px;"></i> Sales Activity</h4>
                 </div>
             </div>
