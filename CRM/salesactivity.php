@@ -1635,6 +1635,7 @@ if (isset($_GET['complete'])) {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
+            min-width: 100% !important;
             border: 2px solid #e8edf2 !important;
             border-radius: 8px !important;
             min-height: 46px !important;
@@ -1648,6 +1649,7 @@ if (isset($_GET['complete'])) {
             padding: 0 !important;
             width: 100% !important;
             height: auto !important;
+            min-height: 46px !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
@@ -1662,6 +1664,7 @@ if (isset($_GET['complete'])) {
             white-space: nowrap !important;
             max-width: calc(100% - 40px) !important;
             float: none !important;
+            min-height: 24px !important;
         }
 
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
@@ -1704,6 +1707,7 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
+        /* Dropdown - di dalam modal */
         .select2-container--bootstrap-5 .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1713,9 +1717,33 @@ if (isset($_GET['complete'])) {
             margin-top: 2px !important;
             background: #fff !important;
             z-index: 1060 !important;
-            width: 100% !important;
-            min-width: 0 !important;
+            width: auto !important;
+            min-width: 100% !important;
             max-width: 100% !important;
+        }
+
+        /* Membatasi lebar dropdown agar tidak melebar */
+        .select2-dropdown {
+            z-index: 1060 !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        /* Untuk modal, pastikan dropdown tetap di dalam modal */
+        .modal-body .select2-container--bootstrap-5 {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .modal-body .select2-container--bootstrap-5 .select2-selection {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .modal-body .select2-container--bootstrap-5 .select2-dropdown {
+            min-width: 100% !important;
+            max-width: 100% !important;
+            width: 100% !important;
         }
 
         .select2-container--bootstrap-5 .select2-search--dropdown {
@@ -1786,21 +1814,7 @@ if (isset($_GET['complete'])) {
             text-align: center !important;
         }
 
-        .modal-body .select2-container--bootstrap-5 {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        .modal-body .select2-container--bootstrap-5 .select2-selection {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        .select2-dropdown {
-            z-index: 1060 !important;
-            max-width: 100% !important;
-        }
-
+        /* Responsive mobile */
         @media (max-width: 768px) {
             .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
                 font-size: 13px !important;
@@ -1822,6 +1836,31 @@ if (isset($_GET['complete'])) {
                 padding: 6px 12px !important;
                 font-size: 12px !important;
             }
+            
+            .modal-body .select2-container--bootstrap-5 .select2-dropdown {
+                min-width: 100% !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+        }
+
+        /* Select2 dalam modal agar tidak overflow */
+        .modal .select2-container--bootstrap-5 {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .modal .select2-container--bootstrap-5 .select2-selection {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .modal .select2-dropdown {
+            min-width: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            left: 0 !important;
+            right: auto !important;
         }
 
         .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
@@ -2265,16 +2304,14 @@ if (isset($_GET['complete'])) {
                         <!-- Account Management dengan Select2 - DIPERBAIKI -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <div class="position-relative" style="width: 100%;">
-                                <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
-                                    <option value="">-- Pilih Account --</option>
-                                    <?php foreach ($accounts as $account): ?>
-                                        <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
-                                            <?= htmlspecialchars($account['nama_pt']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <select name="account_id" id="account_id" class="form-select" style="width: 100%;" required>
+                                <option value="">-- Pilih Account --</option>
+                                <?php foreach ($accounts as $account): ?>
+                                    <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
+                                        <?= htmlspecialchars($account['nama_pt']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                             <small class="text-muted">Ketik untuk mencari account</small>
                         </div>
                         
@@ -2546,7 +2583,7 @@ if (isset($_GET['complete'])) {
                 templateResult: function(option) {
                     if (!option.id) return option.text;
                     var badge = $(option.element).data('badge') || 'PT';
-                    return $('<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;">' + badge + '</span></span>');
+                    return $('<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;background:rgba(26,188,156,0.12);color:#16a085;border-radius:20px;">' + badge + '</span></span>');
                 },
                 templateSelection: function(option) {
                     if (!option.id) return option.text;
@@ -2554,7 +2591,7 @@ if (isset($_GET['complete'])) {
                 }
             });
             
-            // Fix dropdown position
+            // Fix dropdown position - pastikan tidak keluar dari box
             $('#account_id').on('select2:open', function() {
                 var $dropdown = $('.select2-dropdown');
                 if ($dropdown.length) {
@@ -2563,6 +2600,7 @@ if (isset($_GET['complete'])) {
                     $dropdown.css('max-width', containerWidth + 'px');
                     $dropdown.css('left', '0');
                     $dropdown.css('right', 'auto');
+                    $dropdown.css('width', containerWidth + 'px !important');
                 }
             });
             
@@ -2616,16 +2654,27 @@ if (isset($_GET['complete'])) {
                 templateResult: function(option) {
                     if (!option.id) return option.text;
                     var badge = $(option.element).data('badge') || 'PT';
-                    return $('<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;">' + badge + '</span></span>');
+                    return $('<span><strong>' + option.text + '</strong> <span class="badge-badan-usaha" style="font-size:9px;padding:1px 8px;margin-left:6px;background:rgba(26,188,156,0.12);color:#16a085;border-radius:20px;">' + badge + '</span></span>');
                 },
                 templateSelection: function(option) {
                     if (!option.id) return option.text;
                     return option.text;
                 }
             });
-            // Open and close to fix positioning
-            $('#account_id').select2('open');
-            $('#account_id').select2('close');
+            
+            // Fix dropdown position after show
+            setTimeout(function() {
+                var containerWidth = $('#account_id').closest('.select2-container').outerWidth();
+                if (containerWidth) {
+                    $('.select2-dropdown').css({
+                        'min-width': containerWidth + 'px',
+                        'max-width': containerWidth + 'px',
+                        'width': containerWidth + 'px !important',
+                        'left': '0',
+                        'right': 'auto'
+                    });
+                }
+            }, 100);
         });
 
         // Reset on modal hidden
