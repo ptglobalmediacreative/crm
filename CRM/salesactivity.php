@@ -354,6 +354,19 @@ function getLastNegotiationTRFNumber($db, $account_id, $sales_id) {
     return $stmt->fetchColumn();
 }
 
+// ============================================
+// CEK APAKAH SUDAH ADA NEGOSIASI UNTUK ACCOUNT TERSEBUT
+// ============================================
+function hasNegotiationForAccount($db, $account_id, $sales_id) {
+    $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
+                          WHERE account_id = ? 
+                          AND sales_id = ? 
+                          AND jenis_tugas = 'Negosiasi'
+                          AND trf_number IS NOT NULL
+                          AND trf_number <> ''");
+    $stmt->execute([$account_id, $sales_id]);
+    return $stmt->fetchColumn() > 0;
+}
 
 // ============================================
 // TAMBAHKAN KOLOM DI NUMBER KE TABEL
@@ -465,11 +478,13 @@ if (isset($_GET['get_negotiation_numbers'])) {
     }
 
     $trf_number = getLastNegotiationTRFNumber($db, $account_id, $targetSalesId);
+    $has_negotiation = hasNegotiationForAccount($db, $account_id, $targetSalesId);
 
     header('Content-Type: application/json');
     echo json_encode([
         'trf_number' => $trf_number ?: '',
-        'sales_id' => $targetSalesId
+        'sales_id' => $targetSalesId,
+        'has_negotiation' => $has_negotiation
     ]);
     exit;
 }
@@ -487,7 +502,6 @@ if (isset($_GET['generate_di'])) {
     ]);
     exit;
 }
-
 
 // ============================================
 // PROSES TAMBAH / EDIT / COMPLETE / DELETE
@@ -571,24 +585,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $status = empty($result) ? 'in_progress' : 'completed';
 
             // ========================================
-            // NOMOR TR / DI
+            // NOMOR TR / DI - DIPERBAIKI
             // ========================================
-            if ($jenis_tugas === 'Negosiasi' && empty($trf_number)) {
-                $trf_number = generateTRFNumber($db);
+            $targetSalesIdForNumbers = $userId;
+            if (in_array($userRole, $direkturRoles) && $account_id) {
+                $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
+                if ($salesIdFromAccount) {
+                    $targetSalesIdForNumbers = $salesIdFromAccount;
+                }
             }
 
-            if ($jenis_tugas === 'Kontrak' && $account_id) {
-                // Kontrak memakai TR dari Negosiasi
-                // dengan Account + Sales/User yang sama.
-                $targetSalesIdForNumbers = $userId;
-
-                if (in_array($userRole, $direkturRoles)) {
-                    $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
-                    if ($salesIdFromAccount) {
-                        $targetSalesIdForNumbers = $salesIdFromAccount;
-                    }
+            // ============================================
+            // NEGOSIASI
+            // ============================================
+            if ($jenis_tugas === 'Negosiasi') {
+                // Generate TRF Number
+                if (empty($trf_number)) {
+                    $trf_number = generateTRFNumber($db);
                 }
+                
+                // Jika Customer Deal = Yes, generate DI Number
+                if ($customer_deal === 'Yes') {
+                    if (empty($di_number)) {
+                        $di_number = generateDINumber($db, $due_date);
+                    }
+                } else {
+                    // Customer Deal = No -> Lost Prospek, tidak perlu DI
+                    $di_number = '';
+                }
+            }
 
+            // ============================================
+            // KONTRAK
+            // ============================================
+            if ($jenis_tugas === 'Kontrak' && $account_id) {
+                // Ambil TR dari Negosiasi sebelumnya
                 $negotiationTrf = getLastNegotiationTRFNumber(
                     $db,
                     $account_id,
@@ -601,15 +632,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $trf_number = generateTRFNumber($db);
                 }
 
-                // Kontrak langsung mendapatkan DI Number.
+                // Kontrak = Deal, generate DI Number
                 if (empty($di_number)) {
                     $di_number = generateDINumber($db, $due_date);
                 }
 
-                // Kontrak dianggap Deal.
+                // Kontrak selalu Deal
                 $customer_deal = 'Yes';
             }
 
+            // ============================================
+            // COLLECT PAYMENT & AFTERSALES
+            // ============================================
             if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
                 if (empty($trf_number)) {
                     $trf_number = getLastTRFNumberByAccount($db, $account_id);
@@ -703,7 +737,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         $result = bersihkan($_POST['result']);
-        $customer_deal = bersihkan($_POST['customer_deal']);
+        $customer_deal = bersihkan($_POST['customer_deal'] ?? 'No');
         $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
         $trf_number = bersihkan($_POST['trf_number'] ?? '');
         $di_number = bersihkan($_POST['di_number'] ?? '');
@@ -719,8 +753,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $existing_sales_id = $existing['sales_id'] ?? null;
 
         // ========================================
-        // NOMOR TR / DI SAAT COMPLETE
+        // NOMOR TR / DI SAAT COMPLETE - DIPERBAIKI
         // ========================================
+        $salesIdForNumbers = $existing_sales_id ?: $userId;
+
+        // ============================================
+        // NEGOSIASI
+        // ============================================
         if ($jenis_tugas === 'Negosiasi') {
             if (!empty($existing_trf)) {
                 $trf_number = $existing_trf;
@@ -728,11 +767,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $trf_number = generateTRFNumber($db);
             }
 
-            // Negosiasi tidak menggunakan DI.
-            $di_number = '';
+            // Jika Customer Deal = Yes, generate DI Number
+            if ($customer_deal === 'Yes') {
+                if (empty($di_number)) {
+                    $di_number = generateDINumber($db, $due_date ?: date('Y-m-d'));
+                }
+            } else {
+                // Customer Deal = No -> Lost Prospek, tidak perlu DI
+                $di_number = '';
+            }
+        }
 
-        } elseif ($jenis_tugas === 'Kontrak') {
-            $salesIdForNumbers = $existing_sales_id ?: $userId;
+        // ============================================
+        // KONTRAK
+        // ============================================
+        if ($jenis_tugas === 'Kontrak') {
             $negotiationTrf = '';
 
             if ($account_id && $salesIdForNumbers) {
@@ -751,14 +800,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     : generateTRFNumber($db);
             }
 
-            // Kontrak langsung memiliki DI Number.
+            // Kontrak = Deal, generate DI Number
             if (empty($di_number)) {
                 $di_number = generateDINumber($db, $due_date ?: date('Y-m-d'));
             }
 
             $customer_deal = 'Yes';
+        }
 
-        } elseif (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
+        // ============================================
+        // COLLECT PAYMENT & AFTERSALES
+        // ============================================
+        if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
             if (empty($trf_number)) {
                 $trf_number = getLastTRFNumberByAccount($db, $account_id);
             }
@@ -1845,6 +1898,8 @@ if (isset($_GET['complete'])) {
         .deal-fields.show { display: block; }
         .trf-field { display: none; }
         .trf-field.show { display: block; }
+        .di-field { display: none; }
+        .di-field.show { display: block; }
 
         /* ============================================
            DETAIL
@@ -2448,7 +2503,6 @@ if (isset($_GET['complete'])) {
                                                         <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <!-- ===== PERBAIKAN TOMBOL COMPLETE ===== -->
                                                         <button class="btn-action complete" 
                                                                 data-id="<?= $activity['id'] ?>" 
                                                                 data-data='<?= json_encode($activity, JSON_HEX_APOS | JSON_HEX_QUOT) ?>'
@@ -2576,30 +2630,33 @@ if (isset($_GET['complete'])) {
                             </div>
                         </div>
                         
+                        <!-- TRF Field -->
                         <div class="trf-field" id="trfField">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form</label>
+                                    <label class="form-label">Transaction Request Form (TR) <span class="text-danger">*</span></label>
                                     <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
                                     <small class="text-muted">Akan digenerate otomatis untuk Negosiasi, Kontrak, Collect Payment & Aftersales</small>
                                 </div>
                             </div>
                         </div>
                         
+                        <!-- Deal Fields - DIPERBAIKI -->
                         <div class="deal-fields" id="dealFields">
                             <hr>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Customer Deal</label>
+                                    <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
                                     <select name="customer_deal" id="customer_deal_add" class="form-select">
-                                        <option value="No">No</option>
-                                        <option value="Yes">Yes</option>
+                                        <option value="No">No - Lost Prospek</option>
+                                        <option value="Yes">Yes - Deal</option>
                                     </select>
+                                    <small class="text-muted" id="customerDealHelp">Pilih Yes jika customer setuju, No jika tidak</small>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">DI Number</label>
+                                <div class="col-md-6 mb-3 di-field" id="diField" style="display:none;">
+                                    <label class="form-label">Delivery Order Number (DI)</label>
                                     <input type="text" name="di_number" id="di_number_add" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis jika Customer Deal = Yes</small>
+                                    <small class="text-muted">DI Number akan digenerate otomatis jika Customer Deal = Yes</small>
                                 </div>
                             </div>
                         </div>
@@ -2684,30 +2741,29 @@ if (isset($_GET['complete'])) {
                         <div class="trf-field" id="trfFieldComplete">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form</label>
+                                    <label class="form-label">Transaction Request Form (TR)</label>
                                     <input type="text" name="trf_number_display" id="trf_number_complete" class="form-control" readonly>
                                     <input type="hidden" name="trf_number" id="trf_number_complete_hidden" value="">
                                 </div>
                             </div>
                         </div>
                         
+                        <!-- Deal Fields Complete - DIPERBAIKI -->
                         <div class="deal-fields" id="dealFieldsComplete">
                             <hr>
-                            <div class="row" id="diNumberCompleteRow">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">DI Number</label>
-                                    <input type="text"
-                                           name="di_number"
-                                           id="di_number_complete"
-                                           class="form-control"
-                                           readonly>
-                                    <input type="hidden"
-                                           name="di_number_hidden"
-                                           id="di_number_complete_hidden"
-                                           value="">
-                                    <small class="text-muted">
-                                        DI Number akan digenerate otomatis untuk Kontrak.
-                                    </small>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
+                                    <select name="customer_deal" id="customer_deal_complete" class="form-select">
+                                        <option value="No">No - Lost Prospek</option>
+                                        <option value="Yes">Yes - Deal</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3 di-field" id="diFieldComplete" style="display:none;">
+                                    <label class="form-label">Delivery Order Number (DI)</label>
+                                    <input type="text" name="di_number" id="di_number_complete" class="form-control" readonly>
+                                    <input type="hidden" name="di_number_hidden" id="di_number_complete_hidden" value="">
+                                    <small class="text-muted">DI Number akan digenerate otomatis jika Customer Deal = Yes</small>
                                 </div>
                             </div>
                         </div>
@@ -2792,7 +2848,7 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // SELECT2 ACCOUNT - FINAL FIX
+        // SELECT2 ACCOUNT
         // ============================================
         $(document).ready(function() {
 
@@ -2802,18 +2858,13 @@ if (isset($_GET['complete'])) {
             function initAccountSelect() {
                 if (!$account.length) return;
 
-                // Hindari inisialisasi Select2 lebih dari satu kali.
                 if ($account.hasClass('select2-hidden-accessible')) {
                     $account.select2('destroy');
                 }
 
                 $account.select2({
                     theme: 'bootstrap-5',
-
-                    // PENTING: dropdown berada di dalam modal-content,
-                    // bukan langsung di body atau modal wrapper.
                     dropdownParent: $salesModal.find('.modal-content'),
-
                     placeholder: '-- Pilih Account --',
                     allowClear: true,
                     width: '100%',
@@ -2844,10 +2895,8 @@ if (isset($_GET['complete'])) {
                 });
             }
 
-            // Inisialisasi sekali ketika halaman siap.
             initAccountSelect();
 
-            // Isi data Account ketika dipilih.
             $account.off('change.account').on('change.account', function() {
                 var accountId = this.value;
 
@@ -2867,12 +2916,10 @@ if (isset($_GET['complete'])) {
                             console.error('Error get account:', error);
                         });
 
-                    // Nomor TR/DI mengikuti Jenis Tugas.
                     var currentJenis = document.getElementById('jenis_tugas');
 
                     if (currentJenis && currentJenis.value === 'Kontrak') {
                         toggleFields();
-
                     } else if (
                         currentJenis &&
                         (
@@ -2914,8 +2961,6 @@ if (isset($_GET['complete'])) {
                 }
             });
 
-            // Ketika modal dibuka, pastikan Select2 tetap memiliki lebar field.
-            // Tidak ada lagi pengaturan left/right/width dropdown secara manual.
             $salesModal.on('shown.bs.modal', function() {
                 if (!$account.hasClass('select2-hidden-accessible')) {
                     initAccountSelect();
@@ -2930,7 +2975,6 @@ if (isset($_GET['complete'])) {
                 }
             });
 
-            // Reset Select2 saat modal ditutup.
             $salesModal.on('hidden.bs.modal', function() {
                 if ($account.hasClass('select2-hidden-accessible')) {
                     $account.val(null).trigger('change');
@@ -2939,7 +2983,7 @@ if (isset($_GET['complete'])) {
         });
 
         // ============================================
-        // TOGGLE FIELDS
+        // TOGGLE FIELDS - DIPERBAIKI
         // ============================================
         function toggleFields() {
             var jenisTugas = document.getElementById('jenis_tugas');
@@ -2950,63 +2994,70 @@ if (isset($_GET['complete'])) {
             var customerDeal = document.getElementById('customer_deal_add');
             var accountId = document.getElementById('account_id');
             var dueDate = document.getElementById('due_date');
+            var diField = document.getElementById('diField');
 
             if (!jenisTugas) return;
 
             var value = jenisTugas.value;
             var accountValue = accountId ? accountId.value : '';
 
-            if (
-                value === 'Negosiasi' ||
-                value === 'Kontrak' ||
-                value === 'Collect Payment' ||
-                value === 'Aftersales'
-            ) {
+            // ============================================
+            // NEGOSIASI
+            // ============================================
+            if (value === 'Negosiasi') {
+                // Tampilkan TRF Field
                 trfField.classList.add('show');
-
-                if (value === 'Negosiasi') {
-                    if (trfInput) trfInput.value = '';
-
+                dealFields.classList.add('show');
+                
+                // Generate TRF Number
+                if (trfInput && !trfInput.value) {
                     fetch('salesactivity.php?generate_trf=1')
                         .then(function(response) { return response.json(); })
                         .then(function(data) {
-                            if (
-                                document.getElementById('jenis_tugas').value === 'Negosiasi' &&
-                                trfInput &&
-                                !trfInput.value &&
-                                data.trf_number
-                            ) {
+                            if (data.trf_number && trfInput) {
                                 trfInput.value = data.trf_number;
                             }
                         })
                         .catch(function(error) {
                             console.error('Error generating TR:', error);
                         });
+                }
 
-                } else if (value === 'Kontrak') {
-                    if (trfInput) trfInput.value = '';
+                // Reset DI Number
+                if (diInput) {
+                    diInput.value = '';
+                }
 
-                    if (accountValue) {
-                        fetch(
-                            'salesactivity.php?get_negotiation_numbers=' +
-                            encodeURIComponent(accountValue)
-                        )
+                // Set Customer Deal default ke 'No'
+                if (customerDeal) {
+                    customerDeal.value = 'No';
+                }
+
+                // Sembunyikan DI Field (akan muncul jika Customer Deal = Yes)
+                if (diField) {
+                    diField.style.display = 'none';
+                }
+
+            // ============================================
+            // KONTRAK
+            // ============================================
+            } else if (value === 'Kontrak') {
+                // Tampilkan TRF Field
+                trfField.classList.add('show');
+                dealFields.classList.add('show');
+
+                // Ambil TR Number dari Negosiasi sebelumnya
+                if (accountValue) {
+                    fetch('salesactivity.php?get_negotiation_numbers=' + encodeURIComponent(accountValue))
                         .then(function(response) { return response.json(); })
                         .then(function(data) {
-                            if (
-                                document.getElementById('jenis_tugas').value !== 'Kontrak' ||
-                                !trfInput
-                            ) {
-                                return;
-                            }
-
-                            if (data.trf_number) {
+                            if (data.trf_number && trfInput) {
                                 trfInput.value = data.trf_number;
-                            } else {
-                                return fetch('salesactivity.php?generate_trf=1')
+                            } else if (trfInput && !trfInput.value) {
+                                fetch('salesactivity.php?generate_trf=1')
                                     .then(function(response) { return response.json(); })
                                     .then(function(generated) {
-                                        if (generated.trf_number) {
+                                        if (generated.trf_number && trfInput) {
                                             trfInput.value = generated.trf_number;
                                         }
                                     });
@@ -3015,157 +3066,231 @@ if (isset($_GET['complete'])) {
                         .catch(function(error) {
                             console.error('Error mengambil TR Negosiasi:', error);
                         });
-                    }
-
-                } else if (
-                    trfInput &&
-                    trfInput.value === '' &&
-                    accountValue
-                ) {
-                    fetch(
-                        'salesactivity.php?get_account_numbers=' +
-                        encodeURIComponent(accountValue)
-                    )
-                    .then(function(response) { return response.json(); })
-                    .then(function(data) {
-                        if (data.trf_number) {
-                            trfInput.value = data.trf_number;
-                        }
-                    })
-                    .catch(function(error) {
-                        console.error('Error mengambil TR:', error);
-                    });
                 }
 
-            } else {
-                trfField.classList.remove('show');
-                if (trfInput) trfInput.value = '';
-            }
-
-            if (value === 'Kontrak') {
-                dealFields.classList.add('show');
-
+                // Set Customer Deal menjadi 'Yes' (Kontrak = Deal)
                 if (customerDeal) {
                     customerDeal.value = 'Yes';
                 }
 
+                // Generate DI Number
                 if (diInput) {
-                    diInput.value = '';
+                    var dateValue = dueDate && dueDate.value ? dueDate.value : getDateWIB(7);
+                    fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(dateValue))
+                        .then(function(response) { return response.json(); })
+                        .then(function(data) {
+                            if (data.di_number && diInput) {
+                                diInput.value = data.di_number;
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error('Error generating DI:', error);
+                        });
                 }
 
-                var dateValue = dueDate && dueDate.value
-                    ? dueDate.value
-                    : getDateWIB(7);
+                // Tampilkan DI Field
+                if (diField) {
+                    diField.style.display = 'block';
+                }
 
-                fetch(
-                    'salesactivity.php?generate_di=1&date=' +
-                    encodeURIComponent(dateValue)
-                )
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    if (
-                        document.getElementById('jenis_tugas').value === 'Kontrak' &&
-                        diInput &&
-                        data.di_number
-                    ) {
-                        diInput.value = data.di_number;
-                    }
-                })
-                .catch(function(error) {
-                    console.error('Error generating DI:', error);
-                });
-
+            // ============================================
+            // JENIS TUGAS LAINNYA
+            // ============================================
             } else {
+                trfField.classList.remove('show');
                 dealFields.classList.remove('show');
-
+                if (trfInput) trfInput.value = '';
                 if (diInput) diInput.value = '';
                 if (customerDeal) customerDeal.value = 'No';
+                
+                if (diField) {
+                    diField.style.display = 'none';
+                }
             }
         }
 
+        // ============================================
+        // TOGGLE FIELDS COMPLETE - DIPERBAIKI
+        // ============================================
         function toggleFieldsComplete() {
-
             var jenisTugas = document.getElementById('completeJenisTugas');
             var trfFieldComplete = document.getElementById('trfFieldComplete');
             var dealFieldsComplete = document.getElementById('dealFieldsComplete');
-            var diNumberCompleteRow = document.getElementById('diNumberCompleteRow');
-
+            var diFieldComplete = document.getElementById('diFieldComplete');
             var diNumber = document.getElementById('di_number_complete');
             var diNumberHidden = document.getElementById('di_number_complete_hidden');
+            var customerDealComplete = document.getElementById('customer_deal_complete');
 
             if (!jenisTugas) return;
 
             var value = jenisTugas.value;
 
-            // TR Number tetap ditampilkan untuk jenis tugas yang menggunakan TR.
-            if (
-                value === 'Negosiasi' ||
-                value === 'Kontrak' ||
-                value === 'Collect Payment' ||
-                value === 'Aftersales'
-            ) {
+            // TR Number Field
+            if (value === 'Negosiasi' || value === 'Kontrak' || 
+                value === 'Collect Payment' || value === 'Aftersales') {
                 trfFieldComplete.classList.add('show');
             } else {
                 trfFieldComplete.classList.remove('show');
             }
 
-            // =====================================================
-            // KONTRAK
-            // =====================================================
-            // Customer Deal TIDAK digunakan.
-            // Langsung tampilkan DI Number.
-            if (value === 'Kontrak') {
-
+            // Deal Fields
+            if (value === 'Negosiasi' || value === 'Kontrak') {
                 dealFieldsComplete.classList.add('show');
-
-                if (diNumberCompleteRow) {
-                    diNumberCompleteRow.style.display = 'block';
+                
+                if (value === 'Kontrak') {
+                    // Kontrak = Deal, langsung tampilkan DI
+                    if (customerDealComplete) {
+                        customerDealComplete.value = 'Yes';
+                        customerDealComplete.disabled = true;
+                    }
+                    if (diFieldComplete) {
+                        diFieldComplete.style.display = 'block';
+                    }
+                } else {
+                    // Negosiasi - Customer Deal bisa diubah
+                    if (customerDealComplete) {
+                        customerDealComplete.disabled = false;
+                        customerDealComplete.value = 'No';
+                    }
+                    if (diFieldComplete) {
+                        diFieldComplete.style.display = 'none';
+                    }
+                    if (diNumber) {
+                        diNumber.value = '';
+                    }
+                    if (diNumberHidden) {
+                        diNumberHidden.value = '';
+                    }
                 }
-
-                return;
-            }
-
-            // =====================================================
-            // NEGOSIASI
-            // =====================================================
-            // Customer Deal tidak ditampilkan pada modal Complete.
-            // DI Number juga tidak ditampilkan.
-            if (value === 'Negosiasi') {
-
+            } else {
                 dealFieldsComplete.classList.remove('show');
-
-                if (diNumberCompleteRow) {
-                    diNumberCompleteRow.style.display = 'none';
+                if (diFieldComplete) {
+                    diFieldComplete.style.display = 'none';
                 }
-
                 if (diNumber) {
                     diNumber.value = '';
                 }
-
                 if (diNumberHidden) {
                     diNumberHidden.value = '';
                 }
-
-                return;
-            }
-
-            // =====================================================
-            // JENIS TUGAS LAIN
-            // =====================================================
-            dealFieldsComplete.classList.remove('show');
-
-            if (diNumberCompleteRow) {
-                diNumberCompleteRow.style.display = 'none';
-            }
-
-            if (diNumber) {
-                diNumber.value = '';
-            }
-
-            if (diNumberHidden) {
-                diNumberHidden.value = '';
             }
         }
+
+        // ============================================
+        // EVENT LISTENER UNTUK CUSTOMER DEAL (NEGOSIASI)
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            var customerDealAdd = document.getElementById('customer_deal_add');
+            var jenisTugas = document.getElementById('jenis_tugas');
+            var diInputAdd = document.getElementById('di_number_add');
+            var diField = document.getElementById('diField');
+
+            if (customerDealAdd) {
+                customerDealAdd.addEventListener('change', function() {
+                    var jenisValue = jenisTugas ? jenisTugas.value : '';
+                    
+                    // Hanya untuk Negosiasi
+                    if (jenisValue === 'Negosiasi') {
+                        if (this.value === 'Yes') {
+                            // Tampilkan DI Field dan generate DI Number
+                            if (diField) {
+                                diField.style.display = 'block';
+                            }
+                            
+                            // Generate DI Number
+                            if (diInputAdd) {
+                                var dueInput = document.getElementById('due_date');
+                                var dateValue = dueInput && dueInput.value ? dueInput.value : getDateWIB(7);
+                                
+                                fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(dateValue))
+                                    .then(function(response) { return response.json(); })
+                                    .then(function(data) {
+                                        if (data.di_number && diInputAdd) {
+                                            diInputAdd.value = data.di_number;
+                                        }
+                                    })
+                                    .catch(function(error) {
+                                        console.error('Error generating DI:', error);
+                                    });
+                            }
+                        } else {
+                            // Customer Deal = No -> Lost Prospek
+                            if (diField) {
+                                diField.style.display = 'none';
+                            }
+                            if (diInputAdd) {
+                                diInputAdd.value = '';
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ============================================
+            // EVENT LISTENER UNTUK CUSTOMER DEAL DI COMPLETE
+            // ============================================
+            var customerDealComplete = document.getElementById('customer_deal_complete');
+            var diFieldComplete = document.getElementById('diFieldComplete');
+            var diNumberComplete = document.getElementById('di_number_complete');
+            var diNumberCompleteHidden = document.getElementById('di_number_complete_hidden');
+            var completeJenisTugas = document.getElementById('completeJenisTugas');
+
+            if (customerDealComplete) {
+                customerDealComplete.addEventListener('change', function() {
+                    var jenisValue = completeJenisTugas ? completeJenisTugas.value : '';
+                    
+                    if (jenisValue === 'Negosiasi') {
+                        if (this.value === 'Yes') {
+                            // Deal - Tampilkan DI
+                            if (diFieldComplete) {
+                                diFieldComplete.style.display = 'block';
+                            }
+                            
+                            // Generate DI Number
+                            if (diNumberComplete) {
+                                var dueDateInput = document.getElementById('completeDueDate');
+                                var dateValue = getDateWIB(7);
+                                
+                                if (dueDateInput) {
+                                    var dueDateParts = dueDateInput.value.split('/');
+                                    if (dueDateParts.length === 3) {
+                                        var day = dueDateParts[0].padStart(2, '0');
+                                        var month = dueDateParts[1].padStart(2, '0');
+                                        var year = dueDateParts[2];
+                                        dateValue = year + '-' + month + '-' + day;
+                                    }
+                                }
+                                
+                                fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(dateValue))
+                                    .then(function(response) { return response.json(); })
+                                    .then(function(data) {
+                                        if (data.di_number && diNumberComplete) {
+                                            diNumberComplete.value = data.di_number;
+                                            if (diNumberCompleteHidden) {
+                                                diNumberCompleteHidden.value = data.di_number;
+                                            }
+                                        }
+                                    })
+                                    .catch(function(error) {
+                                        console.error('Error generating DI:', error);
+                                    });
+                            }
+                        } else {
+                            // Lost Prospek - Sembunyikan DI
+                            if (diFieldComplete) {
+                                diFieldComplete.style.display = 'none';
+                            }
+                            if (diNumberComplete) {
+                                diNumberComplete.value = '';
+                            }
+                            if (diNumberCompleteHidden) {
+                                diNumberCompleteHidden.value = '';
+                            }
+                        }
+                    }
+                });
+            }
+        });
 
         // ============================================
         // DATE FUNCTIONS
@@ -3405,6 +3530,16 @@ if (isset($_GET['complete'])) {
             document.getElementById('di_number_add').value = data.di_number || '';
             document.getElementById('trf_number_add').value = data.trf_number || '';
             
+            // Toggle fields berdasarkan jenis_tugas
+            if (data.jenis_tugas === 'Negosiasi' || data.jenis_tugas === 'Kontrak') {
+                document.getElementById('dealFields').classList.add('show');
+                if (data.jenis_tugas === 'Negosiasi' && data.customer_deal === 'Yes') {
+                    document.getElementById('diField').style.display = 'block';
+                } else if (data.jenis_tugas === 'Kontrak') {
+                    document.getElementById('diField').style.display = 'block';
+                }
+            }
+            
             setTimeout(function() {
                 toggleFields();
                 updateCharCount('deskripsi', 'deskripsiCounter');
@@ -3415,14 +3550,12 @@ if (isset($_GET['complete'])) {
         }
 
         // ============================================
-        // COMPLETE ACTIVITY - DIPERBAIKI
+        // COMPLETE ACTIVITY
         // ============================================
         function completeActivity(element) {
-            // Ambil data dari atribut
             var id = element.dataset.id || element.getAttribute('data-id');
             var dataStr = element.dataset.data || element.getAttribute('data-data');
             
-            // Parse data
             var data;
             try {
                 data = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
@@ -3437,7 +3570,6 @@ if (isset($_GET['complete'])) {
                 return;
             }
             
-            // Isi form complete
             document.getElementById('completeId').value = data.id || id;
             document.getElementById('completeSubject').value = data.subject || '-';
             document.getElementById('completeAccount').value = data.nama_pt || '-';
@@ -3459,21 +3591,31 @@ if (isset($_GET['complete'])) {
             
             document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
             
-            // Set TR Number
             var trfNumber = data.trf_number || '';
             document.getElementById('trf_number_complete').value = trfNumber;
             document.getElementById('trf_number_complete_hidden').value = trfNumber;
             
-            // Set DI Number
             var diNumber = data.di_number || '';
-            if (data.jenis_tugas === 'Negosiasi') {
+            if (data.jenis_tugas === 'Negosiasi' && data.customer_deal !== 'Yes') {
                 diNumber = '';
             }
             document.getElementById('di_number_complete').value = diNumber;
             document.getElementById('di_number_complete_hidden').value = diNumber;
             
-            // Generate DI Number jika Kontrak dan belum ada
-            if (data.jenis_tugas === 'Kontrak' && !diNumber) {
+            // Set Customer Deal
+            var customerDealComplete = document.getElementById('customer_deal_complete');
+            if (customerDealComplete) {
+                if (data.jenis_tugas === 'Kontrak') {
+                    customerDealComplete.value = 'Yes';
+                    customerDealComplete.disabled = true;
+                } else {
+                    customerDealComplete.value = data.customer_deal || 'No';
+                    customerDealComplete.disabled = false;
+                }
+            }
+            
+            // Generate DI Number jika Kontrak atau Negosiasi dengan Customer Deal Yes
+            if ((data.jenis_tugas === 'Kontrak' || (data.jenis_tugas === 'Negosiasi' && data.customer_deal === 'Yes')) && !diNumber) {
                 var completeDue = data.due_date || getDateWIB(7);
                 fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(completeDue))
                     .then(function(response) { return response.json(); })
@@ -3481,6 +3623,9 @@ if (isset($_GET['complete'])) {
                         if (response.di_number) {
                             document.getElementById('di_number_complete').value = response.di_number;
                             document.getElementById('di_number_complete_hidden').value = response.di_number;
+                            if (document.getElementById('diFieldComplete')) {
+                                document.getElementById('diFieldComplete').style.display = 'block';
+                            }
                         }
                     })
                     .catch(function(error) {
@@ -3488,24 +3633,20 @@ if (isset($_GET['complete'])) {
                     });
             }
             
-            // Reset form
             document.getElementById('result').value = '';
             document.getElementById('attachment_files').value = '';
             document.getElementById('fileList').innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
             
-            // Toggle fields
             setTimeout(function() {
                 toggleFieldsComplete();
             }, 100);
             
-            // Reset counter
             var resultCounter = document.getElementById('resultCounter');
             if (resultCounter) {
                 resultCounter.textContent = '0';
                 resultCounter.className = 'count invalid';
             }
             
-            // Tampilkan modal
             var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
             modal.show();
         }
@@ -3520,7 +3661,6 @@ if (isset($_GET['complete'])) {
         // EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Set default date
             setTimeout(function() {
                 var dateInput = document.getElementById('due_date');
                 if (dateInput && !dateInput.value) {
@@ -3528,53 +3668,12 @@ if (isset($_GET['complete'])) {
                 }
             }, 100);
             
-            // Jenis Tugas change
             var jenisTugas = document.getElementById('jenis_tugas');
             if (jenisTugas) {
                 jenisTugas.addEventListener('change', toggleFields);
                 setTimeout(toggleFields, 100);
             }
-            
-            // Customer Deal change for add
-            var customerDealAdd = document.getElementById('customer_deal_add');
-            if (customerDealAdd) {
-                customerDealAdd.addEventListener('change', function() {
-                    var diInputAdd = document.getElementById('di_number_add');
-                    var jenisAdd = document.getElementById('jenis_tugas');
 
-                    if (
-                        this.value === 'Yes' &&
-                        jenisAdd &&
-                        jenisAdd.value === 'Kontrak' &&
-                        diInputAdd &&
-                        diInputAdd.value === ''
-                    ) {
-                        var dueInput = document.getElementById('due_date');
-                        var dateValue = dueInput && dueInput.value
-                            ? dueInput.value
-                            : getDateWIB(7);
-
-                        fetch(
-                            'salesactivity.php?generate_di=1&date=' +
-                            encodeURIComponent(dateValue)
-                        )
-                        .then(function(response) { return response.json(); })
-                        .then(function(data) {
-                            if (data.di_number && diInputAdd) {
-                                diInputAdd.value = data.di_number;
-                            }
-                        })
-                        .catch(function(error) {
-                            console.error('Error generating DI:', error);
-                        });
-
-                    } else if (this.value === 'No' && diInputAdd) {
-                        diInputAdd.value = '';
-                    }
-                });
-            }
-
-            // Result validation
             var resultInput = document.getElementById('result_add');
             var attachmentInput = document.getElementById('attachment_file_add');
             var attachmentRequired = document.getElementById('attachment_required');
@@ -3600,7 +3699,6 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // File preview
             var attachmentFiles = document.getElementById('attachment_files');
             if (attachmentFiles) {
                 attachmentFiles.addEventListener('change', function() {
@@ -3623,7 +3721,6 @@ if (isset($_GET['complete'])) {
                 });
             }
             
-            // Reset modal
             document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
                 document.getElementById('formSalesActivity').reset();
                 document.getElementById('formAction').value = 'add';
@@ -3642,6 +3739,7 @@ if (isset($_GET['complete'])) {
                 document.getElementById('customer_deal_add').value = 'No';
                 document.getElementById('dealFields').classList.remove('show');
                 document.getElementById('trfField').classList.remove('show');
+                document.getElementById('diField').style.display = 'none';
                 var note = document.getElementById('resultNotification');
                 if (note) note.remove();
                 
@@ -3659,7 +3757,6 @@ if (isset($_GET['complete'])) {
                 }
             });
             
-            // Character counters
             var deskripsi = document.getElementById('deskripsi');
             if (deskripsi) updateCharCount('deskripsi', 'deskripsiCounter');
             var resultAdd = document.getElementById('result_add');
