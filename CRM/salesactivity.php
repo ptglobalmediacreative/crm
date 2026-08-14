@@ -1108,6 +1108,9 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
+        /* ============================================
+           RESET & BASE
+           ============================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1115,6 +1118,9 @@ if (isset($_GET['complete'])) {
             padding-bottom: 70px;
         }
         
+        /* ============================================
+           SIDEBAR
+           ============================================ */
         .sidebar {
             width: 260px;
             height: 100vh;
@@ -1174,6 +1180,9 @@ if (isset($_GET['complete'])) {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
         .main-content { 
             margin-left: 260px; 
             padding: 30px 35px; 
@@ -1181,6 +1190,9 @@ if (isset($_GET['complete'])) {
             min-height: 100vh;
         }
 
+        /* ============================================
+           PAGE HEADER
+           ============================================ */
         .page-header { 
             display: flex; 
             justify-content: space-between; 
@@ -1207,6 +1219,17 @@ if (isset($_GET['complete'])) {
         }
         .page-header h4 span { color: #ffd700; }
 
+        /* ============================================
+           BREADCRUMB
+           ============================================ */
+        .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
+        .breadcrumb-item a { color: #2980b9; text-decoration: none; }
+        .breadcrumb-item a:hover { color: #ffd700; }
+        .breadcrumb-item.active { color: #0e1a2b; font-weight: 600; }
+
+        /* ============================================
+           STATISTIK CARDS
+           ============================================ */
         .stat-grid { 
             display: grid; 
             grid-template-columns: repeat(4, 1fr); 
@@ -1247,6 +1270,9 @@ if (isset($_GET['complete'])) {
         .stat-card .stat-number { font-size: 22px; font-weight: 800; color: #0e1a2b; line-height: 1.2; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
 
+        /* ============================================
+           CHARTS
+           ============================================ */
         .grid-2-col { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -1290,6 +1316,9 @@ if (isset($_GET['complete'])) {
             margin: 0 auto; 
         }
 
+        /* ============================================
+           CARD CUSTOM
+           ============================================ */
         .card-custom {
             background: #fff;
             border-radius: 16px;
@@ -1341,6 +1370,9 @@ if (isset($_GET['complete'])) {
             overflow-x: auto;
         }
 
+        /* ============================================
+           FILTER
+           ============================================ */
         .filter-wrapper {
             padding: 12px 24px;
             border-bottom: 1px solid #f0f2f5;
@@ -1386,6 +1418,9 @@ if (isset($_GET['complete'])) {
             background: rgba(255,255,255,0.2); 
         }
 
+        /* ============================================
+           TABLE
+           ============================================ */
         .table-custom {
             margin-bottom: 0;
             font-size: 13px;
@@ -1425,6 +1460,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
         .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-tugas.Visit_Meeting { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
@@ -1439,6 +1475,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
         .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
@@ -1451,6 +1488,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
 
         .badge-di {
@@ -1460,6 +1498,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
 
         .badge-middle-prospek {
@@ -1469,6 +1508,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
         .badge-hot-prospek {
             background: rgba(231, 76, 60, 0.15);
@@ -1477,6 +1517,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
         .badge-deal {
             background: rgba(142, 68, 173, 0.15);
@@ -1485,6 +1526,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
         .badge-lost {
             background: rgba(231, 76, 60, 0.15);
@@ -1493,6 +1535,7 @@ if (isset($_GET['complete'])) {
             border-radius: 20px;
             font-size: 10px;
             font-weight: 600;
+            display: inline-block;
         }
 
         .badge-badan-usaha {
@@ -1502,8 +1545,12 @@ if (isset($_GET['complete'])) {
             font-weight: 600;
             background: rgba(26, 188, 156, 0.12);
             color: #16a085;
+            display: inline-block;
         }
 
+        /* ============================================
+           BUTTONS
+           ============================================ */
         .btn-action {
             width: 30px;
             height: 30px;
@@ -1572,19 +1619,25 @@ if (isset($_GET['complete'])) {
         }
         .btn-complete-custom:hover { background: #e67e22; color: #fff; }
 
+        /* ============================================
+           ALERTS
+           ============================================ */
         .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
         .alert.deadline-alert { border-left: 4px solid #dc3545; background: #fff5f5; }
         .alert.deadline-warning { border-left: 4px solid #ffc107; background: #fffbf0; }
 
         .deadline-overdue { animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        .badge-overdue { background: #dc3545 !important; animation: blink 1s infinite; }
+        .badge-overdue { background: #dc3545 !important; animation: blink 1s infinite; color: #fff !important; }
         .badge-approaching { background: #ffc107 !important; color: #212529 !important; }
-        .badge-safe { background: #198754 !important; }
+        .badge-safe { background: #198754 !important; color: #fff !important; }
 
         .table-overdue { background-color: #fff5f5 !important; }
         .table-overdue:hover { background-color: #ffe8e8 !important; }
 
+        /* ============================================
+           MODALS
+           ============================================ */
         .modal-content { border: none; border-radius: 12px; }
         .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
         .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
@@ -1592,6 +1645,9 @@ if (isset($_GET['complete'])) {
         .modal-body { padding: 20px 24px; }
         .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
 
+        /* ============================================
+           FORM
+           ============================================ */
         .form-label { font-weight: 600; font-size: 13px; color: #333; }
         .form-control, .form-select {
             border-radius: 8px;
@@ -1599,10 +1655,17 @@ if (isset($_GET['complete'])) {
             border: 2px solid #e8edf2;
             transition: all 0.3s ease;
             font-size: 13px;
+            width: 100%;
         }
         .form-control:focus, .form-select:focus {
             border-color: #ffd700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+        .form-control-file {
+            padding: 8px 12px;
+            border: 2px solid #e8edf2;
+            border-radius: 8px;
+            width: 100%;
         }
 
         .auto-fill-field { background: #f8f9fa !important; cursor: default; }
@@ -1616,16 +1679,17 @@ if (isset($_GET['complete'])) {
         .trf-field { display: none; }
         .trf-field.show { display: block; }
 
+        /* ============================================
+           DETAIL
+           ============================================ */
         .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
         .detail-item:last-child { border-bottom: none; }
         .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
         .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
 
         /* ============================================
-        SELECT2 CUSTOM STYLE - FINAL FIX
-        ============================================ */
-
-        /* Container Select2 - pastikan tidak overflow */
+           SELECT2 - FIXED
+           ============================================ */
         .select2-container {
             width: 100% !important;
             max-width: 100% !important;
@@ -1633,7 +1697,6 @@ if (isset($_GET['complete'])) {
             display: block !important;
         }
 
-        /* Selection box */
         .select2-container .select2-selection {
             width: 100% !important;
             max-width: 100% !important;
@@ -1706,11 +1769,6 @@ if (isset($_GET['complete'])) {
             outline: none !important;
         }
 
-        /* ============================================
-        DROPDOWN - PASTIKAN TIDAK KELUAR DARI BOX
-        ============================================ */
-
-        /* Dropdown container - di dalam modal */
         .select2-dropdown {
             border: 2px solid #e8edf2 !important;
             border-top: none !important;
@@ -1720,7 +1778,6 @@ if (isset($_GET['complete'])) {
             margin-top: 2px !important;
             background: #fff !important;
             z-index: 1060 !important;
-            /* PENTING: Lebar dropdown mengikuti selection */
             width: 100% !important;
             max-width: 100% !important;
             min-width: 0 !important;
@@ -1728,10 +1785,6 @@ if (isset($_GET['complete'])) {
             right: auto !important;
             position: absolute !important;
         }
-
-        /* ============================================
-        SELECT2 DI DALAM MODAL - OVERRIDE
-        ============================================ */
 
         .modal-body .select2-container {
             width: 100% !important;
@@ -1743,7 +1796,6 @@ if (isset($_GET['complete'])) {
             max-width: 100% !important;
         }
 
-        /* PENTING: Dropdown dalam modal */
         .modal-body .select2-dropdown {
             width: 100% !important;
             max-width: 100% !important;
@@ -1752,16 +1804,11 @@ if (isset($_GET['complete'])) {
             right: auto !important;
         }
 
-        /* Untuk memastikan dropdown tidak keluar dari modal */
         .modal .select2-dropdown {
             max-width: 100% !important;
             min-width: 100% !important;
             width: 100% !important;
         }
-
-        /* ============================================
-        SEARCH & OPTIONS
-        ============================================ */
 
         .select2-dropdown .select2-search--dropdown {
             padding: 8px 12px !important;
@@ -1832,43 +1879,20 @@ if (isset($_GET['complete'])) {
         }
 
         /* ============================================
-        RESPONSIVE MOBILE
-        ============================================ */
-
-        @media (max-width: 768px) {
-            .select2-container .select2-selection--single .select2-selection__rendered {
-                font-size: 13px !important;
-                padding: 8px 12px !important;
-                max-width: calc(100% - 36px) !important;
-            }
-            .select2-container .select2-selection {
-                min-height: 40px !important;
-            }
-            .select2-container .select2-selection--single .select2-selection__arrow {
-                height: 38px !important;
-                width: 30px !important;
-            }
-            .select2-container .select2-selection--single .select2-selection__clear {
-                right: 30px !important;
-                font-size: 16px !important;
-            }
-            .select2-dropdown .select2-results__option {
-                padding: 6px 12px !important;
-                font-size: 12px !important;
-            }
-        }
-
-        .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
-        .breadcrumb-item a { color: #2980b9; text-decoration: none; }
-        .breadcrumb-item a:hover { color: #ffd700; }
-        .breadcrumb-item.active { color: #0e1a2b; font-weight: 600; }
-
+           FOOTER
+           ============================================ */
         .footer-text { text-align: center; padding: 20px 0 8px; color: #999; font-size: 11px; }
         .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
         .footer-text a:hover { color: #ffd700; }
 
+        /* ============================================
+           MOBILE TOGGLE
+           ============================================ */
         .mobile-toggle { display: none; }
 
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
@@ -1896,237 +1920,6 @@ if (isset($_GET['complete'])) {
             .stat-grid { grid-template-columns: 1fr; }
             .stat-card { padding: 14px 18px; }
             .stat-card .stat-number { font-size: 18px; }
-        }
-
-        @media (max-width: 480px) {
-            .stat-grid { grid-template-columns: 1fr; }
-            .stat-card .stat-number { font-size: 17px; }
-            .stat-card { padding: 12px 14px; }
-            .modal-body { padding: 14px 16px; }
-            .modal-header { padding: 14px 16px; }
-            .table-custom { font-size: 11px; }
-            .table-custom th, .table-custom td { padding: 6px 8px; }
-            .btn-action { width: 26px; height: 26px; font-size: 11px; }
-            .detail-item { flex-direction: column; padding: 8px 0; }
-            .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
-            .detail-item .detail-value { font-size: 12px; }
-            .filter-buttons .btn-filter { font-size: 10px; padding: 3px 10px; }
-        }
-        /* ============================================
-        SELECT2 - SOLUSI FINAL TIDAK KELUAR DARI BOX
-        ============================================ */
-
-        /* Reset dan pastikan Select2 container mengikuti lebar parent */
-        .select2-container {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            display: block !important;
-        }
-
-        /* Selection box - pastikan full width */
-        .select2-container .select2-selection {
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 100% !important;
-            border: 2px solid #e8edf2 !important;
-            border-radius: 8px !important;
-            min-height: 46px !important;
-            background: #fff !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
-        }
-
-        .select2-container .select2-selection--single {
-            padding: 0 !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: 46px !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__rendered {
-            padding: 10px 14px !important;
-            line-height: 24px !important;
-            color: #333 !important;
-            font-size: 14px !important;
-            font-family: 'Inter', sans-serif !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            white-space: nowrap !important;
-            max-width: calc(100% - 40px) !important;
-            min-height: 24px !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__placeholder {
-            color: #999 !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__arrow {
-            height: 44px !important;
-            width: 34px !important;
-            right: 4px !important;
-            position: absolute !important;
-            top: 0 !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__arrow b {
-            border-color: #999 transparent transparent transparent !important;
-            border-width: 6px 5px 0 5px !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__clear {
-            margin-right: 8px !important;
-            font-size: 18px !important;
-            color: #999 !important;
-            font-weight: 300 !important;
-            position: absolute !important;
-            right: 34px !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            z-index: 1 !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__clear:hover {
-            color: #e74c3c !important;
-        }
-
-        .select2-container.select2-container--focus .select2-selection,
-        .select2-container.select2-container--open .select2-selection {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
-            outline: none !important;
-        }
-
-        /* ============================================
-        DROPDOWN - PASTIKAN TIDAK KELUAR DARI BOX
-        ============================================ */
-
-        /* Dropdown container - di dalam modal */
-        .select2-dropdown {
-            border: 2px solid #e8edf2 !important;
-            border-top: none !important;
-            border-radius: 0 0 8px 8px !important;
-            overflow: hidden !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-            margin-top: 2px !important;
-            background: #fff !important;
-            z-index: 1060 !important;
-            /* PENTING: Lebar dropdown mengikuti selection */
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 0 !important;
-            left: 0 !important;
-            right: auto !important;
-            position: absolute !important;
-        }
-
-        /* ============================================
-        SELECT2 DI DALAM MODAL - OVERRIDE
-        ============================================ */
-
-        .modal-body .select2-container {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        .modal-body .select2-container .select2-selection {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        /* PENTING: Dropdown dalam modal */
-        .modal-body .select2-dropdown {
-            width: 100% !important;
-            max-width: 100% !important;
-            min-width: 100% !important;
-            left: 0 !important;
-            right: auto !important;
-        }
-
-        /* Untuk memastikan dropdown tidak keluar dari modal */
-        .modal .select2-dropdown {
-            max-width: 100% !important;
-            min-width: 100% !important;
-            width: 100% !important;
-        }
-
-        /* ============================================
-        SEARCH & OPTIONS
-        ============================================ */
-
-        .select2-dropdown .select2-search--dropdown {
-            padding: 8px 12px !important;
-            background: #fafafa !important;
-            border-bottom: 1px solid #f0f2f5 !important;
-        }
-
-        .select2-dropdown .select2-search__field {
-            border: 2px solid #e8edf2 !important;
-            border-radius: 8px !important;
-            padding: 8px 14px !important;
-            font-size: 13px !important;
-            width: 100% !important;
-            background: #fff !important;
-            box-sizing: border-box !important;
-        }
-
-        .select2-dropdown .select2-search__field:focus {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
-            outline: none !important;
-        }
-
-        .select2-dropdown .select2-results__options {
-            padding: 4px 0 !important;
-            max-height: 200px !important;
-            overflow-y: auto !important;
-        }
-
-        .select2-dropdown .select2-results__option {
-            padding: 8px 14px !important;
-            font-size: 13px !important;
-            color: #333 !important;
-            transition: all 0.15s ease !important;
-            cursor: pointer !important;
-            border-bottom: 1px solid #f8f9fa !important;
-        }
-
-        .select2-dropdown .select2-results__option:last-child {
-            border-bottom: none !important;
-        }
-
-        .select2-dropdown .select2-results__option--highlighted[aria-selected] {
-            background: #0e1a2b !important;
-            color: #ffd700 !important;
-        }
-
-        .select2-dropdown .select2-results__option[aria-selected=true] {
-            background: #f0f2f5 !important;
-            color: #0e1a2b !important;
-        }
-
-        .select2-dropdown .select2-results__option .badge-badan-usaha {
-            font-size: 9px !important;
-            padding: 1px 8px !important;
-            margin-left: 6px !important;
-            display: inline-block !important;
-            background: rgba(26, 188, 156, 0.12);
-            color: #16a085;
-            border-radius: 20px;
-        }
-
-        .select2-dropdown .select2-results__message {
-            padding: 12px !important;
-            color: #999 !important;
-            font-size: 13px !important;
-            text-align: center !important;
-        }
-
-        /* ============================================
-        RESPONSIVE MOBILE
-        ============================================ */
-
-        @media (max-width: 768px) {
             .select2-container .select2-selection--single .select2-selection__rendered {
                 font-size: 13px !important;
                 padding: 8px 12px !important;
@@ -2147,6 +1940,21 @@ if (isset($_GET['complete'])) {
                 padding: 6px 12px !important;
                 font-size: 12px !important;
             }
+        }
+
+        @media (max-width: 480px) {
+            .stat-grid { grid-template-columns: 1fr; }
+            .stat-card .stat-number { font-size: 17px; }
+            .stat-card { padding: 12px 14px; }
+            .modal-body { padding: 14px 16px; }
+            .modal-header { padding: 14px 16px; }
+            .table-custom { font-size: 11px; }
+            .table-custom th, .table-custom td { padding: 6px 8px; }
+            .btn-action { width: 26px; height: 26px; font-size: 11px; }
+            .detail-item { flex-direction: column; padding: 8px 0; }
+            .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
+            .detail-item .detail-value { font-size: 12px; }
+            .filter-buttons .btn-filter { font-size: 10px; padding: 3px 10px; }
         }
     </style>
 </head>
@@ -2512,7 +2320,7 @@ if (isset($_GET['complete'])) {
     </div>
 
     <!-- ============================================
-    MODALS
+    MODALS - SAME AS ORIGINAL BUT FIXED
     ============================================ -->
     <!-- Modal Tambah / Edit -->
     <div class="modal fade" id="modalSalesActivity" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -2532,7 +2340,6 @@ if (isset($_GET['complete'])) {
                             <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject" required>
                         </div>
                         
-                        <!-- Account Management dengan Select2 - FINAL FIX -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
                             <select name="account_id" id="account_id" class="form-select" required>
@@ -2795,10 +2602,9 @@ if (isset($_GET['complete'])) {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // SELECT2 INITIALIZATION - SOLUSI FINAL
+        // SELECT2 INITIALIZATION - FIXED
         // ============================================
         $(document).ready(function() {
-            // Fungsi untuk mengatur ulang posisi dropdown
             function fixSelect2Dropdown() {
                 var $container = $('#account_id').closest('.select2-container');
                 if ($container.length) {
@@ -2816,7 +2622,6 @@ if (isset($_GET['complete'])) {
                 }
             }
 
-            // Inisialisasi Select2
             $('#account_id').select2({
                 theme: 'bootstrap-5',
                 dropdownParent: $('#modalSalesActivity'),
@@ -2835,13 +2640,10 @@ if (isset($_GET['complete'])) {
                 }
             });
             
-            // FIX: Perbaiki posisi dropdown agar tidak keluar dari box
             $('#account_id').on('select2:open', function() {
-                // Tunggu sebentar agar dropdown terbentuk
                 setTimeout(fixSelect2Dropdown, 10);
             });
             
-            // Handle change event
             $('#account_id').on('change', function() {
                 var accountId = this.value;
                 if (accountId) {
@@ -2875,9 +2677,7 @@ if (isset($_GET['complete'])) {
             });
         });
 
-        // Re-initialize when modal is shown
         $('#modalSalesActivity').on('shown.bs.modal', function() {
-            // Destroy and reinitialize to fix any positioning issues
             if ($('#account_id').data('select2')) {
                 $('#account_id').select2('destroy');
             }
@@ -2899,7 +2699,6 @@ if (isset($_GET['complete'])) {
                 }
             });
             
-            // FIX: Perbaiki posisi dropdown setelah modal ditampilkan
             setTimeout(function() {
                 var $container = $('#account_id').closest('.select2-container');
                 if ($container.length) {
@@ -2918,7 +2717,6 @@ if (isset($_GET['complete'])) {
             }, 200);
         });
 
-        // Reset on modal hidden
         $('#modalSalesActivity').on('hidden.bs.modal', function() {
             if ($('#account_id').data('select2')) {
                 $('#account_id').val('').trigger('change');
