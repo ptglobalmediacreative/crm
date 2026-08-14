@@ -1939,12 +1939,6 @@ if (isset($_GET['complete'])) {
             z-index: 4 !important;
         }
 
-        /*
-         * PENTING:
-         * Jangan mengatur width/left/right/position dropdown secara manual.
-         * Select2 akan menghitung posisi dan ukuran dropdown sendiri berdasarkan
-         * select element. dropdownParent diarahkan ke modal-content di JavaScript.
-         */
         .modal-content {
             overflow: visible !important;
         }
@@ -2454,7 +2448,11 @@ if (isset($_GET['complete'])) {
                                                         <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn-action complete" onclick="completeActivity(<?= $activity['id'] ?>, <?= htmlspecialchars(json_encode($activity)) ?>)">
+                                                        <!-- ===== PERBAIKAN TOMBOL COMPLETE ===== -->
+                                                        <button class="btn-action complete" 
+                                                                data-id="<?= $activity['id'] ?>" 
+                                                                data-data='<?= json_encode($activity, JSON_HEX_APOS | JSON_HEX_QUOT) ?>'
+                                                                onclick="completeActivity(this)">
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     <?php endif; ?>
@@ -3416,67 +3414,98 @@ if (isset($_GET['complete'])) {
             modal.show();
         }
 
-        function completeActivity(id, data) {
+        // ============================================
+        // COMPLETE ACTIVITY - DIPERBAIKI
+        // ============================================
+        function completeActivity(element) {
+            // Ambil data dari atribut
+            var id = element.dataset.id || element.getAttribute('data-id');
+            var dataStr = element.dataset.data || element.getAttribute('data-data');
+            
+            // Parse data
+            var data;
+            try {
+                data = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
+            } catch(e) {
+                console.error('Error parsing data:', e);
+                alert('Terjadi kesalahan! Silakan refresh halaman.');
+                return;
+            }
+            
             if (!data) {
                 alert('Data tidak ditemukan!');
                 return;
             }
             
-            document.getElementById('completeId').value = data.id;
-            document.getElementById('completeSubject').value = data.subject;
+            // Isi form complete
+            document.getElementById('completeId').value = data.id || id;
+            document.getElementById('completeSubject').value = data.subject || '-';
             document.getElementById('completeAccount').value = data.nama_pt || '-';
-            document.getElementById('completeJenisTugas').value = data.jenis_tugas;
-            document.getElementById('jenis_tugas_hidden').value = data.jenis_tugas;
-            document.getElementById('completeDueDate').value = data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
-            document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
-            document.getElementById('customer_deal').value = data.customer_deal || 'No';
+            document.getElementById('completeJenisTugas').value = data.jenis_tugas || '-';
+            document.getElementById('jenis_tugas_hidden').value = data.jenis_tugas || '';
             
+            var dueDate = data.due_date;
+            if (dueDate) {
+                var dateObj = new Date(dueDate);
+                document.getElementById('completeDueDate').value = 
+                    dateObj.toLocaleDateString('id-ID', { 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric' 
+                    });
+            } else {
+                document.getElementById('completeDueDate').value = '-';
+            }
+            
+            document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
+            
+            // Set TR Number
             var trfNumber = data.trf_number || '';
+            document.getElementById('trf_number_complete').value = trfNumber;
+            document.getElementById('trf_number_complete_hidden').value = trfNumber;
+            
+            // Set DI Number
             var diNumber = data.di_number || '';
-
             if (data.jenis_tugas === 'Negosiasi') {
                 diNumber = '';
             }
-
-            document.getElementById('trf_number_complete').value = trfNumber;
-            document.getElementById('trf_number_complete_hidden').value = trfNumber;
             document.getElementById('di_number_complete').value = diNumber;
             document.getElementById('di_number_complete_hidden').value = diNumber;
-
+            
+            // Generate DI Number jika Kontrak dan belum ada
             if (data.jenis_tugas === 'Kontrak' && !diNumber) {
                 var completeDue = data.due_date || getDateWIB(7);
-
-                fetch(
-                    'salesactivity.php?generate_di=1&date=' +
-                    encodeURIComponent(completeDue)
-                )
-                .then(function(response) { return response.json(); })
-                .then(function(response) {
-                    if (response.di_number) {
-                        document.getElementById('di_number_complete').value = response.di_number;
-                        document.getElementById('di_number_complete_hidden').value = response.di_number;
-                    }
-                })
-                .catch(function(error) {
-                    console.error('Error generating DI:', error);
-                });
-
+                fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(completeDue))
+                    .then(function(response) { return response.json(); })
+                    .then(function(response) {
+                        if (response.di_number) {
+                            document.getElementById('di_number_complete').value = response.di_number;
+                            document.getElementById('di_number_complete_hidden').value = response.di_number;
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error generating DI:', error);
+                    });
             }
-
+            
+            // Reset form
             document.getElementById('result').value = '';
             document.getElementById('attachment_files').value = '';
             document.getElementById('fileList').innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
             
+            // Toggle fields
             setTimeout(function() {
                 toggleFieldsComplete();
             }, 100);
             
+            // Reset counter
             var resultCounter = document.getElementById('resultCounter');
             if (resultCounter) {
                 resultCounter.textContent = '0';
                 resultCounter.className = 'count invalid';
             }
             
+            // Tampilkan modal
             var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
             modal.show();
         }
