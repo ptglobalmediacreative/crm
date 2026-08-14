@@ -2963,6 +2963,11 @@ if (isset($_GET['complete'])) {
                                 if (diNumber && data.di_number) {
                                     diNumber.value = data.di_number;
                                 }
+                                // Tampilkan DI Field jika ada data
+                                var diField = document.getElementById('diField');
+                                if (diField && data.di_number) {
+                                    diField.style.display = 'block';
+                                }
                             })
                             .catch(function(error) {
                                 console.error('Error get account numbers:', error);
@@ -3017,11 +3022,12 @@ if (isset($_GET['complete'])) {
             var accountValue = accountId ? accountId.value : '';
 
             // ============================================
-            // JENIS TUGAS YANG MEMERLUKAN TR
+            // JENIS TUGAS YANG MEMERLUKAN TR DAN DI
             // ============================================
             var trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
             
             if (trRequired.includes(value)) {
+                // TAMPILKAN TR FIELD
                 trfField.classList.add('show');
                 
                 // Generate TR Number jika kosong
@@ -3092,18 +3098,23 @@ if (isset($_GET['complete'])) {
                 }
 
             // ============================================
-            // COLLECT PAYMENT & AFTERSALES
+            // COLLECT PAYMENT & AFTERSALES - DIPERBAIKI
             // ============================================
             } else if (value === 'Collect Payment' || value === 'Aftersales') {
-                dealFields.classList.remove('show');
+                // TAMPILKAN DEAL FIELDS untuk DI
+                dealFields.classList.add('show');
+                
+                // Sembunyikan Customer Deal wrapper
                 if (customerDealWrapper) {
-                    customerDealWrapper.style.display = 'block';
+                    customerDealWrapper.style.display = 'none';
                 }
                 if (customerDeal) {
                     customerDeal.value = 'No';
                 }
+                
+                // TAMPILKAN DI FIELD
                 if (diField) {
-                    diField.style.display = 'none';
+                    diField.style.display = 'block';
                 }
                 
                 // Ambil TR dan DI dari account
@@ -3159,11 +3170,12 @@ if (isset($_GET['complete'])) {
             var value = jenisTugas.value;
 
             // ============================================
-            // JENIS TUGAS YANG MEMERLUKAN TR
+            // JENIS TUGAS YANG MEMERLUKAN TR DAN DI
             // ============================================
             var trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
             
             if (trRequired.includes(value)) {
+                // TAMPILKAN TR FIELD
                 trfFieldComplete.classList.add('show');
             } else {
                 trfFieldComplete.classList.remove('show');
@@ -3231,12 +3243,23 @@ if (isset($_GET['complete'])) {
                 }
 
             // ============================================
-            // COLLECT PAYMENT & AFTERSALES
+            // COLLECT PAYMENT & AFTERSALES - DIPERBAIKI
             // ============================================
             } else if (value === 'Collect Payment' || value === 'Aftersales') {
-                dealFieldsComplete.classList.remove('show');
+                // TAMPILKAN DEAL FIELDS untuk DI
+                dealFieldsComplete.classList.add('show');
+                
+                // Sembunyikan Customer Deal
+                if (customerDealWrapperComplete) {
+                    customerDealWrapperComplete.style.display = 'none';
+                }
+                if (customerDealComplete) {
+                    customerDealComplete.value = 'No';
+                }
+                
+                // TAMPILKAN DI FIELD
                 if (diFieldComplete) {
-                    diFieldComplete.style.display = 'none';
+                    diFieldComplete.style.display = 'block';
                 }
 
             // ============================================
@@ -3603,6 +3626,10 @@ if (isset($_GET['complete'])) {
                 document.getElementById('dealFields').classList.add('show');
                 document.getElementById('diField').style.display = 'block';
                 document.getElementById('customerDealWrapper').style.display = 'none';
+            } else if (data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') {
+                document.getElementById('dealFields').classList.add('show');
+                document.getElementById('diField').style.display = 'block';
+                document.getElementById('customerDealWrapper').style.display = 'none';
             }
             
             setTimeout(function() {
@@ -3695,6 +3722,17 @@ if (isset($_GET['complete'])) {
                     } else {
                         diFieldComplete.style.display = 'none';
                     }
+                }
+            } else if (data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') {
+                // Collect Payment & Aftersales - Tampilkan DI
+                if (customerDealWrapperComplete) {
+                    customerDealWrapperComplete.style.display = 'none';
+                }
+                if (customerDealComplete) {
+                    customerDealComplete.value = 'No';
+                }
+                if (diFieldComplete) {
+                    diFieldComplete.style.display = 'block';
                 }
             } else {
                 if (customerDealWrapperComplete) {
