@@ -354,17 +354,13 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
 
         /* TR Number Style - Sama dengan Leads Number */
         .tr-number-link {
-            color: #d4a017;
+            color: #2980b9;
             text-decoration: none;
             font-weight: 700;
             font-size: 14px;
             letter-spacing: 0.5px;
             display: inline-block;
             transition: all 0.3s ease;
-        }
-        .tr-number-link:hover {
-            color: #b7950b;
-            text-decoration: none;
         }
 
         .btn-primary-custom {
