@@ -91,7 +91,6 @@ function getJenisProspek($db, $salesActivityId) {
     $status = $lastActivity['status'];
     $customer_deal = $lastActivity['customer_deal'];
     
-    // Negosiasi sudah completed
     if ($jenis_tugas === 'Negosiasi' && $status === 'completed') {
         if ($customer_deal === 'Yes') {
             return 'Deal';
@@ -100,12 +99,10 @@ function getJenisProspek($db, $salesActivityId) {
         }
     }
     
-    // Negosiasi belum completed
     if ($jenis_tugas === 'Negosiasi') {
         return 'Hot Prospek';
     }
     
-    // Mapping jenis tugas
     $mapping = [
         'Perkenalan' => 'Low Prospek',
         'Visit/Meeting' => 'Middle Prospek',
@@ -131,17 +128,14 @@ function getStatusProspek($db, $salesActivityId) {
         return null;
     }
     
-    // Cek jika ada Overdue
     if (in_array('overdue', $allStatus)) {
         return 'Overdue';
     }
     
-    // Cek jika ada In Progress
     if (in_array('in_progress', $allStatus)) {
         return 'In Progress';
     }
     
-    // Jika semua completed
     return 'Completed';
 }
 
@@ -156,9 +150,8 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
-
-// Filter Bulan
 $filterMonth = isset($_GET['month']) ? bersihkan($_GET['month']) : date('Y-m');
+$filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 
 $where = "WHERE 1=1";
 $params = [];
@@ -166,6 +159,9 @@ $params = [];
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
+} elseif ($filterSalesId > 0) {
+    $where .= " AND sa.sales_id = ?";
+    $params[] = $filterSalesId;
 }
 
 if (!empty($search)) {
@@ -195,7 +191,6 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
-// Update jenis prospek dan status untuk setiap aktivitas
 foreach ($activities as &$act) {
     $act['jenis_prospek'] = getJenisProspek($db, $act['id']);
     $act['status_prospek'] = getStatusProspek($db, $act['id']);
@@ -630,10 +625,20 @@ $role = $_SESSION['role'] ?? 'user';
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
                 <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
-                    <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars($filterMonth) ?>" style="width: 170px;" onchange="this.form.submit()">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari Leads Number, Nama PT..." value="<?= htmlspecialchars($search) ?>" style="width: 200px;">
+                    <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars($filterMonth) ?>" style="width: 160px;" onchange="this.form.submit()">
+                    <?php if ($userRole !== 'sales'): ?>
+                    <select name="sales_id" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
+                        <option value="0">Semua Sales</option>
+                        <?php foreach ($salesUsers as $s): ?>
+                            <option value="<?= $s['id'] ?>" <?= $filterSalesId == $s['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($s['full_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php endif; ?>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 180px;">
                     <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
-                    <?php if (!empty($search) || $filterMonth !== date('Y-m')): ?>
+                    <?php if (!empty($search) || $filterMonth !== date('Y-m') || $filterSalesId > 0): ?>
                         <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i> Reset</a>
                     <?php endif; ?>
                 </form>
@@ -738,15 +743,15 @@ $role = $_SESSION['role'] ?? 'user';
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
