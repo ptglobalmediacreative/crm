@@ -125,6 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
+        if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter!';
         
         // Generate TR Number jika jenis_tugas = Negosiasi
@@ -210,24 +211,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Upload file
-        $attachment_file = NULL;
-        if (!empty($_FILES['attachment_file']['name'])) {
+        // Upload file (multiple)
+        $attachment_files = [];
+        if (!empty($_FILES['attachment_file']['name']) && is_array($_FILES['attachment_file']['name'])) {
             $target_dir = "uploads/attachments/";
             if (!file_exists($target_dir)) {
                 mkdir($target_dir, 0777, true);
             }
             
-            $file_extension = strtolower(pathinfo($_FILES['attachment_file']['name'], PATHINFO_EXTENSION));
             $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
             
-            if (in_array($file_extension, $allowed_extensions)) {
-                $attachment_file = $target_dir . time() . '_' . uniqid() . '.' . $file_extension;
-                move_uploaded_file($_FILES['attachment_file']['tmp_name'], $attachment_file);
-            } else {
-                $errors[] = 'Format file tidak didukung!';
+            foreach ($_FILES['attachment_file']['name'] as $key => $filename) {
+                if ($_FILES['attachment_file']['error'][$key] === UPLOAD_ERR_OK) {
+                    $file_extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                    
+                    if (in_array($file_extension, $allowed_extensions)) {
+                        $new_filename = $target_dir . time() . '_' . uniqid() . '_' . $key . '.' . $file_extension;
+                        move_uploaded_file($_FILES['attachment_file']['tmp_name'][$key], $new_filename);
+                        $attachment_files[] = $new_filename;
+                    } else {
+                        $errors[] = 'Format file ' . $filename . ' tidak didukung!';
+                    }
+                }
             }
         }
+        
+        // Validasi minimal 1 file
+        if (empty($attachment_files)) {
+            $errors[] = 'Attachment File wajib diupload minimal 1 file!';
+        }
+        
+        // Gabungkan file menjadi string (dipisahkan koma)
+        $attachment_file = !empty($attachment_files) ? implode(',', $attachment_files) : NULL;
         
         if (empty($errors)) {
             // Update query dengan tr_number juga
@@ -843,8 +858,8 @@ $userId = $_SESSION['user_id'] ?? 0;
                         <div id="negosiasiInfoAdd" style="display: none;"></div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Due Date <span class="optional">(Optional)</span></label>
-                            <input type="date" name="due_date" class="form-control">
+                            <label class="form-label">Due Date <span class="text-danger">*</span></label>
+                            <input type="date" name="due_date" class="form-control" required>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -876,8 +891,9 @@ $userId = $_SESSION['user_id'] ?? 0;
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Attachment File <span class="optional">(Optional)</span></label>
-                            <input type="file" name="attachment_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx">
+                            <label class="form-label">Attachment File <span class="text-danger">*</span> <small class="text-muted">(Bisa pilih banyak file)</small></label>
+                            <input type="file" name="attachment_file[]" id="attachment_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" multiple required>
+                            <small class="text-muted">Tahan tombol Ctrl untuk memilih banyak file (JPG, PNG, PDF, DOC, XLS)</small>
                         </div>
                         
                         <!-- Customer Deal & DI Number (muncul jika jenis_tugas = Negosiasi) -->
@@ -1083,7 +1099,11 @@ $userId = $_SESSION['user_id'] ?? 0;
                     ${data.attachment_file ? `
                     <div class="info-item">
                         <div class="info-label">Attachment</div>
-                        <div class="info-value"><a href="${data.attachment_file}" target="_blank">Lihat File</a></div>
+                        <div class="info-value">
+                            ${data.attachment_file.split(',').map(function(file, index) {
+                                return '<a href="' + file.trim() + '" target="_blank" class="me-2"><i class="fas fa-file me-1"></i>File ' + (index + 1) + '</a>';
+                            }).join('')}
+                        </div>
                     </div>` : ''}
                     <div class="info-item">
                         <div class="info-label">Status</div>
