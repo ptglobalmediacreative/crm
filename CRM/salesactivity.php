@@ -45,8 +45,8 @@ try {
         leads_number VARCHAR(50) NOT NULL UNIQUE,
         account_id INT NOT NULL,
         sales_id INT NULL,
-        jenis_tugas VARCHAR(100) NOT NULL,
-        subject VARCHAR(255) NOT NULL,
+        jenis_tugas VARCHAR(100) NULL,
+        subject VARCHAR(255) NULL,
         status ENUM('pending', 'in_progress', 'completed', 'overdue') DEFAULT 'pending',
         customer_deal ENUM('', 'Yes', 'No') DEFAULT '',
         due_date DATETIME NULL,
@@ -54,24 +54,23 @@ try {
         trf_number VARCHAR(100) NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
-        FOREIGN KEY (sales_id) REFERENCES users(id) ON DELETE SET NULL,
         INDEX idx_account_id (account_id),
         INDEX idx_sales_id (sales_id),
         INDEX idx_status (status),
-        INDEX idx_due_date (due_date)
+        INDEX idx_due_date (due_date),
+        INDEX idx_leads_number (leads_number)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch(PDOException $e) {
     // Abaikan jika tabel sudah ada
 }
 
 // ============================================
-// TAMBAH KOLOM JIKA BELUM ADA
+// TAMBAH KOLOM JIKA BELUM ADA (UNTUK KOLOM NULLABLE)
 // ============================================
 try {
     $db->query("SELECT subject FROM sales_activities LIMIT 1");
 } catch(PDOException $e) {
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN subject VARCHAR(255) NOT NULL AFTER jenis_tugas");
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN subject VARCHAR(255) NULL AFTER jenis_tugas");
 }
 
 try {
@@ -140,10 +139,6 @@ $offset = ($page - 1) * $limit;
 // Search
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 
-// Filter Status
-$filterStatus = isset($_GET['status']) ? bersihkan($_GET['status']) : '';
-$filterJenisTugas = isset($_GET['jenis_tugas']) ? bersihkan($_GET['jenis_tugas']) : '';
-
 // Build query
 $where = "WHERE 1=1";
 $params = [];
@@ -155,18 +150,8 @@ if ($userRole === 'sales') {
 }
 
 if (!empty($search)) {
-    $where .= " AND (sa.leads_number LIKE ? OR sa.subject LIKE ? OR a.nama_pt LIKE ? OR a.nama_pic LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%"]);
-}
-
-if (!empty($filterStatus)) {
-    $where .= " AND sa.status = ?";
-    $params[] = $filterStatus;
-}
-
-if (!empty($filterJenisTugas)) {
-    $where .= " AND sa.jenis_tugas = ?";
-    $params[] = $filterJenisTugas;
+    $where .= " AND (sa.leads_number LIKE ? OR a.nama_pt LIKE ? OR a.nama_pic LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%", "%$search%"]);
 }
 
 // ============================================
@@ -333,12 +318,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         $account_id = (int)$_POST['account_id'];
-        $jenis_tugas = bersihkan($_POST['jenis_tugas']);
-        $subject = bersihkan($_POST['subject']);
-        $status = bersihkan($_POST['status']);
-        $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : NULL;
-        $description = !empty($_POST['description']) ? bersihkan($_POST['description']) : NULL;
-        $customer_deal = isset($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : '';
         
         // Sales ID
         if ($userRole === 'sales') {
@@ -352,53 +331,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $errors = [];
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
-        if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
-        if (empty($status)) $errors[] = 'Status wajib dipilih!';
+        
+        // Cek apakah account_id sudah memiliki leads_number aktif
+        $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities WHERE account_id = ?");
+        $stmt->execute([$account_id]);
+        if ($stmt->fetchColumn() > 0) {
+            $errors[] = 'Account ini sudah memiliki Leads Number!';
+        }
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO sales_activities (leads_number, account_id, sales_id, jenis_tugas, subject, status, customer_deal, due_date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$leads_number, $account_id, $sales_id, $jenis_tugas, $subject, $status, $customer_deal, $due_date, $description]);
+            $stmt = $db->prepare("INSERT INTO sales_activities (leads_number, account_id, sales_id) VALUES (?, ?, ?)");
+            $stmt->execute([$leads_number, $account_id, $sales_id]);
             
             setFlash('Sales Activity berhasil ditambahkan! Leads Number: ' . $leads_number, 'success');
-            redirect('salesactivity.php');
-        } else {
-            setFlash(implode('<br>', $errors), 'danger');
-        }
-    }
-    
-    if ($action === 'edit') {
-        if (!canEdit('sales_activity')) {
-            setFlash('Anda tidak memiliki akses untuk mengedit aktivitas!', 'danger');
-            redirect('salesactivity.php');
-        }
-        
-        $id = (int)$_POST['id'];
-        $account_id = (int)$_POST['account_id'];
-        $jenis_tugas = bersihkan($_POST['jenis_tugas']);
-        $subject = bersihkan($_POST['subject']);
-        $status = bersihkan($_POST['status']);
-        $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : NULL;
-        $description = !empty($_POST['description']) ? bersihkan($_POST['description']) : NULL;
-        $customer_deal = isset($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : '';
-        
-        if ($userRole === 'sales') {
-            $sales_id = $userId;
-        } else {
-            $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
-        }
-        
-        $errors = [];
-        if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
-        if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
-        if (empty($status)) $errors[] = 'Status wajib dipilih!';
-        
-        if (empty($errors)) {
-            $stmt = $db->prepare("UPDATE sales_activities SET account_id = ?, sales_id = ?, jenis_tugas = ?, subject = ?, status = ?, customer_deal = ?, due_date = ?, description = ? WHERE id = ?");
-            $stmt->execute([$account_id, $sales_id, $jenis_tugas, $subject, $status, $customer_deal, $due_date, $description, $id]);
-            
-            setFlash('Sales Activity berhasil diupdate!', 'success');
             redirect('salesactivity.php');
         } else {
             setFlash(implode('<br>', $errors), 'danger');
@@ -622,29 +567,6 @@ $role = $_SESSION['role'] ?? 'user';
             background: #f8f9fa;
         }
         
-        .badge-status {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-status.overdue { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
-        .badge-status.pending { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
-        
-        .badge-tugas {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        .badge-tugas.Prospecting { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-tugas.Negosiasi { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
-        .badge-tugas.Kontrak { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        
         .btn-action {
             width: 30px;
             height: 30px;
@@ -660,8 +582,6 @@ $role = $_SESSION['role'] ?? 'user';
         .btn-action:hover { transform: scale(1.1); }
         .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
         .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
-        .btn-action.edit { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
-        .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
         .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
 
@@ -738,9 +658,6 @@ $role = $_SESSION['role'] ?? 'user';
             font-size: 16px;
             letter-spacing: 0.5px;
         }
-
-        .customer-deal-field { display: none; }
-        .customer-deal-field.show { display: block; }
 
         .mobile-toggle { display: none; }
 
@@ -873,39 +790,17 @@ $role = $_SESSION['role'] ?? 'user';
             </div>
         </div>
 
-        <!-- FILTER BAR -->
-        <div class="filter-bar">
-            <form method="GET" class="d-flex gap-2 flex-wrap align-items-center w-100">
-                <i class="fas fa-filter" style="color:#d4a017;"></i>
-                <input type="text" name="search" class="form-control" placeholder="Cari Leads Number, Subject, Nama PT..." value="<?= htmlspecialchars($search) ?>" style="width: 250px;">
-                
-                <select name="status" class="form-select" style="width: 150px;">
-                    <option value="">Semua Status</option>
-                    <option value="in_progress" <?= $filterStatus == 'in_progress' ? 'selected' : '' ?>>In Progress</option>
-                    <option value="completed" <?= $filterStatus == 'completed' ? 'selected' : '' ?>>Completed</option>
-                    <option value="overdue" <?= $filterStatus == 'overdue' ? 'selected' : '' ?>>Overdue</option>
-                    <option value="pending" <?= $filterStatus == 'pending' ? 'selected' : '' ?>>Pending</option>
-                </select>
-                
-                <select name="jenis_tugas" class="form-select" style="width: 150px;">
-                    <option value="">Semua Jenis</option>
-                    <option value="Prospecting" <?= $filterJenisTugas == 'Prospecting' ? 'selected' : '' ?>>Prospecting</option>
-                    <option value="Negosiasi" <?= $filterJenisTugas == 'Negosiasi' ? 'selected' : '' ?>>Negosiasi</option>
-                    <option value="Kontrak" <?= $filterJenisTugas == 'Kontrak' ? 'selected' : '' ?>>Kontrak</option>
-                </select>
-                
-                <button type="submit" class="btn btn-filter"><i class="fas fa-search"></i> Cari</button>
-                
-                <?php if (!empty($search) || !empty($filterStatus) || !empty($filterJenisTugas)): ?>
-                    <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 8px 16px;"><i class="fas fa-times"></i> Reset</a>
-                <?php endif; ?>
-            </form>
-        </div>
-
         <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
+                <form method="GET" class="d-flex gap-2">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari Leads Number, Nama PT..." value="<?= htmlspecialchars($search) ?>" style="width: 250px;">
+                    <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
+                    <?php if (!empty($search)): ?>
+                        <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i></a>
+                    <?php endif; ?>
+                </form>
             </div>
             <div class="card-body-custom">
                 <?= showFlash() ?>
@@ -916,10 +811,10 @@ $role = $_SESSION['role'] ?? 'user';
                                 <th>No</th>
                                 <th>Leads Number</th>
                                 <th>Nama PT</th>
-                                <th>Jenis Tugas</th>
-                                <th>Subject</th>
-                                <th>Status</th>
-                                <th>Due Date</th>
+                                <th>Badan Usaha</th>
+                                <th>Business Segment</th>
+                                <th>Nama PIC</th>
+                                <th>Contact Mobile Phone</th>
                                 <th>Sales</th>
                                 <th>Aksi</th>
                             </tr>
@@ -932,37 +827,16 @@ $role = $_SESSION['role'] ?? 'user';
                                         <td><?= $no++ ?></td>
                                         <td><strong><?= htmlspecialchars($act['leads_number']) ?></strong></td>
                                         <td><?= htmlspecialchars($act['nama_pt']) ?></td>
-                                        <td>
-                                            <span class="badge-tugas <?= htmlspecialchars($act['jenis_tugas']) ?>">
-                                                <?= htmlspecialchars($act['jenis_tugas']) ?>
-                                            </span>
-                                        </td>
-                                        <td><?= htmlspecialchars($act['subject']) ?></td>
-                                        <td>
-                                            <span class="badge-status <?= htmlspecialchars($act['status']) ?>">
-                                                <?php 
-                                                    $statusLabels = [
-                                                        'pending' => 'Pending',
-                                                        'in_progress' => 'In Progress',
-                                                        'completed' => 'Completed',
-                                                        'overdue' => 'Overdue'
-                                                    ];
-                                                    echo $statusLabels[$act['status']] ?? $act['status'];
-                                                ?>
-                                            </span>
-                                        </td>
-                                        <td><?= $act['due_date'] ? date('d-m-Y', strtotime($act['due_date'])) : '-' ?></td>
+                                        <td><?= htmlspecialchars($act['badan_usaha'] ?? '-') ?></td>
+                                        <td><?= htmlspecialchars($act['bidang_usaha'] ?? '-') ?></td>
+                                        <td><?= htmlspecialchars($act['nama_pic'] ?? '-') ?></td>
+                                        <td><?= htmlspecialchars($act['no_hp_pic'] ?? '-') ?></td>
                                         <td><?= htmlspecialchars($act['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
                                                 <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($act)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <?php if (canEdit('sales_activity')): ?>
-                                                    <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($act)) ?>)">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                <?php endif; ?>
                                                 <?php if (canDelete('sales_activity')): ?>
                                                     <button class="btn-action delete" onclick="deleteActivity(<?= $act['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -988,15 +862,15 @@ $role = $_SESSION['role'] ?? 'user';
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&jenis_tugas=<?= urlencode($filterJenisTugas) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&jenis_tugas=<?= urlencode($filterJenisTugas) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&jenis_tugas=<?= urlencode($filterJenisTugas) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
@@ -1011,28 +885,23 @@ $role = $_SESSION['role'] ?? 'user';
 
     </div>
 
-    <!-- MODAL TAMBAH / EDIT ACTIVITY -->
+    <!-- MODAL TAMBAH ACTIVITY -->
     <div class="modal fade" id="modalActivity" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="fas fa-plus"></i> Tambah Aktivitas</h5>
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Tambah Aktivitas</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST" id="formActivity">
                     <div class="modal-body">
-                        <input type="hidden" name="action" id="formAction" value="add">
-                        <input type="hidden" name="id" id="formId" value="">
+                        <input type="hidden" name="action" value="add">
                         
-                        <!-- Leads Number (Auto Generate untuk Tambah) -->
-                        <div class="mb-3" id="leadsNumberContainer">
+                        <!-- Leads Number (Auto Generate) -->
+                        <div class="mb-3">
                             <label class="form-label">Leads Number</label>
-                            <div class="leads-number-display" id="leadsNumberDisplay">
-                                <?php 
-                                    $tahun = date('Y');
-                                    $bulanRomawi = getBulanRomawi(date('n'));
-                                    echo "0001/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
-                                ?>
+                            <div class="leads-number-display">
+                                <?= generateLeadsNumber($db) ?>
                             </div>
                             <small class="text-muted">Generate otomatis saat disimpan</small>
                         </div>
@@ -1076,73 +945,20 @@ $role = $_SESSION['role'] ?? 'user';
                             </div>
                         </div>
                         
-                        <hr>
-                        
-                        <!-- Jenis Tugas -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Jenis Tugas <span class="text-danger">*</span></label>
-                                <select name="jenis_tugas" id="jenis_tugas" class="form-select" required>
-                                    <option value="">Pilih Jenis Tugas</option>
-                                    <option value="Prospecting">Prospecting</option>
-                                    <option value="Negosiasi">Negosiasi</option>
-                                    <option value="Kontrak">Kontrak</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Status <span class="text-danger">*</span></label>
-                                <select name="status" id="status" class="form-select" required>
-                                    <option value="">Pilih Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="overdue">Overdue</option>
-                                </select>
-                            </div>
-                        </div>
-                        
+                        <!-- Sales (hanya untuk non-sales) -->
+                        <?php if ($userRole !== 'sales'): ?>
                         <div class="mb-3">
-                            <label class="form-label">Subject <span class="text-danger">*</span></label>
-                            <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject aktivitas" required>
+                            <label class="form-label">Sales</label>
+                            <select name="sales_id" id="sales_id" class="form-select">
+                                <option value="">-- Pilih Sales --</option>
+                                <?php foreach ($salesUsers as $s): ?>
+                                    <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['full_name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        
-                        <!-- Customer Deal (muncul jika jenis_tugas = Negosiasi) -->
-                        <div class="row customer-deal-field" id="customerDealField">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Customer Deal?</label>
-                                <select name="customer_deal" id="customer_deal" class="form-select">
-                                    <option value="">-- Pilih --</option>
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Due Date <span class="optional">(Optional)</span></label>
-                                <input type="date" name="due_date" id="due_date" class="form-control">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Sales</label>
-                                <?php if ($userRole === 'sales'): ?>
-                                    <input type="hidden" name="sales_id" value="<?= $userId ?>">
-                                    <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" readonly>
-                                <?php else: ?>
-                                    <select name="sales_id" id="sales_id" class="form-select">
-                                        <option value="">-- Pilih Sales --</option>
-                                        <?php foreach ($salesUsers as $s): ?>
-                                            <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['full_name']) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Description <span class="optional">(Optional)</span></label>
-                            <textarea name="description" id="description" class="form-control" rows="3" placeholder="Masukkan deskripsi aktivitas"></textarea>
-                        </div>
+                        <?php else: ?>
+                            <input type="hidden" name="sales_id" value="<?= $userId ?>">
+                        <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
@@ -1195,6 +1011,7 @@ $role = $_SESSION['role'] ?? 'user';
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
@@ -1222,16 +1039,6 @@ $role = $_SESSION['role'] ?? 'user';
                     $('#no_hp_pic').val('');
                 }
             });
-            
-            // Event ketika jenis_tugas berubah
-            $('#jenis_tugas').on('change', function() {
-                if ($(this).val() === 'Negosiasi') {
-                    $('#customerDealField').addClass('show');
-                } else {
-                    $('#customerDealField').removeClass('show');
-                    $('#customer_deal').val('');
-                }
-            });
         });
 
         // ============================================
@@ -1250,10 +1057,10 @@ $role = $_SESSION['role'] ?? 'user';
                         <?= $statusCounts['overdue'] ?>
                     ],
                     backgroundColor: [
-                        '#d4a017', // Gold
-                        '#2980b9', // Blue
-                        '#27ae60', // Green
-                        '#e74c3c'  // Red
+                        '#d4a017',
+                        '#2980b9',
+                        '#27ae60',
+                        '#e74c3c'
                     ],
                     borderWidth: 0,
                     hoverOffset: 10
@@ -1269,15 +1076,6 @@ $role = $_SESSION['role'] ?? 'user';
                             usePointStyle: true,
                             padding: 15,
                             font: { family: 'Inter', size: 12 }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                var label = context.label || '';
-                                var value = context.raw || 0;
-                                return label + ': ' + value;
-                            }
                         }
                     }
                 }
@@ -1300,10 +1098,10 @@ $role = $_SESSION['role'] ?? 'user';
                         <?= $prospekCounts['Deal'] ?>
                     ],
                     backgroundColor: [
-                        '#f39c12', // Orange
-                        '#e74c3c', // Red
-                        '#95a5a6', // Gray
-                        '#2ecc71'  // Green
+                        '#f39c12',
+                        '#e74c3c',
+                        '#95a5a6',
+                        '#2ecc71'
                     ],
                     borderWidth: 0,
                     hoverOffset: 10
@@ -1329,7 +1127,6 @@ $role = $_SESSION['role'] ?? 'user';
         // DETAIL ACTIVITY
         // ============================================
         function detailActivity(data) {
-            var statusLabels = {pending: 'Pending', in_progress: 'In Progress', completed: 'Completed', overdue: 'Overdue'};
             var html = `
                 <div class="detail-item">
                     <div class="detail-label">Leads Number</div>
@@ -1356,89 +1153,18 @@ $role = $_SESSION['role'] ?? 'user';
                     <div class="detail-value">${data.no_hp_pic || '-'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Jenis Tugas</div>
-                    <div class="detail-value">${data.jenis_tugas}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Subject</div>
-                    <div class="detail-value">${data.subject}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Status</div>
-                    <div class="detail-value"><span class="badge-status ${data.status}">${statusLabels[data.status] || data.status}</span></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Due Date</div>
-                    <div class="detail-value">${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}</div>
-                </div>
-                <div class="detail-item">
                     <div class="detail-label">Sales</div>
                     <div class="detail-value">${data.sales_name || '-'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Description</div>
-                    <div class="detail-value">${data.description || '-'}</div>
+                    <div class="detail-label">Tanggal Dibuat</div>
+                    <div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
             `;
             document.getElementById('detailBody').innerHTML = html;
             var modal = new bootstrap.Modal(document.getElementById('modalDetail'));
             modal.show();
         }
-
-        // ============================================
-        // EDIT ACTIVITY
-        // ============================================
-        function editActivity(data) {
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Aktivitas';
-            document.getElementById('formAction').value = 'edit';
-            document.getElementById('formId').value = data.id;
-            
-            // Set Leads Number (readonly saat edit)
-            document.getElementById('leadsNumberDisplay').textContent = data.leads_number;
-            
-            // Set Account
-            $('#account_id').val(data.account_id).trigger('change');
-            
-            // Set field lainnya
-            document.getElementById('jenis_tugas').value = data.jenis_tugas;
-            document.getElementById('status').value = data.status;
-            document.getElementById('subject').value = data.subject;
-            document.getElementById('due_date').value = data.due_date ? data.due_date.split(' ')[0] : '';
-            document.getElementById('description').value = data.description || '';
-            document.getElementById('customer_deal').value = data.customer_deal || '';
-            
-            // Tampilkan customer_deal jika jenis_tugas = Negosiasi
-            if (data.jenis_tugas === 'Negosiasi') {
-                document.getElementById('customerDealField').classList.add('show');
-            } else {
-                document.getElementById('customerDealField').classList.remove('show');
-            }
-            
-            // Set sales_id
-            if (document.getElementById('sales_id')) {
-                document.getElementById('sales_id').value = data.sales_id || '';
-            }
-            
-            var modal = new bootstrap.Modal(document.getElementById('modalActivity'));
-            modal.show();
-        }
-
-        // ============================================
-        // RESET FORM SAAT MODAL DITUTUP
-        // ============================================
-        document.getElementById('modalActivity').addEventListener('hidden.bs.modal', function() {
-            document.getElementById('formActivity').reset();
-            document.getElementById('formAction').value = 'add';
-            document.getElementById('formId').value = '';
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Aktivitas';
-            document.getElementById('leadsNumberDisplay').textContent = '0001/GET-ACT/JKT/<?= getBulanRomawi(date("n")) ?>/<?= date("Y") ?>';
-            $('#account_id').val('').trigger('change');
-            $('#badan_usaha').val('');
-            $('#bidang_usaha').val('');
-            $('#nama_pic').val('');
-            $('#no_hp_pic').val('');
-            document.getElementById('customerDealField').classList.remove('show');
-        });
 
         // ============================================
         // DELETE ACTIVITY
