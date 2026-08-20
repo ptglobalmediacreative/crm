@@ -37,55 +37,6 @@ function getRoleLabel($role) {
 }
 
 // ============================================
-// BUAT TABEL SALES_ACTIVITIES (JIKA BELUM ADA)
-// ============================================
-try {
-    $db->exec("CREATE TABLE IF NOT EXISTS sales_activities (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        leads_number VARCHAR(50) NOT NULL UNIQUE,
-        account_id INT NOT NULL,
-        sales_id INT NULL,
-        jenis_tugas VARCHAR(100) NULL,
-        subject VARCHAR(255) NULL,
-        status ENUM('pending', 'in_progress', 'completed', 'overdue') DEFAULT 'pending',
-        customer_deal ENUM('', 'Yes', 'No') DEFAULT '',
-        due_date DATETIME NULL,
-        description TEXT NULL,
-        trf_number VARCHAR(100) NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_account_id (account_id),
-        INDEX idx_sales_id (sales_id),
-        INDEX idx_status (status),
-        INDEX idx_due_date (due_date),
-        INDEX idx_leads_number (leads_number)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-} catch(PDOException $e) {
-    // Abaikan jika tabel sudah ada
-}
-
-// ============================================
-// TAMBAH KOLOM JIKA BELUM ADA (UNTUK KOLOM NULLABLE)
-// ============================================
-try {
-    $db->query("SELECT subject FROM sales_activities LIMIT 1");
-} catch(PDOException $e) {
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN subject VARCHAR(255) NULL AFTER jenis_tugas");
-}
-
-try {
-    $db->query("SELECT description FROM sales_activities LIMIT 1");
-} catch(PDOException $e) {
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN description TEXT NULL AFTER due_date");
-}
-
-try {
-    $db->query("SELECT customer_deal FROM sales_activities LIMIT 1");
-} catch(PDOException $e) {
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN customer_deal ENUM('', 'Yes', 'No') DEFAULT '' AFTER status");
-}
-
-// ============================================
 // FUNGSI GENERATE LEADS NUMBER
 // ============================================
 function generateLeadsNumber($db) {
@@ -95,9 +46,6 @@ function generateLeadsNumber($db) {
     // Konversi ke Romawi
     $romawi = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
     $bulanRomawi = $romawi[$bulan];
-    
-    // Prefix
-    $prefix = "0001/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
     
     // Cari nomor terakhir dengan bulan dan tahun yang sama
     $pattern = "%/GET-ACT/JKT/{$bulanRomawi}/{$tahun}%";
@@ -155,124 +103,6 @@ if (!empty($search)) {
 }
 
 // ============================================
-// STATISTIK UNTUK DONUT CHART
-// ============================================
-$statWhere = "WHERE 1=1";
-$statParams = [];
-
-if ($userRole === 'sales') {
-    $statWhere .= " AND sa.sales_id = ?";
-    $statParams[] = $userId;
-}
-
-// Status Aktivitas
-$statusCounts = [
-    'total' => 0,
-    'in_progress' => 0,
-    'completed' => 0,
-    'overdue' => 0
-];
-
-$sqlTotalAktivitas = "SELECT COUNT(*) FROM sales_activities sa $statWhere";
-$stmt = $db->prepare($sqlTotalAktivitas);
-$stmt->execute($statParams);
-$statusCounts['total'] = (int)$stmt->fetchColumn();
-
-$sqlInProgress = "SELECT COUNT(*) FROM sales_activities sa $statWhere AND sa.status = 'in_progress'";
-$stmt = $db->prepare($sqlInProgress);
-$stmt->execute($statParams);
-$statusCounts['in_progress'] = (int)$stmt->fetchColumn();
-
-$sqlCompleted = "SELECT COUNT(*) FROM sales_activities sa $statWhere AND sa.status = 'completed'";
-$stmt = $db->prepare($sqlCompleted);
-$stmt->execute($statParams);
-$statusCounts['completed'] = (int)$stmt->fetchColumn();
-
-$sqlOverdue = "SELECT COUNT(*) FROM sales_activities sa $statWhere AND sa.status = 'overdue'";
-$stmt = $db->prepare($sqlOverdue);
-$stmt->execute($statParams);
-$statusCounts['overdue'] = (int)$stmt->fetchColumn();
-
-// Status Prospek
-$prospekCounts = [
-    'Middle Prospek' => 0,
-    'Hot Prospek' => 0,
-    'Lost Prospek' => 0,
-    'Deal' => 0
-];
-
-// Middle Prospek (Prospecting, belum Negosiasi/Kontrak)
-$sqlMiddle = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-              WHERE sa.jenis_tugas = 'Prospecting'
-              AND sa.account_id NOT IN (
-                  SELECT DISTINCT account_id FROM sales_activities 
-                  WHERE jenis_tugas IN ('Negosiasi', 'Kontrak') AND account_id IS NOT NULL
-              )";
-if ($userRole === 'sales') {
-    $sqlMiddle .= " AND sa.sales_id = ?";
-}
-$stmt = $db->prepare($sqlMiddle);
-if ($userRole === 'sales') {
-    $stmt->execute([$userId]);
-} else {
-    $stmt->execute();
-}
-$prospekCounts['Middle Prospek'] = (int)$stmt->fetchColumn();
-
-// Hot Prospek (Negosiasi)
-$sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-           WHERE sa.jenis_tugas = 'Negosiasi'
-           AND sa.account_id NOT IN (
-               SELECT DISTINCT account_id FROM sales_activities 
-               WHERE jenis_tugas = 'Kontrak' AND account_id IS NOT NULL
-           )
-           AND sa.account_id NOT IN (
-               SELECT DISTINCT account_id FROM sales_activities 
-               WHERE jenis_tugas = 'Negosiasi' AND status = 'completed' AND customer_deal = 'No' AND account_id IS NOT NULL
-           )
-           AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')";
-if ($userRole === 'sales') {
-    $sqlHot .= " AND sa.sales_id = ?";
-}
-$stmt = $db->prepare($sqlHot);
-if ($userRole === 'sales') {
-    $stmt->execute([$userId]);
-} else {
-    $stmt->execute();
-}
-$prospekCounts['Hot Prospek'] = (int)$stmt->fetchColumn();
-
-// Lost Prospek
-$sqlLost = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-            WHERE sa.jenis_tugas = 'Negosiasi'
-            AND sa.status = 'completed' 
-            AND sa.customer_deal = 'No'";
-if ($userRole === 'sales') {
-    $sqlLost .= " AND sa.sales_id = ?";
-}
-$stmt = $db->prepare($sqlLost);
-if ($userRole === 'sales') {
-    $stmt->execute([$userId]);
-} else {
-    $stmt->execute();
-}
-$prospekCounts['Lost Prospek'] = (int)$stmt->fetchColumn();
-
-// Deal
-$sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-            WHERE sa.jenis_tugas = 'Kontrak'";
-if ($userRole === 'sales') {
-    $sqlDeal .= " AND sa.sales_id = ?";
-}
-$stmt = $db->prepare($sqlDeal);
-if ($userRole === 'sales') {
-    $stmt->execute([$userId]);
-} else {
-    $stmt->execute();
-}
-$prospekCounts['Deal'] = (int)$stmt->fetchColumn();
-
-// ============================================
 // GET TOTAL DATA & LIST ACTIVITIES
 // ============================================
 $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
@@ -281,7 +111,7 @@ $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, u.full_name as sales_name
+$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
         FROM sales_activities sa 
         LEFT JOIN accounts a ON sa.account_id = a.id 
         LEFT JOIN users u ON sa.sales_id = u.id
@@ -332,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $errors = [];
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         
-        // Cek apakah account_id sudah memiliki leads_number aktif
+        // Cek apakah account_id sudah memiliki leads_number
         $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities WHERE account_id = ?");
         $stmt->execute([$account_id]);
         if ($stmt->fetchColumn() > 0) {
@@ -347,6 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             redirect('salesactivity.php');
         } else {
             setFlash(implode('<br>', $errors), 'danger');
+            redirect('salesactivity.php');
         }
     }
     
@@ -386,7 +217,6 @@ $role = $_SESSION['role'] ?? 'user';
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -468,36 +298,6 @@ $role = $_SESSION['role'] ?? 'user';
             letter-spacing: -0.5px;
         }
         .page-header h4 span { color: #ffd700; }
-
-        /* ---- CHART GRID ---- */
-        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-        @media (max-width: 991px) { .chart-grid { grid-template-columns: 1fr; } }
-        
-        .chart-card { 
-            background: #fff; border-radius: 16px; padding: 24px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
-            transition: all 0.3s ease;
-        }
-        .chart-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
-        .chart-card h6 { font-weight: 600; margin-bottom: 20px; color: #0e1a2b; }
-        .chart-card h6 i { color: #ffd700; margin-right: 8px; }
-        .chart-wrapper { height: 300px; width: 100%; position: relative; }
-
-        /* ---- FILTER BAR ---- */
-        .filter-bar {
-            display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
-            background: #fff; border-radius: 12px; padding: 15px 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea;
-            margin-bottom: 24px;
-        }
-        .filter-bar .form-select, .filter-bar .form-control {
-            border-radius: 8px; border: 2px solid #e8edf2; font-size: 13px; padding: 8px 12px;
-        }
-        .filter-bar .btn-filter {
-            background: #0e1a2b; color: #fff; border: none; border-radius: 8px;
-            padding: 8px 20px; font-weight: 600; font-size: 13px;
-        }
-        .filter-bar .btn-filter:hover { background: #1a2d4a; }
 
         /* ---- TABLE ---- */
         .card-custom {
@@ -593,7 +393,6 @@ $role = $_SESSION['role'] ?? 'user';
         .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
 
         .form-label { font-weight: 600; font-size: 13px; color: #333; }
-        .form-label .optional { font-weight: 400; color: #999; font-size: 11px; }
         .form-control, .form-select {
             border-radius: 8px;
             padding: 10px 14px;
@@ -689,7 +488,6 @@ $role = $_SESSION['role'] ?? 'user';
         }
 
         @media (max-width: 480px) {
-            .chart-wrapper { height: 220px; }
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
             .table-custom { font-size: 11px; }
@@ -769,25 +567,6 @@ $role = $_SESSION['role'] ?? 'user';
                     <i class="fas fa-plus"></i> Tambah Aktivitas
                 </button>
             <?php endif; ?>
-        </div>
-
-        <!-- CHART DONUT -->
-        <div class="chart-grid">
-            <!-- Donut Status Aktivitas -->
-            <div class="chart-card">
-                <h6><i class="fas fa-tasks"></i> Status Aktivitas</h6>
-                <div class="chart-wrapper">
-                    <canvas id="donutStatusAktivitas"></canvas>
-                </div>
-            </div>
-            
-            <!-- Donut Status Prospek -->
-            <div class="chart-card">
-                <h6><i class="fas fa-chart-pie"></i> Status Prospek</h6>
-                <div class="chart-wrapper">
-                    <canvas id="donutStatusProspek"></canvas>
-                </div>
-            </div>
         </div>
 
         <!-- TABLE -->
@@ -1042,88 +821,6 @@ $role = $_SESSION['role'] ?? 'user';
         });
 
         // ============================================
-        // CHART DONUT - STATUS AKTIVITAS
-        // ============================================
-        const ctxStatusAktivitas = document.getElementById('donutStatusAktivitas').getContext('2d');
-        new Chart(ctxStatusAktivitas, {
-            type: 'doughnut',
-            data: {
-                labels: ['Total Aktivitas', 'In Progress', 'Completed', 'Overdue'],
-                datasets: [{
-                    data: [
-                        <?= $statusCounts['total'] ?>,
-                        <?= $statusCounts['in_progress'] ?>,
-                        <?= $statusCounts['completed'] ?>,
-                        <?= $statusCounts['overdue'] ?>
-                    ],
-                    backgroundColor: [
-                        '#d4a017',
-                        '#2980b9',
-                        '#27ae60',
-                        '#e74c3c'
-                    ],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15,
-                            font: { family: 'Inter', size: 12 }
-                        }
-                    }
-                }
-            }
-        });
-
-        // ============================================
-        // CHART DONUT - STATUS PROSPEK
-        // ============================================
-        const ctxStatusProspek = document.getElementById('donutStatusProspek').getContext('2d');
-        new Chart(ctxStatusProspek, {
-            type: 'doughnut',
-            data: {
-                labels: ['Middle Prospek', 'Hot Prospek', 'Lost Prospek', 'Deal'],
-                datasets: [{
-                    data: [
-                        <?= $prospekCounts['Middle Prospek'] ?>,
-                        <?= $prospekCounts['Hot Prospek'] ?>,
-                        <?= $prospekCounts['Lost Prospek'] ?>,
-                        <?= $prospekCounts['Deal'] ?>
-                    ],
-                    backgroundColor: [
-                        '#f39c12',
-                        '#e74c3c',
-                        '#95a5a6',
-                        '#2ecc71'
-                    ],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15,
-                            font: { family: 'Inter', size: 12 }
-                        }
-                    }
-                }
-            }
-        });
-
-        // ============================================
         // DETAIL ACTIVITY
         // ============================================
         function detailActivity(data) {
@@ -1151,6 +848,10 @@ $role = $_SESSION['role'] ?? 'user';
                 <div class="detail-item">
                     <div class="detail-label">Contact Mobile</div>
                     <div class="detail-value">${data.no_hp_pic || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Email PIC</div>
+                    <div class="detail-value">${data.email_pic || '-'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Sales</div>
