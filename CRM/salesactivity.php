@@ -162,12 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $errors = [];
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         
-        // Cek apakah account_id sudah memiliki leads_number
-        $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities WHERE account_id = ?");
-        $stmt->execute([$account_id]);
-        if ($stmt->fetchColumn() > 0) {
-            $errors[] = 'Account ini sudah memiliki Leads Number!';
-        }
+        // Account yang sama bisa memiliki banyak Leads Number
         
         if (empty($errors)) {
             $stmt = $db->prepare("INSERT INTO sales_activities (leads_number, account_id, sales_id) VALUES (?, ?, ?)");
