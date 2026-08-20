@@ -56,7 +56,7 @@ $hasFullAccess = in_array($userRole, $fullAccessRoles);
 $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
 
 // ============================================
-// AMBIL DATA TRANSACTION REQUESTS
+// FILTER & PAGINATION
 // ============================================
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -65,43 +65,56 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 
-$where = "WHERE 1=1";
+// ============================================
+// AMBIL DATA TR NUMBER DARI ACTIVITY_DETAILS
+// ============================================
+$where = "WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''";
 $params = [];
 
 // Filter berdasarkan role
 if ($userRole === 'sales') {
-    $where .= " AND tr.sales_id = ?";
+    $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
 }
 
 if ($status_filter !== 'all') {
-    $where .= " AND tr.status = ?";
+    $where .= " AND sa.status = ?";
     $params[] = $status_filter;
 }
 
 if (!empty($search)) {
-    $where .= " AND (tr.trf_number LIKE ? OR tr.subject LIKE ? OR a.nama_pt LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%"]);
+    $where .= " AND (ad.tr_number LIKE ? OR a.nama_pt LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%"]);
 }
 
 // Count total
-$countSql = "SELECT COUNT(*) FROM transaction_requests tr 
-              LEFT JOIN accounts a ON tr.account_id = a.id 
-              $where";
+$countSql = "SELECT COUNT(DISTINCT ad.tr_number) 
+             FROM activity_details ad
+             LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+             LEFT JOIN accounts a ON sa.account_id = a.id
+             $where";
 $stmt = $db->prepare($countSql);
 $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Get data
-$sql = "SELECT tr.*, a.nama_pt, a.badan_usaha, u.full_name as sales_name,
-        (SELECT full_name FROM users WHERE id = tr.approved_by) as approved_by_name,
-        (SELECT full_name FROM users WHERE id = tr.rejected_by) as rejected_by_name
-        FROM transaction_requests tr 
-        LEFT JOIN accounts a ON tr.account_id = a.id 
-        LEFT JOIN users u ON tr.sales_id = u.id 
-        $where 
-        ORDER BY tr.created_at DESC 
+// Get data - menggunakan GROUP BY untuk unique TR Number
+$sql = "SELECT ad.tr_number, 
+               ad.due_date,
+               MIN(ad.created_at) as request_date,
+               a.nama_pt, 
+               a.badan_usaha,
+               u.full_name as sales_name,
+               sa.sales_id,
+               sa.status,
+               sa.id as sales_activity_id
+        FROM activity_details ad
+        LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+        LEFT JOIN accounts a ON sa.account_id = a.id
+        LEFT JOIN users u ON sa.sales_id = u.id
+        $where
+        GROUP BY ad.tr_number
+        ORDER BY request_date DESC
         LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
@@ -110,59 +123,59 @@ $requests = $stmt->fetchAll();
 // ============================================
 // STATISTIK
 // ============================================
-$statWhere = "WHERE 1=1";
+$statWhere = "WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''";
 $statParams = [];
 
 if ($userRole === 'sales') {
-    $statWhere .= " AND sales_id = ?";
+    $statWhere .= " AND sa.sales_id = ?";
     $statParams[] = $userId;
 }
 
-$totalPending = $db->prepare("SELECT COUNT(*) FROM transaction_requests $statWhere AND status = 'pending'");
-$totalPending->execute($statParams);
-$totalPending = $totalPending->fetchColumn();
+$sqlPending = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
+               LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+               $statWhere AND sa.status = 'pending'";
+$stmt = $db->prepare($sqlPending);
+$stmt->execute($statParams);
+$totalPending = $stmt->fetchColumn();
 
-$totalApproved = $db->prepare("SELECT COUNT(*) FROM transaction_requests $statWhere AND status = 'approved'");
-$totalApproved->execute($statParams);
-$totalApproved = $totalApproved->fetchColumn();
+$sqlApproved = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
+                LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+                $statWhere AND sa.status = 'approved'";
+$stmt = $db->prepare($sqlApproved);
+$stmt->execute($statParams);
+$totalApproved = $stmt->fetchColumn();
 
-$totalRejected = $db->prepare("SELECT COUNT(*) FROM transaction_requests $statWhere AND status = 'rejected'");
-$totalRejected->execute($statParams);
-$totalRejected = $totalRejected->fetchColumn();
+$sqlRejected = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
+                LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+                $statWhere AND sa.status = 'rejected'";
+$stmt = $db->prepare($sqlRejected);
+$stmt->execute($statParams);
+$totalRejected = $stmt->fetchColumn();
 
-$totalCompleted = $db->prepare("SELECT COUNT(*) FROM transaction_requests $statWhere AND status = 'completed'");
-$totalCompleted->execute($statParams);
-$totalCompleted = $totalCompleted->fetchColumn();
-
-$totalRequests = $totalPending + $totalApproved + $totalRejected + $totalCompleted;
+$totalRequests = $totalPending + $totalApproved + $totalRejected;
 
 // ============================================
-// PROSES UPDATE STATUS (APPROVE / REJECT / COMPLETE)
+// PROSES UPDATE STATUS (APPROVE / REJECT)
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
-    $id = (int)$_POST['id'];
+    $tr_number = $_POST['tr_number'] ?? '';
     
     if ($action === 'approve') {
-        // Hanya direktur yang bisa approve
         if (!$isDirektur && !$hasFullAccess) {
             setFlash('Anda tidak memiliki akses untuk approve!', 'danger');
             redirect('transactionrequest.php');
         }
         
-        $stmt = $db->prepare("UPDATE transaction_requests SET 
-                              status = 'approved', 
-                              approved_by = ?, 
-                              approved_at = NOW() 
-                              WHERE id = ? AND status = 'pending'");
-        $stmt->execute([$userId, $id]);
+        // Update status di sales_activities
+        $stmt = $db->prepare("UPDATE sales_activities sa 
+                              JOIN activity_details ad ON ad.sales_activity_id = sa.id
+                              SET sa.status = 'approved' 
+                              WHERE ad.tr_number = ? AND sa.status = 'pending'");
+        $stmt->execute([$tr_number]);
         
         if ($stmt->rowCount() > 0) {
-            // Update juga status di sales_activities
-            $stmt2 = $db->prepare("UPDATE sales_activities SET status = 'approved' WHERE trf_number = (SELECT trf_number FROM transaction_requests WHERE id = ?)");
-            $stmt2->execute([$id]);
-            
-            setFlash('Transaction Request berhasil di-approve!', 'success');
+            setFlash('TR Number berhasil di-approve!', 'success');
         } else {
             setFlash('Gagal approve atau status sudah berubah!', 'warning');
         }
@@ -170,95 +183,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'reject') {
-        // Hanya direktur yang bisa reject
         if (!$isDirektur && !$hasFullAccess) {
             setFlash('Anda tidak memiliki akses untuk reject!', 'danger');
             redirect('transactionrequest.php');
         }
         
-        $reason = bersihkan($_POST['reason'] ?? '');
-        
-        $stmt = $db->prepare("UPDATE transaction_requests SET 
-                              status = 'rejected', 
-                              rejected_by = ?, 
-                              rejected_at = NOW(),
-                              rejected_reason = ? 
-                              WHERE id = ? AND status = 'pending'");
-        $stmt->execute([$userId, $reason, $id]);
+        // Update status di sales_activities
+        $stmt = $db->prepare("UPDATE sales_activities sa 
+                              JOIN activity_details ad ON ad.sales_activity_id = sa.id
+                              SET sa.status = 'rejected' 
+                              WHERE ad.tr_number = ? AND sa.status = 'pending'");
+        $stmt->execute([$tr_number]);
         
         if ($stmt->rowCount() > 0) {
-            // Update juga status di sales_activities
-            $stmt2 = $db->prepare("UPDATE sales_activities SET status = 'rejected' WHERE trf_number = (SELECT trf_number FROM transaction_requests WHERE id = ?)");
-            $stmt2->execute([$id]);
-            
-            setFlash('Transaction Request berhasil di-reject!', 'success');
+            setFlash('TR Number berhasil di-reject!', 'success');
         } else {
             setFlash('Gagal reject atau status sudah berubah!', 'warning');
         }
         redirect('transactionrequest.php');
     }
-    
-    if ($action === 'complete') {
-        // Sales yang membuat atau admin yang bisa complete
-        $canComplete = false;
-        if ($hasFullAccess) {
-            $canComplete = true;
-        } elseif ($userRole === 'sales') {
-            $stmt = $db->prepare("SELECT sales_id FROM transaction_requests WHERE id = ?");
-            $stmt->execute([$id]);
-            $ownerId = $stmt->fetchColumn();
-            if ($ownerId == $userId) {
-                $canComplete = true;
-            }
-        }
-        
-        if (!$canComplete) {
-            setFlash('Anda tidak memiliki akses untuk complete!', 'danger');
-            redirect('transactionrequest.php');
-        }
-        
-        $stmt = $db->prepare("UPDATE transaction_requests SET 
-                              status = 'completed' 
-                              WHERE id = ? AND status = 'approved'");
-        $stmt->execute([$id]);
-        
-        if ($stmt->rowCount() > 0) {
-            // Update juga status di sales_activities
-            $stmt2 = $db->prepare("UPDATE sales_activities SET status = 'completed' WHERE trf_number = (SELECT trf_number FROM transaction_requests WHERE id = ?)");
-            $stmt2->execute([$id]);
-            
-            setFlash('Transaction Request berhasil di-complete!', 'success');
-        } else {
-            setFlash('Gagal complete atau status harus Approved!', 'warning');
-        }
-        redirect('transactionrequest.php');
-    }
-}
-
-// ============================================
-// AMBIL DATA UNTUK DETAIL
-// ============================================
-$detailData = null;
-if (isset($_GET['detail'])) {
-    $id = (int)$_GET['detail'];
-    $stmt = $db->prepare("SELECT tr.*, a.nama_pt, a.badan_usaha, u.full_name as sales_name,
-                          (SELECT full_name FROM users WHERE id = tr.approved_by) as approved_by_name,
-                          (SELECT full_name FROM users WHERE id = tr.rejected_by) as rejected_by_name
-                          FROM transaction_requests tr 
-                          LEFT JOIN accounts a ON tr.account_id = a.id 
-                          LEFT JOIN users u ON tr.sales_id = u.id 
-                          WHERE tr.id = ?");
-    $stmt->execute([$id]);
-    $detailData = $stmt->fetch();
-}
-
-// ============================================
-// CEK APAKAH DETAIL TR SUDAH ADA
-// ============================================
-function hasDetailTR($db, $trf_number) {
-    $stmt = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
-    $stmt->execute([$trf_number]);
-    return $stmt->fetch() ? true : false;
 }
 ?>
 <!DOCTYPE html>
@@ -287,7 +230,6 @@ function hasDetailTR($db, $trf_number) {
             padding-bottom: 70px;
         }
         
-        /* ---- SIDEBAR MODERN (Deep Navy Blue) ---- */
         .sidebar {
             width: 260px;
             height: 100vh;
@@ -347,7 +289,6 @@ function hasDetailTR($db, $trf_number) {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        /* ---- MAIN CONTENT ---- */
         .main-content { margin-left: 260px; padding: 30px; width: 100%; }
 
         .page-header { 
@@ -374,7 +315,6 @@ function hasDetailTR($db, $trf_number) {
         }
         .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
         .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
         .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
@@ -397,29 +337,19 @@ function hasDetailTR($db, $trf_number) {
             flex-wrap: wrap;
             gap: 10px;
         }
-        
         .card-custom .card-header-custom h6 {
             font-weight: 600;
             color: #0e1a2b;
             margin: 0;
             font-size: 16px;
         }
-        
         .card-custom .card-header-custom h6 i {
             color: #ffd700;
             margin-right: 8px;
         }
+        .card-custom .card-body-custom { padding: 0; overflow-x: auto; }
         
-        .card-custom .card-body-custom {
-            padding: 0;
-            overflow-x: auto;
-        }
-        
-        .table-custom {
-            margin-bottom: 0;
-            font-size: 13px;
-        }
-        
+        .table-custom { margin-bottom: 0; font-size: 13px; }
         .table-custom th {
             font-weight: 600;
             font-size: 12px;
@@ -431,21 +361,14 @@ function hasDetailTR($db, $trf_number) {
             background: #fafafa;
             white-space: nowrap;
         }
-        
         .table-custom td {
             padding: 12px 16px;
             vertical-align: middle;
             border-bottom: 1px solid #f0f2f5;
         }
-        
-        .table-custom tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .table-custom tr:hover {
-            background: #f8f9fa;
-        }
-        
+        .table-custom tr:last-child td { border-bottom: none; }
+        .table-custom tr:hover { background: #f8f9fa; }
+
         .badge-status-tr {
             padding: 3px 10px;
             border-radius: 20px;
@@ -455,8 +378,7 @@ function hasDetailTR($db, $trf_number) {
         .badge-status-tr.pending { background: rgba(241, 196, 15, 0.15); color: #d4a017; }
         .badge-status-tr.approved { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
         .badge-status-tr.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
-        .badge-status-tr.completed { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
-        
+
         .badge-trf {
             background: rgba(52, 152, 219, 0.12);
             color: #2980b9;
@@ -465,35 +387,24 @@ function hasDetailTR($db, $trf_number) {
             font-size: 10px;
             font-weight: 600;
         }
-        
-        .badge-deal-status {
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        .badge-deal-status.Yes { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-deal-status.No { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
 
-        .modal-content { border: none; border-radius: 12px; }
-        .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
-        .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
-        .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
-        .modal-body { padding: 20px 24px; }
-        .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
-
-        .form-label { font-weight: 600; font-size: 13px; color: #333; }
-        .form-control, .form-select {
-            border-radius: 8px;
-            padding: 10px 14px;
-            border: 2px solid #e8edf2;
+        .btn-action {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
             transition: all 0.3s ease;
             font-size: 13px;
+            cursor: pointer;
         }
-        .form-control:focus, .form-select:focus {
-            border-color: #ffd700;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-        }
+        .btn-action:hover { transform: scale(1.1); }
+        .btn-action.approve { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
+        .btn-action.approve:hover { background: rgba(52, 152, 219, 0.2); }
+        .btn-action.reject { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
+        .btn-action.reject:hover { background: rgba(231, 76, 60, 0.2); }
 
         .btn-primary-custom {
             background: #0e1a2b;
@@ -524,51 +435,6 @@ function hasDetailTR($db, $trf_number) {
             color: #555;
         }
         .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
-
-        .btn-approve-custom {
-            background: #2980b9;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-approve-custom:hover { background: #1a6d9e; color: #fff; }
-
-        .btn-reject-custom {
-            background: #e74c3c;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-reject-custom:hover { background: #c0392b; color: #fff; }
-
-        .btn-success-custom {
-            background: #27ae60;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-success-custom:hover { background: #219a52; color: #fff; }
-
-        .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
-        .detail-item:last-child { border-bottom: none; }
-        .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
-        .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
 
         .filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-buttons .btn-filter {
@@ -604,12 +470,6 @@ function hasDetailTR($db, $trf_number) {
         .trf-link:hover { color: #1a6d9e; text-decoration: underline; }
 
         .mobile-toggle { display: none; }
-
-        .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
-        .breadcrumb-item a { color: #2980b9; text-decoration: none; }
-        .breadcrumb-item a:hover { color: #ffd700; }
-        .breadcrumb-item.active { color: #0e1a2b; font-weight: 600; }
-
         .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
         .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
         .footer-text a:hover { color: #ffd700; }
@@ -630,13 +490,9 @@ function hasDetailTR($db, $trf_number) {
             .stat-grid { grid-template-columns: 1fr; }
             .stat-card .stat-number { font-size: 17px; }
             .stat-card { padding: 12px 14px; }
-            .modal-body { padding: 14px 16px; }
-            .modal-header { padding: 14px 16px; }
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
-            .detail-item { flex-direction: column; padding: 8px 0; }
-            .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
-            .detail-item .detail-value { font-size: 12px; }
+            .btn-action { width: 26px; height: 26px; font-size: 11px; }
             .trf-link { font-size: 11px; }
         }
     </style>
@@ -728,26 +584,19 @@ function hasDetailTR($db, $trf_number) {
                 <div class="stat-number"><?= number_format($totalRejected) ?></div>
                 <div class="stat-label">Rejected</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon green"><i class="fas fa-check-double"></i></div>
-                <div class="stat-number"><?= number_format($totalCompleted) ?></div>
-                <div class="stat-label">Completed</div>
-            </div>
         </div>
 
         <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Transaction Request</h6>
-                <div class="d-flex gap-2 flex-wrap">
-                    <form method="GET" class="d-flex gap-2">
-                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 200px;">
-                        <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
-                        <?php if (!empty($search)): ?>
-                            <a href="transactionrequest.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i></a>
-                        <?php endif; ?>
-                    </form>
-                </div>
+                <form method="GET" class="d-flex gap-2">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 200px;">
+                    <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
+                    <?php if (!empty($search)): ?>
+                        <a href="transactionrequest.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i></a>
+                    <?php endif; ?>
+                </form>
             </div>
             
             <!-- Filter Status -->
@@ -765,9 +614,6 @@ function hasDetailTR($db, $trf_number) {
                     <a href="?status=rejected&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'rejected' ? 'active' : '' ?>">
                         <i class="fas fa-times-circle fa-fw" style="color:#e74c3c;"></i> Rejected <span class="count"><?= $totalRejected ?></span>
                     </a>
-                    <a href="?status=completed&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'completed' ? 'active' : '' ?>">
-                        <i class="fas fa-check-double fa-fw" style="color:#27ae60;"></i> Completed <span class="count"><?= $totalCompleted ?></span>
-                    </a>
                 </div>
             </div>
             
@@ -778,13 +624,13 @@ function hasDetailTR($db, $trf_number) {
                         <thead>
                             <tr>
                                 <th>No</th>
-                                <th>TRF Number</th>
-                                <th>Subject</th>
+                                <th>TR Number</th>
                                 <th>Account</th>
                                 <th>Request Date</th>
                                 <th>Due Date</th>
                                 <th>Sales</th>
                                 <th>Status</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -798,13 +644,12 @@ function hasDetailTR($db, $trf_number) {
                                     <tr>
                                         <td><?= $no++ ?></td>
                                         <td>
-                                            <a href="detailtr.php?trf=<?= urlencode($request['trf_number']) ?>" class="trf-link" target="_blank">
+                                            <a href="detailtr.php?tr_number=<?= urlencode($request['tr_number']) ?>" class="trf-link">
                                                 <span class="badge-trf">
-                                                    <i class="fas fa-file-signature"></i> <?= htmlspecialchars($request['trf_number']) ?>
+                                                    <i class="fas fa-file-signature"></i> <?= htmlspecialchars($request['tr_number']) ?>
                                                 </span>
                                             </a>
                                         </td>
-                                        <td><strong><?= htmlspecialchars($request['subject']) ?></strong></td>
                                         <td><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></td>
                                         <td><?= date('d/m/Y', strtotime($request['request_date'])) ?></td>
                                         <td><?= date('d/m/Y', strtotime($request['due_date'])) ?></td>
@@ -817,11 +662,31 @@ function hasDetailTR($db, $trf_number) {
                                                     <i class="fas fa-check-circle"></i>
                                                 <?php elseif ($request['status'] == 'rejected'): ?>
                                                     <i class="fas fa-times-circle"></i>
-                                                <?php elseif ($request['status'] == 'completed'): ?>
-                                                    <i class="fas fa-check-double"></i>
                                                 <?php endif; ?>
                                                 <?= $statusLabel ?>
                                             </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($request['status'] == 'pending' && ($isDirektur || $hasFullAccess)): ?>
+                                            <div class="d-flex gap-1">
+                                                <form method="POST" style="display: inline;">
+                                                    <input type="hidden" name="action" value="approve">
+                                                    <input type="hidden" name="tr_number" value="<?= htmlspecialchars($request['tr_number']) ?>">
+                                                    <button type="submit" class="btn-action approve" title="Approve">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                </form>
+                                                <form method="POST" style="display: inline;">
+                                                    <input type="hidden" name="action" value="reject">
+                                                    <input type="hidden" name="tr_number" value="<?= htmlspecialchars($request['tr_number']) ?>">
+                                                    <button type="submit" class="btn-action reject" title="Reject" onclick="return confirm('Yakin ingin reject TR ini?')">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -864,236 +729,7 @@ function hasDetailTR($db, $trf_number) {
 
     </div>
 
-    <!-- MODALS -->
-    <!-- Modal Detail -->
-    <div class="modal fade" id="modalDetail" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-file-signature" style="color:#ffd700;"></i> Detail Transaction Request</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="detailBody">
-                    <!-- Detail akan diisi oleh JavaScript -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Approve -->
-    <div class="modal fade" id="modalApprove" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #2980b9, #1a6d9e);">
-                    <h5 class="modal-title" style="color: #fff;">
-                        <i class="fas fa-check-circle"></i> Approve Request
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Apakah Anda yakin ingin menyetujui request ini?</p>
-                    <p class="text-muted small">TRF Number: <strong id="approveTrfNumber"></strong></p>
-                </div>
-                <div class="modal-footer">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="approve">
-                        <input type="hidden" name="id" id="approveId" value="">
-                        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-approve-custom"><i class="fas fa-check"></i> Approve</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Reject -->
-    <div class="modal fade" id="modalReject" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
-                    <h5 class="modal-title" style="color: #fff;">
-                        <i class="fas fa-times-circle"></i> Reject Request
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="reject">
-                        <input type="hidden" name="id" id="rejectId" value="">
-                        
-                        <p>Apakah Anda yakin ingin menolak request ini?</p>
-                        <p class="text-muted small">TRF Number: <strong id="rejectTrfNumber"></strong></p>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Alasan Penolakan</label>
-                            <textarea name="reason" class="form-control" rows="3" placeholder="Masukkan alasan penolakan..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-reject-custom"><i class="fas fa-times"></i> Reject</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Complete -->
-    <div class="modal fade" id="modalComplete" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #27ae60, #219a52);">
-                    <h5 class="modal-title" style="color: #fff;">
-                        <i class="fas fa-check-double"></i> Complete Request
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Apakah Anda yakin ingin menyelesaikan request ini?</p>
-                    <p class="text-muted small">TRF Number: <strong id="completeTrfNumber"></strong></p>
-                </div>
-                <div class="modal-footer">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="complete">
-                        <input type="hidden" name="id" id="completeId" value="">
-                        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-success-custom"><i class="fas fa-check-double"></i> Complete</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function detailRequest(data) {
-            var statusLabel = data.status.charAt(0).toUpperCase() + data.status.slice(1);
-            var statusBadge = data.status;
-            var statusIcon = data.status == 'pending' ? 'fa-clock' : 
-                           (data.status == 'approved' ? 'fa-check-circle' : 
-                           (data.status == 'rejected' ? 'fa-times-circle' : 'fa-check-double'));
-            
-            var html = `
-                <div class="detail-item">
-                    <div class="detail-label">TRF Number</div>
-                    <div class="detail-value">
-                        <span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span>
-                    </div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Status</div>
-                    <div class="detail-value">
-                        <span class="badge-status-tr ${statusBadge}">
-                            <i class="fas ${statusIcon}"></i> ${statusLabel}
-                        </span>
-                    </div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Subject</div>
-                    <div class="detail-value"><strong>${data.subject}</strong></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Account</div>
-                    <div class="detail-value">${data.nama_pt || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Badan Usaha</div>
-                    <div class="detail-value">${data.badan_usaha || 'PT'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Jenis Tugas</div>
-                    <div class="detail-value">${data.jenis_tugas || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Request Date</div>
-                    <div class="detail-value">${new Date(data.request_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Due Date</div>
-                    <div class="detail-value">${new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Description</div>
-                    <div class="detail-value">${data.description || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Result</div>
-                    <div class="detail-value">${data.result || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Customer Deal</div>
-                    <div class="detail-value">
-                        <span class="badge-deal-status ${data.customer_deal}">${data.customer_deal}</span>
-                    </div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Leads Number</div>
-                    <div class="detail-value">${data.leads_number ? '<code>' + data.leads_number + '</code>' : '-'}</div>
-                </div>
-                ${data.attachment_file ? `
-                <div class="detail-item">
-                    <div class="detail-label">Attachment</div>
-                    <div class="detail-value">
-                        <a href="${data.attachment_file}" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-file"></i> Lihat File
-                        </a>
-                    </div>
-                </div>
-                ` : ''}
-                <div class="detail-item">
-                    <div class="detail-label">Sales</div>
-                    <div class="detail-value">${data.sales_name || '-'}</div>
-                </div>
-                ${data.approved_by_name ? `
-                <div class="detail-item">
-                    <div class="detail-label">Approved By</div>
-                    <div class="detail-value">${data.approved_by_name} pada ${data.approved_at ? new Date(data.approved_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
-                </div>
-                ` : ''}
-                ${data.rejected_by_name ? `
-                <div class="detail-item">
-                    <div class="detail-label">Rejected By</div>
-                    <div class="detail-value">${data.rejected_by_name} pada ${data.rejected_at ? new Date(data.rejected_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Alasan Reject</div>
-                    <div class="detail-value">${data.rejected_reason || '-'}</div>
-                </div>
-                ` : ''}
-                <div class="detail-item">
-                    <div class="detail-label">Dibuat Pada</div>
-                    <div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-            `;
-            document.getElementById('detailBody').innerHTML = html;
-            var modal = new bootstrap.Modal(document.getElementById('modalDetail'));
-            modal.show();
-        }
-        
-        function approveRequest(id, trfNumber) {
-            document.getElementById('approveId').value = id;
-            document.getElementById('approveTrfNumber').textContent = trfNumber;
-            var modal = new bootstrap.Modal(document.getElementById('modalApprove'));
-            modal.show();
-        }
-        
-        function rejectRequest(id, trfNumber) {
-            document.getElementById('rejectId').value = id;
-            document.getElementById('rejectTrfNumber').textContent = trfNumber;
-            var modal = new bootstrap.Modal(document.getElementById('modalReject'));
-            modal.show();
-        }
-        
-        function completeRequest(id, trfNumber) {
-            document.getElementById('completeId').value = id;
-            document.getElementById('completeTrfNumber').textContent = trfNumber;
-            var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
-            modal.show();
-        }
-    </script>
 </body>
 </html>
