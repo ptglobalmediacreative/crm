@@ -118,6 +118,34 @@ function getJenisProspek($db, $salesActivityId) {
 }
 
 // ============================================
+// FUNGSI MENENTUKAN STATUS
+// ============================================
+function getStatusProspek($db, $salesActivityId) {
+    $stmt = $db->prepare("SELECT ad.status FROM activity_details ad 
+                          WHERE ad.sales_activity_id = ? 
+                          ORDER BY ad.id DESC");
+    $stmt->execute([$salesActivityId]);
+    $allStatus = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    if (empty($allStatus)) {
+        return null;
+    }
+    
+    // Cek jika ada Overdue
+    if (in_array('overdue', $allStatus)) {
+        return 'Overdue';
+    }
+    
+    // Cek jika ada In Progress
+    if (in_array('in_progress', $allStatus)) {
+        return 'In Progress';
+    }
+    
+    // Jika semua completed
+    return 'Completed';
+}
+
+// ============================================
 // FILTER & PAGINATION
 // ============================================
 $userRole = $_SESSION['role'] ?? 'user';
@@ -159,11 +187,12 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
-// Update jenis prospek untuk setiap aktivitas
+// Update jenis prospek dan status untuk setiap aktivitas
 foreach ($activities as &$act) {
     $act['jenis_prospek'] = getJenisProspek($db, $act['id']);
-    $stmt = $db->prepare("UPDATE sales_activities SET jenis_prospek = ? WHERE id = ?");
-    $stmt->execute([$act['jenis_prospek'], $act['id']]);
+    $act['status_prospek'] = getStatusProspek($db, $act['id']);
+    $stmt = $db->prepare("UPDATE sales_activities SET jenis_prospek = ?, status = ? WHERE id = ?");
+    $stmt->execute([$act['jenis_prospek'], $act['status_prospek'], $act['id']]);
 }
 unset($act);
 
@@ -381,6 +410,17 @@ $role = $_SESSION['role'] ?? 'user';
         .badge-prospek.hot-prospek { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
         .badge-prospek.deal-prospek { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-prospek.lost-deal { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
+
+        .badge-status-prospek {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-status-prospek.in-progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-status-prospek.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .badge-status-prospek.overdue { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
 
         .btn-action {
             width: 30px;
@@ -601,6 +641,7 @@ $role = $_SESSION['role'] ?? 'user';
                                 <th>Badan Usaha</th>
                                 <th>Business Segment</th>
                                 <th>Jenis Prospek</th>
+                                <th>Status</th>
                                 <th>Nama PIC</th>
                                 <th>Contact Mobile Phone</th>
                                 <th>Sales</th>
@@ -623,7 +664,7 @@ $role = $_SESSION['role'] ?? 'user';
                                         <td><?= htmlspecialchars($act['bidang_usaha'] ?? '-') ?></td>
                                         <td>
                                             <?php 
-                                                $jenisProspek = $act['jenis_prospek'] ?? '-';
+                                                $jenisProspek = $act['jenis_prospek'] ?? null;
                                                 $badgeClass = '';
                                                 switch ($jenisProspek) {
                                                     case 'Low Prospek': $badgeClass = 'low-prospek'; break;
@@ -631,13 +672,26 @@ $role = $_SESSION['role'] ?? 'user';
                                                     case 'Hot Prospek': $badgeClass = 'hot-prospek'; break;
                                                     case 'Deal': $badgeClass = 'deal-prospek'; break;
                                                     case 'Lost Deal': $badgeClass = 'lost-deal'; break;
-                                                    default: $badgeClass = ''; break;
                                                 }
                                             ?>
-                                            <?php if ($jenisProspek !== '-' && $jenisProspek !== null): ?>
-                                                <span class="badge-prospek <?= $badgeClass ?>">
-                                                    <?= htmlspecialchars($jenisProspek) ?>
-                                                </span>
+                                            <?php if ($jenisProspek): ?>
+                                                <span class="badge-prospek <?= $badgeClass ?>"><?= htmlspecialchars($jenisProspek) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php 
+                                                $statusProspek = $act['status_prospek'] ?? null;
+                                                $badgeStatusClass = '';
+                                                switch ($statusProspek) {
+                                                    case 'In Progress': $badgeStatusClass = 'in-progress'; break;
+                                                    case 'Completed': $badgeStatusClass = 'completed'; break;
+                                                    case 'Overdue': $badgeStatusClass = 'overdue'; break;
+                                                }
+                                            ?>
+                                            <?php if ($statusProspek): ?>
+                                                <span class="badge-status-prospek <?= $badgeStatusClass ?>"><?= htmlspecialchars($statusProspek) ?></span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
@@ -661,7 +715,7 @@ $role = $_SESSION['role'] ?? 'user';
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="11" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data aktivitas
                                     </td>
                                 </tr>
@@ -855,6 +909,10 @@ $role = $_SESSION['role'] ?? 'user';
                 <div class="detail-item">
                     <div class="detail-label">Jenis Prospek</div>
                     <div class="detail-value">${data.jenis_prospek || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value">${data.status_prospek || '-'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Nama PT</div>
