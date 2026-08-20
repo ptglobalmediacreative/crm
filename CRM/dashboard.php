@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 
+// Set timezone ke WIB
+date_default_timezone_set('Asia/Jakarta');
+
 // Cek login
 if (!isLoggedIn()) {
     setFlash('Silakan login dulu!', 'warning');
@@ -41,7 +44,6 @@ function getRoleLabel($role) {
 $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $isSalesRole = ($role === 'sales');
 
-// Filter Bulan (Default ke bulan sekarang)
 if (isset($_GET['month']) && !empty($_GET['month'])) {
     $filterMonth = $_GET['month'];
 } else {
@@ -58,29 +60,19 @@ if (!$isSalesRole) {
     $allSalesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Filter SQL untuk Sales_Activities (Pipeline, Chart, Recent Activities)
-// --- PERBAIKAN PENTING DI SINI ---
 $sqlFilterSA = "";
 if ($filterSalesId > 0) {
     $sqlFilterSA = " AND sa.sales_id = $filterSalesId";
 }
 
-// Filter SQL untuk Accounts (Total Leads, New Leads bulan ini)
 $sqlFilterAcc = "";
 if ($filterSalesId > 0) {
     $sqlFilterAcc = " AND sales_id = $filterSalesId";
 }
 
-// Filter SQL untuk Detail TR (Revenue Forecast)
-$sqlFilterTR = "";
-if ($filterSalesId > 0) {
-    $sqlFilterTR = " AND sa.sales_id = $filterSalesId";
-}
-
 // ============================================
-// DATA STATISTIK & PIPELINE
+// DATA STATISTIK
 // ============================================
-// 1. Total Leads (Dari tabel accounts)
 if ($isSalesRole) {
     $sqlTotalLeads = "SELECT COUNT(*) FROM accounts WHERE sales_id = $userId";
 } else {
@@ -88,99 +80,85 @@ if ($isSalesRole) {
 }
 $totalLeads = $db->query($sqlTotalLeads)->fetchColumn();
 
-// 2. Pipeline Data (Dari sales_activities & accounts)
-$sqlTotal = "SELECT COUNT(*) FROM sales_activities sa WHERE 1=1" . $sqlFilterSA;
-$totalActivities = $db->query($sqlTotal)->fetchColumn();
-
 $pipelineCounts = [
-    'New Lead'     => 0,
+    'New Lead' => 0,
     'Middle Prospek' => 0,
-    'Hot Prospek'    => 0,
-    'Deal'           => 0,
-    'Lost Deal'      => 0
+    'Hot Prospek' => 0,
+    'Deal' => 0,
+    'Lost Deal' => 0
 ];
 
-// --- NEW LEAD (Dari Account Management - 30 Hari Terakhir) ---
+// New Lead
 $sqlNewLead = "SELECT COUNT(*) FROM accounts WHERE 1=1" . $sqlFilterAcc . " AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
 $pipelineCounts['New Lead'] = (int)$db->query($sqlNewLead)->fetchColumn();
 
-// --- MIDDLE PROSPEK ---
+// Middle Prospek
 $sqlMid = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-           WHERE sa.jenis_tugas = 'Prospecting'
+           JOIN activity_details ad ON ad.sales_activity_id = sa.id
+           WHERE ad.jenis_tugas = 'Prospecting'
            AND sa.account_id NOT IN (
-               SELECT DISTINCT account_id FROM sales_activities 
-               WHERE jenis_tugas IN ('Negosiasi', 'Kontrak') AND account_id IS NOT NULL
+               SELECT DISTINCT sa2.account_id FROM sales_activities sa2
+               JOIN activity_details ad2 ON ad2.sales_activity_id = sa2.id
+               WHERE ad2.jenis_tugas IN ('Negosiasi', 'Kontrak') AND sa2.account_id IS NOT NULL
            )" . $sqlFilterSA;
 $pipelineCounts['Middle Prospek'] = (int)$db->query($sqlMid)->fetchColumn();
 
-// --- HOT PROSPEK ---
+// Hot Prospek
 $sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-           WHERE sa.jenis_tugas = 'Negosiasi'
+           JOIN activity_details ad ON ad.sales_activity_id = sa.id
+           WHERE ad.jenis_tugas = 'Negosiasi'
            AND sa.account_id NOT IN (
-               SELECT DISTINCT account_id FROM sales_activities 
-               WHERE jenis_tugas = 'Kontrak' AND account_id IS NOT NULL
+               SELECT DISTINCT sa2.account_id FROM sales_activities sa2
+               JOIN activity_details ad2 ON ad2.sales_activity_id = sa2.id
+               WHERE ad2.jenis_tugas = 'Kontrak' AND sa2.account_id IS NOT NULL
            )
            AND sa.account_id NOT IN (
-               SELECT DISTINCT account_id FROM sales_activities 
-               WHERE jenis_tugas = 'Negosiasi' AND status = 'completed' AND customer_deal = 'No' AND account_id IS NOT NULL
+               SELECT DISTINCT sa3.account_id FROM sales_activities sa3
+               JOIN activity_details ad3 ON ad3.sales_activity_id = sa3.id
+               WHERE ad3.jenis_tugas = 'Negosiasi' AND ad3.status = 'completed' AND ad3.customer_deal = 'No' AND sa3.account_id IS NOT NULL
            )
-           AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')" . $sqlFilterSA;
+           AND NOT (ad.status = 'completed' AND ad.customer_deal = 'No')" . $sqlFilterSA;
 $pipelineCounts['Hot Prospek'] = (int)$db->query($sqlHot)->fetchColumn();
 
-// --- LOST DEAL ---
+// Lost Deal
 $sqlLost = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-            WHERE sa.jenis_tugas = 'Negosiasi'
-            AND sa.status = 'completed' 
-            AND sa.customer_deal = 'No'" . $sqlFilterSA;
+            JOIN activity_details ad ON ad.sales_activity_id = sa.id
+            WHERE ad.jenis_tugas = 'Negosiasi'
+            AND ad.status = 'completed' 
+            AND ad.customer_deal = 'No'" . $sqlFilterSA;
 $pipelineCounts['Lost Deal'] = (int)$db->query($sqlLost)->fetchColumn();
 
-// --- DEAL (Kontrak) ---
+// Deal
 $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
-            WHERE sa.jenis_tugas = 'Kontrak'" . $sqlFilterSA;
+            JOIN activity_details ad ON ad.sales_activity_id = sa.id
+            WHERE ad.jenis_tugas = 'Kontrak'" . $sqlFilterSA;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
-// 3. Revenue Forecast (Dari Tabel detail_transaction_requests)
-if ($isSalesRole) {
-    $sqlRevenue = "SELECT SUM(dtr.grand_total) 
-                   FROM detail_transaction_requests dtr
-                   LEFT JOIN sales_activities sa ON dtr.trf_number = sa.trf_number
-                   WHERE sa.sales_id = $userId";
-} else {
-    $sqlRevenue = "SELECT SUM(dtr.grand_total) 
-                   FROM detail_transaction_requests dtr
-                   LEFT JOIN sales_activities sa ON dtr.trf_number = sa.trf_number
-                   WHERE 1=1" . $sqlFilterTR;
-}
-$totalRevenue = (float)$db->query($sqlRevenue)->fetchColumn();
-if (!$totalRevenue) $totalRevenue = 0;
+// Revenue Forecast
+$totalRevenue = 0;
 
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
 // ============================================
-// DATA CHART TREN (PERBANDINGAN MULTI SALES ATAU TUNGGAL)
+// CHART TREN
 // ============================================
 $chartLabels = [];
-$chartDatasets = []; // Kumpulan data untuk Chart.js (Bisa 1 atau banyak garis)
+$chartDatasets = [];
 
-// Tentukan warna untuk setiap Sales (bisa ditambah sesuai jumlah sales)
 $colorPalette = [
-    '#e74c3c', // Merah
-    '#3498db', // Biru
-    '#2ecc71', // Hijau
-    '#f39c12', // Oranye
-    '#9b59b6', // Ungu
-    '#1abc9c', // Tosca
-    '#e67e22', // Oranye Tua
-    '#34495e'  // Abu-abu Gelap
+    '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
 ];
 
-// 1. Jika filter memilih Sales Tertentu (atau Role Sales) -> Tampilkan 1 Garis
-if ($filterSalesId > 0) {
-    // Ambil data aktivitas dari database untuk sales tersebut
-    $chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities 
-                   WHERE DATE_FORMAT(created_at, '%Y-%m') = ? AND sales_id = ? 
-                   GROUP BY DATE(created_at) ORDER BY date ASC"; 
+function hexToRgba($hex, $alpha) {
+    list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
+    return "rgba($r, $g, $b, $alpha)";
+}
 
+if ($filterSalesId > 0) {
+    $chartQuery = "SELECT DATE(sa.created_at) as date, COUNT(*) as total 
+                   FROM sales_activities sa
+                   WHERE DATE_FORMAT(sa.created_at, '%Y-%m') = ? AND sa.sales_id = ? 
+                   GROUP BY DATE(sa.created_at) ORDER BY date ASC";
     $stmt = $db->prepare($chartQuery);
     $stmt->execute([$filterMonth, $filterSalesId]);
     $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -201,7 +179,6 @@ if ($filterSalesId > 0) {
         $values[] = isset($dataMap[$dateKey]) ? $dataMap[$dateKey] : 0;
     }
 
-    // Buat dataset untuk 1 garis
     $chartDatasets[] = [
         'label' => htmlspecialchars($filteredSalesName),
         'data' => $values,
@@ -216,28 +193,25 @@ if ($filterSalesId > 0) {
         'pointBorderWidth' => 2,
         'pointHoverRadius' => 7
     ];
-
 } else {
-    // 2. Jika Filter "Semua Sales" -> Tampilkan Garis Perbandingan (Multi Line)
     $year = substr($filterMonth, 0, 4);
     $month = substr($filterMonth, 5, 2);
     $totalDays = cal_days_in_month(CAL_GREGORIAN, (int)$month, (int)$year);
     
-    // Buat label tanggal dulu (dari 1 sampai akhir bulan)
     for ($day = 1; $day <= $totalDays; $day++) {
         $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
         $chartLabels[] = date('d M', strtotime($dateKey));
     }
 
-    // Loop setiap Sales untuk mengambil datanya
     $colorIndex = 0;
     foreach ($allSalesList as $sales) {
         $sId = $sales['id'];
         $sName = $sales['full_name'];
 
-        $chartQuery = "SELECT DATE(created_at) as date, COUNT(*) as total FROM sales_activities 
-                       WHERE DATE_FORMAT(created_at, '%Y-%m') = ? AND sales_id = ? 
-                       GROUP BY DATE(created_at) ORDER BY date ASC"; 
+        $chartQuery = "SELECT DATE(sa.created_at) as date, COUNT(*) as total 
+                       FROM sales_activities sa
+                       WHERE DATE_FORMAT(sa.created_at, '%Y-%m') = ? AND sa.sales_id = ? 
+                       GROUP BY DATE(sa.created_at) ORDER BY date ASC";
         $stmt = $db->prepare($chartQuery);
         $stmt->execute([$filterMonth, $sId]);
         $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -253,7 +227,6 @@ if ($filterSalesId > 0) {
             $values[] = isset($dataMap[$dateKey]) ? $dataMap[$dateKey] : 0;
         }
 
-        // Ambil warna dari palette, looping jika sales lebih banyak dari warna
         $color = $colorPalette[$colorIndex % count($colorPalette)];
 
         $chartDatasets[] = [
@@ -262,7 +235,7 @@ if ($filterSalesId > 0) {
             'backgroundColor' => hexToRgba($color, 0.2),
             'borderColor' => $color,
             'borderWidth' => 2,
-            'fill' => false, // Untuk multi-line, biasanya fill dimatikan agar tidak saling timpa
+            'fill' => false,
             'tension' => 0.4,
             'pointRadius' => 4,
             'pointBackgroundColor' => '#fff',
@@ -275,18 +248,13 @@ if ($filterSalesId > 0) {
     }
 }
 
-// Helper function untuk mengubah Hex ke RGBA (untuk background gradient)
-function hexToRgba($hex, $alpha) {
-    list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
-    return "rgba($r, $g, $b, $alpha)";
-}
-
 // ============================================
-// DATA AKTIVITAS TERBARU (TIMELINE)
+// AKTIVITAS TERBARU
 // ============================================
 $activityLimit = 5;
-// PERBAIKAN: Pastikan $sqlFilterSA digunakan di sini
-$sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name
+$sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name,
+                  (SELECT ad.subject FROM activity_details ad WHERE ad.sales_activity_id = sa.id ORDER BY ad.id DESC LIMIT 1) as subject,
+                  (SELECT ad.jenis_tugas FROM activity_details ad WHERE ad.sales_activity_id = sa.id ORDER BY ad.id DESC LIMIT 1) as jenis_tugas
                   FROM sales_activities sa 
                   LEFT JOIN accounts a ON sa.account_id = a.id 
                   LEFT JOIN users u ON sa.sales_id = u.id
@@ -295,38 +263,8 @@ $sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name
                   LIMIT $activityLimit";
 $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
 
-// ============================================
-// DATA LAPORAN PER BULAN (PERFORMA SALES - SESUAI BULAN FILTER)
-// ============================================
-function getSalesMonthlyReport($db, $salesId, $month) {
-    $stmt = $db->prepare("
-        SELECT DATE_FORMAT(created_at, '%M %Y') as month_label, 
-               DATE_FORMAT(created_at, '%Y-%m') as month_sort, 
-               COUNT(*) as total_activity,
-               SUM(CASE WHEN status = 'Deal' THEN 1 ELSE 0 END) as total_deal,
-               SUM(CASE WHEN status = 'Lost Prospek' THEN 1 ELSE 0 END) as total_lost
-        FROM sales_activities 
-        WHERE sales_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?
-        GROUP BY month_sort 
-        ORDER BY month_sort DESC 
-    ");
-    $stmt->execute([$salesId, $month]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-$filteredReportData = [];
-if ($filterSalesId > 0) {
-    $filteredReportData = getSalesMonthlyReport($db, $filterSalesId, $filterMonth);
-} else {
-    $stmt = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC");
-    $allUsersForReport = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($allUsersForReport as $u) {
-        $filteredReportData[] = [
-            'name' => $u['full_name'],
-            'data' => getSalesMonthlyReport($db, $u['id'], $filterMonth)
-        ];
-    }
-}
+$fullName = $_SESSION['full_name'] ?? 'User';
+$role = $_SESSION['role'] ?? 'user';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -345,11 +283,10 @@ if ($filterSalesId > 0) {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; min-height: 100vh; }
         
-        /* ---- SIDEBAR MODERN (Deep Navy Blue) ---- */
         .sidebar {
             width: 260px;
             height: 100vh;
-            background: #0e1a2b; /* Deep Navy Blue Modern */
+            background: #0e1a2b;
             position: fixed;
             top: 0; left: 0; bottom: 0;
             padding: 30px 20px;
@@ -405,7 +342,6 @@ if ($filterSalesId > 0) {
         }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        /* ---- MAIN CONTENT ---- */
         .main-content { margin-left: 260px; padding: 30px; width: 100%; }
         
         .page-header { 
@@ -420,7 +356,6 @@ if ($filterSalesId > 0) {
         .page-header .filter-area { display: flex; gap: 10px; align-items: center; }
         .page-header .filter-area select, .page-header .filter-area input { border-radius: 8px; border: 1px solid #e0e4ea; font-size: 13px; }
 
-        /* ---- STAT CARDS ---- */
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
         .stat-card { 
             background: #fff; border-radius: 16px; padding: 20px; 
@@ -436,12 +371,10 @@ if ($filterSalesId > 0) {
         .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
         .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .stat-card .stat-icon.purple { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
         .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
         .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
         .stat-card .stat-label { font-size: 13px; color: #888; }
 
-        /* ---- ROW PIPELINE & CHART ---- */
         .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
         @media (max-width: 991px) { .grid-2-col { grid-template-columns: 1fr; } }
         
@@ -472,7 +405,6 @@ if ($filterSalesId > 0) {
 
         .chart-wrapper { height: 220px; width: 100%; }
 
-        /* ---- RECENT ACTIVITIES ---- */
         .activity-card { 
             background: #fff; border-radius: 16px; padding: 24px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
@@ -491,15 +423,11 @@ if ($filterSalesId > 0) {
             font-size: 14px; flex-shrink: 0; 
         }
         .activity-item .act-icon.gold { background: rgba(255, 215, 0, 0.1); color: #d4a017; }
-        .activity-item .act-icon.blue { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
-        .activity-item .act-icon.green { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
-        .activity-item .act-icon.red { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
         .activity-item .act-info { flex: 1; }
         .activity-item .act-info .act-title { font-weight: 600; font-size: 14px; color: #0e1a2b; }
         .activity-item .act-info .act-desc { font-size: 13px; color: #7f8c8d; margin-top: 2px; }
         .activity-item .act-info .act-time { font-size: 11px; color: #bdc3c7; margin-top: 4px; display: block; }
 
-        /* ---- MOBILE ---- */
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
@@ -585,30 +513,26 @@ if ($filterSalesId > 0) {
             </div>
         </div>
 
-        <!-- STAT CARDS (REAL DATA) -->
+        <!-- STAT CARDS -->
         <div class="stat-grid">
-            <!-- 1. TOTAL LEADS -->
             <div class="stat-card">
                 <div class="stat-icon gold"><i class="fas fa-users"></i></div>
                 <div class="stat-number"><?= number_format($totalLeads) ?></div>
                 <div class="stat-label">Total Leads</div>
             </div>
             
-            <!-- 2. OPEN DEALS -->
             <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
                 <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
                 <div class="stat-label">Open Deals</div>
             </div>
 
-            <!-- 3. REVENUE FORECAST -->
             <div class="stat-card">
                 <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
                 <div class="stat-number">Rp <?= number_format($totalRevenue, 0, ',', '.') ?></div>
                 <div class="stat-label">Revenue Forecast</div>
             </div>
             
-            <!-- 4. FILTERED SALES NAME -->
             <div class="stat-card">
                 <div class="stat-icon blue"><i class="fas fa-users"></i></div>
                 <div class="stat-number" style="font-size:18px;"><?= htmlspecialchars($filteredSalesName) ?></div>
@@ -616,14 +540,12 @@ if ($filterSalesId > 0) {
             </div>
         </div>
 
-        <!-- GRID: PIPELINE (REAL DATA) & CHART -->
+        <!-- GRID: PIPELINE & CHART -->
         <div class="grid-2-col">
-            <!-- Pipeline -->
             <div class="pipeline-card">
                 <h6><i class="fas fa-filter" style="color:#ffd700;"></i> Sales Pipeline</h6>
                 
                 <?php 
-                // Hitung total pipeline untuk persentase
                 $totalPipeline = array_sum($pipelineCounts);
                 $pctNew = $totalPipeline > 0 ? ($pipelineCounts['New Lead'] / $totalPipeline * 100) : 0;
                 $pctMid = $totalPipeline > 0 ? ($pipelineCounts['Middle Prospek'] / $totalPipeline * 100) : 0;
@@ -648,16 +570,14 @@ if ($filterSalesId > 0) {
                 </div>
             </div>
 
-            <!-- Chart Tren (Multi Sales Comparison) -->
             <div class="chart-card">
                 <h6><i class="fas fa-chart-area" style="color:#2980b9;"></i> Tren Aktivitas</h6>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
         </div>
 
-        <!-- GRID: AKTIVITAS TERBARU & LAPORAN SALES -->
+        <!-- GRID: RECENT ACTIVITIES -->
         <div class="grid-2-col">
-            <!-- Recent Activities (REAL DATA) -->
             <div class="activity-card">
                 <div style="display:flex; justify-content:space-between;">
                     <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
@@ -666,7 +586,6 @@ if ($filterSalesId > 0) {
                 
                 <?php if (!empty($recentActivities)): ?>
                     <?php foreach ($recentActivities as $act): 
-                        // Ambil inisial nama Sales (maksimal 2 huruf)
                         $salesInitial = '';
                         if (!empty($act['sales_name'])) {
                             $names = explode(' ', $act['sales_name']);
@@ -684,9 +603,9 @@ if ($filterSalesId > 0) {
                                 <?php if (!empty($salesInitial)): ?>
                                     <span class="badge bg-primary me-2" style="font-size:11px;"><?= $salesInitial ?></span>
                                 <?php endif; ?>
-                                <?= htmlspecialchars($act['subject']) ?>
+                                <?= htmlspecialchars($act['subject'] ?? '-') ?>
                             </div>
-                            <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas']) ?></div>
+                            <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas'] ?? '-') ?></div>
                             <span class="act-time"><?= date('d M H:i', strtotime($act['created_at'])) ?></span>
                         </div>
                     </div>
@@ -696,38 +615,11 @@ if ($filterSalesId > 0) {
                 <?php endif; ?>
             </div>
 
-            <!-- Monthly Sales Report (Ringkasan Sales REAL - Filtered by Month) -->
             <div class="activity-card">
-                <div style="display:flex; justify-content:space-between;">
-                    <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Performa Sales (<?= date('F Y', strtotime($filterMonth . '-01')) ?>)</h6>
-                </div>
-                <div style="overflow-y:auto; max-height:300px;">
-                    <table class="table table-sm table-hover" style="font-size:14px; margin:0;">
-                        <thead><tr><th>Sales</th><th class="text-center">Deal</th><th class="text-center">Lost</th></tr></thead>
-                        <tbody>
-                            <?php 
-                            $reportData = $filteredReportData ?? [];
-                            if ($filterSalesId > 0) {
-                                // Jika filter satu sales
-                                $totalDeal = 0; $totalLost = 0;
-                                foreach($filteredReportData as $m) { $totalDeal += $m['total_deal']; $totalLost += $m['total_lost']; }
-                                echo "<tr><td><strong>" . htmlspecialchars($filteredSalesName) . "</strong></td>
-                                      <td class='text-center text-deal'>$totalDeal</td>
-                                      <td class='text-center text-lost'>$totalLost</td></tr>";
-                            } else {
-                                // Jika semua sales
-                                foreach($filteredReportData as $sales):
-                                    $gtD = 0; $gtL = 0;
-                                    foreach($sales['data'] as $m) { $gtD += $m['total_deal']; $gtL += $m['total_lost']; }
-                            ?>
-                            <tr>
-                                <td><i class="fas fa-user-circle me-2 text-secondary"></i> <?= htmlspecialchars($sales['name']) ?></td>
-                                <td class="text-center text-deal"><strong><?= $gtD ?></strong></td>
-                                <td class="text-center text-lost"><?= $gtL ?></td>
-                            </tr>
-                            <?php endforeach; } ?>
-                        </tbody>
-                    </table>
+                <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Informasi</h6>
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                    <p>Dashboard menampilkan ringkasan data sales activity.</p>
                 </div>
             </div>
         </div>
@@ -739,9 +631,6 @@ if ($filterSalesId > 0) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // CHART TREN (SINGLE atau MULTI SALES)
-        // ============================================
         const ctx = document.getElementById('trendChart').getContext('2d');
         
         let trendChart = new Chart(ctx, {
@@ -755,7 +644,7 @@ if ($filterSalesId > 0) {
                 maintainAspectRatio: false,
                 plugins: { 
                     legend: { 
-                        display: <?= ($filterSalesId > 0) ? 'false' : 'true' ?>, // Tampilkan legenda hanya jika multi sales
+                        display: <?= ($filterSalesId > 0) ? 'false' : 'true' ?>,
                         position: 'bottom',
                         labels: {
                             usePointStyle: true,
@@ -787,14 +676,9 @@ if ($filterSalesId > 0) {
             }
         });
 
-        // ============================================
-        // FUNGSI APPLY FILTER (Reload untuk Table & Pipeline)
-        // ============================================
         function applyFilter() {
             const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
             const month = document.getElementById('filterMonth').value;
-            
-            // Refresh halaman dengan filter bulan dan sales terbaru agar semua elemen tabel berubah
             window.location.href = '?sales_id=' + salesId + '&month=' + month;
         }
     </script>
