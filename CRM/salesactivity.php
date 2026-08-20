@@ -305,13 +305,30 @@ foreach ($activities as &$act) {
 }
 unset($act);
 
-$sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
-                FROM accounts ORDER BY nama_pt ASC";
-$accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
+// ============================================
+// AMBIL DATA ACCOUNTS UNTUK DROPDOWN
+// ============================================
+if ($userRole === 'sales') {
+    // Sales hanya melihat account miliknya
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
+                    FROM accounts 
+                    WHERE sales_id = ? 
+                    ORDER BY nama_pt ASC";
+    $stmt = $db->prepare($sqlAccounts);
+    $stmt->execute([$userId]);
+    $accountsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    // Non-sales melihat semua account
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
+                    FROM accounts ORDER BY nama_pt ASC";
+    $accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
+}
 
 $salesUsers = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-// Proses tambah
+// ============================================
+// PROSES TAMBAH SALES ACTIVITY
+// ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
@@ -328,7 +345,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->execute([$account_id]);
         $accountSalesId = $stmt->fetchColumn();
         
+        // Untuk sales, validasi bahwa account adalah miliknya
         if ($userRole === 'sales') {
+            if ($accountSalesId != $userId) {
+                setFlash('Anda tidak bisa menambahkan aktivitas untuk account milik sales lain!', 'danger');
+                redirect('salesactivity.php');
+            }
             $sales_id = $userId;
         } else {
             // Sales otomatis dari account management
