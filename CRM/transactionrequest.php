@@ -56,22 +56,6 @@ $hasFullAccess = in_array($userRole, $fullAccessRoles);
 $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
 
 // ============================================
-// BUAT TABEL detail_transaction_requests JIKA BELUM ADA
-// ============================================
-try {
-    $db->exec("CREATE TABLE IF NOT EXISTS detail_transaction_requests (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        trf_number VARCHAR(50) NOT NULL,
-        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_trf_number (trf_number)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-} catch(PDOException $e) {
-    // Abaikan jika tabel sudah ada
-}
-
-// ============================================
 // FILTER & PAGINATION
 // ============================================
 $limit = 10;
@@ -87,6 +71,7 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $where = "WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''";
 $params = [];
 
+// Filter berdasarkan role
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
@@ -95,14 +80,14 @@ if ($userRole === 'sales') {
 if ($status_filter !== 'all') {
     if ($status_filter === 'pending') {
         $where .= " AND (
-            NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number)
-            OR EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'pending')
+            NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci)
+            OR EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'pending')
         )";
     } elseif ($status_filter === 'approved') {
-        $where .= " AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'approved')
-                    AND NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status IN ('pending', 'rejected'))";
+        $where .= " AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'approved')
+                    AND NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status IN ('pending', 'rejected'))";
     } elseif ($status_filter === 'rejected') {
-        $where .= " AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'rejected')";
+        $where .= " AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'rejected')";
     }
 }
 
@@ -134,15 +119,15 @@ $sql = "SELECT ad.tr_number,
                CASE 
                    WHEN EXISTS (
                        SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'rejected'
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'rejected'
                    ) THEN 'rejected'
                    WHEN EXISTS (
                        SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'pending'
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'pending'
                    ) THEN 'pending'
                    WHEN EXISTS (
                        SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'approved'
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'approved'
                    ) THEN 'approved'
                    ELSE 'pending'
                END as status
@@ -173,8 +158,8 @@ $sqlPending = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
                LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
                $statWhere 
                AND (
-                   NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number)
-                   OR EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'pending')
+                   NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci)
+                   OR EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'pending')
                )";
 $stmt = $db->prepare($sqlPending);
 $stmt->execute($statParams);
@@ -183,8 +168,8 @@ $totalPending = $stmt->fetchColumn();
 $sqlApproved = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
                 LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
                 $statWhere 
-                AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'approved')
-                AND NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status IN ('pending', 'rejected'))";
+                AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'approved')
+                AND NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status IN ('pending', 'rejected'))";
 $stmt = $db->prepare($sqlApproved);
 $stmt->execute($statParams);
 $totalApproved = $stmt->fetchColumn();
@@ -192,7 +177,7 @@ $totalApproved = $stmt->fetchColumn();
 $sqlRejected = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
                 LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
                 $statWhere 
-                AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'rejected')";
+                AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'rejected')";
 $stmt = $db->prepare($sqlRejected);
 $stmt->execute($statParams);
 $totalRejected = $stmt->fetchColumn();
