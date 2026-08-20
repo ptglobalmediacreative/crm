@@ -50,123 +50,13 @@ $hasFullAccess = in_array($userRole, $fullAccessRoles);
 $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
 
 // ============================================
-// AMBIL DATA DETAIL TR
-// ============================================
-$detailData = null;
-$trf_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
-
-if (!empty($trf_number)) {
-    // Ambil data dari activity_details berdasarkan tr_number
-    $stmt = $db->prepare("SELECT ad.*, sa.id as sales_activity_id, sa.leads_number, sa.sales_id,
-                          a.id as account_id, a.nama_pt as account_nama_pt, a.npwp as account_npwp, 
-                          a.alamat as account_alamat, a.nama_pic as account_nama_pic, 
-                          a.jabatan_pic as account_jabatan_pic, a.no_hp_pic as account_no_hp_pic, 
-                          a.email_pic as account_email_pic, a.badan_usaha,
-                          u.full_name as sales_name
-                          FROM activity_details ad
-                          LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
-                          LEFT JOIN accounts a ON sa.account_id = a.id
-                          LEFT JOIN users u ON sa.sales_id = u.id
-                          WHERE ad.tr_number = ?");
-    $stmt->execute([$trf_number]);
-    $detailData = $stmt->fetch();
-    
-    if ($detailData) {
-        // Tambahkan data yang diperlukan
-        $detailData['transaction_request_id'] = $detailData['id'] ?? null;
-        $detailData['subject'] = $detailData['subject'] ?? 'TR Request';
-        $detailData['jenis_tugas'] = $detailData['jenis_tugas'] ?? 'Negosiasi';
-        $detailData['description'] = $detailData['deskripsi'] ?? '';
-        $detailData['due_date'] = $detailData['due_date'] ?? '';
-        $detailData['grand_total'] = $detailData['grand_total'] ?? 0;
-        $detailData['approval_level'] = $detailData['approval_level'] ?? 0;
-        $detailData['status'] = $detailData['status'] ?? 'pending';
-        
-        // Decode JSON data
-        $units = json_decode($detailData['units'] ?? '[]', true);
-        if (!is_array($units)) $units = [];
-        
-        $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
-        if (!is_array($top)) {
-            $top = [
-                'booking_fee' => 0,
-                'booking_fee_remark' => '',
-                'nominal_po_leasing' => 0,
-                'nominal_po_leasing_remark' => '',
-                'down_payments' => [],
-                'installments' => [],
-                'grand_total_top' => 0
-            ];
-        }
-        
-        $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
-        if (!is_array($additional)) {
-            $additional = [
-                'insurance_ops' => 0,
-                'insurance_ops_remark' => '',
-                'insurance_cargo' => 0,
-                'insurance_cargo_remark' => '',
-                'delivery_cost' => 0,
-                'delivery_cost_remark' => '',
-                'free_part' => 0,
-                'free_part_remark' => '',
-                'free_service' => 0,
-                'free_service_remark' => '',
-                'mediator_fee' => 0,
-                'mediator_fee_remark' => '',
-                'others' => 0,
-                'others_remark' => '',
-                'total_additional' => 0
-            ];
-        }
-        
-        $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
-        if (!is_array($mediator)) {
-            $mediator = [
-                'name' => '',
-                'id_card_no' => '',
-                'npwp_no' => '',
-                'bank_name' => '',
-                'bank_account' => '',
-                'amount' => 0
-            ];
-        }
-        
-        // Simpan ke variabel global untuk digunakan di HTML
-        $units = $units;
-        $top = $top;
-        $additional = $additional;
-        $mediator = $mediator;
-    }
-}
-
-// ============================================
-// AMBIL DATA PRODUK UNTUK DROPDOWN
+// AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
 // ============================================
 try {
     $stmt = $db->query("SELECT id, nama_produk FROM products ORDER BY nama_produk");
     $produkList = $stmt->fetchAll();
 } catch(PDOException $e) {
     $produkList = [];
-}
-
-// ============================================
-// FUNGSI UNTUK MENDAPATKAN STATUS APPROVAL
-// ============================================
-function getApprovalStatus($detailData) {
-    if (!$detailData) return 'pending';
-    
-    $status = $detailData['status'] ?? 'pending';
-    
-    if ($status === 'completed') return 'success';
-    if ($status === 'rejected') return 'rejected';
-    
-    $approval_level = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
-    
-    if ($approval_level >= 4) return 'success';
-    if ($approval_level > 0) return 'in_progress';
-    
-    return 'pending';
 }
 
 // ============================================
@@ -228,6 +118,30 @@ function canUserReject($userRole, $approvalLevel, $status) {
 }
 
 // ============================================
+// TAMBAHKAN KOLOM YANG DIPERLUKAN JIKA BELUM ADA
+// ============================================
+$columnsToAdd = [
+    'approval_level' => 'INT DEFAULT 0',
+    'units' => 'TEXT NULL',
+    'term_of_payment' => 'TEXT NULL',
+    'additional_cost' => 'TEXT NULL',
+    'mediator_fee' => 'TEXT NULL',
+    'grand_total' => 'DECIMAL(15,2) DEFAULT 0',
+    'status' => "ENUM('pending','in_progress','completed','rejected','approved') DEFAULT 'pending'"
+];
+
+foreach ($columnsToAdd as $colName => $colDef) {
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM activity_details LIKE '$colName'");
+        if ($stmt->rowCount() == 0) {
+            $db->exec("ALTER TABLE activity_details ADD COLUMN $colName $colDef");
+        }
+    } catch(PDOException $e) {
+        // Abaikan
+    }
+}
+
+// ============================================
 // PROSES APPROVE / REJECT
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -265,73 +179,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // ============================================
-// TAMBAHKAN KOLOM APPROVAL_LEVEL JIKA BELUM ADA
+// AMBIL DATA DETAIL TR
 // ============================================
-try {
-    $stmt = $db->query("SHOW COLUMNS FROM activity_details LIKE 'approval_level'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE activity_details ADD COLUMN approval_level INT DEFAULT 0");
-    }
-} catch(PDOException $e) {
-    // Abaikan
-}
+$detailData = null;
+$trf_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
 
-try {
-    $stmt = $db->query("SHOW COLUMNS FROM activity_details LIKE 'units'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE activity_details ADD COLUMN units TEXT NULL");
+if (!empty($trf_number)) {
+    $stmt = $db->prepare("SELECT ad.*, sa.id as sales_activity_id, sa.leads_number, sa.sales_id,
+                          a.id as account_id, a.nama_pt as account_nama_pt, a.npwp as account_npwp, 
+                          a.alamat as account_alamat, a.nama_pic as account_nama_pic, 
+                          a.jabatan_pic as account_jabatan_pic, a.no_hp_pic as account_no_hp_pic, 
+                          a.email_pic as account_email_pic, a.badan_usaha,
+                          u.full_name as sales_name
+                          FROM activity_details ad
+                          LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+                          LEFT JOIN accounts a ON sa.account_id = a.id
+                          LEFT JOIN users u ON sa.sales_id = u.id
+                          WHERE ad.tr_number = ?");
+    $stmt->execute([$trf_number]);
+    $detailData = $stmt->fetch();
+    
+    if ($detailData) {
+        // Decode JSON data
+        $units = json_decode($detailData['units'] ?? '[]', true);
+        if (!is_array($units)) $units = [];
+        
+        $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
+        if (!is_array($top)) {
+            $top = ['booking_fee'=>0,'booking_fee_remark'=>'','nominal_po_leasing'=>0,'nominal_po_leasing_remark'=>'','down_payments'=>[],'installments'=>[],'grand_total_top'=>0];
+        }
+        
+        $additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
+        if (!is_array($additional)) {
+            $additional = ['insurance_ops'=>0,'insurance_ops_remark'=>'','insurance_cargo'=>0,'insurance_cargo_remark'=>'','delivery_cost'=>0,'delivery_cost_remark'=>'','free_part'=>0,'free_part_remark'=>'','free_service'=>0,'free_service_remark'=>'','mediator_fee'=>0,'mediator_fee_remark'=>'','others'=>0,'others_remark'=>'','total_additional'=>0];
+        }
+        
+        $mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
+        if (!is_array($mediator)) {
+            $mediator = ['name'=>'','id_card_no'=>'','npwp_no'=>'','bank_name'=>'','bank_account'=>'','amount'=>0];
+        }
     }
-} catch(PDOException $e) {
-    // Abaikan
-}
-
-try {
-    $stmt = $db->query("SHOW COLUMNS FROM activity_details LIKE 'term_of_payment'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE activity_details ADD COLUMN term_of_payment TEXT NULL");
-    }
-} catch(PDOException $e) {
-    // Abaikan
-}
-
-try {
-    $stmt = $db->query("SHOW COLUMNS FROM activity_details LIKE 'additional_cost'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE activity_details ADD COLUMN additional_cost TEXT NULL");
-    }
-} catch(PDOException $e) {
-    // Abaikan
-}
-
-try {
-    $stmt = $db->query("SHOW COLUMNS FROM activity_details LIKE 'mediator_fee'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE activity_details ADD COLUMN mediator_fee TEXT NULL");
-    }
-} catch(PDOException $e) {
-    // Abaikan
-}
-
-try {
-    $stmt = $db->query("SHOW COLUMNS FROM activity_details LIKE 'grand_total'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE activity_details ADD COLUMN grand_total DECIMAL(15,2) DEFAULT 0");
-    }
-} catch(PDOException $e) {
-    // Abaikan
 }
 
 // ============================================
 // VARIABEL UNTUK HTML
 // ============================================
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
-$editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
 
-// Ambil data dari detailData
 $units = $units ?? [];
-$top = $top ?? ['booking_fee'=>0, 'booking_fee_remark'=>'', 'nominal_po_leasing'=>0, 'nominal_po_leasing_remark'=>'', 'down_payments'=>[], 'installments'=>[], 'grand_total_top'=>0];
-$additional = $additional ?? ['insurance_ops'=>0, 'insurance_ops_remark'=>'', 'insurance_cargo'=>0, 'insurance_cargo_remark'=>'', 'delivery_cost'=>0, 'delivery_cost_remark'=>'', 'free_part'=>0, 'free_part_remark'=>'', 'free_service'=>0, 'free_service_remark'=>'', 'mediator_fee'=>0, 'mediator_fee_remark'=>'', 'others'=>0, 'others_remark'=>'', 'total_additional'=>0];
-$mediator = $mediator ?? ['name'=>'', 'id_card_no'=>'', 'npwp_no'=>'', 'bank_name'=>'', 'bank_account'=>'', 'amount'=>0];
+$top = $top ?? ['booking_fee'=>0,'booking_fee_remark'=>'','nominal_po_leasing'=>0,'nominal_po_leasing_remark'=>'','down_payments'=>[],'installments'=>[],'grand_total_top'=>0];
+$additional = $additional ?? ['insurance_ops'=>0,'insurance_ops_remark'=>'','insurance_cargo'=>0,'insurance_cargo_remark'=>'','delivery_cost'=>0,'delivery_cost_remark'=>'','free_part'=>0,'free_part_remark'=>'','free_service'=>0,'free_service_remark'=>'','mediator_fee'=>0,'mediator_fee_remark'=>'','others'=>0,'others_remark'=>'','total_additional'=>0];
+$mediator = $mediator ?? ['name'=>'','id_card_no'=>'','npwp_no'=>'','bank_name'=>'','bank_account'=>'','amount'=>0];
 
 $hasAdditional = false;
 foreach ($additional as $key => $val) {
@@ -355,12 +253,6 @@ $approvalSteps = [
 
 $canApprove = canUserApprove($userRole, $approvalLevel, $status);
 $canReject = canUserReject($userRole, $approvalLevel, $status);
-
-// Hidden JSON data
-$units_json = json_encode($units, JSON_UNESCAPED_UNICODE);
-$top_json = json_encode($top, JSON_UNESCAPED_UNICODE);
-$additional_json = json_encode($additional, JSON_UNESCAPED_UNICODE);
-$mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -378,21 +270,11 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            padding-bottom: 70px;
-        }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; padding-bottom: 70px; }
         .sidebar {
-            width: 260px;
-            height: 100vh;
-            background: #0e1a2b;
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            padding: 30px 20px;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: all 0.3s ease;
+            width: 260px; height: 100vh; background: #0e1a2b;
+            position: fixed; top: 0; left: 0; bottom: 0;
+            padding: 30px 20px; overflow-y: auto; z-index: 1000; transition: all 0.3s ease;
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
@@ -402,26 +284,18 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
         }
         .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
         .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
+        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; font-size: 16px; }
         .sidebar .brand .brand-text h5 span { color: #ffd700; }
         .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
         .sidebar .nav-item { 
             display: flex; align-items: center; padding: 12px 16px; 
             color: rgba(255,255,255,0.6); text-decoration: none; 
-            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; 
-            font-size: 14px; position: relative;
+            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; font-size: 14px;
         }
         .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
         .sidebar .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .sidebar .nav-item.active { 
-            background: rgba(255, 215, 0, 0.1); 
-            color: #ffd700; 
-            box-shadow: inset 3px 0 0 #ffd700;
-        }
-        .sidebar .user-profile { 
-            margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); 
-            display: flex; align-items: center; gap: 12px; 
-        }
+        .sidebar .nav-item.active { background: rgba(255, 215, 0, 0.1); color: #ffd700; box-shadow: inset 3px 0 0 #ffd700; }
+        .sidebar .user-profile { margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px; }
         .sidebar .user-profile .avatar { 
             width: 42px; height: 42px; border-radius: 50%; 
             background: linear-gradient(135deg, #1a1a2e, #16213e); 
@@ -430,243 +304,58 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
         }
         .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #fff; }
         .sidebar .user-profile .user-info .role { font-size: 12px; color: rgba(255,255,255,0.4); }
-        .sidebar .logout-btn {
-            display: block; text-align: center; margin-top: 15px; 
-            padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; 
-            font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); 
-            transition: all 0.2s;
-        }
+        .sidebar .logout-btn { display: block; text-align: center; margin-top: 15px; padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); }
         .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
         .main-content { margin-left: 260px; padding: 30px; width: 100%; }
-        .page-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
-        }
-        .page-header h4 { 
-            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
-            letter-spacing: -0.5px;
-        }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .page-header h4 { font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; }
         .page-header h4 span { color: #ffd700; }
         .card-custom {
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            border: 1px solid #e0e4ea;
-            transition: all 0.3s ease;
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea;
+            margin-bottom: 20px;
         }
-        .card-custom:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
         .card-custom .card-header-custom {
-            padding: 20px 24px;
-            border-bottom: 1px solid #f0f2f5;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+            padding: 20px 24px; border-bottom: 1px solid #f0f2f5;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
         }
-        .card-custom .card-header-custom h6 {
-            font-weight: 600;
-            color: #0e1a2b;
-            margin: 0;
-            font-size: 16px;
-        }
-        .card-custom .card-header-custom h6 i {
-            color: #ffd700;
-            margin-right: 8px;
-        }
+        .card-custom .card-header-custom h6 { font-weight: 600; color: #0e1a2b; margin: 0; font-size: 16px; }
+        .card-custom .card-header-custom h6 i { color: #ffd700; margin-right: 8px; }
         .card-custom .card-body-custom { padding: 20px; }
-        .info-row {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f2f5;
-        }
+        .info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #f0f2f5; }
         .info-row:last-child { border-bottom: none; }
-        .info-row .info-label {
-            font-weight: 600;
-            color: #555;
-            width: 180px;
-            flex-shrink: 0;
-            font-size: 13px;
-        }
+        .info-row .info-label { font-weight: 600; color: #555; width: 180px; flex-shrink: 0; font-size: 13px; }
         .info-row .info-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
-        .badge-status {
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-        }
+        .badge-status { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
         .badge-status.pending { background: rgba(241, 196, 15, 0.15); color: #d4a017; }
         .badge-status.in_progress { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
         .badge-status.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
-        .badge-trf {
-            background: rgba(52, 152, 219, 0.12);
-            color: #2980b9;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        .tr-number-link {
-            color: #d4a017;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-        .tr-number-link:hover {
-            color: #b7950b;
-            text-decoration: none;
-        }
-        .btn-primary-custom {
-            background: #0e1a2b;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-primary-custom:hover {
-            background: #1a2d4a;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(14, 26, 43, 0.3);
-            color: #fff;
-        }
-        .btn-secondary-custom {
-            background: #f0f2f5;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #555;
-        }
+        .tr-number-link { color: #d4a017; text-decoration: none; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
+        .tr-number-link:hover { color: #b7950b; }
+        .btn-primary-custom { background: #0e1a2b; border: none; border-radius: 8px; padding: 10px 24px; font-weight: 600; font-size: 13px; color: #fff; }
+        .btn-primary-custom:hover { background: #1a2d4a; color: #fff; }
+        .btn-secondary-custom { background: #f0f2f5; border: none; border-radius: 8px; padding: 10px 24px; font-weight: 600; font-size: 13px; color: #555; }
         .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
-        .btn-success-custom {
-            background: #27ae60;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
+        .btn-success-custom { background: #27ae60; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px; color: #fff; }
         .btn-success-custom:hover { background: #219a52; color: #fff; }
-        .btn-danger-custom {
-            background: #e74c3c;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
+        .btn-danger-custom { background: #e74c3c; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px; color: #fff; }
         .btn-danger-custom:hover { background: #c0392b; color: #fff; }
-        .nav-tabs-custom {
-            border-bottom: 2px solid #e8edf2;
-            padding: 0 16px;
-            background: #f8f9fa;
-            border-radius: 12px 12px 0 0;
-        }
-        .nav-tabs-custom .nav-link {
-            border: none;
-            padding: 10px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            color: #999;
-            transition: all 0.3s ease;
-            position: relative;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .nav-tabs-custom .nav-link:hover { color: #0e1a2b; background: transparent; }
-        .nav-tabs-custom .nav-link.active { color: #ffd700; background: transparent; }
-        .nav-tabs-custom .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #ffd700;
-            border-radius: 3px 3px 0 0;
-        }
+        .nav-tabs-custom { border-bottom: 2px solid #e8edf2; padding: 0 16px; background: #f8f9fa; border-radius: 12px 12px 0 0; }
+        .nav-tabs-custom .nav-link { border: none; padding: 10px 16px; font-weight: 600; font-size: 13px; color: #999; text-decoration: none; display: inline-block; }
+        .nav-tabs-custom .nav-link.active { color: #ffd700; }
         .nav-tabs-custom .nav-link i { margin-right: 6px; }
-        .tab-content-custom {
-            padding: 16px 20px 20px;
-            background: #fff;
-            border-radius: 0 0 12px 12px;
-            border: 1px solid #e8edf2;
-            border-top: none;
-        }
-        .section-title {
-            font-weight: 700;
-            color: #0e1a2b;
-            font-size: 15px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #f0f2f5;
-        }
+        .tab-content-custom { padding: 16px 20px 20px; background: #fff; border-radius: 0 0 12px 12px; border: 1px solid #e8edf2; border-top: none; }
+        .section-title { font-weight: 700; color: #0e1a2b; font-size: 15px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #f0f2f5; }
         .section-title i { color: #ffd700; margin-right: 8px; }
-        .summary-item {
-            display: flex;
-            padding: 6px 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            margin-bottom: 4px;
-            border: 1px solid #e8edf2;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .summary-item .label {
-            font-weight: 600;
-            color: #555;
-            width: 160px;
-            flex-shrink: 0;
-            font-size: 12px;
-        }
-        .summary-item .value { color: #0e1a2b; font-size: 12px; word-break: break-word; }
-        .approval-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px 20px;
-            border-left: 4px solid #ffd700;
-            margin-bottom: 16px;
-        }
-        .approval-card .approval-title {
-            font-weight: 700;
-            color: #0e1a2b;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        .approval-card .approval-title i {
-            color: #ffd700;
-            margin-right: 8px;
-        }
-        .approval-step {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 0;
-        }
-        .approval-step .step-number {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
+        .summary-item { display: flex; padding: 6px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 4px; border: 1px solid #e8edf2; }
+        .summary-item .label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 12px; }
+        .summary-item .value { color: #0e1a2b; font-size: 12px; }
+        .approval-card { background: #f8f9fa; border-radius: 12px; padding: 16px 20px; border-left: 4px solid #ffd700; margin-bottom: 16px; }
+        .approval-card .approval-title { font-weight: 700; color: #0e1a2b; font-size: 14px; margin-bottom: 10px; }
+        .approval-card .approval-title i { color: #ffd700; margin-right: 8px; }
+        .approval-step { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+        .approval-step .step-number { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
         .approval-step .step-number.done { background: #27ae60; color: #fff; }
         .approval-step .step-number.active { background: #ffd700; color: #0e1a2b; }
         .approval-step .step-number.pending { background: #e0e4ea; color: #999; }
@@ -674,14 +363,7 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
         .approval-step .step-info { flex: 1; }
         .approval-step .step-info .step-label { font-weight: 600; font-size: 13px; color: #0e1a2b; }
         .approval-step .step-info .step-status { font-size: 11px; color: #999; }
-        .approval-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e0e4ea;
-        }
+        .approval-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e4ea; }
         .mobile-toggle { display: none; }
         .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
         .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
@@ -691,11 +373,7 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; padding: 20px; }
-            .mobile-toggle { 
-                display: flex !important; background: #0e1a2b; border: none; 
-                width: 40px; height: 40px; border-radius: 8px; 
-                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
-            }
+            .mobile-toggle { display: flex !important; background: #0e1a2b; border: none; width: 40px; height: 40px; border-radius: 8px; color: #ffd700; font-size: 20px; align-items: center; justify-content: center; }
         }
         @media (max-width: 480px) {
             .card-custom .card-header-custom { padding: 12px 16px; }
@@ -704,7 +382,6 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
             .info-row { flex-direction: column; }
             .info-row .info-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .summary-item .label { width: 100%; }
-            .tab-content-custom { padding: 12px 14px; }
             .approval-step .step-number { width: 24px; height: 24px; font-size: 10px; }
         }
     </style>
@@ -740,9 +417,7 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
                 <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
         </div>
-        <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
+        <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </nav>
 
     <!-- MAIN CONTENT -->
@@ -754,13 +429,9 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
                 <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div>
-                    <h4><span><i class="fas fa-file-signature" style="color:#ffd700;"></i></span> Detail Transaction Request</h4>
-                </div>
+                <h4><span><i class="fas fa-file-signature" style="color:#ffd700;"></i></span> Detail Transaction Request</h4>
             </div>
-            <a href="transactionrequest.php" class="btn btn-secondary-custom">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
+            <a href="transactionrequest.php" class="btn btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
         </div>
 
         <?= showFlash() ?>
@@ -771,9 +442,7 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
         <div class="card-custom" style="margin-bottom: 20px;">
             <div class="card-body-custom text-center">
                 <label class="form-label mb-2">Transaction Request Number</label>
-                <div>
-                    <span class="tr-number-link"><?= htmlspecialchars($detailData['tr_number']) ?></span>
-                </div>
+                <div><span class="tr-number-link"><?= htmlspecialchars($detailData['tr_number']) ?></span></div>
             </div>
         </div>
 
@@ -797,20 +466,23 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
                 $isDone = ($approvalLevel >= $level);
                 $isActive = ($approvalLevel == $level - 1 && !$isRejected && !$isCompleted);
                 $isRejectedStep = ($isRejected && $approvalLevel < $level);
-                
                 $stepClass = $isRejectedStep ? 'rejected' : ($isDone ? 'done' : ($isActive ? 'active' : 'pending'));
                 
-                $statusText = $isRejectedStep ? '<span class="text-danger">Rejected</span>' : ($isDone ? '<span class="text-success"><i class="fas fa-check-circle"></i> Approved</span>' : ($isActive ? '<span class="text-warning"><i class="fas fa-clock"></i> Menunggu Persetujuan</span>' : '<span class="text-muted"><i class="fas fa-hourglass"></i> Pending</span>'));
+                if ($isRejectedStep) {
+                    $statusText = '<span class="text-danger">Rejected</span>';
+                } elseif ($isDone) {
+                    $statusText = '<span class="text-success"><i class="fas fa-check-circle"></i> Approved</span>';
+                } elseif ($isActive) {
+                    $statusText = '<span class="text-warning"><i class="fas fa-clock"></i> Menunggu Persetujuan</span>';
+                } else {
+                    $statusText = '<span class="text-muted"><i class="fas fa-hourglass"></i> Pending</span>';
+                }
                 ?>
                 <div class="approval-step">
                     <div class="step-number <?= $stepClass ?>">
-                        <?php if ($isDone): ?>
-                            <i class="fas fa-check"></i>
-                        <?php elseif ($isRejectedStep): ?>
-                            <i class="fas fa-times"></i>
-                        <?php else: ?>
-                            <?= $level ?>
-                        <?php endif; ?>
+                        <?php if ($isDone): ?><i class="fas fa-check"></i>
+                        <?php elseif ($isRejectedStep): ?><i class="fas fa-times"></i>
+                        <?php else: ?><?= $level ?><?php endif; ?>
                     </div>
                     <div class="step-info">
                         <div class="step-label"><?= $step['label'] ?></div>
@@ -884,6 +556,16 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
                             <i class="fas fa-money-bill-wave"></i> Term Of Payment
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=additional" class="nav-link <?= $activeTab == 'additional' ? 'active' : '' ?>">
+                            <i class="fas fa-plus-circle"></i> Additional Cost
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=mediator" class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>">
+                            <i class="fas fa-user-tie"></i> Mediator Fee
+                        </a>
+                    </li>
                 </ul>
             </div>
 
@@ -915,6 +597,32 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
                     <?php else: ?>
                         <div class="text-center text-muted py-3">Belum ada data TOP.</div>
                     <?php endif; ?>
+                <?php elseif ($activeTab == 'additional'): ?>
+                    <h5 class="section-title"><i class="fas fa-plus-circle"></i> Additional Cost</h5>
+                    <?php if ($hasAdditional): ?>
+                        <div class="summary-item"><span class="label">Insurance Ops</span><span class="value">Rp <?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="summary-item"><span class="label">Insurance Cargo</span><span class="value">Rp <?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="summary-item"><span class="label">Delivery Cost</span><span class="value">Rp <?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="summary-item"><span class="label">Free Part</span><span class="value">Rp <?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="summary-item"><span class="label">Free Service</span><span class="value">Rp <?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="summary-item"><span class="label">Mediator Fee</span><span class="value">Rp <?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="summary-item"><span class="label">Others</span><span class="value">Rp <?= number_format($additional['others'] ?? 0, 0, ',', '.') ?></span></div>
+                        <div class="summary-item" style="background: #cce5ff;"><span class="label" style="font-weight:700;">Total Additional</span><span class="value" style="font-weight:700;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span></div>
+                    <?php else: ?>
+                        <div class="text-center text-muted py-3">Belum ada data Additional Cost.</div>
+                    <?php endif; ?>
+                <?php elseif ($activeTab == 'mediator'): ?>
+                    <h5 class="section-title"><i class="fas fa-user-tie"></i> Mediator Fee</h5>
+                    <?php if (!empty($mediator['name'])): ?>
+                        <div class="summary-item"><span class="label">Name</span><span class="value"><?= htmlspecialchars($mediator['name'] ?? '-') ?></span></div>
+                        <div class="summary-item"><span class="label">ID Card No</span><span class="value"><?= htmlspecialchars($mediator['id_card_no'] ?? '-') ?></span></div>
+                        <div class="summary-item"><span class="label">NPWP No</span><span class="value"><?= htmlspecialchars($mediator['npwp_no'] ?? '-') ?></span></div>
+                        <div class="summary-item"><span class="label">Bank Name</span><span class="value"><?= htmlspecialchars($mediator['bank_name'] ?? '-') ?></span></div>
+                        <div class="summary-item"><span class="label">Bank Account</span><span class="value"><?= htmlspecialchars($mediator['bank_account'] ?? '-') ?></span></div>
+                        <div class="summary-item"><span class="label">Amount</span><span class="value"><strong>Rp <?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?></strong></span></div>
+                    <?php else: ?>
+                        <div class="text-center text-muted py-3">Belum ada data Mediator.</div>
+                    <?php endif; ?>
                 <?php else: ?>
                     <h5 class="section-title"><i class="fas fa-info-circle"></i> Ringkasan</h5>
                     <div class="summary-item"><span class="label">TR Number</span><span class="value"><?= htmlspecialchars($detailData['tr_number']) ?></span></div>
@@ -925,7 +633,6 @@ $mediator_json = json_encode($mediator, JSON_UNESCAPED_UNICODE);
                     <div class="summary-item"><span class="label">Approval Level</span><span class="value"><?= $approvalLevel ?> / 4</span></div>
                     <div class="summary-item"><span class="label">Grand Total</span><span class="value"><strong>Rp <?= number_format($detailData['grand_total'] ?? 0, 0, ',', '.') ?></strong></span></div>
                     <div class="summary-item"><span class="label">Due Date</span><span class="value"><?= !empty($detailData['due_date']) ? date('d/m/Y', strtotime($detailData['due_date'])) : '-' ?></span></div>
-                    <div class="summary-item"><span class="label">Deskripsi</span><span class="value"><?= htmlspecialchars($detailData['deskripsi'] ?? '-') ?></span></div>
                 <?php endif; ?>
             </div>
         </div>
