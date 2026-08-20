@@ -174,6 +174,75 @@ if (!empty($filterMonth)) {
     $params[] = $filterMonth;
 }
 
+// ============================================
+// EXPORT TO EXCEL
+// ============================================
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    header('Content-Type: application/vnd.ms-excel');
+    header('Content-Disposition: attachment; filename="Data_Sales_Activity_' . date('Y-m-d') . '.xls"');
+    header('Cache-Control: max-age=0');
+    
+    $exportSql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
+            FROM sales_activities sa 
+            LEFT JOIN accounts a ON sa.account_id = a.id 
+            LEFT JOIN users u ON sa.sales_id = u.id
+            $where 
+            ORDER BY sa.created_at DESC";
+    $stmt = $db->prepare($exportSql);
+    $stmt->execute($params);
+    $exportActivities = $stmt->fetchAll();
+    
+    echo '<html>';
+    echo '<head><meta charset="UTF-8"></head>';
+    echo '<body>';
+    echo '<h2>Data Sales Activity - PT Ganda Elang Tangguh</h2>';
+    echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . ' WIB</p>';
+    echo '<p>Filter Bulan: ' . date('F Y', strtotime($filterMonth . '-01')) . '</p>';
+    echo '<table border="1" cellpadding="5" cellspacing="0">';
+    echo '<thead>';
+    echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
+    echo '<th>No</th>';
+    echo '<th>Leads Number</th>';
+    echo '<th>Nama PT</th>';
+    echo '<th>Badan Usaha</th>';
+    echo '<th>Business Segment</th>';
+    echo '<th>Jenis Prospek</th>';
+    echo '<th>Status</th>';
+    echo '<th>Nama PIC</th>';
+    echo '<th>Contact Mobile Phone</th>';
+    echo '<th>Sales</th>';
+    echo '<th>Tanggal Dibuat</th>';
+    echo '</tr>';
+    echo '</thead>';
+    echo '<tbody>';
+    
+    $no = 1;
+    foreach ($exportActivities as $act) {
+        $jenisProspek = getJenisProspek($db, $act['id']) ?? '-';
+        $statusProspek = getStatusProspek($db, $act['id']) ?? '-';
+        
+        echo '<tr>';
+        echo '<td>' . $no++ . '</td>';
+        echo '<td>' . htmlspecialchars($act['leads_number']) . '</td>';
+        echo '<td>' . htmlspecialchars($act['nama_pt']) . '</td>';
+        echo '<td>' . htmlspecialchars($act['badan_usaha'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($act['bidang_usaha'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($jenisProspek) . '</td>';
+        echo '<td>' . htmlspecialchars($statusProspek) . '</td>';
+        echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($act['no_hp_pic'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($act['sales_name'] ?? '-') . '</td>';
+        echo '<td>' . date('d-m-Y H:i', strtotime($act['created_at'])) . '</td>';
+        echo '</tr>';
+    }
+    
+    echo '</tbody>';
+    echo '</table>';
+    echo '</body>';
+    echo '</html>';
+    exit;
+}
+
 $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
 $stmt = $db->prepare($countSql);
 $stmt->execute($params);
@@ -494,6 +563,27 @@ $role = $_SESSION['role'] ?? 'user';
         }
         .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
 
+        .btn-success-custom {
+            background: #27ae60;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            color: #fff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-success-custom:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+            color: #fff;
+        }
+
         .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
         .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
         .detail-item:last-child { border-bottom: none; }
@@ -613,11 +703,16 @@ $role = $_SESSION['role'] ?? 'user';
                     <h4><span><i class="fas fa-chart-bar" style="color:#ffd700;"></i></span> Sales Activity</h4>
                 </div>
             </div>
-            <?php if (canAdd('sales_activity')): ?>
-                <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalActivity">
-                    <i class="fas fa-plus"></i> Tambah Aktivitas
-                </button>
-            <?php endif; ?>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&search=<?= urlencode($search) ?>" class="btn btn-success-custom">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <?php if (canAdd('sales_activity')): ?>
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalActivity">
+                        <i class="fas fa-plus"></i> Tambah Aktivitas
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <!-- TABLE -->
