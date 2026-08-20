@@ -106,6 +106,16 @@ if (!$activity) {
 }
 
 // ============================================
+// UPDATE STATUS OVERDUE OTOMATIS
+// ============================================
+$stmt = $db->prepare("UPDATE activity_details SET status = 'overdue' 
+                      WHERE sales_activity_id = ? 
+                      AND status = 'in_progress' 
+                      AND due_date IS NOT NULL 
+                      AND due_date < NOW()");
+$stmt->execute([$leadsId]);
+
+// ============================================
 // PROSES TAMBAH DETAIL AKTIVITAS
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -473,9 +483,11 @@ $userId = $_SESSION['user_id'] ?? 0;
             border-radius: 20px;
             font-size: 11px;
             font-weight: 600;
+            white-space: nowrap;
         }
         .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .badge-status.overdue { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
 
         .btn-action {
             width: 30px;
@@ -760,7 +772,15 @@ $userId = $_SESSION['user_id'] ?? 0;
                                         <td><?= $detail['due_date'] ? date('d-m-Y', strtotime($detail['due_date'])) : '-' ?></td>
                                         <td>
                                             <span class="badge-status <?= $detail['status'] ?>">
-                                                <?= $detail['status'] === 'completed' ? 'Completed' : 'In Progress' ?>
+                                                <?php 
+                                                    if ($detail['status'] === 'completed') {
+                                                        echo 'Completed';
+                                                    } elseif ($detail['status'] === 'overdue') {
+                                                        echo 'Overdue';
+                                                    } else {
+                                                        echo 'In Progress';
+                                                    }
+                                                ?>
                                             </span>
                                         </td>
                                         <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
@@ -769,7 +789,7 @@ $userId = $_SESSION['user_id'] ?? 0;
                                                 <button class="btn-action detail" onclick="viewDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <?php if ($detail['status'] !== 'completed'): ?>
+                                                <?php if ($detail['status'] === 'in_progress' || $detail['status'] === 'overdue'): ?>
                                                     <?php if (canEdit('sales_activity')): ?>
                                                         <button class="btn-action edit" onclick="editDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
                                                             <i class="fas fa-edit"></i>
@@ -1107,7 +1127,9 @@ $userId = $_SESSION['user_id'] ?? 0;
                     </div>` : ''}
                     <div class="info-item">
                         <div class="info-label">Status</div>
-                        <div class="info-value">${data.status === 'completed' ? 'Completed' : 'In Progress'}</div>
+                        <div class="info-value">
+                            ${data.status === 'completed' ? 'Completed' : data.status === 'overdue' ? 'Overdue' : 'In Progress'}
+                        </div>
                     </div>
                 </div>
             `;
