@@ -604,7 +604,11 @@ $role = $_SESSION['role'] ?? 'user';
                                 <?php foreach ($activities as $act): ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
-                                        <td><strong><?= htmlspecialchars($act['leads_number']) ?></strong></td>
+                                        <td>
+                                            <a href="detailaktivitas.php?leads_id=<?= $act['id'] ?>" style="color: #2980b9; text-decoration: none; font-weight: 700;">
+                                                <?= htmlspecialchars($act['leads_number']) ?>
+                                            </a>
+                                        </td>
                                         <td><?= htmlspecialchars($act['nama_pt']) ?></td>
                                         <td><?= htmlspecialchars($act['badan_usaha'] ?? '-') ?></td>
                                         <td><?= htmlspecialchars($act['bidang_usaha'] ?? '-') ?></td>
