@@ -133,6 +133,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $tr_number = generateTRNumber($db);
         }
         
+        // Untuk Kontrak & After Sales, ambil TR Number dari Negosiasi sebelumnya
+        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'After Sales') {
+            $stmt = $db->prepare("SELECT tr_number FROM activity_details 
+                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+                                  ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$leadsId]);
+            $tr_negosiasi = $stmt->fetchColumn();
+            if ($tr_negosiasi) {
+                $tr_number = $tr_negosiasi;
+            }
+        }
+        
         if (empty($errors)) {
             $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')");
             $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number]);
@@ -707,6 +719,8 @@ $userId = $_SESSION['user_id'] ?? 0;
                                 <th>Subject</th>
                                 <th>Account</th>
                                 <th>Jenis Tugas</th>
+                                <th>TR Number</th>
+                                <th>DI Number</th>
                                 <th>Due Date</th>
                                 <th>Status</th>
                                 <th>Sales</th>
@@ -726,6 +740,8 @@ $userId = $_SESSION['user_id'] ?? 0;
                                                 <?= htmlspecialchars($detail['jenis_tugas']) ?>
                                             </span>
                                         </td>
+                                        <td><?= !empty($detail['tr_number']) ? htmlspecialchars($detail['tr_number']) : '-' ?></td>
+                                        <td><?= !empty($detail['di_number']) ? htmlspecialchars($detail['di_number']) : '-' ?></td>
                                         <td><?= $detail['due_date'] ? date('d-m-Y', strtotime($detail['due_date'])) : '-' ?></td>
                                         <td>
                                             <span class="badge-status <?= $detail['status'] ?>">
@@ -761,7 +777,7 @@ $userId = $_SESSION['user_id'] ?? 0;
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
+                                    <td colspan="10" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada aktivitas
                                     </td>
                                 </tr>
@@ -822,6 +838,9 @@ $userId = $_SESSION['user_id'] ?? 0;
                                 <?= generateTRNumber($db) ?>
                             </div>
                         </div>
+                        
+                        <!-- Info TR & DI dari Negosiasi (muncul jika jenis_tugas = Kontrak/After Sales) -->
+                        <div id="negosiasiInfoAdd" style="display: none;"></div>
                         
                         <div class="mb-3">
                             <label class="form-label">Due Date <span class="optional">(Optional)</span></label>
@@ -957,12 +976,58 @@ $userId = $_SESSION['user_id'] ?? 0;
             }
         });
         
-        // Show/hide TR Number saat tambah
+        // Show/hide TR Number & Info Negosiasi saat tambah
         document.getElementById('jenis_tugas_add').addEventListener('change', function() {
+            var trNumberField = document.getElementById('trNumberFieldAdd');
+            var negosiasiInfoAdd = document.getElementById('negosiasiInfoAdd');
+            
             if (this.value === 'Negosiasi') {
-                document.getElementById('trNumberFieldAdd').style.display = 'block';
+                trNumberField.style.display = 'block';
+                negosiasiInfoAdd.style.display = 'none';
+                negosiasiInfoAdd.innerHTML = '';
+            } else if (this.value === 'Kontrak' || this.value === 'After Sales') {
+                trNumberField.style.display = 'none';
+                negosiasiInfoAdd.style.display = 'block';
+                
+                // Tampilkan info TR & DI dari Negosiasi
+                var infoHtml = '';
+                if (negosiasiCompletedList.length > 0) {
+                    var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1];
+                    
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    
+                    if (lastNegosiasi.tr_number) {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> ' + lastNegosiasi.tr_number + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
+                    }
+                    
+                    if (lastNegosiasi.di_number) {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> ' + lastNegosiasi.di_number + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
+                    }
+                    
+                    if (lastNegosiasi.customer_deal) {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> ' + lastNegosiasi.customer_deal + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> -</div>';
+                    }
+                    
+                    infoHtml += '</div>';
+                } else {
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-info-circle"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    infoHtml += '<div class="text-muted">Tidak ada data Negosiasi yang completed.</div>';
+                    infoHtml += '</div>';
+                }
+                
+                negosiasiInfoAdd.innerHTML = infoHtml;
             } else {
-                document.getElementById('trNumberFieldAdd').style.display = 'none';
+                trNumberField.style.display = 'none';
+                negosiasiInfoAdd.style.display = 'none';
+                negosiasiInfoAdd.innerHTML = '';
             }
         });
         
@@ -1051,7 +1116,7 @@ $userId = $_SESSION['user_id'] ?? 0;
                 var infoHtml = '';
                 
                 if (negosiasiCompletedList.length > 0) {
-                    var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1]; // Ambil yang terbaru
+                    var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1];
                     
                     infoHtml += '<div class="info-negosiasi-container">';
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
@@ -1082,7 +1147,7 @@ $userId = $_SESSION['user_id'] ?? 0;
                     infoHtml += '</div>';
                 }
                 
-                // Tambahkan info di modal complete sebelum tombol submit
+                // Tambahkan info di modal complete
                 var modalBody = document.querySelector('#modalComplete .modal-body');
                 var existingContainer = document.getElementById('negosiasiInfoContainer');
                 if (existingContainer) {
