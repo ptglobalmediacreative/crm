@@ -1,12 +1,5 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 require_once 'config.php';
-
-// ============================================
-// SET ZONA WAKTU WIB (GMT+7)
-// ============================================
-date_default_timezone_set('Asia/Jakarta');
 
 // Cek login
 if (!isLoggedIn()) {
@@ -44,962 +37,330 @@ function getRoleLabel($role) {
 }
 
 // ============================================
-// FUNGSI ROMAN MONTH (BULAN ROMAWI)
-// ============================================
-function getRomanMonth($month) {
-    $romanMonths = [
-        1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
-        7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
-    ];
-    return $romanMonths[(int)$month] ?? '';
-}
-
-// ============================================
-// GENERATE ACTIVITY CODE
-// ============================================
-function generateActivityCode($db) {
-    $month = date('m');
-    $year = date('Y');
-    $romanMonth = getRomanMonth($month);
-    
-    $stmt = $db->prepare("SELECT activity_code FROM sales_activities 
-                          WHERE activity_code LIKE ? 
-                          ORDER BY activity_code DESC LIMIT 1");
-    $pattern = "%/GET-ACT/JKT/" . $romanMonth . "/" . $year;
-    $stmt->execute([$pattern]);
-    $last = $stmt->fetchColumn();
-    
-    if ($last) {
-        $parts = explode('/', $last);
-        $lastNumber = (int)$parts[0];
-        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-    } else {
-        $newNumber = '0001';
-    }
-    
-    return $newNumber . "/GET-ACT/JKT/" . $romanMonth . "/" . $year;
-}
-
-// ============================================
-// GENERATE TRANSACTION REQUEST FORM NUMBER
-// ============================================
-function generateTRFNumber($db) {
-    $month = date('m');
-    $year = date('Y');
-    $romanMonth = getRomanMonth($month);
-    
-    $stmt = $db->prepare("SELECT trf_number FROM sales_activities 
-                          WHERE trf_number LIKE ? 
-                          ORDER BY trf_number DESC LIMIT 1");
-    $pattern = "%/GET-TR/JKT/" . $romanMonth . "/" . $year;
-    $stmt->execute([$pattern]);
-    $last = $stmt->fetchColumn();
-    
-    if ($last) {
-        $parts = explode('/', $last);
-        $lastNumber = (int)$parts[0];
-        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-    } else {
-        $newNumber = '0001';
-    }
-    
-    return $newNumber . "/GET-TR/JKT/" . $romanMonth . "/" . $year;
-}
-
-// ============================================
-// GENERATE DI NUMBER
-// ============================================
-function generateDINumber($db, $date) {
-    $month = date('m', strtotime($date));
-    $year = date('Y', strtotime($date));
-    $romanMonth = getRomanMonth($month);
-    
-    $stmt = $db->prepare("SELECT di_number FROM sales_activities 
-                          WHERE di_number LIKE ? 
-                          ORDER BY di_number DESC LIMIT 1");
-    $pattern = "%/GET-DI/" . $romanMonth . "/" . $year;
-    $stmt->execute([$pattern]);
-    $last = $stmt->fetchColumn();
-    
-    if ($last) {
-        $parts = explode('/', $last);
-        $lastNumber = (int)$parts[0];
-        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-    } else {
-        $newNumber = '0001';
-    }
-    
-    return $newNumber . "/GET-DI/" . $romanMonth . "/" . $year;
-}
-
-// ============================================
-// FUNGSI KOMPRESI GAMBAR
-// ============================================
-function compressImage($source_path, $destination_path, $quality = 80) {
-    if (!file_exists($source_path)) return false;
-    
-    $image_info = getimagesize($source_path);
-    if (!$image_info) return false;
-    
-    $mime_type = $image_info['mime'];
-    $max_width = 1920;
-    $max_height = 1920;
-    
-    switch ($mime_type) {
-        case 'image/jpeg':
-        case 'image/jpg':
-            $image = imagecreatefromjpeg($source_path);
-            break;
-        case 'image/png':
-            $image = imagecreatefrompng($source_path);
-            break;
-        case 'image/gif':
-            $image = imagecreatefromgif($source_path);
-            break;
-        case 'image/webp':
-            $image = imagecreatefromwebp($source_path);
-            break;
-        default:
-            return copy($source_path, $destination_path);
-    }
-    
-    if (!$image) return false;
-    
-    $orig_width = imagesx($image);
-    $orig_height = imagesy($image);
-    
-    if ($orig_width > $max_width || $orig_height > $max_height) {
-        $ratio = min($max_width / $orig_width, $max_height / $orig_height);
-        $new_width = round($orig_width * $ratio);
-        $new_height = round($orig_height * $ratio);
-        
-        $resized_image = imagecreatetruecolor($new_width, $new_height);
-        
-        if ($mime_type == 'image/png') {
-            imagealphablending($resized_image, false);
-            imagesavealpha($resized_image, true);
-            $transparent = imagecolorallocatealpha($resized_image, 255, 255, 255, 127);
-            imagefilledrectangle($resized_image, 0, 0, $new_width, $new_height, $transparent);
-        } elseif ($mime_type == 'image/gif') {
-            $transparent = imagecolorallocatealpha($resized_image, 0, 0, 0, 127);
-            imagecolortransparent($resized_image, $transparent);
-        }
-        
-        imagecopyresampled($resized_image, $image, 0, 0, 0, 0, $new_width, $new_height, $orig_width, $orig_height);
-        imagedestroy($image);
-        $image = $resized_image;
-    }
-    
-    $result = false;
-    switch ($mime_type) {
-        case 'image/jpeg':
-        case 'image/jpg':
-            $result = imagejpeg($image, $destination_path, $quality);
-            break;
-        case 'image/png':
-            $png_quality = round(($quality / 100) * 9);
-            $result = imagepng($image, $destination_path, $png_quality);
-            break;
-        case 'image/gif':
-            $result = imagegif($image, $destination_path);
-            break;
-        case 'image/webp':
-            $result = imagewebp($image, $destination_path, $quality);
-            break;
-        default:
-            $result = copy($source_path, $destination_path);
-    }
-    
-    imagedestroy($image);
-    return $result;
-}
-
-// ============================================
-// FUNGSI UPLOAD FILE DENGAN KOMPRESI
-// ============================================
-function uploadFileWithCompression($file, $target_dir, $allowed_extensions = [], $max_file_size = 5242880, $compress_quality = 80) {
-    if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
-        return ['success' => false, 'message' => 'Error upload file'];
-    }
-    
-    if ($file['size'] > $max_file_size) {
-        return ['success' => false, 'message' => 'Ukuran file melebihi ' . ($max_file_size / 1024 / 1024) . 'MB'];
-    }
-    
-    $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    
-    if (!in_array($file_extension, $allowed_extensions)) {
-        return ['success' => false, 'message' => 'Format file tidak didukung'];
-    }
-    
-    if (!file_exists($target_dir)) {
-        mkdir($target_dir, 0777, true);
-    }
-    
-    $new_filename = time() . '_' . uniqid() . '.' . $file_extension;
-    $file_path = $target_dir . $new_filename;
-    
-    $image_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    if (in_array($file_extension, $image_types)) {
-        $compress_result = compressImage($file['tmp_name'], $file_path, $compress_quality);
-        if (!$compress_result) {
-            copy($file['tmp_name'], $file_path);
-        }
-    } else {
-        copy($file['tmp_name'], $file_path);
-    }
-    
-    return [
-        'success' => true,
-        'file_path' => $file_path,
-        'filename' => $new_filename,
-        'original_name' => $file['name'],
-        'size' => filesize($file_path)
-    ];
-}
-
-// ============================================
-// CEK USER UNTUK AKSES
-// ============================================
-$userId = $_SESSION['user_id'] ?? 0;
-$userRole = $_SESSION['role'] ?? 'user';
-$fullName = $_SESSION['full_name'] ?? 'User';
-$role = $_SESSION['role'] ?? 'user';
-
-$fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
-$hasFullAccess = in_array($userRole, $fullAccessRoles);
-$direkturRoles = ['direktur_utama', 'direktur_operasional', 'direktur_sales', 'admin', 'it_support', 'finance', 'business'];
-
-// ============================================
-// FUNGSI CEK DEADLINE
-// ============================================
-function getDeadlineStatus($due_date, $status = 'in_progress') {
-    if ($status == 'completed') {
-        if (empty($due_date)) {
-            return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
-        }
-        return [
-            'status' => 'completed',
-            'label' => date('d/m/Y', strtotime($due_date)),
-            'class' => 'text-muted',
-            'icon' => '',
-            'badge_class' => 'secondary'
-        ];
-    }
-    
-    if (empty($due_date)) return ['status' => 'none', 'label' => '-', 'class' => 'text-muted', 'icon' => '', 'badge_class' => 'secondary'];
-    
-    $today = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
-    $today->setTime(0, 0, 0);
-    
-    $due = new DateTime($due_date);
-    $due->setTime(0, 0, 0);
-    
-    $diff = $today->diff($due);
-    $days = (int)$diff->format('%r%a');
-    
-    if ($days < 0) {
-        return [
-            'status' => 'overdue',
-            'label' => 'LEWAT JATUH TEMPO!',
-            'class' => 'text-danger fw-bold deadline-overdue',
-            'icon' => 'fa-exclamation-triangle',
-            'badge_class' => 'danger',
-            'days' => abs($days)
-        ];
-    } elseif ($days <= 3) {
-        return [
-            'status' => 'approaching',
-            'label' => $days . ' hari lagi',
-            'class' => 'text-warning fw-bold',
-            'icon' => 'fa-clock',
-            'badge_class' => 'warning',
-            'days' => $days
-        ];
-    } else {
-        return [
-            'status' => 'safe',
-            'label' => date('d/m/Y', strtotime($due_date)),
-            'class' => 'text-muted',
-            'icon' => '',
-            'badge_class' => 'success',
-            'days' => $days
-        ];
-    }
-}
-
-// ============================================
-// FUNGSI UNTUK MENDAPATKAN SALES ID DARI ACCOUNT
-// ============================================
-function getSalesIdFromAccount($db, $account_id) {
-    $stmt = $db->prepare("SELECT sales_id FROM accounts WHERE id = ?");
-    $stmt->execute([$account_id]);
-    $sales_id = $stmt->fetchColumn();
-    return $sales_id ? (int)$sales_id : null;
-}
-
-// ============================================
-// FUNGSI UNTUK MENDAPATKAN DI NUMBER TERAKHIR DARI ACCOUNT (NEGOSIASI)
-// ============================================
-function getLastDINumberByAccount($db, $account_id) {
-    $stmt = $db->prepare("SELECT di_number FROM sales_activities 
-                          WHERE account_id = ? 
-                          AND jenis_tugas = 'Negosiasi'
-                          AND di_number IS NOT NULL 
-                          AND di_number != ''
-                          ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$account_id]);
-    return $stmt->fetchColumn();
-}
-
-// ============================================
-// FUNGSI UNTUK MENDAPATKAN TRF NUMBER TERAKHIR DARI ACCOUNT (NEGOSIASI)
-// ============================================
-function getLastTRFNumberByAccount($db, $account_id) {
-    $stmt = $db->prepare("SELECT trf_number FROM sales_activities 
-                          WHERE account_id = ? 
-                          AND jenis_tugas = 'Negosiasi'
-                          AND trf_number IS NOT NULL 
-                          AND trf_number != ''
-                          ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$account_id]);
-    return $stmt->fetchColumn();
-}
-
-// ============================================
-// FUNGSI UNTUK MENDAPATKAN TR NUMBER NEGOSIASI
-// BERDASARKAN ACCOUNT + SALES USER YANG SAMA
-// ============================================
-function getLastNegotiationTRFNumber($db, $account_id, $sales_id) {
-    $stmt = $db->prepare("SELECT trf_number
-                          FROM sales_activities
-                          WHERE account_id = ?
-                          AND sales_id = ?
-                          AND jenis_tugas = 'Negosiasi'
-                          AND trf_number IS NOT NULL
-                          AND trf_number != ''
-                          ORDER BY created_at DESC, id DESC
-                          LIMIT 1");
-    $stmt->execute([$account_id, $sales_id]);
-    return $stmt->fetchColumn();
-}
-
-// ============================================
-// CEK APAKAH SUDAH ADA NEGOSIASI UNTUK ACCOUNT TERSEBUT
-// ============================================
-function hasNegotiationForAccount($db, $account_id, $sales_id) {
-    $stmt = $db->prepare("SELECT COUNT(*) FROM sales_activities 
-                          WHERE account_id = ? 
-                          AND sales_id = ? 
-                          AND jenis_tugas = 'Negosiasi'
-                          AND trf_number IS NOT NULL
-                          AND trf_number != ''");
-    $stmt->execute([$account_id, $sales_id]);
-    return $stmt->fetchColumn() > 0;
-}
-
-// ============================================
-// TAMBAHKAN KOLOM YANG DIPERLUKAN
+// BUAT TABEL SALES_ACTIVITIES (JIKA BELUM ADA)
 // ============================================
 try {
-    // Cek dan tambah kolom activity_code
-    $stmt = $db->query("SHOW COLUMNS FROM sales_activities LIKE 'activity_code'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE sales_activities ADD COLUMN activity_code VARCHAR(50) NULL");
-        $db->exec("ALTER TABLE sales_activities ADD INDEX idx_activity_code (activity_code)");
-    }
-    
-    $stmt = $db->query("SHOW COLUMNS FROM sales_activities LIKE 'status'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE sales_activities ADD COLUMN status VARCHAR(20) NULL DEFAULT 'in_progress'");
-    }
-    
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS completed_at DATETIME NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS due_date DATE NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS result TEXT NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS trf_number VARCHAR(50) NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS customer_deal VARCHAR(10) NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS di_number VARCHAR(50) NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS attachment_file TEXT NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS badan_usaha VARCHAR(50) NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS sales_id INT NULL");
-    $db->exec("ALTER TABLE sales_activities ADD COLUMN IF NOT EXISTS created_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP");
-    
-    // Rename kolom jika diperlukan (sesuai database Anda)
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN subjet subject VARCHAR(255) NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN contrat_name contact_name VARCHAR(255) NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN contrat_mobile contact_mobile VARCHAR(50) NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN business_campaign business_segment VARCHAR(255) NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN bdans_ucaba badan_usaha VARCHAR(50) NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN jens_fuga jenis_tugas VARCHAR(50) NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN desktrip deskripsi TEXT NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN start_date due_date DATE NULL");
-    } catch(PDOException $e) {}
-    
-    try {
-        $db->exec("ALTER TABLE sales_activities CHANGE COLUMN oompleted_at completed_at DATETIME NULL");
-    } catch(PDOException $e) {}
-    
-    $db->exec("ALTER TABLE sales_activities ADD INDEX IF NOT EXISTS idx_status (status)");
-    $db->exec("ALTER TABLE sales_activities ADD INDEX IF NOT EXISTS idx_due_date (due_date)");
-    $db->exec("ALTER TABLE sales_activities ADD INDEX IF NOT EXISTS idx_jenis_tugas (jenis_tugas)");
+    $db->exec("CREATE TABLE IF NOT EXISTS sales_activities (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        leads_number VARCHAR(50) NOT NULL UNIQUE,
+        account_id INT NOT NULL,
+        sales_id INT NULL,
+        jenis_tugas VARCHAR(100) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        status ENUM('pending', 'in_progress', 'completed', 'overdue') DEFAULT 'pending',
+        customer_deal ENUM('', 'Yes', 'No') DEFAULT '',
+        due_date DATETIME NULL,
+        description TEXT NULL,
+        trf_number VARCHAR(100) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+        FOREIGN KEY (sales_id) REFERENCES users(id) ON DELETE SET NULL,
+        INDEX idx_account_id (account_id),
+        INDEX idx_sales_id (sales_id),
+        INDEX idx_status (status),
+        INDEX idx_due_date (due_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch(PDOException $e) {
-    // Abaikan error jika kolom sudah ada
+    // Abaikan jika tabel sudah ada
 }
 
 // ============================================
-// UPDATE STATUS OVERDUE OTOMATIS
+// TAMBAH KOLOM JIKA BELUM ADA
 // ============================================
 try {
-    $db->exec("UPDATE sales_activities 
-               SET status = 'overdue' 
-               WHERE status = 'in_progress' 
-               AND due_date < CURDATE()");
-} catch(PDOException $e) {}
+    $db->query("SELECT subject FROM sales_activities LIMIT 1");
+} catch(PDOException $e) {
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN subject VARCHAR(255) NOT NULL AFTER jenis_tugas");
+}
+
+try {
+    $db->query("SELECT description FROM sales_activities LIMIT 1");
+} catch(PDOException $e) {
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN description TEXT NULL AFTER due_date");
+}
+
+try {
+    $db->query("SELECT customer_deal FROM sales_activities LIMIT 1");
+} catch(PDOException $e) {
+    $db->exec("ALTER TABLE sales_activities ADD COLUMN customer_deal ENUM('', 'Yes', 'No') DEFAULT '' AFTER status");
+}
 
 // ============================================
-// AMBIL DATA ACCOUNT UNTUK DROPDOWN
+// FUNGSI GENERATE LEADS NUMBER
 // ============================================
+function generateLeadsNumber($db) {
+    $tahun = date('Y');
+    $bulan = date('n'); // 1-12
+    
+    // Konversi ke Romawi
+    $romawi = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    $bulanRomawi = $romawi[$bulan];
+    
+    // Prefix
+    $prefix = "0001/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
+    
+    // Cari nomor terakhir dengan bulan dan tahun yang sama
+    $pattern = "%/GET-ACT/JKT/{$bulanRomawi}/{$tahun}%";
+    $stmt = $db->prepare("SELECT leads_number FROM sales_activities WHERE leads_number LIKE ? ORDER BY id DESC LIMIT 1");
+    $stmt->execute([$pattern]);
+    $lastNumber = $stmt->fetchColumn();
+    
+    if ($lastNumber) {
+        // Extract nomor dari format: 0001/GET-ACT/JKT/III/2025
+        $parts = explode('/', $lastNumber);
+        $lastSequence = (int)$parts[0];
+        $nextSequence = $lastSequence + 1;
+        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+    } else {
+        $sequence = '0001';
+    }
+    
+    return "{$sequence}/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
+}
+
+// ============================================
+// FUNGSI KONVERSI BULAN KE ROMAWI
+// ============================================
+function getBulanRomawi($month) {
+    $romawi = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    return $romawi[(int)$month];
+}
+
+// ============================================
+// FILTER & PAGINATION
+// ============================================
+$userRole = $_SESSION['role'] ?? 'user';
+$userId = $_SESSION['user_id'] ?? 0;
+
+$limit = 10;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
+// Search
+$search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
+
+// Filter Status
+$filterStatus = isset($_GET['status']) ? bersihkan($_GET['status']) : '';
+$filterJenisTugas = isset($_GET['jenis_tugas']) ? bersihkan($_GET['jenis_tugas']) : '';
+
+// Build query
+$where = "WHERE 1=1";
+$params = [];
+
+// Filter berdasarkan role (sales hanya lihat miliknya)
 if ($userRole === 'sales') {
-    $stmt = $db->prepare("SELECT id, nama_pt, badan_usaha FROM accounts WHERE sales_id = ? ORDER BY nama_pt");
+    $where .= " AND sa.sales_id = ?";
+    $params[] = $userId;
+}
+
+if (!empty($search)) {
+    $where .= " AND (sa.leads_number LIKE ? OR sa.subject LIKE ? OR a.nama_pt LIKE ? OR a.nama_pic LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%"]);
+}
+
+if (!empty($filterStatus)) {
+    $where .= " AND sa.status = ?";
+    $params[] = $filterStatus;
+}
+
+if (!empty($filterJenisTugas)) {
+    $where .= " AND sa.jenis_tugas = ?";
+    $params[] = $filterJenisTugas;
+}
+
+// ============================================
+// STATISTIK UNTUK DONUT CHART
+// ============================================
+$statWhere = "WHERE 1=1";
+$statParams = [];
+
+if ($userRole === 'sales') {
+    $statWhere .= " AND sa.sales_id = ?";
+    $statParams[] = $userId;
+}
+
+// Status Aktivitas
+$statusCounts = [
+    'total' => 0,
+    'in_progress' => 0,
+    'completed' => 0,
+    'overdue' => 0
+];
+
+$sqlTotalAktivitas = "SELECT COUNT(*) FROM sales_activities sa $statWhere";
+$stmt = $db->prepare($sqlTotalAktivitas);
+$stmt->execute($statParams);
+$statusCounts['total'] = (int)$stmt->fetchColumn();
+
+$sqlInProgress = "SELECT COUNT(*) FROM sales_activities sa $statWhere AND sa.status = 'in_progress'";
+$stmt = $db->prepare($sqlInProgress);
+$stmt->execute($statParams);
+$statusCounts['in_progress'] = (int)$stmt->fetchColumn();
+
+$sqlCompleted = "SELECT COUNT(*) FROM sales_activities sa $statWhere AND sa.status = 'completed'";
+$stmt = $db->prepare($sqlCompleted);
+$stmt->execute($statParams);
+$statusCounts['completed'] = (int)$stmt->fetchColumn();
+
+$sqlOverdue = "SELECT COUNT(*) FROM sales_activities sa $statWhere AND sa.status = 'overdue'";
+$stmt = $db->prepare($sqlOverdue);
+$stmt->execute($statParams);
+$statusCounts['overdue'] = (int)$stmt->fetchColumn();
+
+// Status Prospek
+$prospekCounts = [
+    'Middle Prospek' => 0,
+    'Hot Prospek' => 0,
+    'Lost Prospek' => 0,
+    'Deal' => 0
+];
+
+// Middle Prospek (Prospecting, belum Negosiasi/Kontrak)
+$sqlMiddle = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+              WHERE sa.jenis_tugas = 'Prospecting'
+              AND sa.account_id NOT IN (
+                  SELECT DISTINCT account_id FROM sales_activities 
+                  WHERE jenis_tugas IN ('Negosiasi', 'Kontrak') AND account_id IS NOT NULL
+              )";
+if ($userRole === 'sales') {
+    $sqlMiddle .= " AND sa.sales_id = ?";
+}
+$stmt = $db->prepare($sqlMiddle);
+if ($userRole === 'sales') {
     $stmt->execute([$userId]);
 } else {
-    $stmt = $db->prepare("SELECT id, nama_pt, badan_usaha FROM accounts ORDER BY nama_pt");
     $stmt->execute();
 }
-$accounts = $stmt->fetchAll();
+$prospekCounts['Middle Prospek'] = (int)$stmt->fetchColumn();
 
-// ============================================
-// API ENDPOINT untuk generate Activity Code (AJAX)
-// ============================================
-if (isset($_GET['generate_act'])) {
-    $activity_code = generateActivityCode($db);
-    header('Content-Type: application/json');
-    echo json_encode(['activity_code' => $activity_code]);
-    exit;
+// Hot Prospek (Negosiasi)
+$sqlHot = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+           WHERE sa.jenis_tugas = 'Negosiasi'
+           AND sa.account_id NOT IN (
+               SELECT DISTINCT account_id FROM sales_activities 
+               WHERE jenis_tugas = 'Kontrak' AND account_id IS NOT NULL
+           )
+           AND sa.account_id NOT IN (
+               SELECT DISTINCT account_id FROM sales_activities 
+               WHERE jenis_tugas = 'Negosiasi' AND status = 'completed' AND customer_deal = 'No' AND account_id IS NOT NULL
+           )
+           AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')";
+if ($userRole === 'sales') {
+    $sqlHot .= " AND sa.sales_id = ?";
 }
-
-// ============================================
-// API ENDPOINT untuk generate TRF Number (AJAX)
-// ============================================
-if (isset($_GET['generate_trf'])) {
-    $trf_number = generateTRFNumber($db);
-    header('Content-Type: application/json');
-    echo json_encode(['trf_number' => $trf_number]);
-    exit;
+$stmt = $db->prepare($sqlHot);
+if ($userRole === 'sales') {
+    $stmt->execute([$userId]);
+} else {
+    $stmt->execute();
 }
+$prospekCounts['Hot Prospek'] = (int)$stmt->fetchColumn();
 
-// ============================================
-// API ENDPOINT untuk get Account Data (AJAX)
-// ============================================
-if (isset($_GET['get_account'])) {
-    $account_id = (int)$_GET['get_account'];
-    $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
-    $stmt->execute([$account_id]);
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
-    header('Content-Type: application/json');
-    echo json_encode($data ?: []);
-    exit;
+// Lost Prospek
+$sqlLost = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+            WHERE sa.jenis_tugas = 'Negosiasi'
+            AND sa.status = 'completed' 
+            AND sa.customer_deal = 'No'";
+if ($userRole === 'sales') {
+    $sqlLost .= " AND sa.sales_id = ?";
 }
-
-// ============================================
-// API ENDPOINT untuk get DI Number & TRF Number by Account (AJAX)
-// ============================================
-if (isset($_GET['get_account_numbers'])) {
-    $account_id = (int)$_GET['get_account_numbers'];
-    $di_number = getLastDINumberByAccount($db, $account_id);
-    $trf_number = getLastTRFNumberByAccount($db, $account_id);
-    header('Content-Type: application/json');
-    echo json_encode([
-        'di_number' => $di_number,
-        'trf_number' => $trf_number
-    ]);
-    exit;
+$stmt = $db->prepare($sqlLost);
+if ($userRole === 'sales') {
+    $stmt->execute([$userId]);
+} else {
+    $stmt->execute();
 }
+$prospekCounts['Lost Prospek'] = (int)$stmt->fetchColumn();
 
-// ============================================
-// API ENDPOINT: AMBIL TR NUMBER NEGOSIASI
-// ACCOUNT + USER/SALES YANG SAMA
-// ============================================
-if (isset($_GET['get_negotiation_numbers'])) {
-    $account_id = (int)$_GET['get_negotiation_numbers'];
-
-    $targetSalesId = $userId;
-
-    if (in_array($userRole, $direkturRoles) && $account_id) {
-        $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
-        if ($salesIdFromAccount) {
-            $targetSalesId = $salesIdFromAccount;
-        }
-    }
-
-    $trf_number = getLastNegotiationTRFNumber($db, $account_id, $targetSalesId);
-    $has_negotiation = hasNegotiationForAccount($db, $account_id, $targetSalesId);
-
-    header('Content-Type: application/json');
-    echo json_encode([
-        'trf_number' => $trf_number ?: '',
-        'sales_id' => $targetSalesId,
-        'has_negotiation' => $has_negotiation
-    ]);
-    exit;
+// Deal
+$sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa 
+            WHERE sa.jenis_tugas = 'Kontrak'";
+if ($userRole === 'sales') {
+    $sqlDeal .= " AND sa.sales_id = ?";
 }
-
-// ============================================
-// API ENDPOINT: GENERATE DI NUMBER
-// ============================================
-if (isset($_GET['generate_di'])) {
-    $date = !empty($_GET['date']) ? $_GET['date'] : date('Y-m-d');
-    $di_number = generateDINumber($db, $date);
-
-    header('Content-Type: application/json');
-    echo json_encode([
-        'di_number' => $di_number
-    ]);
-    exit;
+$stmt = $db->prepare($sqlDeal);
+if ($userRole === 'sales') {
+    $stmt->execute([$userId]);
+} else {
+    $stmt->execute();
 }
+$prospekCounts['Deal'] = (int)$stmt->fetchColumn();
 
 // ============================================
-// PROSES TAMBAH / EDIT / COMPLETE / DELETE
+// GET TOTAL DATA & LIST ACTIVITIES
+// ============================================
+$countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
+$stmt = $db->prepare($countSql);
+$stmt->execute($params);
+$totalData = $stmt->fetchColumn();
+$totalPages = ceil($totalData / $limit);
+
+$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, u.full_name as sales_name
+        FROM sales_activities sa 
+        LEFT JOIN accounts a ON sa.account_id = a.id 
+        LEFT JOIN users u ON sa.sales_id = u.id
+        $where 
+        ORDER BY sa.created_at DESC 
+        LIMIT $limit OFFSET $offset";
+$stmt = $db->prepare($sql);
+$stmt->execute($params);
+$activities = $stmt->fetchAll();
+
+// ============================================
+// AMBIL DATA ACCOUNTS UNTUK DROPDOWN
+// ============================================
+$sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic 
+                FROM accounts 
+                ORDER BY nama_pt ASC";
+$accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
+
+// ============================================
+// AMBIL DATA SALES UNTUK DROPDOWN
+// ============================================
+$salesUsers = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+// ============================================
+// PROSES TAMBAH SALES ACTIVITY
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
         if (!canAdd('sales_activity')) {
-            setFlash('Anda tidak memiliki akses untuk menambah sales activity!', 'danger');
+            setFlash('Anda tidak memiliki akses untuk menambah aktivitas!', 'danger');
             redirect('salesactivity.php');
         }
         
-        $subject = bersihkan($_POST['subject']);
-        $account_id = !empty($_POST['account_id']) ? (int)$_POST['account_id'] : NULL;
+        $account_id = (int)$_POST['account_id'];
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
-        $deskripsi = bersihkan($_POST['deskripsi']);
-        $due_date = $_POST['due_date'];
-        $result = !empty($_POST['result']) ? bersihkan($_POST['result']) : '';
-        $customer_deal = 'No';
-        $trf_number = !empty($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
-        $di_number = !empty($_POST['di_number']) ? bersihkan($_POST['di_number']) : '';
-        $activity_code = !empty($_POST['activity_code']) ? bersihkan($_POST['activity_code']) : '';
+        $subject = bersihkan($_POST['subject']);
+        $status = bersihkan($_POST['status']);
+        $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : NULL;
+        $description = !empty($_POST['description']) ? bersihkan($_POST['description']) : NULL;
+        $customer_deal = isset($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : '';
         
-        // Generate activity code jika kosong
-        if (empty($activity_code)) {
-            $activity_code = generateActivityCode($db);
+        // Sales ID
+        if ($userRole === 'sales') {
+            $sales_id = $userId;
+        } else {
+            $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
         }
         
-        $contact_name = '';
-        $contact_mobile = '';
-        $business_segment = '';
-        $badan_usaha = '';
-        if ($account_id) {
-            $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
-            $stmt->execute([$account_id]);
-            $account = $stmt->fetch();
-            if ($account) {
-                $contact_name = $account['nama_pic'];
-                $contact_mobile = $account['no_hp_pic'];
-                $business_segment = $account['bidang_usaha'];
-                $badan_usaha = $account['badan_usaha'];
-            }
-        }
-        
-        $attachment_file = '';
-        if (!empty($_FILES['attachment_file']['name'])) {
-            $target_dir = "uploads/salesactivity/";
-            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-            $max_file_size = 5 * 1024 * 1024;
-            $compress_quality = 80;
-            
-            $upload_result = uploadFileWithCompression(
-                $_FILES['attachment_file'],
-                $target_dir,
-                $allowed_extensions,
-                $max_file_size,
-                $compress_quality
-            );
-            
-            if ($upload_result['success']) {
-                $attachment_file = $upload_result['file_path'];
-            } else {
-                setFlash($upload_result['message'], 'danger');
-                redirect('salesactivity.php');
-            }
-        }
+        // Generate Leads Number
+        $leads_number = generateLeadsNumber($db);
         
         $errors = [];
-        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
-        if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
-        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter!';
-        
-        if (!empty($result)) {
-            if (strlen($result) < 80) {
-                $errors[] = 'Result minimal 80 karakter!';
-            }
-            if (empty($attachment_file)) {
-                $errors[] = 'Jika mengisi Result, Attachment file wajib diupload!';
-            }
-        }
+        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
+        if (empty($status)) $errors[] = 'Status wajib dipilih!';
         
         if (empty($errors)) {
-            $status = empty($result) ? 'in_progress' : 'completed';
-
-            $targetSalesIdForNumbers = $userId;
-            if (in_array($userRole, $direkturRoles) && $account_id) {
-                $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
-                if ($salesIdFromAccount) {
-                    $targetSalesIdForNumbers = $salesIdFromAccount;
-                }
-            }
-
-            $trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
+            $stmt = $db->prepare("INSERT INTO sales_activities (leads_number, account_id, sales_id, jenis_tugas, subject, status, customer_deal, due_date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$leads_number, $account_id, $sales_id, $jenis_tugas, $subject, $status, $customer_deal, $due_date, $description]);
             
-            if (in_array($jenis_tugas, $trRequired)) {
-                if (empty($trf_number)) {
-                    if ($jenis_tugas !== 'Negosiasi') {
-                        $lastTrf = getLastTRFNumberByAccount($db, $account_id);
-                        if (!empty($lastTrf)) {
-                            $trf_number = $lastTrf;
-                        } else {
-                            $trf_number = generateTRFNumber($db);
-                        }
-                    } else {
-                        $trf_number = generateTRFNumber($db);
-                    }
-                }
-            }
-
-            if ($jenis_tugas === 'Negosiasi') {
-                $di_number = '';
-            }
-
-            if ($jenis_tugas === 'Kontrak') {
-                $negotiationTrf = getLastNegotiationTRFNumber(
-                    $db,
-                    $account_id,
-                    $targetSalesIdForNumbers
-                );
-
-                if (!empty($negotiationTrf)) {
-                    $trf_number = $negotiationTrf;
-                }
-                
-                $lastDi = getLastDINumberByAccount($db, $account_id);
-                $di_number = $lastDi ?: '';
-                $customer_deal = 'No';
-            }
-
-            if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
-                $lastTrf = getLastTRFNumberByAccount($db, $account_id);
-                if (empty($trf_number) && !empty($lastTrf)) {
-                    $trf_number = $lastTrf;
-                }
-                $lastDi = getLastDINumberByAccount($db, $account_id);
-                if (empty($di_number) && !empty($lastDi)) {
-                    $di_number = $lastDi;
-                }
-            }
-
-            $targetSalesId = $userId;
-            if (in_array($userRole, $direkturRoles) && $account_id) {
-                $salesIdFromAccount = getSalesIdFromAccount($db, $account_id);
-                if ($salesIdFromAccount) {
-                    $targetSalesId = $salesIdFromAccount;
-                }
-            }
-            
-            $stmt = $db->prepare("INSERT INTO sales_activities 
-                                  (activity_code, subject, account_id, contact_name, contact_mobile, business_segment, 
-                                   badan_usaha, jenis_tugas, deskripsi, due_date, status, sales_id,
-                                   result, customer_deal, di_number, attachment_file, completed_at, trf_number, created_at) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-            $stmt->execute([
-                $activity_code, $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $status, $targetSalesId,
-                $result, $customer_deal, $di_number, $attachment_file,
-                $status === 'completed' ? date('Y-m-d H:i:s') : NULL,
-                $trf_number
-            ]);
-            
-            $salesActivityId = $db->lastInsertId();
-            
-            if (!empty($trf_number) && in_array($jenis_tugas, ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'])) {
-                try {
-                    $stmt_tr = $db->prepare("INSERT INTO transaction_requests 
-                                              (trf_number, sales_activity_id, account_id, sales_id, 
-                                               subject, jenis_tugas, description, request_date, due_date, 
-                                               customer_deal, di_number, attachment_file, result, status) 
-                                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
-                    $stmt_tr->execute([
-                        $trf_number,
-                        $salesActivityId,
-                        $account_id,
-                        $targetSalesId,
-                        $subject,
-                        $jenis_tugas,
-                        $deskripsi,
-                        date('Y-m-d'),
-                        $due_date,
-                        $customer_deal,
-                        $di_number,
-                        $attachment_file,
-                        $result
-                    ]);
-                } catch(PDOException $e) {
-                    error_log("Error inserting transaction_request: " . $e->getMessage());
-                }
-            }
-            
-            if ($status === 'completed') {
-                setFlash('Sales Activity berhasil ditambahkan dan diselesaikan!', 'success');
-            } else {
-                setFlash('Sales Activity berhasil ditambahkan! (In Progress)', 'success');
-            }
-            redirect('salesactivity.php');
-        } else {
-            setFlash(implode('<br>', $errors), 'danger');
-        }
-    }
-    
-    if ($action === 'complete') {
-        $id = (int)$_POST['id'];
-        
-        $canComplete = false;
-        if ($hasFullAccess) {
-            $canComplete = true;
-        } elseif ($userRole === 'sales') {
-            $stmt = $db->prepare("SELECT sales_id FROM sales_activities WHERE id = ?");
-            $stmt->execute([$id]);
-            $ownerId = $stmt->fetchColumn();
-            if ($ownerId == $userId) {
-                $canComplete = true;
-            }
-        } elseif (canEdit('sales_activity')) {
-            $canComplete = true;
-        }
-        
-        if (!$canComplete) {
-            setFlash('Anda tidak memiliki akses untuk menyelesaikan sales activity!', 'danger');
-            redirect('salesactivity.php');
-        }
-        
-        $result = bersihkan($_POST['result']);
-        $customer_deal = bersihkan($_POST['customer_deal'] ?? 'No');
-        $jenis_tugas = bersihkan($_POST['jenis_tugas_hidden'] ?? '');
-        $trf_number = bersihkan($_POST['trf_number'] ?? '');
-        $di_number = bersihkan($_POST['di_number'] ?? '');
-        
-        if ($jenis_tugas === 'Negosiasi' && empty($customer_deal)) {
-            setFlash('Customer Deal wajib diisi untuk Negosiasi!', 'danger');
-            redirect('salesactivity.php');
-        }
-        
-        $stmt = $db->prepare("SELECT trf_number, account_id, due_date, sales_id
-                              FROM sales_activities
-                              WHERE id = ?");
-        $stmt->execute([$id]);
-        $existing = $stmt->fetch();
-        $existing_trf = $existing['trf_number'] ?? '';
-        $account_id = $existing['account_id'] ?? null;
-        $due_date = $existing['due_date'] ?? null;
-        $existing_sales_id = $existing['sales_id'] ?? null;
-
-        $salesIdForNumbers = $existing_sales_id ?: $userId;
-
-        $trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
-        
-        if (in_array($jenis_tugas, $trRequired)) {
-            if (!empty($existing_trf)) {
-                $trf_number = $existing_trf;
-            } elseif (empty($trf_number)) {
-                $lastTrf = getLastTRFNumberByAccount($db, $account_id);
-                if (!empty($lastTrf)) {
-                    $trf_number = $lastTrf;
-                } else {
-                    $trf_number = generateTRFNumber($db);
-                }
-            }
-        }
-
-        if ($jenis_tugas === 'Negosiasi') {
-            if ($customer_deal === 'Yes') {
-                if (empty($di_number)) {
-                    $di_number = generateDINumber($db, $due_date ?: date('Y-m-d'));
-                }
-            } else {
-                $di_number = '';
-            }
-        }
-
-        if ($jenis_tugas === 'Kontrak') {
-            $negotiationTrf = '';
-
-            if ($account_id && $salesIdForNumbers) {
-                $negotiationTrf = getLastNegotiationTRFNumber(
-                    $db,
-                    $account_id,
-                    $salesIdForNumbers
-                );
-            }
-
-            if (!empty($negotiationTrf)) {
-                $trf_number = $negotiationTrf;
-            } elseif (empty($trf_number)) {
-                $trf_number = !empty($existing_trf)
-                    ? $existing_trf
-                    : generateTRFNumber($db);
-            }
-
-            $lastDi = getLastDINumberByAccount($db, $account_id);
-            if (empty($di_number) && !empty($lastDi)) {
-                $di_number = $lastDi;
-            }
-            $customer_deal = 'Yes';
-        }
-
-        if (($jenis_tugas === 'Collect Payment' || $jenis_tugas === 'Aftersales') && $account_id) {
-            if (empty($trf_number)) {
-                $lastTrf = getLastTRFNumberByAccount($db, $account_id);
-                $trf_number = $lastTrf ?: '';
-            }
-            if (empty($di_number)) {
-                $lastDi = getLastDINumberByAccount($db, $account_id);
-                $di_number = $lastDi ?: '';
-            }
-        }
-
-        $attachment_files = [];
-        $attachment_file_names = [];
-        
-        $target_dir = "uploads/salesactivity/";
-        if (!file_exists($target_dir)) {
-            mkdir($target_dir, 0777, true);
-        }
-        
-        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
-        $max_file_size = 5 * 1024 * 1024;
-        $compress_quality = 80;
-        
-        if (!empty($_FILES['attachment_files']['name'][0])) {
-            foreach ($_FILES['attachment_files']['name'] as $key => $name) {
-                if (empty($name)) continue;
-                
-                $file = [
-                    'name' => $_FILES['attachment_files']['name'][$key],
-                    'type' => $_FILES['attachment_files']['type'][$key],
-                    'tmp_name' => $_FILES['attachment_files']['tmp_name'][$key],
-                    'error' => $_FILES['attachment_files']['error'][$key],
-                    'size' => $_FILES['attachment_files']['size'][$key]
-                ];
-                
-                if ($file['error'] !== UPLOAD_ERR_OK) {
-                    setFlash('Error upload file: ' . htmlspecialchars($name), 'danger');
-                    redirect('salesactivity.php');
-                }
-                
-                $upload_result = uploadFileWithCompression(
-                    $file,
-                    $target_dir,
-                    $allowed_extensions,
-                    $max_file_size,
-                    $compress_quality
-                );
-                
-                if ($upload_result['success']) {
-                    $attachment_files[] = $upload_result['file_path'];
-                    $attachment_file_names[] = $upload_result['original_name'];
-                } else {
-                    setFlash($upload_result['message'] . ' - ' . htmlspecialchars($name), 'danger');
-                    redirect('salesactivity.php');
-                }
-            }
-        }
-        
-        $errors = [];
-        if (empty($result)) $errors[] = 'Result wajib diisi!';
-        if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter!';
-        if (empty($attachment_files)) $errors[] = 'Minimal 1 file attachment wajib diupload!';
-        
-        if (empty($errors)) {
-            $attachment_json = json_encode([
-                'files' => $attachment_files,
-                'names' => $attachment_file_names
-            ]);
-            
-            if (!empty($trf_number) && !empty($di_number)) {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $trf_number, $id]);
-            } elseif (!empty($trf_number)) {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW(), trf_number = ? 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $trf_number, $id]);
-            } elseif (!empty($di_number)) {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW() 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $id]);
-            } else {
-                $stmt = $db->prepare("UPDATE sales_activities SET 
-                                      result = ?, customer_deal = ?, di_number = ?, 
-                                      attachment_file = ?, status = 'completed', completed_at = NOW() 
-                                      WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-                $stmt->execute([$result, $customer_deal, $di_number, $attachment_json, $id]);
-            }
-            
-            if (!empty($trf_number)) {
-                try {
-                    $stmt_tr = $db->prepare("UPDATE transaction_requests SET 
-                                              status = 'completed',
-                                              customer_deal = ?,
-                                              di_number = ?,
-                                              result = ?,
-                                              attachment_file = ?
-                                              WHERE trf_number = ?
-                                              AND sales_activity_id = ?");
-                    $stmt_tr->execute([
-                        $customer_deal,
-                        $di_number,
-                        $result,
-                        $attachment_json,
-                        $trf_number,
-                        $id
-                    ]);
-                } catch(PDOException $e) {
-                    error_log("Error updating transaction_request: " . $e->getMessage());
-                }
-            }
-            
-            setFlash('Sales Activity berhasil diselesaikan!', 'success');
+            setFlash('Sales Activity berhasil ditambahkan! Leads Number: ' . $leads_number, 'success');
             redirect('salesactivity.php');
         } else {
             setFlash(implode('<br>', $errors), 'danger');
@@ -1007,66 +368,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'edit') {
-        $id = (int)$_POST['id'];
-        
-        $canEdit = false;
-        if ($hasFullAccess) {
-            $canEdit = true;
-        } elseif ($userRole === 'sales') {
-            $stmt = $db->prepare("SELECT sales_id FROM sales_activities WHERE id = ?");
-            $stmt->execute([$id]);
-            $ownerId = $stmt->fetchColumn();
-            if ($ownerId == $userId) {
-                $canEdit = true;
-            }
-        } elseif (canEdit('sales_activity')) {
-            $canEdit = true;
-        }
-        
-        if (!$canEdit) {
-            setFlash('Anda tidak memiliki akses untuk mengedit sales activity!', 'danger');
+        if (!canEdit('sales_activity')) {
+            setFlash('Anda tidak memiliki akses untuk mengedit aktivitas!', 'danger');
             redirect('salesactivity.php');
         }
         
-        $subject = bersihkan($_POST['subject']);
-        $account_id = !empty($_POST['account_id']) ? (int)$_POST['account_id'] : NULL;
+        $id = (int)$_POST['id'];
+        $account_id = (int)$_POST['account_id'];
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
-        $deskripsi = bersihkan($_POST['deskripsi']);
-        $due_date = $_POST['due_date'];
+        $subject = bersihkan($_POST['subject']);
+        $status = bersihkan($_POST['status']);
+        $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : NULL;
+        $description = !empty($_POST['description']) ? bersihkan($_POST['description']) : NULL;
+        $customer_deal = isset($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : '';
         
-        $contact_name = '';
-        $contact_mobile = '';
-        $business_segment = '';
-        $badan_usaha = '';
-        if ($account_id) {
-            $stmt = $db->prepare("SELECT nama_pic, no_hp_pic, bidang_usaha, badan_usaha FROM accounts WHERE id = ?");
-            $stmt->execute([$account_id]);
-            $account = $stmt->fetch();
-            if ($account) {
-                $contact_name = $account['nama_pic'];
-                $contact_mobile = $account['no_hp_pic'];
-                $business_segment = $account['bidang_usaha'];
-                $badan_usaha = $account['badan_usaha'];
-            }
+        if ($userRole === 'sales') {
+            $sales_id = $userId;
+        } else {
+            $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
         }
         
         $errors = [];
-        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
-        if (empty($deskripsi)) $errors[] = 'Deskripsi wajib diisi!';
-        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter!';
+        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
+        if (empty($status)) $errors[] = 'Status wajib dipilih!';
         
         if (empty($errors)) {
-            $stmt = $db->prepare("UPDATE sales_activities SET 
-                                  subject = ?, account_id = ?, contact_name = ?, contact_mobile = ?, 
-                                  business_segment = ?, badan_usaha = ?, jenis_tugas = ?, deskripsi = ?, due_date = ? 
-                                  WHERE id = ? AND (status = 'in_progress' OR status = 'overdue')");
-            $stmt->execute([
-                $subject, $account_id, $contact_name, $contact_mobile, $business_segment,
-                $badan_usaha, $jenis_tugas, $deskripsi, $due_date, $id
-            ]);
+            $stmt = $db->prepare("UPDATE sales_activities SET account_id = ?, sales_id = ?, jenis_tugas = ?, subject = ?, status = ?, customer_deal = ?, due_date = ?, description = ? WHERE id = ?");
+            $stmt->execute([$account_id, $sales_id, $jenis_tugas, $subject, $status, $customer_deal, $due_date, $description, $id]);
             
             setFlash('Sales Activity berhasil diupdate!', 'success');
             redirect('salesactivity.php');
@@ -1076,43 +406,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        if (!$hasFullAccess || !canDelete('sales_activity')) {
-            setFlash('Anda tidak memiliki akses untuk menghapus sales activity!', 'danger');
+        if (!canDelete('sales_activity')) {
+            setFlash('Anda tidak memiliki akses untuk menghapus aktivitas!', 'danger');
             redirect('salesactivity.php');
         }
         
         $id = (int)$_POST['id'];
-        
-        $stmt = $db->prepare("SELECT trf_number FROM sales_activities WHERE id = ?");
-        $stmt->execute([$id]);
-        $trf_number = $stmt->fetchColumn();
-        
-        $stmt = $db->prepare("SELECT attachment_file FROM sales_activities WHERE id = ?");
-        $stmt->execute([$id]);
-        $attachment_data = $stmt->fetchColumn();
-        
-        if ($attachment_data) {
-            $files = json_decode($attachment_data, true);
-            if ($files && isset($files['files']) && is_array($files['files'])) {
-                foreach ($files['files'] as $file) {
-                    if ($file && file_exists($file)) {
-                        unlink($file);
-                    }
-                }
-            } else if ($attachment_data && file_exists($attachment_data)) {
-                unlink($attachment_data);
-            }
-        }
-        
-        if (!empty($trf_number)) {
-            try {
-                $stmt_tr = $db->prepare("DELETE FROM transaction_requests WHERE trf_number = ?");
-                $stmt_tr->execute([$trf_number]);
-            } catch(PDOException $e) {
-                error_log("Error deleting transaction_request: " . $e->getMessage());
-            }
-        }
-        
         $stmt = $db->prepare("DELETE FROM sales_activities WHERE id = ?");
         $stmt->execute([$id]);
         setFlash('Sales Activity berhasil dihapus!', 'success');
@@ -1120,225 +419,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// ============================================
-// AMBIL DATA SALES ACTIVITY
-// ============================================
-$limit = 10;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $limit;
-
-$search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
-$status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
-
-$where = "WHERE 1=1";
-$params = [];
-
-if ($userRole === 'sales') {
-    $where .= " AND sa.sales_id = ?";
-    $params[] = $userId;
-}
-
-if ($status_filter !== 'all') {
-    if ($status_filter === 'overdue') {
-        $where .= " AND sa.status = 'overdue'";
-    } elseif ($status_filter === 'in_progress') {
-        $where .= " AND (sa.status = 'in_progress' OR sa.status = 'overdue')";
-    } elseif ($status_filter === 'completed') {
-        $where .= " AND sa.status = 'completed'";
-    } elseif ($status_filter === 'middle_prospek') {
-        $where .= " AND sa.jenis_tugas = 'Prospecting' 
-                    AND NOT EXISTS (
-                        SELECT 1 FROM sales_activities sa2 
-                        WHERE sa2.account_id = sa.account_id 
-                        AND sa2.jenis_tugas IN ('Negosiasi', 'Kontrak')
-                        AND sa2.id != sa.id
-                    )";
-    } elseif ($status_filter === 'hot_prospek') {
-        $where .= " AND sa.jenis_tugas = 'Negosiasi' 
-                    AND NOT EXISTS (
-                        SELECT 1 FROM sales_activities sa2 
-                        WHERE sa2.account_id = sa.account_id 
-                        AND sa2.jenis_tugas = 'Kontrak'
-                        AND sa2.id != sa.id
-                    )
-                    AND NOT EXISTS (
-                        SELECT 1 FROM sales_activities sa3 
-                        WHERE sa3.account_id = sa.account_id 
-                        AND sa3.jenis_tugas = 'Negosiasi'
-                        AND sa3.status = 'completed'
-                        AND sa3.customer_deal = 'No'
-                        AND sa3.id != sa.id
-                    )
-                    AND NOT (sa.status = 'completed' AND sa.customer_deal = 'No')";
-    } elseif ($status_filter === 'lost_prospek') {
-        $where .= " AND sa.jenis_tugas = 'Negosiasi' 
-                    AND sa.status = 'completed' 
-                    AND sa.customer_deal = 'No'";
-    } elseif ($status_filter === 'deal') {
-        $where .= " AND sa.jenis_tugas = 'Kontrak'";
-    } else {
-        $where .= " AND sa.status = ?";
-        $params[] = $status_filter;
-    }
-}
-
-if (!empty($search)) {
-    $where .= " AND (sa.subject LIKE ? OR sa.contact_name LIKE ? OR sa.contact_mobile LIKE ? OR a.nama_pt LIKE ? OR sa.trf_number LIKE ? OR sa.di_number LIKE ? OR sa.activity_code LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
-}
-
-$countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
-$stmt = $db->prepare($countSql);
-$stmt->execute($params);
-$totalData = $stmt->fetchColumn();
-$totalPages = ceil($totalData / $limit);
-
-$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha as account_badan_usaha, u.full_name as sales_name,
-        (SELECT COUNT(*) FROM sales_activities sa2 WHERE sa2.account_id = sa.account_id AND sa2.jenis_tugas IN ('Negosiasi', 'Kontrak') AND sa2.id != sa.id) as has_negosiasi_kontrak,
-        (SELECT COUNT(*) FROM sales_activities sa3 WHERE sa3.account_id = sa.account_id AND sa3.jenis_tugas = 'Kontrak' AND sa3.id != sa.id) as has_kontrak,
-        (SELECT COUNT(*) FROM sales_activities sa4 WHERE sa4.account_id = sa.account_id AND sa4.jenis_tugas = 'Negosiasi' AND sa4.status = 'completed' AND sa4.customer_deal = 'No' AND sa4.id != sa.id) as has_lost_prospek
-        FROM sales_activities sa 
-        LEFT JOIN accounts a ON sa.account_id = a.id 
-        LEFT JOIN users u ON sa.sales_id = u.id 
-        $where 
-        ORDER BY sa.due_date ASC, sa.created_at DESC 
-        LIMIT $limit OFFSET $offset";
-$stmt = $db->prepare($sql);
-$stmt->execute($params);
-$activities = $stmt->fetchAll();
-
-// ============================================
-// STATISTIK
-// ============================================
-$totalInProgress = 0;
-$totalCompleted = 0;
-$totalOverdue = 0;
-$approachingCount = 0;
-
-if ($userRole === 'sales') {
-    $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
-    $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND status = 'completed'")->fetchColumn();
-    $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId AND status = 'overdue'")->fetchColumn();
-    $approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
-                                    WHERE sales_id = $userId 
-                                    AND status = 'in_progress' 
-                                    AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE sales_id = ? 
-                          AND jenis_tugas = 'Prospecting'
-                          AND account_id NOT IN (
-                              SELECT DISTINCT account_id FROM sales_activities 
-                              WHERE sales_id = ? 
-                              AND jenis_tugas IN ('Negosiasi', 'Kontrak')
-                              AND account_id IS NOT NULL
-                          )");
-    $stmt->execute([$userId, $userId]);
-    $totalMiddleProspek = $stmt->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE sales_id = ? 
-                          AND jenis_tugas = 'Negosiasi'
-                          AND account_id NOT IN (
-                              SELECT DISTINCT account_id FROM sales_activities 
-                              WHERE sales_id = ? 
-                              AND jenis_tugas = 'Kontrak'
-                              AND account_id IS NOT NULL
-                          )
-                          AND account_id NOT IN (
-                              SELECT DISTINCT account_id FROM sales_activities 
-                              WHERE sales_id = ? 
-                              AND jenis_tugas = 'Negosiasi'
-                              AND status = 'completed'
-                              AND customer_deal = 'No'
-                              AND account_id IS NOT NULL
-                          )");
-    $stmt->execute([$userId, $userId, $userId]);
-    $totalHotProspek = $stmt->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE sales_id = ? 
-                          AND jenis_tugas = 'Negosiasi'
-                          AND status = 'completed'
-                          AND customer_deal = 'No'");
-    $stmt->execute([$userId]);
-    $totalLostProspek = $stmt->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE sales_id = ? 
-                          AND jenis_tugas = 'Kontrak'");
-    $stmt->execute([$userId]);
-    $totalDeal = $stmt->fetchColumn();
-    
-} else {
-    $totalInProgress = $db->query("SELECT COUNT(*) FROM sales_activities WHERE (status = 'in_progress' OR status = 'overdue')")->fetchColumn();
-    $totalCompleted = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'completed'")->fetchColumn();
-    $totalOverdue = $db->query("SELECT COUNT(*) FROM sales_activities WHERE status = 'overdue'")->fetchColumn();
-    $approachingCount = $db->query("SELECT COUNT(*) FROM sales_activities 
-                                    WHERE status = 'in_progress' 
-                                    AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)")->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE jenis_tugas = 'Prospecting'
-                          AND account_id NOT IN (
-                              SELECT DISTINCT account_id FROM sales_activities 
-                              WHERE jenis_tugas IN ('Negosiasi', 'Kontrak')
-                              AND account_id IS NOT NULL
-                          )");
-    $stmt->execute();
-    $totalMiddleProspek = $stmt->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE jenis_tugas = 'Negosiasi'
-                          AND account_id NOT IN (
-                              SELECT DISTINCT account_id FROM sales_activities 
-                              WHERE jenis_tugas = 'Kontrak'
-                              AND account_id IS NOT NULL
-                          )
-                          AND account_id NOT IN (
-                              SELECT DISTINCT account_id FROM sales_activities 
-                              WHERE jenis_tugas = 'Negosiasi'
-                              AND status = 'completed'
-                              AND customer_deal = 'No'
-                              AND account_id IS NOT NULL
-                          )");
-    $stmt->execute();
-    $totalHotProspek = $stmt->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE jenis_tugas = 'Negosiasi'
-                          AND status = 'completed'
-                          AND customer_deal = 'No'");
-    $stmt->execute();
-    $totalLostProspek = $stmt->fetchColumn();
-    
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT account_id) FROM sales_activities 
-                          WHERE jenis_tugas = 'Kontrak'");
-    $stmt->execute();
-    $totalDeal = $stmt->fetchColumn();
-}
-
-$totalActivities = $totalInProgress + $totalCompleted;
-$overdueCount = $totalOverdue;
-
-$editData = null;
-if (isset($_GET['edit'])) {
-    $id = (int)$_GET['edit'];
-    $stmt = $db->prepare("SELECT * FROM sales_activities WHERE id = ?");
-    $stmt->execute([$id]);
-    $editData = $stmt->fetch();
-}
-
-$completeData = null;
-if (isset($_GET['complete'])) {
-    $id = (int)$_GET['complete'];
-    $stmt = $db->prepare("SELECT sa.*, a.nama_pt 
-                          FROM sales_activities sa 
-                          LEFT JOIN accounts a ON sa.account_id = a.id 
-                          WHERE sa.id = ?");
-    $stmt->execute([$id]);
-    $completeData = $stmt->fetch();
-}
+$fullName = $_SESSION['full_name'] ?? 'User';
+$role = $_SESSION['role'] ?? 'user';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -1347,384 +429,168 @@ if (isset($_GET['complete'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sales Activity - PT Ganda Elang Tangguh</title>
     
+    <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* ============================================
-           RESET & BASE
-           ============================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f4f8;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
             padding-bottom: 70px;
         }
         
-        /* ============================================
-           SIDEBAR
-           ============================================ */
+        /* ---- SIDEBAR MODERN (Deep Navy Blue) ---- */
         .sidebar {
             width: 260px;
             height: 100vh;
-            background: #0a1628;
+            background: #0e1a2b;
             position: fixed;
             top: 0; left: 0; bottom: 0;
-            padding: 28px 18px;
+            padding: 30px 20px;
             overflow-y: auto;
-            z-index: 1050;
-            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            transition: all 0.3s ease;
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
-        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.25); border-radius: 10px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
 
         .sidebar .brand { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            margin-bottom: 32px; 
-            text-decoration: none; 
-            padding-bottom: 20px; 
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; 
+            padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .sidebar .brand .logo-wrapper { width: 40px; height: 40px; flex-shrink: 0; }
+        .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
         .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text h5 { 
-            font-weight: 800; 
-            margin: 0; 
-            color: #fff; 
-            letter-spacing: 0.3px; 
-            font-size: 15px; 
-            line-height: 1.2;
-        }
+        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
         .sidebar .brand .brand-text h5 span { color: #ffd700; }
-        .sidebar .brand .brand-text small { 
-            font-size: 9px; 
-            color: rgba(255,255,255,0.35); 
-            text-transform: uppercase; 
-            letter-spacing: 0.8px; 
-            display: block;
-            margin-top: 2px;
-        }
+        .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
 
         .sidebar .nav-item { 
-            display: flex; 
-            align-items: center; 
-            padding: 11px 14px; 
-            color: rgba(255,255,255,0.55); 
-            text-decoration: none; 
-            border-radius: 10px; 
-            margin-bottom: 4px; 
-            transition: all 0.2s ease; 
-            font-weight: 500; 
-            font-size: 13.5px; 
-            position: relative;
+            display: flex; align-items: center; padding: 12px 16px; 
+            color: rgba(255,255,255,0.6); text-decoration: none; 
+            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; 
+            font-size: 14px; position: relative;
         }
-        .sidebar .nav-item i { 
-            width: 22px; 
-            font-size: 15px; 
-            margin-right: 12px; 
-            text-align: center; 
-            flex-shrink: 0;
-        }
-        .sidebar .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
+        .sidebar .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .sidebar .nav-item.active { 
-            background: rgba(255, 215, 0, 0.08); 
+            background: rgba(255, 215, 0, 0.1); 
             color: #ffd700; 
             box-shadow: inset 3px 0 0 #ffd700;
         }
         
         .sidebar .user-profile { 
-            margin-top: 28px; 
-            padding-top: 18px; 
-            border-top: 1px solid rgba(255,255,255,0.06); 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
+            margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); 
+            display: flex; align-items: center; gap: 12px; 
         }
         .sidebar .user-profile .avatar { 
-            width: 40px; 
-            height: 40px; 
-            border-radius: 50%; 
+            width: 42px; height: 42px; border-radius: 50%; 
             background: linear-gradient(135deg, #1a1a2e, #16213e); 
-            color: #ffd700; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: 700; 
-            font-size: 16px; 
-            border: 2px solid rgba(255,215,0,0.15);
-            flex-shrink: 0;
+            color: #ffd700; display: flex; align-items: center; justify-content: center; 
+            font-weight: 700; font-size: 16px; border: 2px solid rgba(255,215,0,0.2);
         }
-        .sidebar .user-profile .user-info .name { font-size: 13px; font-weight: 600; color: #fff; }
-        .sidebar .user-profile .user-info .role { font-size: 11px; color: rgba(255,255,255,0.4); }
+        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #fff; }
+        .sidebar .user-profile .user-info .role { font-size: 12px; color: rgba(255,255,255,0.4); }
 
         .sidebar .logout-btn {
-            display: block; 
-            text-align: center; 
-            margin-top: 14px; 
-            padding: 9px; 
-            border-radius: 10px; 
-            color: #e74c3c; 
-            text-decoration: none; 
-            font-weight: 600; 
-            font-size: 13px; 
-            background: rgba(231, 76, 60, 0.08); 
+            display: block; text-align: center; margin-top: 15px; 
+            padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; 
+            font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); 
             transition: all 0.2s;
         }
-        .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.18); }
+        .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
 
-        /* ============================================
-           MAIN CONTENT
-           ============================================ */
-        .main-content { 
-            margin-left: 260px; 
-            padding: 28px 32px; 
-            width: calc(100% - 260px);
-            min-height: 100vh;
-        }
+        /* ---- MAIN CONTENT ---- */
+        .main-content { margin-left: 260px; padding: 30px; width: 100%; }
 
-        /* ============================================
-           PAGE HEADER
-           ============================================ */
         .page-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 28px; 
-            flex-wrap: wrap; 
-            gap: 12px; 
-        }
-        .page-header .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
         }
         .page-header h4 { 
-            font-weight: 800; 
-            color: #0a1628; 
-            font-size: 22px; 
-            margin: 0; 
-            letter-spacing: -0.3px;
+            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
+            letter-spacing: -0.5px;
         }
-        .page-header h4 i { color: #ffd700; margin-right: 8px; }
+        .page-header h4 span { color: #ffd700; }
 
-        /* ============================================
-           STATISTIK CARDS
-           ============================================ */
-        .stat-grid { 
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 18px; 
-            margin-bottom: 24px; 
-        }
-        .stat-card { 
-            background: #fff; 
-            border-radius: 14px; 
-            padding: 18px 22px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04); 
-            border: 1px solid #e8ecf0; 
-            transition: all 0.25s ease;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        .stat-card:hover { 
-            transform: translateY(-3px); 
-            box-shadow: 0 8px 30px rgba(10,22,40,0.07); 
-            border-color: #ffd700; 
-        }
-        .stat-card .stat-icon { 
-            width: 46px; 
-            height: 46px; 
-            border-radius: 12px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 18px; 
-            flex-shrink: 0;
-        }
-        .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.10); color: #2980b9; }
-        .stat-card .stat-icon.green { background: rgba(46, 204, 113, 0.10); color: #27ae60; }
-        .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.10); color: #e74c3c; }
-        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.10); color: #d4a017; }
-        .stat-card .stat-number { font-size: 20px; font-weight: 800; color: #0a1628; line-height: 1.2; }
-        .stat-card .stat-label { font-size: 12.5px; color: #8a9aa8; font-weight: 500; }
-
-        /* ============================================
-           ALERTS
-           ============================================ */
-        .alert { border-radius: 10px; border: none; padding: 14px 18px; font-size: 13.5px; }
-        .alert.deadline-alert { border-left: 4px solid #dc3545; background: #fef6f6; }
-        .alert.deadline-warning { border-left: 4px solid #ffc107; background: #fffbf0; }
-
-        .deadline-overdue { animation: blink 1.2s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.35; } 100% { opacity: 1; } }
-        .badge-overdue { background: #dc3545 !important; animation: blink 1.2s infinite; color: #fff !important; }
-        .badge-approaching { background: #ffc107 !important; color: #212529 !important; }
-        .badge-safe { background: #198754 !important; color: #fff !important; }
-
-        .table-overdue { background-color: #fef6f6 !important; }
-        .table-overdue:hover { background-color: #fce8e8 !important; }
-
-        /* ============================================
-           CHARTS
-           ============================================ */
-        .grid-2-col { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 20px; 
-            margin-bottom: 24px; 
-        }
-        @media (max-width: 991px) { .grid-2-col { grid-template-columns: 1fr; } }
+        /* ---- CHART GRID ---- */
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 991px) { .chart-grid { grid-template-columns: 1fr; } }
         
         .chart-card { 
-            background: #fff; 
-            border-radius: 14px; 
-            padding: 22px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04); 
-            border: 1px solid #e8ecf0; 
-            transition: all 0.25s ease;
+            background: #fff; border-radius: 16px; padding: 24px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
+            transition: all 0.3s ease;
         }
-        .chart-card:hover { 
-            box-shadow: 0 8px 30px rgba(10,22,40,0.07); 
-            border-color: #ffd700; 
-        }
-        .chart-card .chart-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-        .chart-card .chart-header i {
-            font-size: 18px;
-            color: #2980b9;
-        }
-        .chart-card .chart-header h6 { 
-            font-weight: 600; 
-            margin: 0; 
-            color: #0a1628; 
-            font-size: 15px; 
-        }
-        .chart-wrapper { 
-            height: 200px; 
-            width: 100%; 
-            max-width: 280px; 
-            margin: 0 auto; 
-        }
+        .chart-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        .chart-card h6 { font-weight: 600; margin-bottom: 20px; color: #0e1a2b; }
+        .chart-card h6 i { color: #ffd700; margin-right: 8px; }
+        .chart-wrapper { height: 300px; width: 100%; position: relative; }
 
-        /* ============================================
-           CARD CUSTOM
-           ============================================ */
+        /* ---- FILTER BAR ---- */
+        .filter-bar {
+            display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+            background: #fff; border-radius: 12px; padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea;
+            margin-bottom: 24px;
+        }
+        .filter-bar .form-select, .filter-bar .form-control {
+            border-radius: 8px; border: 2px solid #e8edf2; font-size: 13px; padding: 8px 12px;
+        }
+        .filter-bar .btn-filter {
+            background: #0e1a2b; color: #fff; border: none; border-radius: 8px;
+            padding: 8px 20px; font-weight: 600; font-size: 13px;
+        }
+        .filter-bar .btn-filter:hover { background: #1a2d4a; }
+
+        /* ---- TABLE ---- */
         .card-custom {
             background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            border: 1px solid #e8ecf0;
-            transition: all 0.25s ease;
-            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid #e0e4ea;
+            transition: all 0.3s ease;
         }
-        .card-custom:hover { 
-            box-shadow: 0 8px 30px rgba(10,22,40,0.07); 
-            border-color: #ffd700; 
-        }
+        .card-custom:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
         
         .card-custom .card-header-custom {
-            padding: 16px 22px;
+            padding: 20px 24px;
             border-bottom: 1px solid #f0f2f5;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 8px;
-            background: #fafbfc;
-        }
-        
-        .card-custom .card-header-custom .header-title {
-            display: flex;
-            align-items: center;
             gap: 10px;
         }
-        .card-custom .card-header-custom .header-title i {
-            color: #ffd700;
-            font-size: 17px;
-        }
-        .card-custom .card-header-custom .header-title h6 {
+        
+        .card-custom .card-header-custom h6 {
             font-weight: 600;
-            color: #0a1628;
+            color: #0e1a2b;
             margin: 0;
-            font-size: 15px;
+            font-size: 16px;
         }
         
-        .card-custom .card-header-custom .header-actions {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
+        .card-custom .card-header-custom h6 i {
+            color: #ffd700;
+            margin-right: 8px;
         }
         
         .card-custom .card-body-custom {
             padding: 0;
             overflow-x: auto;
         }
-
-        /* ============================================
-           FILTER
-           ============================================ */
-        .filter-wrapper {
-            padding: 10px 20px;
-            border-bottom: 1px solid #f0f2f5;
-            background: #fafbfc;
-        }
-        .filter-buttons { 
-            display: flex; 
-            gap: 5px; 
-            flex-wrap: wrap; 
-        }
-        .filter-buttons .btn-filter {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 500;
-            border: 2px solid #e8ecf0;
-            background: transparent;
-            color: #6a7a8a;
-            transition: all 0.25s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .filter-buttons .btn-filter:hover { 
-            border-color: #ffd700; 
-            color: #0a1628; 
-            background: #fffbf0;
-        }
-        .filter-buttons .btn-filter.active { 
-            background: #0a1628; 
-            border-color: #0a1628; 
-            color: #fff; 
-        }
-        .filter-buttons .btn-filter .count {
-            background: rgba(0,0,0,0.06);
-            padding: 0 7px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        .filter-buttons .btn-filter.active .count { 
-            background: rgba(255,255,255,0.2); 
-        }
-
-        /* ============================================
-           TABLE
-           ============================================ */
+        
         .table-custom {
             margin-bottom: 0;
             font-size: 13px;
@@ -1732,18 +598,18 @@ if (isset($_GET['complete'])) {
         
         .table-custom th {
             font-weight: 600;
-            font-size: 10.5px;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
-            color: #7a8a9a;
+            letter-spacing: 0.3px;
+            color: #7f8c8d;
             border-bottom: 1px solid #f0f2f5;
-            padding: 11px 14px;
-            background: #fafbfc;
+            padding: 12px 16px;
+            background: #fafafa;
             white-space: nowrap;
         }
         
         .table-custom td {
-            padding: 11px 14px;
+            padding: 12px 16px;
             vertical-align: middle;
             border-bottom: 1px solid #f0f2f5;
         }
@@ -1753,524 +619,174 @@ if (isset($_GET['complete'])) {
         }
         
         .table-custom tr:hover {
-            background: #f8f9fb;
+            background: #f8f9fa;
         }
-
-        /* ============================================
-           BADGES
-           ============================================ */
-        .badge-tugas {
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-tugas.Visit_Meeting { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-tugas.Prospecting { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
-        .badge-tugas.Negosiasi { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
-        .badge-tugas.Kontrak { background: rgba(26, 188, 156, 0.12); color: #16a085; }
-        .badge-tugas.Collect_Payment { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
-        .badge-tugas.Aftersales { background: rgba(22, 160, 133, 0.12); color: #1abc9c; }
-
+        
         .badge-status {
-            padding: 3px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
-            display: inline-block;
+            white-space: nowrap;
         }
         .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-status.overdue { background: rgba(231, 76, 60, 0.14); color: #c0392b; }
-
-        .badge-trf {
-            background: rgba(52, 152, 219, 0.12);
-            color: #2980b9;
-            padding: 2px 10px;
+        .badge-status.overdue { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
+        .badge-status.pending { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
+        
+        .badge-tugas {
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
-            display: inline-block;
-            text-decoration: none;
+            white-space: nowrap;
         }
-        .badge-trf:hover { background: rgba(52, 152, 219, 0.2); color: #2980b9; }
-
-        .badge-di {
-            background: rgba(155, 89, 182, 0.14);
-            color: #8e44ad;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .badge-middle-prospek {
-            background: rgba(243, 156, 18, 0.14);
-            color: #f39c12;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .badge-hot-prospek {
-            background: rgba(231, 76, 60, 0.14);
-            color: #e74c3c;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .badge-deal {
-            background: rgba(142, 68, 173, 0.14);
-            color: #8e44ad;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .badge-lost {
-            background: rgba(231, 76, 60, 0.14);
-            color: #e74c3c;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .badge-badan-usaha {
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 9px;
-            font-weight: 600;
-            background: rgba(26, 188, 156, 0.12);
-            color: #16a085;
-            display: inline-block;
-        }
-
-        /* ============================================
-           BUTTONS
-           ============================================ */
+        .badge-tugas.Prospecting { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-tugas.Negosiasi { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
+        .badge-tugas.Kontrak { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        
         .btn-action {
             width: 30px;
             height: 30px;
-            border-radius: 8px;
+            border-radius: 6px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             border: none;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             font-size: 13px;
             cursor: pointer;
         }
-        .btn-action:hover { transform: scale(1.08); }
-        .btn-action.detail { background: rgba(46, 204, 113, 0.10); color: #27ae60; }
-        .btn-action.detail:hover { background: rgba(46, 204, 113, 0.20); }
-        .btn-action.edit { background: rgba(52, 152, 219, 0.10); color: #2980b9; }
-        .btn-action.edit:hover { background: rgba(52, 152, 219, 0.20); }
-        .btn-action.delete { background: rgba(231, 76, 60, 0.10); color: #c0392b; }
-        .btn-action.delete:hover { background: rgba(231, 76, 60, 0.20); }
-        .btn-action.complete { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
-        .btn-action.complete:hover { background: rgba(241, 196, 15, 0.22); }
+        .btn-action:hover { transform: scale(1.1); }
+        .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
+        .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
+        .btn-action.edit { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
+        .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
+        .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
+        .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
+
+        .modal-content { border: none; border-radius: 12px; }
+        .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
+        .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
+        .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
+        .modal-body { padding: 20px 24px; }
+        .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
+
+        .form-label { font-weight: 600; font-size: 13px; color: #333; }
+        .form-label .optional { font-weight: 400; color: #999; font-size: 11px; }
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 2px solid #e8edf2;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+        
+        .form-control[readonly] {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
 
         .btn-primary-custom {
-            background: #0a1628;
+            background: #0e1a2b;
             border: none;
-            border-radius: 10px;
-            padding: 9px 22px;
+            border-radius: 8px;
+            padding: 10px 24px;
             font-weight: 600;
             font-size: 13px;
-            transition: all 0.25s ease;
+            transition: all 0.3s ease;
             color: #fff;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
         }
         .btn-primary-custom:hover {
             background: #1a2d4a;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(10,22,40,0.25);
+            box-shadow: 0 4px 15px rgba(14, 26, 43, 0.3);
             color: #fff;
         }
-        .btn-primary-custom i { font-size: 14px; }
+        .btn-primary-custom i { margin-right: 6px; }
 
         .btn-secondary-custom {
             background: #f0f2f5;
             border: none;
-            border-radius: 10px;
-            padding: 9px 22px;
+            border-radius: 8px;
+            padding: 10px 24px;
             font-weight: 600;
             font-size: 13px;
-            transition: all 0.25s ease;
+            transition: all 0.3s ease;
             color: #555;
         }
-        .btn-secondary-custom:hover { background: #e5e8ec; color: #333; }
+        .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
 
-        .btn-complete-custom {
-            background: #f39c12;
-            border: none;
-            border-radius: 10px;
-            padding: 9px 20px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.25s ease;
-            color: #fff;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-complete-custom:hover { background: #e67e22; color: #fff; }
-
-        /* ============================================
-           MODALS
-           ============================================ */
-        .modal-content { border: none; border-radius: 14px; }
-        .modal-header { border-bottom: 1px solid #f0f2f5; padding: 16px 22px; }
-        .modal-header .modal-title { font-weight: 700; font-size: 17px; color: #0a1628; }
-        .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
-        .modal-body { padding: 18px 22px; }
-        .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 22px; }
-
-        /* ============================================
-           FORM
-           ============================================ */
-        .form-label { font-weight: 600; font-size: 12.5px; color: #333; margin-bottom: 4px; }
-        .form-control, .form-select {
-            border-radius: 10px;
-            padding: 9px 14px;
-            border: 2px solid #e8ecf0;
-            transition: all 0.25s ease;
-            font-size: 13px;
-            width: 100%;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #ffd700;
-            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.08);
-        }
-        .form-control-file {
-            padding: 6px 12px;
-            border: 2px solid #e8ecf0;
-            border-radius: 10px;
-            width: 100%;
-        }
-
-        .auto-fill-field { background: #f8f9fa !important; cursor: default; }
-        .char-counter { font-size: 11.5px; padding: 4px 0; color: #8a9aa8; }
-        .char-counter .count { font-weight: 600; }
-        .char-counter .count.valid { color: #27ae60; }
-        .char-counter .count.invalid { color: #e74c3c; }
-
-        /* ============================================
-           TRF, DI, DEAL FIELDS - DIPERBAIKI
-           ============================================ */
-        .trf-field {
-            display: none;
-        }
-        .trf-field.show {
-            display: block;
-        }
-
-        .di-field {
-            display: none;
-        }
-        .di-field.show {
-            display: block;
-        }
-
-        .deal-fields {
-            display: none;
-        }
-        .deal-fields.show {
-            display: block;
-        }
-
-        .trf-field, .di-field, .deal-fields {
-            transition: all 0.3s ease;
-        }
+        .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
 
         .detail-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
         .detail-item:last-child { border-bottom: none; }
-        .detail-item .detail-label { font-weight: 600; color: #6a7a8a; width: 150px; flex-shrink: 0; font-size: 12.5px; }
-        .detail-item .detail-value { color: #0a1628; font-size: 13px; word-break: break-word; }
+        .detail-item .detail-label { font-weight: 600; color: #555; width: 160px; flex-shrink: 0; font-size: 13px; }
+        .detail-item .detail-value { color: #0e1a2b; font-size: 13px; word-break: break-word; }
 
-        /* ============================================
-           SELECT2 - FIX DROPDOWN DI DALAM MODAL
-           ============================================ */
-        .select2-container {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
+        .leads-number-display {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            color: #d4a017;
+            text-align: center;
+            font-size: 16px;
+            letter-spacing: 0.5px;
         }
 
-        .select2-container .select2-selection {
-            width: 100% !important;
-            max-width: 100% !important;
-            border: 2px solid #e8ecf0 !important;
-            border-radius: 10px !important;
-            min-height: 44px !important;
-            background: #fff !important;
-            box-sizing: border-box !important;
-        }
-
-        .select2-container .select2-selection--single {
-            height: auto !important;
-            min-height: 44px !important;
-        }
-
-        .select2-container .select2-selection--single {
-            position: relative !important;
-            display: flex !important;
-            align-items: center !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__rendered {
-            position: relative !important;
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            min-height: 40px !important;
-            padding: 8px 68px 8px 14px !important;
-            line-height: 24px !important;
-            color: #333 !important;
-            font-size: 13px !important;
-            font-family: 'Inter', sans-serif !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            white-space: nowrap !important;
-            box-sizing: border-box !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__clear {
-            position: absolute !important;
-            right: 34px !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            float: none !important;
-            width: 22px !important;
-            height: 22px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            border: 0 !important;
-            background: transparent !important;
-            color: #7b8794 !important;
-            font-size: 18px !important;
-            line-height: 22px !important;
-            z-index: 5 !important;
-            cursor: pointer !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__clear:hover {
-            color: #e74c3c !important;
-        }
-
-        .select2-container .select2-selection--single .select2-selection__arrow {
-            height: 42px !important;
-            width: 30px !important;
-            right: 3px !important;
-            position: absolute !important;
-            top: 0 !important;
-            z-index: 4 !important;
-        }
-
-        .modal-content {
-            overflow: visible !important;
-        }
-
-        .modal-body {
-            overflow: visible !important;
-        }
-
-        .select2-container--open {
-            z-index: 1080 !important;
-        }
-
-        .select2-container--open .select2-dropdown {
-            z-index: 1080 !important;
-            box-sizing: border-box !important;
-            border: 2px solid #e8ecf0 !important;
-            border-radius: 0 0 10px 10px !important;
-            overflow: hidden !important;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
-            background: #fff !important;
-        }
-
-        .select2-search--dropdown {
-            padding: 8px !important;
-            background: #fff !important;
-        }
-
-        .select2-search--dropdown .select2-search__field {
-            width: 100% !important;
-            box-sizing: border-box !important;
-            border: 1px solid #e8ecf0 !important;
-            border-radius: 8px !important;
-            padding: 8px 10px !important;
-            outline: none !important;
-        }
-
-        .select2-search--dropdown .select2-search__field:focus {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255,215,0,0.08) !important;
-        }
-
-        .select2-dropdown .select2-results__options {
-            padding: 4px 0 !important;
-            max-height: 220px !important;
-            overflow-y: auto !important;
-        }
-
-        .select2-dropdown .select2-results__option {
-            padding: 8px 12px !important;
-            font-size: 12.5px !important;
-            color: #333 !important;
-            cursor: pointer !important;
-            border-bottom: 1px solid #f8f9fa !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            box-sizing: border-box !important;
-        }
-
-        .select2-dropdown .select2-results__option:last-child {
-            border-bottom: none !important;
-        }
-
-        .select2-dropdown .select2-results__option--highlighted[aria-selected] {
-            background: #0a1628 !important;
-            color: #ffd700 !important;
-        }
-
-        .select2-dropdown .select2-results__option .badge-badan-usaha {
-            font-size: 9px !important;
-            padding: 1px 7px !important;
-            margin-left: 5px !important;
-            display: inline-block !important;
-            background: rgba(26, 188, 156, 0.12);
-            color: #16a085;
-            border-radius: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .select2-container .select2-selection--single .select2-selection__rendered {
-                font-size: 12.5px !important;
-                padding: 7px 12px !important;
-                max-width: calc(100% - 34px) !important;
-            }
-            .select2-container .select2-selection {
-                min-height: 38px !important;
-            }
-            .select2-container .select2-selection--single .select2-selection__arrow {
-                height: 36px !important;
-                width: 28px !important;
-            }
-            .select2-dropdown .select2-results__option {
-                padding: 6px 10px !important;
-                font-size: 12px !important;
-            }
-        }
-
-        #modalSalesActivity .select2-container .select2-selection--single {
-            position: relative !important;
-        }
-
-        #modalSalesActivity .select2-container .select2-selection--single .select2-selection__rendered {
-            position: relative !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            padding: 8px 68px 8px 14px !important;
-            box-sizing: border-box !important;
-        }
-
-        #modalSalesActivity .select2-container .select2-selection--single .select2-selection__clear {
-            position: absolute !important;
-            right: 34px !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            float: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 22px !important;
-            height: 22px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            z-index: 20 !important;
-        }
-
-        #modalSalesActivity .select2-container .select2-selection--single .select2-selection__arrow {
-            position: absolute !important;
-            right: 3px !important;
-            top: 0 !important;
-            z-index: 10 !important;
-        }
-
-        .footer-text { text-align: center; padding: 20px 0 4px; color: #aab8c8; font-size: 11px; }
-        .footer-text a { color: #0a1628; text-decoration: none; font-weight: 500; }
-        .footer-text a:hover { color: #ffd700; }
+        .customer-deal-field { display: none; }
+        .customer-deal-field.show { display: block; }
 
         .mobile-toggle { display: none; }
+
+        .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
+        .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
+        .footer-text a:hover { color: #ffd700; }
+
+        /* Select2 Custom */
+        .select2-container--default .select2-selection--single {
+            border-radius: 8px;
+            padding: 6px 14px;
+            border: 2px solid #e8edf2;
+            font-size: 13px;
+            min-height: 42px;
+        }
+        .select2-container--default .select2-selection--single:focus {
+            border-color: #ffd700;
+        }
 
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
-            .main-content { 
-                margin-left: 0; 
-                padding: 18px; 
-                width: 100%;
-            }
+            .main-content { margin-left: 0; padding: 20px; }
             .mobile-toggle { 
-                display: flex !important; 
-                background: #0a1628; 
-                border: none; 
-                width: 38px; 
-                height: 38px; 
-                border-radius: 10px; 
-                color: #ffd700; 
-                font-size: 18px; 
-                align-items: center; 
-                justify-content: center;
+                display: flex !important; background: #0e1a2b; border: none; 
+                width: 40px; height: 40px; border-radius: 8px; 
+                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
             }
-            .stat-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 768px) {
-            .stat-grid { grid-template-columns: 1fr; }
-            .stat-card { padding: 14px 16px; }
-            .stat-card .stat-number { font-size: 18px; }
         }
 
         @media (max-width: 480px) {
-            .stat-grid { grid-template-columns: 1fr; }
-            .stat-card .stat-number { font-size: 16px; }
-            .stat-card { padding: 12px 14px; }
+            .chart-wrapper { height: 220px; }
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
             .btn-action { width: 26px; height: 26px; font-size: 11px; }
             .detail-item { flex-direction: column; padding: 8px 0; }
-            .detail-item .detail-label { width: 100%; font-size: 11px; color: #8a9aa8; margin-bottom: 2px; }
+            .detail-item .detail-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .detail-item .detail-value { font-size: 12px; }
-            .filter-buttons .btn-filter { font-size: 10px; padding: 3px 8px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ============================================
-    SIDEBAR
-    ============================================ -->
+    <!-- SIDEBAR MODERN -->
     <nav class="sidebar" id="sidebar">
         <a href="dashboard.php" class="brand">
             <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
@@ -2318,139 +834,79 @@ if (isset($_GET['complete'])) {
         </a>
     </nav>
 
-    <!-- ============================================
-    MAIN CONTENT
-    ============================================ -->
+    <!-- MAIN CONTENT -->
     <div class="main-content">
         
-        <!-- ===== PAGE HEADER ===== -->
+        <!-- HEADER -->
         <div class="page-header">
-            <div class="header-left">
+            <div style="display:flex; gap:15px; align-items:center;">
                 <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h4><i class="fas fa-chart-bar"></i> Sales Activity</h4>
+                <div>
+                    <h4><span><i class="fas fa-chart-bar" style="color:#ffd700;"></i></span> Sales Activity</h4>
+                </div>
             </div>
             <?php if (canAdd('sales_activity')): ?>
-                <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalSalesActivity">
-                    <i class="fas fa-plus"></i> Tambah
+                <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalActivity">
+                    <i class="fas fa-plus"></i> Tambah Aktivitas
                 </button>
             <?php endif; ?>
         </div>
 
-        <!-- ===== NOTIFICATIONS ===== -->
-        <?php if ($overdueCount > 0): ?>
-            <div class="alert alert-danger deadline-alert mb-3" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i>
-                <strong>Perhatian!</strong> Ada <strong><?= $overdueCount ?></strong> aktivitas yang <strong>MELEWATI JATUH TEMPO</strong>! Segera selesaikan!
-            </div>
-        <?php endif; ?>
-        
-        <?php if ($approachingCount > 0): ?>
-            <div class="alert alert-warning deadline-warning mb-3" role="alert">
-                <i class="fas fa-clock me-2"></i>
-                Ada <strong><?= $approachingCount ?></strong> aktivitas yang <strong>mendekati jatuh tempo</strong> (&le; 3 hari)! Segera selesaikan!
-            </div>
-        <?php endif; ?>
-
-        <!-- ===== STATISTIK ===== -->
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-icon blue"><i class="fas fa-spinner"></i></div>
-                <div class="stat-info">
-                    <div class="stat-number"><?= number_format($totalInProgress) ?></div>
-                    <div class="stat-label">In Progress</div>
+        <!-- CHART DONUT -->
+        <div class="chart-grid">
+            <!-- Donut Status Aktivitas -->
+            <div class="chart-card">
+                <h6><i class="fas fa-tasks"></i> Status Aktivitas</h6>
+                <div class="chart-wrapper">
+                    <canvas id="donutStatusAktivitas"></canvas>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
-                <div class="stat-info">
-                    <div class="stat-number"><?= number_format($totalCompleted) ?></div>
-                    <div class="stat-label">Completed</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="stat-info">
-                    <div class="stat-number"><?= number_format($overdueCount) ?></div>
-                    <div class="stat-label">Overdue</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon gold"><i class="fas fa-tasks"></i></div>
-                <div class="stat-info">
-                    <div class="stat-number"><?= number_format($totalActivities) ?></div>
-                    <div class="stat-label">Total Aktivitas</div>
+            
+            <!-- Donut Status Prospek -->
+            <div class="chart-card">
+                <h6><i class="fas fa-chart-pie"></i> Status Prospek</h6>
+                <div class="chart-wrapper">
+                    <canvas id="donutStatusProspek"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- ===== CHARTS ===== -->
-        <div class="grid-2-col">
-            <div class="chart-card">
-                <div class="chart-header">
-                    <i class="fas fa-chart-pie" style="color:#2980b9;"></i>
-                    <h6>Status Aktivitas</h6>
-                </div>
-                <div class="chart-wrapper"><canvas id="statusChart"></canvas></div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-header">
-                    <i class="fas fa-chart-pie" style="color:#f39c12;"></i>
-                    <h6>Status Prospek</h6>
-                </div>
-                <div class="chart-wrapper"><canvas id="prospekChart"></canvas></div>
-            </div>
+        <!-- FILTER BAR -->
+        <div class="filter-bar">
+            <form method="GET" class="d-flex gap-2 flex-wrap align-items-center w-100">
+                <i class="fas fa-filter" style="color:#d4a017;"></i>
+                <input type="text" name="search" class="form-control" placeholder="Cari Leads Number, Subject, Nama PT..." value="<?= htmlspecialchars($search) ?>" style="width: 250px;">
+                
+                <select name="status" class="form-select" style="width: 150px;">
+                    <option value="">Semua Status</option>
+                    <option value="in_progress" <?= $filterStatus == 'in_progress' ? 'selected' : '' ?>>In Progress</option>
+                    <option value="completed" <?= $filterStatus == 'completed' ? 'selected' : '' ?>>Completed</option>
+                    <option value="overdue" <?= $filterStatus == 'overdue' ? 'selected' : '' ?>>Overdue</option>
+                    <option value="pending" <?= $filterStatus == 'pending' ? 'selected' : '' ?>>Pending</option>
+                </select>
+                
+                <select name="jenis_tugas" class="form-select" style="width: 150px;">
+                    <option value="">Semua Jenis</option>
+                    <option value="Prospecting" <?= $filterJenisTugas == 'Prospecting' ? 'selected' : '' ?>>Prospecting</option>
+                    <option value="Negosiasi" <?= $filterJenisTugas == 'Negosiasi' ? 'selected' : '' ?>>Negosiasi</option>
+                    <option value="Kontrak" <?= $filterJenisTugas == 'Kontrak' ? 'selected' : '' ?>>Kontrak</option>
+                </select>
+                
+                <button type="submit" class="btn btn-filter"><i class="fas fa-search"></i> Cari</button>
+                
+                <?php if (!empty($search) || !empty($filterStatus) || !empty($filterJenisTugas)): ?>
+                    <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 8px 16px;"><i class="fas fa-times"></i> Reset</a>
+                <?php endif; ?>
+            </form>
         </div>
 
-        <!-- ===== TABLE ===== -->
+        <!-- TABLE -->
         <div class="card-custom">
             <div class="card-header-custom">
-                <div class="header-title">
-                    <i class="fas fa-list"></i>
-                    <h6>Daftar Sales Activity</h6>
-                </div>
-                <div class="header-actions">
-                    <form method="GET" class="d-flex gap-2">
-                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 170px; border-radius:8px;">
-                        <button type="submit" class="btn btn-primary-custom" style="padding: 5px 14px;"><i class="fas fa-search"></i></button>
-                        <?php if (!empty($search)): ?>
-                            <a href="salesactivity.php?status=<?= $status_filter ?>" class="btn btn-secondary-custom" style="padding: 5px 14px;"><i class="fas fa-times"></i></a>
-                        <?php endif; ?>
-                    </form>
-                </div>
+                <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
             </div>
-            
-            <!-- Filter Status -->
-            <div class="filter-wrapper">
-                <div class="filter-buttons">
-                    <a href="?status=all&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'all' ? 'active' : '' ?>">
-                        Semua <span class="count"><?= $totalActivities ?></span>
-                    </a>
-                    <a href="?status=in_progress&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'in_progress' ? 'active' : '' ?>">
-                        <i class="fas fa-spinner fa-fw"></i> In Progress <span class="count"><?= $totalInProgress ?></span>
-                    </a>
-                    <a href="?status=completed&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'completed' ? 'active' : '' ?>">
-                        <i class="fas fa-check-circle fa-fw"></i> Completed <span class="count"><?= $totalCompleted ?></span>
-                    </a>
-                    <a href="?status=overdue&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'overdue' ? 'active' : '' ?>">
-                        <i class="fas fa-exclamation-triangle fa-fw" style="color:#e74c3c;"></i> Overdue <span class="count"><?= $overdueCount ?></span>
-                    </a>
-                    <a href="?status=middle_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'middle_prospek' ? 'active' : '' ?>">
-                        <i class="fas fa-user-tie fa-fw" style="color:#f39c12;"></i> Middle Prospek <span class="count"><?= $totalMiddleProspek ?></span>
-                    </a>
-                    <a href="?status=hot_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'hot_prospek' ? 'active' : '' ?>">
-                        <i class="fas fa-fire fa-fw" style="color:#ff6b6b;"></i> Hot Prospek <span class="count"><?= $totalHotProspek ?></span>
-                    </a>
-                    <a href="?status=lost_prospek&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'lost_prospek' ? 'active' : '' ?>">
-                        <i class="fas fa-times-circle fa-fw" style="color:#e74c3c;"></i> Lost Prospek <span class="count"><?= $totalLostProspek ?></span>
-                    </a>
-                    <a href="?status=deal&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'deal' ? 'active' : '' ?>">
-                        <i class="fas fa-handshake fa-fw" style="color:#8e44ad;"></i> Deal <span class="count"><?= $totalDeal ?></span>
-                    </a>
-                </div>
-            </div>
-            
             <div class="card-body-custom">
                 <?= showFlash() ?>
                 <div class="table-responsive">
@@ -2458,11 +914,12 @@ if (isset($_GET['complete'])) {
                         <thead>
                             <tr>
                                 <th>No</th>
-                                <th>Subject</th>
-                                <th>Account</th>
+                                <th>Leads Number</th>
+                                <th>Nama PT</th>
                                 <th>Jenis Tugas</th>
+                                <th>Subject</th>
+                                <th>Status</th>
                                 <th>Due Date</th>
-                                <th>Status Deadline</th>
                                 <th>Sales</th>
                                 <th>Aksi</th>
                             </tr>
@@ -2470,115 +927,44 @@ if (isset($_GET['complete'])) {
                         <tbody>
                             <?php if (count($activities) > 0): ?>
                                 <?php $no = $offset + 1; ?>
-                                <?php foreach ($activities as $activity): ?>
-                                    <?php 
-                                    $deadline = getDeadlineStatus($activity['due_date'], $activity['status']);
-                                    $isOverdue = $activity['status'] == 'overdue' || ($deadline['status'] == 'overdue' && $activity['status'] == 'in_progress');
-                                    $rowClass = $isOverdue ? 'table-overdue' : '';
-                                    
-                                    $isMiddleProspek = ($activity['jenis_tugas'] == 'Prospecting' && $activity['has_negosiasi_kontrak'] == 0);
-                                    $isHotProspek = ($activity['jenis_tugas'] == 'Negosiasi' && $activity['has_kontrak'] == 0 && $activity['has_lost_prospek'] == 0 && !($activity['status'] == 'completed' && $activity['customer_deal'] == 'No'));
-                                    $isLostProspek = ($activity['jenis_tugas'] == 'Negosiasi' && $activity['status'] == 'completed' && $activity['customer_deal'] == 'No');
-                                    $isDeal = ($activity['jenis_tugas'] == 'Kontrak');
-                                    ?>
-                                    <tr class="<?= $rowClass ?>">
+                                <?php foreach ($activities as $act): ?>
+                                    <tr>
                                         <td><?= $no++ ?></td>
+                                        <td><strong><?= htmlspecialchars($act['leads_number']) ?></strong></td>
+                                        <td><?= htmlspecialchars($act['nama_pt']) ?></td>
                                         <td>
-                                            <strong><?= htmlspecialchars($activity['subject']) ?></strong>
-                                            <?php if ($isMiddleProspek): ?>
-                                                <br><span class="badge-middle-prospek"><i class="fas fa-user-tie"></i> Middle Prospek</span>
-                                            <?php endif; ?>
-                                            <?php if ($isHotProspek): ?>
-                                                <br><span class="badge-hot-prospek"><i class="fas fa-fire"></i> Hot Prospek</span>
-                                            <?php endif; ?>
-                                            <?php if ($isLostProspek): ?>
-                                                <br><span class="badge-lost"><i class="fas fa-times-circle"></i> Lost Prospek</span>
-                                            <?php endif; ?>
-                                            <?php if ($isDeal): ?>
-                                                <br><span class="badge-deal"><i class="fas fa-handshake"></i> Deal</span>
-                                            <?php endif; ?>
-                                            <?php if (!empty($activity['di_number'])): ?>
-                                                <br><span class="badge-di"><i class="fas fa-hashtag"></i> <?= htmlspecialchars($activity['di_number']) ?></span>
-                                            <?php endif; ?>
-                                            <?php if (!empty($activity['trf_number'])): ?>
-                                                <br><span class="badge-trf"><i class="fas fa-file-signature"></i> <?= htmlspecialchars($activity['trf_number']) ?></span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><?= htmlspecialchars($activity['nama_pt'] ?? '-') ?></td>
-                                        <td>
-                                            <span class="badge-tugas <?= str_replace(' ', '_', str_replace('/', '_', $activity['jenis_tugas'])) ?>">
-                                                <?= htmlspecialchars($activity['jenis_tugas']) ?>
+                                            <span class="badge-tugas <?= htmlspecialchars($act['jenis_tugas']) ?>">
+                                                <?= htmlspecialchars($act['jenis_tugas']) ?>
                                             </span>
                                         </td>
+                                        <td><?= htmlspecialchars($act['subject']) ?></td>
                                         <td>
-                                            <?php if ($activity['due_date']): ?>
-                                                <span class="<?= $deadline['class'] ?>">
-                                                    <?= date('d/m/Y', strtotime($activity['due_date'])) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                -
-                                            <?php endif; ?>
+                                            <span class="badge-status <?= htmlspecialchars($act['status']) ?>">
+                                                <?php 
+                                                    $statusLabels = [
+                                                        'pending' => 'Pending',
+                                                        'in_progress' => 'In Progress',
+                                                        'completed' => 'Completed',
+                                                        'overdue' => 'Overdue'
+                                                    ];
+                                                    echo $statusLabels[$act['status']] ?? $act['status'];
+                                                ?>
+                                            </span>
                                         </td>
-                                        <td>
-                                            <?php if ($activity['status'] == 'in_progress' && $activity['due_date']): ?>
-                                                <?php if ($deadline['status'] == 'overdue'): ?>
-                                                    <span class="badge badge-overdue">
-                                                        <i class="fas fa-exclamation-triangle"></i> LEWAT!
-                                                    </span>
-                                                <?php elseif ($deadline['status'] == 'approaching'): ?>
-                                                    <span class="badge badge-approaching">
-                                                        <i class="fas fa-clock"></i> <?= $deadline['label'] ?>
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge badge-safe">
-                                                        <i class="fas fa-check-circle"></i> On Track
-                                                    </span>
-                                                <?php endif; ?>
-                                            <?php elseif ($activity['status'] == 'overdue'): ?>
-                                                <span class="badge badge-overdue">
-                                                    <i class="fas fa-exclamation-triangle"></i> OVERDUE!
-                                                </span>
-                                            <?php elseif ($activity['status'] == 'completed'): ?>
-                                                <span class="badge bg-secondary">
-                                                    <i class="fas fa-check"></i> Selesai
-                                                </span>
-                                            <?php else: ?>
-                                                -
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
+                                        <td><?= $act['due_date'] ? date('d-m-Y', strtotime($act['due_date'])) : '-' ?></td>
+                                        <td><?= htmlspecialchars($act['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
+                                                <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($act)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                
-                                                <?php if ($activity['status'] == 'in_progress' || $activity['status'] == 'overdue'): ?>
-                                                    <?php 
-                                                    $canEdit = false;
-                                                    if ($hasFullAccess) {
-                                                        $canEdit = true;
-                                                    } elseif ($userRole === 'sales' && $activity['sales_id'] == $userId) {
-                                                        $canEdit = true;
-                                                    } elseif (canEdit('sales_activity')) {
-                                                        $canEdit = true;
-                                                    }
-                                                    ?>
-                                                    <?php if ($canEdit): ?>
-                                                        <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($activity)) ?>)">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                        <button class="btn-action complete" 
-                                                                data-id="<?= $activity['id'] ?>" 
-                                                                data-data='<?= json_encode($activity, JSON_HEX_APOS | JSON_HEX_QUOT) ?>'
-                                                                onclick="completeActivity(this)">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                    <?php endif; ?>
+                                                <?php if (canEdit('sales_activity')): ?>
+                                                    <button class="btn-action edit" onclick="editActivity(<?= htmlspecialchars(json_encode($act)) ?>)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
                                                 <?php endif; ?>
-                                                
-                                                <?php if ($hasFullAccess && canDelete('sales_activity')): ?>
-                                                    <button class="btn-action delete" onclick="deleteActivity(<?= $activity['id'] ?>)">
+                                                <?php if (canDelete('sales_activity')): ?>
+                                                    <button class="btn-action delete" onclick="deleteActivity(<?= $act['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 <?php endif; ?>
@@ -2588,8 +974,8 @@ if (isset($_GET['complete'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
-                                        <i class="fas fa-inbox me-2"></i> Belum ada data sales activity
+                                    <td colspan="9" class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox me-2"></i> Belum ada data aktivitas
                                     </td>
                                 </tr>
                             <?php endif; ?>
@@ -2602,15 +988,15 @@ if (isset($_GET['complete'])) {
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&jenis_tugas=<?= urlencode($filterJenisTugas) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&jenis_tugas=<?= urlencode($filterJenisTugas) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&jenis_tugas=<?= urlencode($filterJenisTugas) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
@@ -2618,245 +1004,161 @@ if (isset($_GET['complete'])) {
             <?php endif; ?>
         </div>
 
-        <!-- ===== FOOTER ===== -->
+        <!-- FOOTER -->
         <div class="footer-text">
             &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
         </div>
 
     </div>
 
-    <!-- ============================================
-    MODALS
-    ============================================ -->
-    <!-- Modal Tambah / Edit -->
-    <div class="modal fade" id="modalSalesActivity" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <!-- MODAL TAMBAH / EDIT ACTIVITY -->
+    <div class="modal fade" id="modalActivity" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="fas fa-plus"></i> Tambah Sales Activity</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="fas fa-plus"></i> Tambah Aktivitas</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" enctype="multipart/form-data" id="formSalesActivity" onsubmit="return validateFormAdd()">
+                <form method="POST" id="formActivity">
                     <div class="modal-body">
                         <input type="hidden" name="action" id="formAction" value="add">
                         <input type="hidden" name="id" id="formId" value="">
                         
-                        <div class="mb-3">
-                            <label class="form-label">Subject <span class="text-danger">*</span></label>
-                            <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject" required>
+                        <!-- Leads Number (Auto Generate untuk Tambah) -->
+                        <div class="mb-3" id="leadsNumberContainer">
+                            <label class="form-label">Leads Number</label>
+                            <div class="leads-number-display" id="leadsNumberDisplay">
+                                <?php 
+                                    $tahun = date('Y');
+                                    $bulanRomawi = getBulanRomawi(date('n'));
+                                    echo "0001/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
+                                ?>
+                            </div>
+                            <small class="text-muted">Generate otomatis saat disimpan</small>
                         </div>
                         
+                        <!-- Account Management -->
                         <div class="mb-3">
                             <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <select name="account_id" id="account_id" class="form-select" required>
-                                <option value="">-- Pilih Account --</option>
-                                <?php foreach ($accounts as $account): ?>
-                                    <option value="<?= $account['id'] ?>" data-badge="<?= htmlspecialchars($account['badan_usaha'] ?? 'PT') ?>">
-                                        <?= htmlspecialchars($account['nama_pt']) ?>
+                            <select name="account_id" id="account_id" class="form-select select2-account" required style="width: 100%;">
+                                <option value="">-- Pilih Account (Ketik untuk mencari) --</option>
+                                <?php foreach ($accountsList as $acc): ?>
+                                    <option value="<?= $acc['id'] ?>" 
+                                        data-badan_usaha="<?= htmlspecialchars($acc['badan_usaha'] ?? 'PT') ?>"
+                                        data-bidang_usaha="<?= htmlspecialchars($acc['bidang_usaha'] ?? '-') ?>"
+                                        data-nama_pic="<?= htmlspecialchars($acc['nama_pic'] ?? '-') ?>"
+                                        data-no_hp_pic="<?= htmlspecialchars($acc['no_hp_pic'] ?? '-') ?>">
+                                        <?= htmlspecialchars($acc['nama_pt']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <small class="text-muted">Ketik untuk mencari account</small>
                         </div>
                         
+                        <!-- Informasi Account (Readonly) -->
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Badan Usaha</label>
-                                <input type="text" name="badan_usaha_field" id="badan_usaha_field" class="form-control auto-fill-field" readonly>
+                                <input type="text" id="badan_usaha" class="form-control" readonly>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Business Segment</label>
-                                <input type="text" name="business_segment" id="business_segment" class="form-control auto-fill-field" readonly>
+                                <input type="text" id="bidang_usaha" class="form-control" readonly>
                             </div>
-                            <div class="col-md-4 mb-3">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nama PIC</label>
+                                <input type="text" id="nama_pic" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Contact Mobile Phone</label>
-                                <input type="text" name="contact_mobile" id="contact_mobile" class="form-control auto-fill-field" readonly>
+                                <input type="text" id="no_hp_pic" class="form-control" readonly>
                             </div>
                         </div>
                         
+                        <hr>
+                        
+                        <!-- Jenis Tugas -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Jenis Tugas <span class="text-danger">*</span></label>
                                 <select name="jenis_tugas" id="jenis_tugas" class="form-select" required>
-                                    <option value="">-- Pilih Jenis Tugas --</option>
-                                    <option value="Perkenalan">Perkenalan</option>
-                                    <option value="Visit/Meeting">Visit/Meeting</option>
+                                    <option value="">Pilih Jenis Tugas</option>
                                     <option value="Prospecting">Prospecting</option>
                                     <option value="Negosiasi">Negosiasi</option>
                                     <option value="Kontrak">Kontrak</option>
-                                    <option value="Collect Payment">Collect Payment</option>
-                                    <option value="Aftersales">Aftersales</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Due Date <span class="text-danger">*</span></label>
-                                <input type="date" name="due_date" id="due_date" class="form-control" required>
-                                <small class="text-muted">Tanggal jatuh tempo penyelesaian aktivitas</small>
-                            </div>
-                        </div>
-                        
-                        <!-- TRF Field - Selalu muncul untuk Negosiasi, Kontrak, Collect Payment, Aftersales -->
-                        <div class="trf-field" id="trfField">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form (TR) <span class="text-danger">*</span></label>
-                                    <input type="text" name="trf_number" id="trf_number_add" class="form-control" readonly>
-                                    <small class="text-muted">Akan digenerate otomatis untuk Negosiasi, Kontrak, Collect Payment & Aftersales</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Deal Fields - Hanya untuk Complete, tidak untuk Tambah -->
-                        <div class="deal-fields" id="dealFields" style="display:none;">
-                            <!-- Field ini disembunyikan untuk Tambah -->
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Deskripsi <span class="text-danger">*</span></label>
-                            <textarea name="deskripsi" id="deskripsi" class="form-control" rows="4" placeholder="Masukkan deskripsi (minimal 80 karakter)" required oninput="updateCharCount('deskripsi', 'deskripsiCounter')"></textarea>
-                            <div class="char-counter">
-                                <span class="count" id="deskripsiCounter">0</span> / 80 karakter (minimal)
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        <div class="alert alert-info mb-3">
-                            <i class="fas fa-info-circle"></i> 
-                            <strong>Opsional:</strong> Jika Anda langsung mengisi <strong>Result</strong>, aktivitas akan otomatis menjadi <strong>Completed</strong>. Jika tidak diisi, status akan <strong>In Progress</strong>.
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Result</label>
-                            <textarea name="result" id="result_add" class="form-control" rows="3" placeholder="Masukkan hasil aktivitas (kosongkan jika masih in progress)" oninput="updateCharCount('result_add', 'resultCounterAdd')"></textarea>
-                            <div class="char-counter">
-                                <span class="count" id="resultCounterAdd">0</span> / 80 karakter (minimal jika diisi)
+                                <label class="form-label">Status <span class="text-danger">*</span></label>
+                                <select name="status" id="status" class="form-select" required>
+                                    <option value="">Pilih Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="overdue">Overdue</option>
+                                </select>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Attachment File <span id="attachment_required" style="display:none;color:red;">*</span></label>
-                            <input type="file" name="attachment_file" id="attachment_file_add" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                            <small class="text-muted">Upload file jika mengisi Result</small>
+                            <label class="form-label">Subject <span class="text-danger">*</span></label>
+                            <input type="text" name="subject" id="subject" class="form-control" placeholder="Masukkan subject aktivitas" required>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary-custom" id="btnSubmit">
-                            <i class="fas fa-save"></i> Simpan
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Complete -->
-    <div class="modal fade" id="modalComplete" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius:14px 14px 0 0;">
-                    <h5 class="modal-title" style="color: #fff;">
-                        <i class="fas fa-check-circle"></i> Complete Sales Activity
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" enctype="multipart/form-data" id="formComplete" onsubmit="return validateFormComplete()">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="complete">
-                        <input type="hidden" name="id" id="completeId" value="">
-                        <input type="hidden" name="jenis_tugas_hidden" id="jenis_tugas_hidden" value="">
                         
-                        <div class="row">
+                        <!-- Customer Deal (muncul jika jenis_tugas = Negosiasi) -->
+                        <div class="row customer-deal-field" id="customerDealField">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Subject</label>
-                                <input type="text" id="completeSubject" class="form-control" readonly style="background: #f8f9fa;">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Account</label>
-                                <input type="text" id="completeAccount" class="form-control" readonly style="background: #f8f9fa;">
+                                <label class="form-label">Customer Deal?</label>
+                                <select name="customer_deal" id="customer_deal" class="form-select">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
                             </div>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Jenis Tugas</label>
-                                <input type="text" id="completeJenisTugas" class="form-control" readonly style="background: #f8f9fa;">
+                                <label class="form-label">Due Date <span class="optional">(Optional)</span></label>
+                                <input type="date" name="due_date" id="due_date" class="form-control">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Due Date</label>
-                                <input type="text" id="completeDueDate" class="form-control" readonly style="background: #f8f9fa;">
-                            </div>
-                        </div>
-                        
-                        <!-- TRF Field Complete -->
-                        <div class="trf-field" id="trfFieldComplete">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">Transaction Request Form (TR)</label>
-                                    <input type="text" name="trf_number_display" id="trf_number_complete" class="form-control" readonly>
-                                    <input type="hidden" name="trf_number" id="trf_number_complete_hidden" value="">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Deal Fields Complete - Customer Deal dan DI muncul saat Complete -->
-                        <div class="deal-fields" id="dealFieldsComplete">
-                            <hr>
-                            <div class="row">
-                                <div class="col-md-6 mb-3" id="customerDealWrapperComplete">
-                                    <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
-                                    <select name="customer_deal" id="customer_deal_complete" class="form-select" required>
-                                        <option value="">-- Pilih --</option>
-                                        <option value="No">No - Lost Prospek</option>
-                                        <option value="Yes">Yes - Deal</option>
+                                <label class="form-label">Sales</label>
+                                <?php if ($userRole === 'sales'): ?>
+                                    <input type="hidden" name="sales_id" value="<?= $userId ?>">
+                                    <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" readonly>
+                                <?php else: ?>
+                                    <select name="sales_id" id="sales_id" class="form-select">
+                                        <option value="">-- Pilih Sales --</option>
+                                        <?php foreach ($salesUsers as $s): ?>
+                                            <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['full_name']) ?></option>
+                                        <?php endforeach; ?>
                                     </select>
-                                </div>
-                                <div class="col-md-6 mb-3 di-field" id="diFieldComplete">
-                                    <label class="form-label">Delivery Order Number (DI)</label>
-                                    <input type="text" name="di_number" id="di_number_complete" class="form-control" readonly>
-                                    <input type="hidden" name="di_number_hidden" id="di_number_complete_hidden" value="">
-                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Deskripsi</label>
-                            <textarea id="completeDeskripsi" class="form-control" rows="2" readonly style="background: #f8f9fa;"></textarea>
-                        </div>
-                        
-                        <hr>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Result <span class="text-danger">*</span></label>
-                            <textarea name="result" id="result" class="form-control" rows="4" placeholder="Masukkan hasil dari aktivitas (minimal 80 karakter)" required oninput="updateCharCount('result', 'resultCounter')"></textarea>
-                            <div class="char-counter">
-                                <span class="count" id="resultCounter">0</span> / 80 karakter (minimal)
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Attachment Files <span class="text-danger">*</span></label>
-                            <input type="file" name="attachment_files[]" id="attachment_files" class="form-control form-control-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple required>
-                            <div id="fileList" class="mt-2"><span class="text-muted">Belum ada file dipilih</span></div>
+                            <label class="form-label">Description <span class="optional">(Optional)</span></label>
+                            <textarea name="description" id="description" class="form-control" rows="3" placeholder="Masukkan deskripsi aktivitas"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-complete-custom">
-                            <i class="fas fa-check"></i> Complete
-                        </button>
+                        <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal Detail -->
+    <!-- MODAL DETAIL -->
     <div class="modal fade" id="modalDetail" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-chart-bar" style="color:#ffd700;"></i> Detail Sales Activity</h5>
+                    <h5 class="modal-title"><i class="fas fa-chart-bar" style="color:#ffd700;"></i> Detail Aktivitas</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="detailBody"></div>
@@ -2867,8 +1169,8 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- Modal Delete -->
-    <div class="modal fade" id="modalDelete" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <!-- MODAL DELETE -->
+    <div class="modal fade" id="modalDelete" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
@@ -2876,7 +1178,7 @@ if (isset($_GET['complete'])) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Apakah Anda yakin ingin menghapus data ini?</p>
+                    <p>Apakah Anda yakin ingin menghapus aktivitas ini?</p>
                     <p class="text-muted small">Data yang dihapus tidak dapat dikembalikan!</p>
                 </div>
                 <div class="modal-footer">
@@ -2891,620 +1193,191 @@ if (isset($_GET['complete'])) {
         </div>
     </div>
 
-    <!-- ============================================
-    SCRIPTS
-    ============================================ -->
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // ============================================
-        // DATE FUNCTIONS
-        // ============================================
-        function getDateWIB(offsetDays) {
-            var now = new Date();
-            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            if (offsetDays) {
-                today.setDate(today.getDate() + offsetDays);
-            }
-            var year = today.getFullYear();
-            var month = String(today.getMonth() + 1).padStart(2, '0');
-            var day = String(today.getDate()).padStart(2, '0');
-            return year + '-' + month + '-' + day;
-        }
-
-        // ============================================
-        // CHARACTER COUNTER
-        // ============================================
-        function updateCharCount(textareaId, counterId) {
-            var textarea = document.getElementById(textareaId);
-            var counter = document.getElementById(counterId);
-            if (!textarea || !counter) return;
-            var length = textarea.value.length;
-            counter.textContent = length;
-            counter.className = 'count ' + (length >= 80 ? 'valid' : 'invalid');
-        }
-
-        // ============================================
-        // SELECT2 ACCOUNT
+        // SELECT2 UNTUK SEARCH ACCOUNT
         // ============================================
         $(document).ready(function() {
-
-            var $account = $('#account_id');
-            var $salesModal = $('#modalSalesActivity');
-
-            function initAccountSelect() {
-                if (!$account.length) return;
-
-                if ($account.hasClass('select2-hidden-accessible')) {
-                    $account.select2('destroy');
-                }
-
-                $account.select2({
-                    theme: 'bootstrap-5',
-                    dropdownParent: $salesModal.find('.modal-content'),
-                    placeholder: '-- Pilih Account --',
-                    allowClear: true,
-                    width: '100%',
-                    minimumInputLength: 0,
-
-                    templateResult: function(option) {
-                        if (!option.id) return option.text;
-
-                        var badge = $(option.element).data('badge') || 'PT';
-                        var $result = $('<span></span>');
-
-                        $('<strong></strong>')
-                            .text(option.text)
-                            .appendTo($result);
-
-                        $('<span></span>')
-                            .addClass('badge-badan-usaha')
-                            .text(badge)
-                            .appendTo($result);
-
-                        return $result;
-                    },
-
-                    templateSelection: function(option) {
-                        if (!option.id) return option.text;
-                        return option.text;
-                    }
-                });
-            }
-
-            initAccountSelect();
-
-            // ============================================
-            // EVENT ACCOUNT CHANGE - DIPERBAIKI
-            // ============================================
-            $account.off('change.account').on('change.account', function() {
-                var accountId = this.value;
-                var jenisValue = document.getElementById('jenis_tugas').value;
-
-                if (accountId) {
-                    // Ambil data account
-                    fetch('salesactivity.php?get_account=' + encodeURIComponent(accountId))
-                        .then(function(response) { return response.json(); })
-                        .then(function(data) {
-                            document.getElementById('badan_usaha_field').value = data.badan_usaha || '';
-                            document.getElementById('business_segment').value = data.bidang_usaha || '';
-                            document.getElementById('contact_mobile').value = data.no_hp_pic || '';
-                        })
-                        .catch(function(error) {
-                            console.error('Error get account:', error);
-                        });
-
-                    // Jika jenis tugas adalah Collect Payment atau Aftersales
-                    if (jenisValue === 'Collect Payment' || jenisValue === 'Aftersales') {
-                        fetch('salesactivity.php?get_account_numbers=' + encodeURIComponent(accountId))
-                            .then(function(response) { return response.json(); })
-                            .then(function(data) {
-                                var trfNumber = document.getElementById('trf_number_add');
-                                var diNumber = document.getElementById('di_number_add');
-                                if (trfNumber && data.trf_number) {
-                                    trfNumber.value = data.trf_number;
-                                }
-                                if (diNumber && data.di_number) {
-                                    diNumber.value = data.di_number;
-                                }
-                                // Tampilkan DI Field jika ada data
-                                var diField = document.getElementById('diField');
-                                if (diField && data.di_number) {
-                                    diField.style.display = 'block';
-                                }
-                            })
-                            .catch(function(error) {
-                                console.error('Error get account numbers:', error);
-                            });
-                    }
+            $('.select2-account').select2({
+                placeholder: '-- Pilih Account (Ketik untuk mencari) --',
+                allowClear: true,
+                dropdownParent: $('#modalActivity')
+            });
+            
+            // Event ketika account dipilih
+            $('.select2-account').on('change', function() {
+                var selectedOption = $(this).find('option:selected');
+                if (selectedOption.val()) {
+                    $('#badan_usaha').val(selectedOption.data('badan_usaha'));
+                    $('#bidang_usaha').val(selectedOption.data('bidang_usaha'));
+                    $('#nama_pic').val(selectedOption.data('nama_pic'));
+                    $('#no_hp_pic').val(selectedOption.data('no_hp_pic'));
                 } else {
-                    document.getElementById('badan_usaha_field').value = '';
-                    document.getElementById('business_segment').value = '';
-                    document.getElementById('contact_mobile').value = '';
+                    $('#badan_usaha').val('');
+                    $('#bidang_usaha').val('');
+                    $('#nama_pic').val('');
+                    $('#no_hp_pic').val('');
                 }
             });
-
-            $salesModal.on('shown.bs.modal', function() {
-                if (!$account.hasClass('select2-hidden-accessible')) {
-                    initAccountSelect();
-                }
-
-                var $container = $account.next('.select2-container');
-                if ($container.length) {
-                    $container.css({
-                        width: '100%',
-                        maxWidth: '100%'
-                    });
-                }
-            });
-
-            $salesModal.on('hidden.bs.modal', function() {
-                if ($account.hasClass('select2-hidden-accessible')) {
-                    $account.val(null).trigger('change');
+            
+            // Event ketika jenis_tugas berubah
+            $('#jenis_tugas').on('change', function() {
+                if ($(this).val() === 'Negosiasi') {
+                    $('#customerDealField').addClass('show');
+                } else {
+                    $('#customerDealField').removeClass('show');
+                    $('#customer_deal').val('');
                 }
             });
         });
 
         // ============================================
-        // TOGGLE FIELDS - MODAL TAMBAH (SEMBUNYIKAN DEAL)
+        // CHART DONUT - STATUS AKTIVITAS
         // ============================================
-        function toggleFields() {
-            var jenisTugas = document.getElementById('jenis_tugas');
-            var trfField = document.getElementById('trfField');
-            var dealFields = document.getElementById('dealFields');
-            var trfInput = document.getElementById('trf_number_add');
-            var diInput = document.getElementById('di_number_add');
-            var accountId = document.getElementById('account_id');
-            var dueDate = document.getElementById('due_date');
-
-            if (!jenisTugas) return;
-
-            var value = jenisTugas.value;
-            var accountValue = accountId ? accountId.value : '';
-
-            // ============================================
-            // JENIS TUGAS YANG MEMERLUKAN TR
-            // ============================================
-            var trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
-            
-            if (trRequired.includes(value)) {
-                trfField.classList.add('show');
-                
-                if (trfInput && !trfInput.value) {
-                    fetch('salesactivity.php?generate_trf=1')
-                        .then(function(response) { return response.json(); })
-                        .then(function(data) {
-                            if (data.trf_number && trfInput) {
-                                trfInput.value = data.trf_number;
-                            }
-                        })
-                        .catch(function(error) {
-                            console.error('Error generating TR:', error);
-                        });
-                }
-            } else {
-                trfField.classList.remove('show');
-                if (trfInput) trfInput.value = '';
-            }
-
-            // ============================================
-            // DEAL FIELDS - SEMBUNYIKAN UNTUK TAMBAH
-            // ============================================
-            dealFields.classList.remove('show');
-            if (diInput) diInput.value = '';
-
-            // ============================================
-            // COLLECT PAYMENT & AFTERSALES - Ambil TR & DI dari account
-            // ============================================
-            if ((value === 'Collect Payment' || value === 'Aftersales') && accountValue) {
-                fetch('salesactivity.php?get_account_numbers=' + encodeURIComponent(accountValue))
-                    .then(function(response) { return response.json(); })
-                    .then(function(data) {
-                        if (trfInput && data.trf_number) {
-                            trfInput.value = data.trf_number;
+        const ctxStatusAktivitas = document.getElementById('donutStatusAktivitas').getContext('2d');
+        new Chart(ctxStatusAktivitas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Total Aktivitas', 'In Progress', 'Completed', 'Overdue'],
+                datasets: [{
+                    data: [
+                        <?= $statusCounts['total'] ?>,
+                        <?= $statusCounts['in_progress'] ?>,
+                        <?= $statusCounts['completed'] ?>,
+                        <?= $statusCounts['overdue'] ?>
+                    ],
+                    backgroundColor: [
+                        '#d4a017', // Gold
+                        '#2980b9', // Blue
+                        '#27ae60', // Green
+                        '#e74c3c'  // Red
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { family: 'Inter', size: 12 }
                         }
-                        if (diInput && data.di_number) {
-                            diInput.value = data.di_number;
-                        }
-                    })
-                    .catch(function(error) {
-                        console.error('Error getting account numbers:', error);
-                    });
-            }
-        }
-
-        // ============================================
-        // TOGGLE FIELDS COMPLETE - TAMPILKAN DEAL
-        // ============================================
-        function toggleFieldsComplete() {
-            var jenisTugas = document.getElementById('completeJenisTugas');
-            var trfFieldComplete = document.getElementById('trfFieldComplete');
-            var dealFieldsComplete = document.getElementById('dealFieldsComplete');
-            var diFieldComplete = document.getElementById('diFieldComplete');
-            var diNumber = document.getElementById('di_number_complete');
-            var diNumberHidden = document.getElementById('di_number_complete_hidden');
-            var customerDealComplete = document.getElementById('customer_deal_complete');
-            var customerDealWrapperComplete = document.getElementById('customerDealWrapperComplete');
-
-            if (!jenisTugas) return;
-
-            var value = jenisTugas.value;
-
-            // ============================================
-            // JENIS TUGAS YANG MEMERLUKAN TR
-            // ============================================
-            var trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
-            
-            if (trRequired.includes(value)) {
-                trfFieldComplete.classList.add('show');
-            } else {
-                trfFieldComplete.classList.remove('show');
-            }
-
-            // ============================================
-            // NEGOSIASI - Tampilkan Customer Deal
-            // ============================================
-            if (value === 'Negosiasi') {
-                dealFieldsComplete.classList.add('show');
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'block';
-                }
-                if (customerDealComplete) {
-                    customerDealComplete.disabled = false;
-                    customerDealComplete.value = '';
-                }
-                if (diFieldComplete) {
-                    diFieldComplete.style.display = 'none';
-                }
-                if (diNumber) {
-                    diNumber.value = '';
-                }
-                if (diNumberHidden) {
-                    diNumberHidden.value = '';
-                }
-
-            // ============================================
-            // KONTRAK - Sembunyikan Customer Deal, Tampilkan DI
-            // ============================================
-            } else if (value === 'Kontrak') {
-                dealFieldsComplete.classList.add('show');
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'none';
-                }
-                if (customerDealComplete) {
-                    customerDealComplete.value = 'Yes';
-                }
-                if (diFieldComplete) {
-                    diFieldComplete.style.display = 'block';
-                }
-                
-                // Generate DI jika kosong
-                if (diNumber && !diNumber.value) {
-                    var completeDue = document.getElementById('completeDueDate');
-                    var dateValue = getDateWIB(7);
-                    if (completeDue && completeDue.value) {
-                        var dueParts = completeDue.value.split('/');
-                        if (dueParts.length === 3) {
-                            dateValue = dueParts[2] + '-' + dueParts[1].padStart(2, '0') + '-' + dueParts[0].padStart(2, '0');
-                        }
-                    }
-                    fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(dateValue))
-                        .then(function(response) { return response.json(); })
-                        .then(function(data) {
-                            if (data.di_number && diNumber) {
-                                diNumber.value = data.di_number;
-                                if (diNumberHidden) {
-                                    diNumberHidden.value = data.di_number;
-                                }
-                            }
-                        })
-                        .catch(function(error) {
-                            console.error('Error generating DI:', error);
-                        });
-                }
-
-            // ============================================
-            // COLLECT PAYMENT & AFTERSALES - Tampilkan DI
-            // ============================================
-            } else if (value === 'Collect Payment' || value === 'Aftersales') {
-                dealFieldsComplete.classList.add('show');
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'none';
-                }
-                if (customerDealComplete) {
-                    customerDealComplete.value = 'No';
-                }
-                if (diFieldComplete) {
-                    diFieldComplete.style.display = 'block';
-                }
-
-            // ============================================
-            // JENIS TUGAS LAINNYA
-            // ============================================
-            } else {
-                dealFieldsComplete.classList.remove('show');
-                if (diFieldComplete) {
-                    diFieldComplete.style.display = 'none';
-                }
-                if (diNumber) {
-                    diNumber.value = '';
-                }
-                if (diNumberHidden) {
-                    diNumberHidden.value = '';
-                }
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'block';
-                }
-            }
-        }
-
-        // ============================================
-        // EVENT LISTENER UNTUK CUSTOMER DEAL (NEGOSIASI)
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            // Customer Deal di modal complete
-            var customerDealComplete = document.getElementById('customer_deal_complete');
-            var diFieldComplete = document.getElementById('diFieldComplete');
-            var diNumberComplete = document.getElementById('di_number_complete');
-            var diNumberCompleteHidden = document.getElementById('di_number_complete_hidden');
-            var completeJenisTugas = document.getElementById('completeJenisTugas');
-
-            if (customerDealComplete) {
-                customerDealComplete.addEventListener('change', function() {
-                    var jenisValue = completeJenisTugas ? completeJenisTugas.value : '';
-                    
-                    if (jenisValue === 'Negosiasi') {
-                        if (this.value === 'Yes') {
-                            // Deal - Tampilkan DI
-                            if (diFieldComplete) {
-                                diFieldComplete.style.display = 'block';
-                            }
-                            
-                            // Generate DI Number
-                            if (diNumberComplete) {
-                                var dueDateInput = document.getElementById('completeDueDate');
-                                var dateValue = getDateWIB(7);
-                                
-                                if (dueDateInput) {
-                                    var dueDateParts = dueDateInput.value.split('/');
-                                    if (dueDateParts.length === 3) {
-                                        var day = dueDateParts[0].padStart(2, '0');
-                                        var month = dueDateParts[1].padStart(2, '0');
-                                        var year = dueDateParts[2];
-                                        dateValue = year + '-' + month + '-' + day;
-                                    }
-                                }
-                                
-                                fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(dateValue))
-                                    .then(function(response) { return response.json(); })
-                                    .then(function(data) {
-                                        if (data.di_number && diNumberComplete) {
-                                            diNumberComplete.value = data.di_number;
-                                            if (diNumberCompleteHidden) {
-                                                diNumberCompleteHidden.value = data.di_number;
-                                            }
-                                        }
-                                    })
-                                    .catch(function(error) {
-                                        console.error('Error generating DI:', error);
-                                    });
-                            }
-                        } else {
-                            // Lost Prospek - Sembunyikan DI
-                            if (diFieldComplete) {
-                                diFieldComplete.style.display = 'none';
-                            }
-                            if (diNumberComplete) {
-                                diNumberComplete.value = '';
-                            }
-                            if (diNumberCompleteHidden) {
-                                diNumberCompleteHidden.value = '';
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var label = context.label || '';
+                                var value = context.raw || 0;
+                                return label + ': ' + value;
                             }
                         }
                     }
-                });
+                }
             }
         });
 
         // ============================================
-        // VALIDATION FUNCTIONS
+        // CHART DONUT - STATUS PROSPEK
         // ============================================
-        function validateFormAdd() {
-            var deskripsi = document.getElementById('deskripsi');
-            var resultAdd = document.getElementById('result_add');
-            var attachmentAdd = document.getElementById('attachment_file_add');
-            var errors = [];
-            
-            if (deskripsi && deskripsi.value.trim().length < 80) {
-                errors.push('Deskripsi minimal 80 karakter!');
-                deskripsi.style.borderColor = '#e74c3c';
-            } else if (deskripsi) {
-                deskripsi.style.borderColor = '';
-            }
-            
-            if (resultAdd && resultAdd.value.trim().length > 0 && resultAdd.value.trim().length < 80) {
-                errors.push('Result minimal 80 karakter jika diisi!');
-                resultAdd.style.borderColor = '#e74c3c';
-            } else if (resultAdd) {
-                resultAdd.style.borderColor = '';
-            }
-            
-            if (resultAdd && resultAdd.value.trim().length > 0 && (!attachmentAdd || !attachmentAdd.files || attachmentAdd.files.length === 0)) {
-                errors.push('Jika mengisi Result, Attachment file wajib diupload!');
-                if (attachmentAdd) attachmentAdd.style.borderColor = '#e74c3c';
-            } else if (attachmentAdd) {
-                attachmentAdd.style.borderColor = '';
-            }
-            
-            if (errors.length > 0) {
-                alert('⚠️ ' + errors.join('\n'));
-                return false;
-            }
-            return true;
-        }
-
-        function validateFormComplete() {
-            var result = document.getElementById('result');
-            var attachment = document.getElementById('attachment_files');
-            var customerDeal = document.getElementById('customer_deal_complete');
-            var errors = [];
-            
-            if (result && result.value.trim().length < 80) {
-                errors.push('Result minimal 80 karakter!');
-                result.style.borderColor = '#e74c3c';
-            } else if (result) {
-                result.style.borderColor = '';
-            }
-            
-            if (attachment && (!attachment.files || attachment.files.length === 0)) {
-                errors.push('Minimal 1 file attachment wajib diupload!');
-                attachment.style.borderColor = '#e74c3c';
-            } else if (attachment) {
-                attachment.style.borderColor = '';
-            }
-            
-            // Validasi Customer Deal untuk Negosiasi
-            var jenisTugas = document.getElementById('jenis_tugas_hidden');
-            if (jenisTugas && jenisTugas.value === 'Negosiasi') {
-                if (customerDeal && !customerDeal.value) {
-                    errors.push('Customer Deal wajib dipilih untuk Negosiasi!');
-                    customerDeal.style.borderColor = '#e74c3c';
-                } else if (customerDeal) {
-                    customerDeal.style.borderColor = '';
+        const ctxStatusProspek = document.getElementById('donutStatusProspek').getContext('2d');
+        new Chart(ctxStatusProspek, {
+            type: 'doughnut',
+            data: {
+                labels: ['Middle Prospek', 'Hot Prospek', 'Lost Prospek', 'Deal'],
+                datasets: [{
+                    data: [
+                        <?= $prospekCounts['Middle Prospek'] ?>,
+                        <?= $prospekCounts['Hot Prospek'] ?>,
+                        <?= $prospekCounts['Lost Prospek'] ?>,
+                        <?= $prospekCounts['Deal'] ?>
+                    ],
+                    backgroundColor: [
+                        '#f39c12', // Orange
+                        '#e74c3c', // Red
+                        '#95a5a6', // Gray
+                        '#2ecc71'  // Green
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { family: 'Inter', size: 12 }
+                        }
+                    }
                 }
             }
-            
-            if (errors.length > 0) {
-                alert('⚠️ ' + errors.join('\n'));
-                return false;
-            }
-            return true;
-        }
+        });
 
         // ============================================
-        // ACTIVITY FUNCTIONS
+        // DETAIL ACTIVITY
         // ============================================
         function detailActivity(data) {
-            var statusLabel = data.status == 'in_progress' ? 'In Progress' : (data.status == 'overdue' ? 'Overdue' : 'Completed');
-            var statusBadge = data.status == 'in_progress' ? 'in_progress' : (data.status == 'overdue' ? 'overdue' : 'completed');
-            
-            var isMiddleProspek = data.jenis_tugas == 'Prospecting' && data.has_negosiasi_kontrak == 0;
-            var isHotProspek = data.jenis_tugas == 'Negosiasi' && data.has_kontrak == 0 && data.has_lost_prospek == 0 && !(data.status == 'completed' && data.customer_deal == 'No');
-            var isLostProspek = data.jenis_tugas == 'Negosiasi' && data.status == 'completed' && data.customer_deal == 'No';
-            var isDeal = data.jenis_tugas == 'Kontrak';
-            
-            var pipelineBadge = '';
-            if (isMiddleProspek) {
-                pipelineBadge = '<span class="badge-middle-prospek ms-2"><i class="fas fa-user-tie"></i> Middle Prospek</span>';
-            } else if (isHotProspek) {
-                pipelineBadge = '<span class="badge-hot-prospek ms-2"><i class="fas fa-fire"></i> Hot Prospek</span>';
-            } else if (isLostProspek) {
-                pipelineBadge = '<span class="badge-lost ms-2"><i class="fas fa-times-circle"></i> Lost Prospek</span>';
-            } else if (isDeal) {
-                pipelineBadge = '<span class="badge-deal ms-2"><i class="fas fa-handshake"></i> Deal</span>';
-            }
-            
+            var statusLabels = {pending: 'Pending', in_progress: 'In Progress', completed: 'Completed', overdue: 'Overdue'};
             var html = `
                 <div class="detail-item">
-                    <div class="detail-label">Status</div>
-                    <div class="detail-value">
-                        <span class="badge-status ${statusBadge}">${statusLabel}</span>
-                        ${data.status == 'completed' && data.completed_at ? `<small class="text-muted ms-2">Selesai pada: ${new Date(data.completed_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
-                    </div>
+                    <div class="detail-label">Leads Number</div>
+                    <div class="detail-value"><strong>${data.leads_number}</strong></div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Subject</div>
-                    <div class="detail-value"><strong>${data.subject}</strong></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Account</div>
+                    <div class="detail-label">Nama PT</div>
                     <div class="detail-value">${data.nama_pt || '-'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Badan Usaha</div>
-                    <div class="detail-value">${data.account_badan_usaha || data.badan_usaha || 'PT'}</div>
+                    <div class="detail-value">${data.badan_usaha || '-'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Business Segment</div>
-                    <div class="detail-value">${data.business_segment || '-'}</div>
+                    <div class="detail-value">${data.bidang_usaha || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Nama PIC</div>
+                    <div class="detail-value">${data.nama_pic || '-'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Contact Mobile</div>
-                    <div class="detail-value">${data.contact_mobile || '-'}</div>
+                    <div class="detail-value">${data.no_hp_pic || '-'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Jenis Tugas</div>
-                    <div class="detail-value">
-                        <span class="badge-tugas ${data.jenis_tugas ? data.jenis_tugas.replace(/ /g, '_').replace(/\//g, '_') : ''}">${data.jenis_tugas || '-'}</span>
-                        ${pipelineBadge}
-                    </div>
+                    <div class="detail-value">${data.jenis_tugas}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">TR Number</div>
-                    <div class="detail-value">
-                        ${data.trf_number ? `<a href="detailtr.php?trf=${encodeURIComponent(data.trf_number)}" target="_blank"><span class="badge-trf"><i class="fas fa-file-signature"></i> ${data.trf_number}</span></a>` : '-'}
-                    </div>
+                    <div class="detail-label">Subject</div>
+                    <div class="detail-value">${data.subject}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">DI Number</div>
-                    <div class="detail-value">
-                        ${data.di_number ? `<span class="badge-di"><i class="fas fa-hashtag"></i> ${data.di_number}</span>` : '-'}
-                    </div>
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value"><span class="badge-status ${data.status}">${statusLabels[data.status] || data.status}</span></div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Due Date</div>
-                    <div class="detail-value">
-                        ${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
-                    </div>
+                    <div class="detail-value">${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}</div>
                 </div>
-                <div class="detail-item">
-                    <div class="detail-label">Deskripsi</div>
-                    <div class="detail-value">${data.deskripsi || '-'}</div>
-                </div>
-                ${data.status == 'completed' ? `
-                <div class="detail-item">
-                    <div class="detail-label">Result</div>
-                    <div class="detail-value">${data.result || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Customer Deal</div>
-                    <div class="detail-value">
-                        <span class="badge-deal-status ${data.customer_deal}">${data.customer_deal}</span>
-                    </div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Attachment</div>
-                    <div class="detail-value">
-                        ${data.attachment_file ? (function() {
-                            try {
-                                var files = JSON.parse(data.attachment_file);
-                                if (files.files && files.files.length > 0) {
-                                    var html = '<div class="d-flex flex-wrap gap-2">';
-                                    for (var i = 0; i < files.files.length; i++) {
-                                        var filePath = files.files[i];
-                                        var fileName = files.names && files.names[i] ? files.names[i] : filePath.split('/').pop();
-                                        html += '<a href="' + filePath + '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file"></i> ' + fileName + '</a>';
-                                    }
-                                    html += '</div>';
-                                    return html;
-                                } else {
-                                    return '<a href="' + data.attachment_file + '" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>';
-                                }
-                            } catch(e) {
-                                return '<a href="' + data.attachment_file + '" target="_blank"><i class="fas fa-file-image"></i> Lihat File</a>';
-                            }
-                        })() : '-'}
-                    </div>
-                </div>
-                ` : ''}
                 <div class="detail-item">
                     <div class="detail-label">Sales</div>
                     <div class="detail-value">${data.sales_name || '-'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Dibuat Pada</div>
-                    <div class="detail-value">${data.created_at ? new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                    <div class="detail-label">Description</div>
+                    <div class="detail-value">${data.description || '-'}</div>
                 </div>
             `;
             document.getElementById('detailBody').innerHTML = html;
@@ -3512,361 +1385,69 @@ if (isset($_GET['complete'])) {
             modal.show();
         }
 
+        // ============================================
+        // EDIT ACTIVITY
+        // ============================================
         function editActivity(data) {
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Sales Activity';
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Aktivitas';
             document.getElementById('formAction').value = 'edit';
             document.getElementById('formId').value = data.id;
-            document.getElementById('subject').value = data.subject;
             
-            $('#account_id').val(data.account_id || '').trigger('change');
+            // Set Leads Number (readonly saat edit)
+            document.getElementById('leadsNumberDisplay').textContent = data.leads_number;
             
-            document.getElementById('badan_usaha_field').value = data.account_badan_usaha || data.badan_usaha || '';
-            document.getElementById('business_segment').value = data.business_segment || '';
-            document.getElementById('contact_mobile').value = data.contact_mobile || '';
+            // Set Account
+            $('#account_id').val(data.account_id).trigger('change');
+            
+            // Set field lainnya
             document.getElementById('jenis_tugas').value = data.jenis_tugas;
-            document.getElementById('deskripsi').value = data.deskripsi || '';
-            document.getElementById('due_date').value = data.due_date || '';
-            document.getElementById('di_number_add').value = data.di_number || '';
-            document.getElementById('trf_number_add').value = data.trf_number || '';
+            document.getElementById('status').value = data.status;
+            document.getElementById('subject').value = data.subject;
+            document.getElementById('due_date').value = data.due_date ? data.due_date.split(' ')[0] : '';
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('customer_deal').value = data.customer_deal || '';
             
-            // Toggle fields berdasarkan jenis_tugas
-            var trRequired = ['Negosiasi', 'Kontrak', 'Collect Payment', 'Aftersales'];
-            if (trRequired.includes(data.jenis_tugas)) {
-                document.getElementById('trfField').classList.add('show');
+            // Tampilkan customer_deal jika jenis_tugas = Negosiasi
+            if (data.jenis_tugas === 'Negosiasi') {
+                document.getElementById('customerDealField').classList.add('show');
+            } else {
+                document.getElementById('customerDealField').classList.remove('show');
             }
             
-            setTimeout(function() {
-                toggleFields();
-                updateCharCount('deskripsi', 'deskripsiCounter');
-            }, 300);
+            // Set sales_id
+            if (document.getElementById('sales_id')) {
+                document.getElementById('sales_id').value = data.sales_id || '';
+            }
             
-            var modal = new bootstrap.Modal(document.getElementById('modalSalesActivity'));
+            var modal = new bootstrap.Modal(document.getElementById('modalActivity'));
             modal.show();
         }
 
         // ============================================
-        // COMPLETE ACTIVITY
+        // RESET FORM SAAT MODAL DITUTUP
         // ============================================
-        function completeActivity(element) {
-            var id = element.dataset.id || element.getAttribute('data-id');
-            var dataStr = element.dataset.data || element.getAttribute('data-data');
-            
-            var data;
-            try {
-                data = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
-            } catch(e) {
-                console.error('Error parsing data:', e);
-                alert('Terjadi kesalahan! Silakan refresh halaman.');
-                return;
-            }
-            
-            if (!data) {
-                alert('Data tidak ditemukan!');
-                return;
-            }
-            
-            document.getElementById('completeId').value = data.id || id;
-            document.getElementById('completeSubject').value = data.subject || '-';
-            document.getElementById('completeAccount').value = data.nama_pt || '-';
-            document.getElementById('completeJenisTugas').value = data.jenis_tugas || '-';
-            document.getElementById('jenis_tugas_hidden').value = data.jenis_tugas || '';
-            
-            var dueDate = data.due_date;
-            if (dueDate) {
-                var dateObj = new Date(dueDate);
-                document.getElementById('completeDueDate').value = 
-                    dateObj.toLocaleDateString('id-ID', { 
-                        day: '2-digit', 
-                        month: 'long', 
-                        year: 'numeric' 
-                    });
-            } else {
-                document.getElementById('completeDueDate').value = '-';
-            }
-            
-            document.getElementById('completeDeskripsi').value = data.deskripsi || '-';
-            
-            var trfNumber = data.trf_number || '';
-            document.getElementById('trf_number_complete').value = trfNumber;
-            document.getElementById('trf_number_complete_hidden').value = trfNumber;
-            
-            var diNumber = data.di_number || '';
-            document.getElementById('di_number_complete').value = diNumber;
-            document.getElementById('di_number_complete_hidden').value = diNumber;
-            
-            // Set Customer Deal dan visibility
-            var customerDealComplete = document.getElementById('customer_deal_complete');
-            var customerDealWrapperComplete = document.getElementById('customerDealWrapperComplete');
-            var diFieldComplete = document.getElementById('diFieldComplete');
-            
-            if (data.jenis_tugas === 'Kontrak') {
-                // Kontrak - Sembunyikan Customer Deal, tampilkan DI
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'none';
-                }
-                if (customerDealComplete) {
-                    customerDealComplete.value = 'Yes';
-                }
-                if (diFieldComplete) {
-                    diFieldComplete.style.display = 'block';
-                }
-            } else if (data.jenis_tugas === 'Negosiasi') {
-                // Negosiasi - Tampilkan Customer Deal
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'block';
-                }
-                if (customerDealComplete) {
-                    customerDealComplete.value = data.customer_deal || '';
-                    customerDealComplete.disabled = false;
-                }
-                if (diFieldComplete) {
-                    if (data.customer_deal === 'Yes') {
-                        diFieldComplete.style.display = 'block';
-                    } else {
-                        diFieldComplete.style.display = 'none';
-                    }
-                }
-            } else if (data.jenis_tugas === 'Collect Payment' || data.jenis_tugas === 'Aftersales') {
-                // Collect Payment & Aftersales - Tampilkan DI
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'none';
-                }
-                if (customerDealComplete) {
-                    customerDealComplete.value = 'No';
-                }
-                if (diFieldComplete) {
-                    diFieldComplete.style.display = 'block';
-                }
-            } else {
-                if (customerDealWrapperComplete) {
-                    customerDealWrapperComplete.style.display = 'block';
-                }
-            }
-            
-            // Generate DI Number jika Kontrak atau Negosiasi dengan Customer Deal Yes
-            if ((data.jenis_tugas === 'Kontrak' || (data.jenis_tugas === 'Negosiasi' && data.customer_deal === 'Yes')) && !diNumber) {
-                var completeDue = data.due_date || getDateWIB(7);
-                fetch('salesactivity.php?generate_di=1&date=' + encodeURIComponent(completeDue))
-                    .then(function(response) { return response.json(); })
-                    .then(function(response) {
-                        if (response.di_number) {
-                            document.getElementById('di_number_complete').value = response.di_number;
-                            document.getElementById('di_number_complete_hidden').value = response.di_number;
-                            if (document.getElementById('diFieldComplete')) {
-                                document.getElementById('diFieldComplete').style.display = 'block';
-                            }
-                        }
-                    })
-                    .catch(function(error) {
-                        console.error('Error generating DI:', error);
-                    });
-            }
-            
-            document.getElementById('result').value = '';
-            document.getElementById('attachment_files').value = '';
-            document.getElementById('fileList').innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
-            
-            setTimeout(function() {
-                toggleFieldsComplete();
-            }, 100);
-            
-            var resultCounter = document.getElementById('resultCounter');
-            if (resultCounter) {
-                resultCounter.textContent = '0';
-                resultCounter.className = 'count invalid';
-            }
-            
-            var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
-            modal.show();
-        }
+        document.getElementById('modalActivity').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('formActivity').reset();
+            document.getElementById('formAction').value = 'add';
+            document.getElementById('formId').value = '';
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Aktivitas';
+            document.getElementById('leadsNumberDisplay').textContent = '0001/GET-ACT/JKT/<?= getBulanRomawi(date("n")) ?>/<?= date("Y") ?>';
+            $('#account_id').val('').trigger('change');
+            $('#badan_usaha').val('');
+            $('#bidang_usaha').val('');
+            $('#nama_pic').val('');
+            $('#no_hp_pic').val('');
+            document.getElementById('customerDealField').classList.remove('show');
+        });
 
+        // ============================================
+        // DELETE ACTIVITY
+        // ============================================
         function deleteActivity(id) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
         }
-
-        // ============================================
-        // EVENT LISTENERS
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                var dateInput = document.getElementById('due_date');
-                if (dateInput && !dateInput.value) {
-                    dateInput.value = getDateWIB(7);
-                }
-            }, 100);
-            
-            var jenisTugas = document.getElementById('jenis_tugas');
-            if (jenisTugas) {
-                jenisTugas.addEventListener('change', toggleFields);
-                setTimeout(toggleFields, 100);
-            }
-
-            var resultInput = document.getElementById('result_add');
-            var attachmentInput = document.getElementById('attachment_file_add');
-            var attachmentRequired = document.getElementById('attachment_required');
-            
-            if (resultInput) {
-                resultInput.addEventListener('input', function() {
-                    if (this.value.trim() !== '') {
-                        attachmentRequired.style.display = 'inline';
-                        attachmentInput.required = true;
-                        if (!document.getElementById('resultNotification')) {
-                            var note = document.createElement('div');
-                            note.id = 'resultNotification';
-                            note.className = 'alert alert-warning mt-2';
-                            note.innerHTML = '<i class="fas fa-info-circle"></i> Karena Anda mengisi Result, file attachment wajib diupload.';
-                            resultInput.parentNode.appendChild(note);
-                        }
-                    } else {
-                        attachmentRequired.style.display = 'none';
-                        attachmentInput.required = false;
-                        var note = document.getElementById('resultNotification');
-                        if (note) note.remove();
-                    }
-                });
-            }
-            
-            var attachmentFiles = document.getElementById('attachment_files');
-            if (attachmentFiles) {
-                attachmentFiles.addEventListener('change', function() {
-                    var fileList = document.getElementById('fileList');
-                    if (!fileList) return;
-                    fileList.innerHTML = '';
-                    if (this.files.length === 0) {
-                        fileList.innerHTML = '<span class="text-muted">Belum ada file dipilih</span>';
-                        return;
-                    }
-                    var html = '<div class="alert alert-info"><i class="fas fa-file"></i> <strong>' + this.files.length + ' file</strong> dipilih:<br>';
-                    for (var i = 0; i < this.files.length; i++) {
-                        var file = this.files[i];
-                        var size = (file.size / 1024).toFixed(1);
-                        size = size > 1024 ? (size / 1024).toFixed(1) + ' MB' : size + ' KB';
-                        html += '<span class="badge bg-secondary me-1 mb-1"><i class="fas fa-file"></i> ' + file.name + ' (' + size + ')</span> ';
-                    }
-                    html += '</div>';
-                    fileList.innerHTML = html;
-                });
-            }
-            
-            document.getElementById('modalSalesActivity').addEventListener('hidden.bs.modal', function() {
-                document.getElementById('formSalesActivity').reset();
-                document.getElementById('formAction').value = 'add';
-                document.getElementById('formId').value = '';
-                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Sales Activity';
-                document.getElementById('badan_usaha_field').value = '';
-                document.getElementById('business_segment').value = '';
-                document.getElementById('contact_mobile').value = '';
-                document.getElementById('due_date').value = getDateWIB(7);
-                document.getElementById('result_add').value = '';
-                document.getElementById('attachment_file_add').value = '';
-                document.getElementById('di_number_add').value = '';
-                document.getElementById('trf_number_add').value = '';
-                document.getElementById('attachment_required').style.display = 'none';
-                document.getElementById('attachment_file_add').required = false;
-                document.getElementById('dealFields').classList.remove('show');
-                document.getElementById('trfField').classList.remove('show');
-                document.getElementById('diField').style.display = 'none';
-                document.getElementById('customerDealWrapper').style.display = 'block';
-                var note = document.getElementById('resultNotification');
-                if (note) note.remove();
-                
-                $('#account_id').val('').trigger('change');
-                
-                var deskripsiCounter = document.getElementById('deskripsiCounter');
-                if (deskripsiCounter) {
-                    deskripsiCounter.textContent = '0';
-                    deskripsiCounter.className = 'count invalid';
-                }
-                var resultCounterAdd = document.getElementById('resultCounterAdd');
-                if (resultCounterAdd) {
-                    resultCounterAdd.textContent = '0';
-                    resultCounterAdd.className = 'count invalid';
-                }
-            });
-            
-            var deskripsi = document.getElementById('deskripsi');
-            if (deskripsi) updateCharCount('deskripsi', 'deskripsiCounter');
-            var resultAdd = document.getElementById('result_add');
-            if (resultAdd) updateCharCount('result_add', 'resultCounterAdd');
-            var resultComplete = document.getElementById('result');
-            if (resultComplete) updateCharCount('result', 'resultCounter');
-        });
-
-        // ============================================
-        // INIT CHARTS
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            var ctx1 = document.getElementById('statusChart').getContext('2d');
-            var inProgress = <?= $totalInProgress ?>;
-            var completed = <?= $totalCompleted ?>;
-            var overdue = <?= $overdueCount ?>;
-            
-            new Chart(ctx1, {
-                type: 'doughnut',
-                data: {
-                    labels: ['In Progress', 'Completed', 'Overdue'],
-                    datasets: [{
-                        data: [inProgress, completed, overdue],
-                        backgroundColor: ['#2980b9', '#27ae60', '#e74c3c'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 12,
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                font: { size: 11, weight: '600' }
-                            }
-                        }
-                    }
-                }
-            });
-
-            var ctx2 = document.getElementById('prospekChart').getContext('2d');
-            var middleProspek = <?= $totalMiddleProspek ?>;
-            var hotProspek = <?= $totalHotProspek ?>;
-            var lostProspek = <?= $totalLostProspek ?>;
-            var deal = <?= $totalDeal ?>;
-            
-            new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Middle Prospek', 'Hot Prospek', 'Lost Prospek', 'Deal'],
-                    datasets: [{
-                        data: [middleProspek, hotProspek, lostProspek, deal],
-                        backgroundColor: ['#f39c12', '#ff6b6b', '#e74c3c', '#8e44ad'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 12,
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                font: { size: 11, weight: '600' }
-                            }
-                        }
-                    }
-                }
-            });
-        });
     </script>
 </body>
 </html>
