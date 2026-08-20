@@ -243,6 +243,43 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     exit;
 }
 
+// ============================================
+// AMBIL SEMUA DATA UNTUK CHART (tanpa pagination)
+// ============================================
+$chartSql = "SELECT sa.id FROM sales_activities sa 
+             LEFT JOIN accounts a ON sa.account_id = a.id 
+             $where";
+$stmt = $db->prepare($chartSql);
+$stmt->execute($params);
+$chartActivities = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Hitung rekap untuk chart
+$prospekCounts = [
+    'Low Prospek' => 0,
+    'Middle Prospek' => 0,
+    'Hot Prospek' => 0,
+    'Deal' => 0,
+    'Lost Deal' => 0
+];
+
+$statusCounts = [
+    'In Progress' => 0,
+    'Completed' => 0,
+    'Overdue' => 0
+];
+
+foreach ($chartActivities as $saId) {
+    $jp = getJenisProspek($db, $saId);
+    if ($jp && isset($prospekCounts[$jp])) {
+        $prospekCounts[$jp]++;
+    }
+    
+    $sp = getStatusProspek($db, $saId);
+    if ($sp && isset($statusCounts[$sp])) {
+        $statusCounts[$sp]++;
+    }
+}
+
 $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
 $stmt = $db->prepare($countSql);
 $stmt->execute($params);
@@ -340,6 +377,7 @@ $role = $_SESSION['role'] ?? 'user';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -419,6 +457,41 @@ $role = $_SESSION['role'] ?? 'user';
             letter-spacing: -0.5px;
         }
         .page-header h4 span { color: #ffd700; }
+
+        /* Chart Grid */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 991px) {
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+        
+        .chart-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid #e0e4ea;
+            transition: all 0.3s ease;
+        }
+        .chart-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        .chart-card h6 {
+            font-weight: 700;
+            color: #0e1a2b;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .chart-card h6 i {
+            margin-right: 8px;
+        }
+        .chart-wrapper {
+            height: 280px;
+            width: 100%;
+            position: relative;
+        }
 
         .card-custom {
             background: #fff;
@@ -629,6 +702,7 @@ $role = $_SESSION['role'] ?? 'user';
         }
 
         @media (max-width: 480px) {
+            .chart-wrapper { height: 220px; }
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
             .table-custom { font-size: 11px; }
@@ -712,6 +786,25 @@ $role = $_SESSION['role'] ?? 'user';
                         <i class="fas fa-plus"></i> Tambah Aktivitas
                     </button>
                 <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- CHART GRID -->
+        <div class="chart-grid">
+            <!-- Chart Jenis Prospek -->
+            <div class="chart-card">
+                <h6><i class="fas fa-filter" style="color:#ffd700;"></i> Rekap Jenis Prospek</h6>
+                <div class="chart-wrapper">
+                    <canvas id="chartJenisProspek"></canvas>
+                </div>
+            </div>
+            
+            <!-- Chart Status -->
+            <div class="chart-card">
+                <h6><i class="fas fa-tasks" style="color:#2980b9;"></i> Rekap Status</h6>
+                <div class="chart-wrapper">
+                    <canvas id="chartStatus"></canvas>
+                </div>
             </div>
         </div>
 
@@ -1007,6 +1100,88 @@ $role = $_SESSION['role'] ?? 'user';
                     $('#no_hp_pic').val('');
                 }
             });
+        });
+
+        // ============================================
+        // CHART JENIS PROSPEK
+        // ============================================
+        const ctxProspek = document.getElementById('chartJenisProspek').getContext('2d');
+        new Chart(ctxProspek, {
+            type: 'doughnut',
+            data: {
+                labels: ['Low Prospek', 'Middle Prospek', 'Hot Prospek', 'Deal', 'Lost Deal'],
+                datasets: [{
+                    data: [
+                        <?= $prospekCounts['Low Prospek'] ?>,
+                        <?= $prospekCounts['Middle Prospek'] ?>,
+                        <?= $prospekCounts['Hot Prospek'] ?>,
+                        <?= $prospekCounts['Deal'] ?>,
+                        <?= $prospekCounts['Lost Deal'] ?>
+                    ],
+                    backgroundColor: [
+                        '#2980b9',
+                        '#8e44ad',
+                        '#d4a017',
+                        '#27ae60',
+                        '#c0392b'
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { family: 'Inter', size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+
+        // ============================================
+        // CHART STATUS
+        // ============================================
+        const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['In Progress', 'Completed', 'Overdue'],
+                datasets: [{
+                    data: [
+                        <?= $statusCounts['In Progress'] ?>,
+                        <?= $statusCounts['Completed'] ?>,
+                        <?= $statusCounts['Overdue'] ?>
+                    ],
+                    backgroundColor: [
+                        '#2980b9',
+                        '#27ae60',
+                        '#c0392b'
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { family: 'Inter', size: 12 }
+                        }
+                    }
+                }
+            }
         });
 
         function detailActivity(data) {
