@@ -168,10 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $errors[] = 'Data detail tidak ditemukan!';
         }
         
-        // Jika jenis_tugas = Negosiasi, wajib isi customer_deal dan generate DI Number
+        // Jika jenis_tugas = Negosiasi, wajib isi customer_deal
         if ($detail && $detail['jenis_tugas'] === 'Negosiasi') {
             if (empty($customer_deal)) $errors[] = 'Customer Deal wajib dipilih!';
-            $di_number = generateDINumber($db);
+            // Generate DI Number hanya jika Customer Deal = Yes
+            if ($customer_deal === 'Yes') {
+                $di_number = generateDINumber($db);
+            }
         }
         
         // Upload file
@@ -821,7 +824,9 @@ $userId = $_SESSION['user_id'] ?? 0;
                                     <option value="No">NO</option>
                                 </select>
                             </div>
-                            <div class="mb-3">
+                            
+                            <!-- DI Number hanya muncul jika Customer Deal = Yes -->
+                            <div class="mb-3" id="diNumberFieldComplete" style="display: none;">
                                 <label class="form-label">Delivery Instruction Number</label>
                                 <div class="di-number-display">
                                     <?= generateDINumber($db) ?>
@@ -911,6 +916,15 @@ $userId = $_SESSION['user_id'] ?? 0;
             }
         });
         
+        // Show/hide DI Number saat Customer Deal berubah
+        document.getElementById('customer_deal_complete').addEventListener('change', function() {
+            if (this.value === 'Yes') {
+                document.getElementById('diNumberFieldComplete').style.display = 'block';
+            } else {
+                document.getElementById('diNumberFieldComplete').style.display = 'none';
+            }
+        });
+        
         // View Detail
         function viewDetail(data) {
             var html = `
@@ -974,9 +988,14 @@ $userId = $_SESSION['user_id'] ?? 0;
             if (data.jenis_tugas === 'Negosiasi') {
                 document.getElementById('customerDealFieldComplete').style.display = 'block';
                 document.getElementById('customer_deal_complete').required = true;
+                // Reset DI Number field
+                document.getElementById('diNumberFieldComplete').style.display = 'none';
+                document.getElementById('customer_deal_complete').value = '';
             } else {
                 document.getElementById('customerDealFieldComplete').style.display = 'none';
                 document.getElementById('customer_deal_complete').required = false;
+                document.getElementById('diNumberFieldComplete').style.display = 'none';
+                document.getElementById('customer_deal_complete').value = '';
             }
             
             var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
