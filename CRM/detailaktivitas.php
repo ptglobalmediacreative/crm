@@ -155,6 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $result = trim($_POST['result']);
         $customer_deal = isset($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : '';
         $di_number = NULL;
+        $tr_number = NULL;
         
         $errors = [];
         if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter!';
@@ -174,6 +175,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Generate DI Number hanya jika Customer Deal = Yes
             if ($customer_deal === 'Yes') {
                 $di_number = generateDINumber($db);
+            }
+        }
+        
+        // Jika jenis_tugas = Kontrak atau After Sales, ambil TR & DI Number dari Negosiasi sebelumnya
+        if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales')) {
+            // Cari data Negosiasi sebelumnya dengan sales_activity_id yang sama
+            $stmt = $db->prepare("SELECT tr_number, di_number, customer_deal FROM activity_details 
+                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+                                  ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$detail['sales_activity_id']]);
+            $negosiasiData = $stmt->fetch();
+            
+            if ($negosiasiData) {
+                // Ambil TR Number dari Negosiasi
+                $tr_number = $negosiasiData['tr_number'];
+                
+                // Jika Customer Deal = Yes, ambil DI Number juga
+                if ($negosiasiData['customer_deal'] === 'Yes' && !empty($negosiasiData['di_number'])) {
+                    $di_number = $negosiasiData['di_number'];
+                }
             }
         }
         
@@ -197,8 +218,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, status = 'completed', completed_at = NOW() WHERE id = ?");
-            $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $detail_id]);
+            // Update query dengan tr_number juga
+            $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
+            $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
             
             setFlash('Aktivitas berhasil diselesaikan!', 'success');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
@@ -228,6 +250,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id = ? ORDER BY created_at DESC");
 $details->execute([$leadsId]);
 $detailsList = $details->fetchAll();
+
+// Ambil data Negosiasi yang sudah completed
+$negosiasiCompleted = [];
+foreach ($detailsList as $d) {
+    if ($d['jenis_tugas'] === 'Negosiasi' && $d['status'] === 'completed') {
+        $negosiasiCompleted[] = $d;
+    }
+}
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
@@ -505,6 +535,23 @@ $userId = $_SESSION['user_id'] ?? 0;
             font-size: 14px;
             letter-spacing: 0.5px;
             margin-bottom: 15px;
+        }
+
+        .info-negosiasi-container {
+            background: #f8f9fa;
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .info-negosiasi-container h6 {
+            color: #d4a017;
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .info-negosiasi-container h6 i {
+            margin-right: 8px;
         }
 
         .customer-deal-field, .di-number-field { display: none; }
@@ -885,6 +932,9 @@ $userId = $_SESSION['user_id'] ?? 0;
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Data Negosiasi completed untuk referensi
+        var negosiasiCompletedList = <?= json_encode(array_values($negosiasiCompleted)) ?>;
+        
         // Character count untuk deskripsi
         document.getElementById('deskripsi_add').addEventListener('input', function() {
             var chars = this.value.length;
@@ -985,22 +1035,77 @@ $userId = $_SESSION['user_id'] ?? 0;
         function completeDetail(data) {
             document.getElementById('completeDetailId').value = data.id;
             
+            // Reset customer deal field
+            document.getElementById('customerDealFieldComplete').style.display = 'none';
+            document.getElementById('customer_deal_complete').required = false;
+            document.getElementById('diNumberFieldComplete').style.display = 'none';
+            document.getElementById('customer_deal_complete').value = '';
+            
             if (data.jenis_tugas === 'Negosiasi') {
                 document.getElementById('customerDealFieldComplete').style.display = 'block';
                 document.getElementById('customer_deal_complete').required = true;
-                // Reset DI Number field
-                document.getElementById('diNumberFieldComplete').style.display = 'none';
-                document.getElementById('customer_deal_complete').value = '';
-            } else {
-                document.getElementById('customerDealFieldComplete').style.display = 'none';
-                document.getElementById('customer_deal_complete').required = false;
-                document.getElementById('diNumberFieldComplete').style.display = 'none';
-                document.getElementById('customer_deal_complete').value = '';
+            }
+            
+            // Untuk Kontrak dan After Sales, tampilkan info TR & DI Number dari Negosiasi
+            if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
+                var infoHtml = '';
+                
+                if (negosiasiCompletedList.length > 0) {
+                    var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1]; // Ambil yang terbaru
+                    
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    
+                    if (lastNegosiasi.tr_number) {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> ' + lastNegosiasi.tr_number + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
+                    }
+                    
+                    if (lastNegosiasi.di_number) {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> ' + lastNegosiasi.di_number + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
+                    }
+                    
+                    if (lastNegosiasi.customer_deal) {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> ' + lastNegosiasi.customer_deal + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> -</div>';
+                    }
+                    
+                    infoHtml += '</div>';
+                } else {
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-info-circle"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    infoHtml += '<div class="text-muted">Tidak ada data Negosiasi yang completed.</div>';
+                    infoHtml += '</div>';
+                }
+                
+                // Tambahkan info di modal complete sebelum tombol submit
+                var modalBody = document.querySelector('#modalComplete .modal-body');
+                var existingContainer = document.getElementById('negosiasiInfoContainer');
+                if (existingContainer) {
+                    existingContainer.remove();
+                }
+                
+                var infoContainer = document.createElement('div');
+                infoContainer.id = 'negosiasiInfoContainer';
+                infoContainer.innerHTML = infoHtml;
+                modalBody.appendChild(infoContainer);
             }
             
             var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
             modal.show();
         }
+        
+        // Cleanup saat modal complete ditutup
+        document.getElementById('modalComplete').addEventListener('hidden.bs.modal', function() {
+            var infoContainer = document.getElementById('negosiasiInfoContainer');
+            if (infoContainer) {
+                infoContainer.remove();
+            }
+        });
         
         // Delete Detail
         function deleteDetail(id) {
