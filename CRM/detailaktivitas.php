@@ -206,7 +206,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         // Jika jenis_tugas = Kontrak atau After Sales, ambil TR & DI Number dari Negosiasi sebelumnya
         if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales')) {
-            // Cari data Negosiasi sebelumnya dengan sales_activity_id yang sama
             $stmt = $db->prepare("SELECT tr_number, di_number, customer_deal FROM activity_details 
                                   WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
                                   ORDER BY id DESC LIMIT 1");
@@ -214,10 +213,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $negosiasiData = $stmt->fetch();
             
             if ($negosiasiData) {
-                // Ambil TR Number dari Negosiasi
                 $tr_number = $negosiasiData['tr_number'];
                 
-                // Jika Customer Deal = Yes, ambil DI Number juga
                 if ($negosiasiData['customer_deal'] === 'Yes' && !empty($negosiasiData['di_number'])) {
                     $di_number = $negosiasiData['di_number'];
                 }
@@ -249,16 +246,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Validasi minimal 1 file
         if (empty($attachment_files)) {
             $errors[] = 'Attachment File wajib diupload minimal 1 file!';
         }
         
-        // Gabungkan file menjadi string (dipisahkan koma)
         $attachment_file = !empty($attachment_files) ? implode(',', $attachment_files) : NULL;
         
         if (empty($errors)) {
-            // Update query dengan tr_number juga
             $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
             $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
             
@@ -291,7 +285,6 @@ $details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id 
 $details->execute([$leadsId]);
 $detailsList = $details->fetchAll();
 
-// Ambil data Negosiasi yang sudah completed
 $negosiasiCompleted = [];
 foreach ($detailsList as $d) {
     if ($d['jenis_tugas'] === 'Negosiasi' && $d['status'] === 'completed') {
@@ -310,15 +303,11 @@ $userId = $_SESSION['user_id'] ?? 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Detail Aktivitas - PT Ganda Elang Tangguh</title>
     
-    <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
@@ -770,7 +759,15 @@ $userId = $_SESSION['user_id'] ?? 0;
                                                 <?= htmlspecialchars($detail['jenis_tugas']) ?>
                                             </span>
                                         </td>
-                                        <td><?= !empty($detail['tr_number']) ? htmlspecialchars($detail['tr_number']) : '-' ?></td>
+                                        <td>
+                                            <?php if (!empty($detail['tr_number'])): ?>
+                                                <a href="detailtr.php?tr_number=<?= urlencode($detail['tr_number']) ?>" style="color: #2980b9; text-decoration: none; font-weight: 600;">
+                                                    <?= htmlspecialchars($detail['tr_number']) ?>
+                                                </a>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= !empty($detail['di_number']) ? htmlspecialchars($detail['di_number']) : '-' ?></td>
                                         <td><?= $detail['due_date'] ? date('d-m-Y', strtotime($detail['due_date'])) : '-' ?></td>
                                         <td>
@@ -930,7 +927,6 @@ $userId = $_SESSION['user_id'] ?? 0;
                                 </select>
                             </div>
                             
-                            <!-- DI Number hanya muncul jika Customer Deal = Yes -->
                             <div class="mb-3" id="diNumberFieldComplete" style="display: none;">
                                 <label class="form-label">Delivery Instruction Number</label>
                                 <div class="di-number-display">
@@ -1028,7 +1024,6 @@ $userId = $_SESSION['user_id'] ?? 0;
                 trNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'block';
                 
-                // Tampilkan info TR & DI dari Negosiasi
                 var infoHtml = '';
                 if (negosiasiCompletedList.length > 0) {
                     var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1];
@@ -1037,7 +1032,7 @@ $userId = $_SESSION['user_id'] ?? 0;
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> ' + lastNegosiasi.tr_number + '</div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
@@ -1102,7 +1097,7 @@ $userId = $_SESSION['user_id'] ?? 0;
                     ${data.tr_number ? `
                     <div class="info-item">
                         <div class="info-label">TR Number</div>
-                        <div class="info-value"><strong>${data.tr_number}</strong></div>
+                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2980b9; font-weight: 600;">${data.tr_number}</a></div>
                     </div>` : ''}
                     ${data.di_number ? `
                     <div class="info-item">
@@ -1145,7 +1140,6 @@ $userId = $_SESSION['user_id'] ?? 0;
         function completeDetail(data) {
             document.getElementById('completeDetailId').value = data.id;
             
-            // Reset customer deal field
             document.getElementById('customerDealFieldComplete').style.display = 'none';
             document.getElementById('customer_deal_complete').required = false;
             document.getElementById('diNumberFieldComplete').style.display = 'none';
@@ -1156,7 +1150,6 @@ $userId = $_SESSION['user_id'] ?? 0;
                 document.getElementById('customer_deal_complete').required = true;
             }
             
-            // Untuk Kontrak dan After Sales, tampilkan info TR & DI Number dari Negosiasi
             if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
                 var infoHtml = '';
                 
@@ -1167,7 +1160,7 @@ $userId = $_SESSION['user_id'] ?? 0;
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> ' + lastNegosiasi.tr_number + '</div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
@@ -1192,7 +1185,6 @@ $userId = $_SESSION['user_id'] ?? 0;
                     infoHtml += '</div>';
                 }
                 
-                // Tambahkan info di modal complete
                 var modalBody = document.querySelector('#modalComplete .modal-body');
                 var existingContainer = document.getElementById('negosiasiInfoContainer');
                 if (existingContainer) {
@@ -1209,7 +1201,6 @@ $userId = $_SESSION['user_id'] ?? 0;
             modal.show();
         }
         
-        // Cleanup saat modal complete ditutup
         document.getElementById('modalComplete').addEventListener('hidden.bs.modal', function() {
             var infoContainer = document.getElementById('negosiasiInfoContainer');
             if (infoContainer) {
@@ -1217,14 +1208,12 @@ $userId = $_SESSION['user_id'] ?? 0;
             }
         });
         
-        // Delete Detail
         function deleteDetail(id) {
             document.getElementById('deleteDetailId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDeleteDetail'));
             modal.show();
         }
         
-        // Edit Detail (placeholder - bisa dikembangkan)
         function editDetail(data) {
             alert('Fitur edit akan segera hadir!');
         }
