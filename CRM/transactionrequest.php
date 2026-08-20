@@ -71,7 +71,6 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $where = "WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''";
 $params = [];
 
-// Filter berdasarkan role
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
@@ -96,7 +95,6 @@ if (!empty($search)) {
     $params = array_merge($params, ["%$search%", "%$search%"]);
 }
 
-// Count total
 $countSql = "SELECT COUNT(DISTINCT ad.tr_number) 
              FROM activity_details ad
              LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
@@ -107,7 +105,6 @@ $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Get data
 $sql = "SELECT ad.tr_number, 
                ad.due_date,
                MIN(ad.created_at) as request_date,
@@ -355,13 +352,19 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
         .badge-status-tr.approved { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
         .badge-status-tr.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
 
-        .badge-trf {
-            background: rgba(52, 152, 219, 0.12);
-            color: #2980b9;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
+        /* TR Number Style - Sama dengan Leads Number */
+        .tr-number-link {
+            color: #d4a017;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .tr-number-link:hover {
+            color: #b7950b;
+            text-decoration: none;
         }
 
         .btn-primary-custom {
@@ -419,14 +422,6 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
 
         .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
 
-        .trf-link {
-            color: #2980b9;
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .trf-link:hover { color: #1a6d9e; text-decoration: underline; }
-
         .mobile-toggle { display: none; }
         .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
         .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
@@ -450,7 +445,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             .stat-card { padding: 12px 14px; }
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
-            .trf-link { font-size: 11px; }
+            .tr-number-link { font-size: 11px; }
         }
     </style>
 </head>
@@ -600,10 +595,8 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                     <tr>
                                         <td><?= $no++ ?></td>
                                         <td>
-                                            <a href="detailtr.php?tr_number=<?= urlencode($request['tr_number']) ?>" class="trf-link">
-                                                <span class="badge-trf">
-                                                    <i class="fas fa-file-signature"></i> <?= htmlspecialchars($request['tr_number']) ?>
-                                                </span>
+                                            <a href="detailtr.php?tr_number=<?= urlencode($request['tr_number']) ?>" class="tr-number-link">
+                                                <?= htmlspecialchars($request['tr_number']) ?>
                                             </a>
                                         </td>
                                         <td><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></td>
