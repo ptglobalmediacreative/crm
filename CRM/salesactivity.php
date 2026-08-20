@@ -458,7 +458,6 @@ $role = $_SESSION['role'] ?? 'user';
         }
         .page-header h4 span { color: #ffd700; }
 
-        /* Chart Grid */
         .chart-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -484,14 +483,8 @@ $role = $_SESSION['role'] ?? 'user';
             margin-bottom: 20px;
             font-size: 16px;
         }
-        .chart-card h6 i {
-            margin-right: 8px;
-        }
-        .chart-wrapper {
-            height: 280px;
-            width: 100%;
-            position: relative;
-        }
+        .chart-card h6 i { margin-right: 8px; }
+        .chart-wrapper { height: 280px; width: 100%; position: relative; }
 
         .card-custom {
             background: #fff;
@@ -517,10 +510,7 @@ $role = $_SESSION['role'] ?? 'user';
             margin: 0;
             font-size: 16px;
         }
-        .card-custom .card-header-custom h6 i {
-            color: #ffd700;
-            margin-right: 8px;
-        }
+        .card-custom .card-header-custom h6 i { color: #ffd700; margin-right: 8px; }
         .card-custom .card-body-custom { padding: 0; overflow-x: auto; }
         
         .table-custom { margin-bottom: 0; font-size: 13px; }
@@ -1109,7 +1099,13 @@ $role = $_SESSION['role'] ?? 'user';
         new Chart(ctxProspek, {
             type: 'doughnut',
             data: {
-                labels: ['Low Prospek', 'Middle Prospek', 'Hot Prospek', 'Deal', 'Lost Deal'],
+                labels: [
+                    'Low Prospek (<?= $prospekCounts['Low Prospek'] ?>)',
+                    'Middle Prospek (<?= $prospekCounts['Middle Prospek'] ?>)',
+                    'Hot Prospek (<?= $prospekCounts['Hot Prospek'] ?>)',
+                    'Deal (<?= $prospekCounts['Deal'] ?>)',
+                    'Lost Deal (<?= $prospekCounts['Lost Deal'] ?>)'
+                ],
                 datasets: [{
                     data: [
                         <?= $prospekCounts['Low Prospek'] ?>,
@@ -1125,7 +1121,8 @@ $role = $_SESSION['role'] ?? 'user';
                         '#27ae60',
                         '#c0392b'
                     ],
-                    borderWidth: 0,
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
                     hoverOffset: 10
                 }]
             },
@@ -1138,7 +1135,24 @@ $role = $_SESSION['role'] ?? 'user';
                         labels: {
                             usePointStyle: true,
                             padding: 15,
-                            font: { family: 'Inter', size: 12 }
+                            font: { family: 'Inter', size: 12, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#0e1a2b',
+                        bodyColor: '#0e1a2b',
+                        borderColor: '#e0e4ea',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                var value = context.raw || 0;
+                                var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return ' Total: ' + value + ' (' + percentage + '%)';
+                            }
                         }
                     }
                 }
@@ -1152,7 +1166,11 @@ $role = $_SESSION['role'] ?? 'user';
         new Chart(ctxStatus, {
             type: 'doughnut',
             data: {
-                labels: ['In Progress', 'Completed', 'Overdue'],
+                labels: [
+                    'In Progress (<?= $statusCounts['In Progress'] ?>)',
+                    'Completed (<?= $statusCounts['Completed'] ?>)',
+                    'Overdue (<?= $statusCounts['Overdue'] ?>)'
+                ],
                 datasets: [{
                     data: [
                         <?= $statusCounts['In Progress'] ?>,
@@ -1164,7 +1182,8 @@ $role = $_SESSION['role'] ?? 'user';
                         '#27ae60',
                         '#c0392b'
                     ],
-                    borderWidth: 0,
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
                     hoverOffset: 10
                 }]
             },
@@ -1177,7 +1196,24 @@ $role = $_SESSION['role'] ?? 'user';
                         labels: {
                             usePointStyle: true,
                             padding: 15,
-                            font: { family: 'Inter', size: 12 }
+                            font: { family: 'Inter', size: 12, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#0e1a2b',
+                        bodyColor: '#0e1a2b',
+                        borderColor: '#e0e4ea',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                var value = context.raw || 0;
+                                var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return ' Total: ' + value + ' (' + percentage + '%)';
+                            }
                         }
                     }
                 }
