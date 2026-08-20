@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
-        if (str_word_count($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 kata!';
+        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter!';
         
         // Generate TR Number jika jenis_tugas = Negosiasi
         $tr_number = NULL;
@@ -141,6 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         } else {
             setFlash(implode('<br>', $errors), 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
     }
     
@@ -156,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $di_number = NULL;
         
         $errors = [];
-        if (str_word_count($result) < 80) $errors[] = 'Result minimal 80 kata!';
+        if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter!';
         
         // Ambil data detail untuk cek jenis_tugas
         $stmt = $db->prepare("SELECT * FROM activity_details WHERE id = ?");
@@ -200,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         } else {
             setFlash(implode('<br>', $errors), 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
     }
     
@@ -758,9 +760,9 @@ $userId = $_SESSION['user_id'] ?? 0;
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Deskripsi <span class="text-danger">*</span> <small class="text-muted">(Minimal 80 kata)</small></label>
-                            <textarea name="deskripsi" id="deskripsi_add" class="form-control" rows="5" placeholder="Masukkan deskripsi minimal 80 kata..." required></textarea>
-                            <small class="text-muted" id="wordCountAdd">0 kata</small>
+                            <label class="form-label">Deskripsi <span class="text-danger">*</span> <small class="text-muted">(Minimal 80 karakter)</small></label>
+                            <textarea name="deskripsi" id="deskripsi_add" class="form-control" rows="5" placeholder="Masukkan deskripsi minimal 80 karakter..." minlength="80" required></textarea>
+                            <small class="text-muted" id="wordCountAdd">0 karakter</small>
                         </div>
                         
                         <!-- TR Number (muncul jika jenis_tugas = Negosiasi) -->
@@ -799,9 +801,9 @@ $userId = $_SESSION['user_id'] ?? 0;
                         <input type="hidden" name="detail_id" id="completeDetailId" value="">
                         
                         <div class="mb-3">
-                            <label class="form-label">Result <span class="text-danger">*</span> <small class="text-muted">(Minimal 80 kata)</small></label>
-                            <textarea name="result" id="result_complete" class="form-control" rows="5" placeholder="Masukkan result minimal 80 kata..." required></textarea>
-                            <small class="text-muted" id="wordCountComplete">0 kata</small>
+                            <label class="form-label">Result <span class="text-danger">*</span> <small class="text-muted">(Minimal 80 karakter)</small></label>
+                            <textarea name="result" id="result_complete" class="form-control" rows="5" placeholder="Masukkan result minimal 80 karakter..." minlength="80" required></textarea>
+                            <small class="text-muted" id="wordCountComplete">0 karakter</small>
                         </div>
                         
                         <div class="mb-3">
@@ -878,16 +880,26 @@ $userId = $_SESSION['user_id'] ?? 0;
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Word count untuk deskripsi
+        // Character count untuk deskripsi
         document.getElementById('deskripsi_add').addEventListener('input', function() {
-            var words = this.value.trim().split(/\s+/).filter(function(word) { return word.length > 0; });
-            document.getElementById('wordCountAdd').textContent = words.length + ' kata';
+            var chars = this.value.length;
+            document.getElementById('wordCountAdd').textContent = chars + ' karakter';
+            if (chars < 80) {
+                document.getElementById('wordCountAdd').style.color = '#e74c3c';
+            } else {
+                document.getElementById('wordCountAdd').style.color = '#27ae60';
+            }
         });
         
-        // Word count untuk result
+        // Character count untuk result
         document.getElementById('result_complete').addEventListener('input', function() {
-            var words = this.value.trim().split(/\s+/).filter(function(word) { return word.length > 0; });
-            document.getElementById('wordCountComplete').textContent = words.length + ' kata';
+            var chars = this.value.length;
+            document.getElementById('wordCountComplete').textContent = chars + ' karakter';
+            if (chars < 80) {
+                document.getElementById('wordCountComplete').style.color = '#e74c3c';
+            } else {
+                document.getElementById('wordCountComplete').style.color = '#27ae60';
+            }
         });
         
         // Show/hide TR Number saat tambah
