@@ -56,6 +56,22 @@ $hasFullAccess = in_array($userRole, $fullAccessRoles);
 $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
 
 // ============================================
+// BUAT TABEL detail_transaction_requests JIKA BELUM ADA
+// ============================================
+try {
+    $db->exec("CREATE TABLE IF NOT EXISTS detail_transaction_requests (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        trf_number VARCHAR(50) NOT NULL,
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_trf_number (trf_number)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch(PDOException $e) {
+    // Abaikan jika tabel sudah ada
+}
+
+// ============================================
 // FILTER & PAGINATION
 // ============================================
 $limit = 10;
@@ -71,15 +87,23 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $where = "WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''";
 $params = [];
 
-// Filter berdasarkan role
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
 }
 
 if ($status_filter !== 'all') {
-    $where .= " AND sa.status = ?";
-    $params[] = $status_filter;
+    if ($status_filter === 'pending') {
+        $where .= " AND (
+            NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number)
+            OR EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'pending')
+        )";
+    } elseif ($status_filter === 'approved') {
+        $where .= " AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'approved')
+                    AND NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status IN ('pending', 'rejected'))";
+    } elseif ($status_filter === 'rejected') {
+        $where .= " AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'rejected')";
+    }
 }
 
 if (!empty($search)) {
@@ -98,7 +122,7 @@ $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Get data - menggunakan GROUP BY untuk unique TR Number
+// Get data
 $sql = "SELECT ad.tr_number, 
                ad.due_date,
                MIN(ad.created_at) as request_date,
@@ -106,14 +130,28 @@ $sql = "SELECT ad.tr_number,
                a.badan_usaha,
                u.full_name as sales_name,
                sa.sales_id,
-               sa.status,
-               sa.id as sales_activity_id
+               sa.id as sales_activity_id,
+               CASE 
+                   WHEN EXISTS (
+                       SELECT 1 FROM detail_transaction_requests dtr 
+                       WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'rejected'
+                   ) THEN 'rejected'
+                   WHEN EXISTS (
+                       SELECT 1 FROM detail_transaction_requests dtr 
+                       WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'pending'
+                   ) THEN 'pending'
+                   WHEN EXISTS (
+                       SELECT 1 FROM detail_transaction_requests dtr 
+                       WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'approved'
+                   ) THEN 'approved'
+                   ELSE 'pending'
+               END as status
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
         LEFT JOIN accounts a ON sa.account_id = a.id
         LEFT JOIN users u ON sa.sales_id = u.id
         $where
-        GROUP BY ad.tr_number
+        GROUP BY ad.tr_number, sa.sales_id, sa.id
         ORDER BY request_date DESC
         LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
@@ -133,76 +171,33 @@ if ($userRole === 'sales') {
 
 $sqlPending = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
                LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
-               $statWhere AND sa.status = 'pending'";
+               $statWhere 
+               AND (
+                   NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number)
+                   OR EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'pending')
+               )";
 $stmt = $db->prepare($sqlPending);
 $stmt->execute($statParams);
 $totalPending = $stmt->fetchColumn();
 
 $sqlApproved = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
                 LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
-                $statWhere AND sa.status = 'approved'";
+                $statWhere 
+                AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'approved')
+                AND NOT EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status IN ('pending', 'rejected'))";
 $stmt = $db->prepare($sqlApproved);
 $stmt->execute($statParams);
 $totalApproved = $stmt->fetchColumn();
 
 $sqlRejected = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
                 LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
-                $statWhere AND sa.status = 'rejected'";
+                $statWhere 
+                AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number = ad.tr_number AND dtr.status = 'rejected')";
 $stmt = $db->prepare($sqlRejected);
 $stmt->execute($statParams);
 $totalRejected = $stmt->fetchColumn();
 
 $totalRequests = $totalPending + $totalApproved + $totalRejected;
-
-// ============================================
-// PROSES UPDATE STATUS (APPROVE / REJECT)
-// ============================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
-    $tr_number = $_POST['tr_number'] ?? '';
-    
-    if ($action === 'approve') {
-        if (!$isDirektur && !$hasFullAccess) {
-            setFlash('Anda tidak memiliki akses untuk approve!', 'danger');
-            redirect('transactionrequest.php');
-        }
-        
-        // Update status di sales_activities
-        $stmt = $db->prepare("UPDATE sales_activities sa 
-                              JOIN activity_details ad ON ad.sales_activity_id = sa.id
-                              SET sa.status = 'approved' 
-                              WHERE ad.tr_number = ? AND sa.status = 'pending'");
-        $stmt->execute([$tr_number]);
-        
-        if ($stmt->rowCount() > 0) {
-            setFlash('TR Number berhasil di-approve!', 'success');
-        } else {
-            setFlash('Gagal approve atau status sudah berubah!', 'warning');
-        }
-        redirect('transactionrequest.php');
-    }
-    
-    if ($action === 'reject') {
-        if (!$isDirektur && !$hasFullAccess) {
-            setFlash('Anda tidak memiliki akses untuk reject!', 'danger');
-            redirect('transactionrequest.php');
-        }
-        
-        // Update status di sales_activities
-        $stmt = $db->prepare("UPDATE sales_activities sa 
-                              JOIN activity_details ad ON ad.sales_activity_id = sa.id
-                              SET sa.status = 'rejected' 
-                              WHERE ad.tr_number = ? AND sa.status = 'pending'");
-        $stmt->execute([$tr_number]);
-        
-        if ($stmt->rowCount() > 0) {
-            setFlash('TR Number berhasil di-reject!', 'success');
-        } else {
-            setFlash('Gagal reject atau status sudah berubah!', 'warning');
-        }
-        redirect('transactionrequest.php');
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -211,15 +206,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Transaction Request - PT Ganda Elang Tangguh</title>
     
-    <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
     
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
@@ -388,24 +379,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             font-weight: 600;
         }
 
-        .btn-action {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            transition: all 0.3s ease;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .btn-action:hover { transform: scale(1.1); }
-        .btn-action.approve { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
-        .btn-action.approve:hover { background: rgba(52, 152, 219, 0.2); }
-        .btn-action.reject { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
-        .btn-action.reject:hover { background: rgba(231, 76, 60, 0.2); }
-
         .btn-primary-custom {
             background: #0e1a2b;
             border: none;
@@ -492,7 +465,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             .stat-card { padding: 12px 14px; }
             .table-custom { font-size: 11px; }
             .table-custom th, .table-custom td { padding: 6px 8px; }
-            .btn-action { width: 26px; height: 26px; font-size: 11px; }
             .trf-link { font-size: 11px; }
         }
     </style>
@@ -630,7 +602,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <th>Due Date</th>
                                 <th>Sales</th>
                                 <th>Status</th>
-                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -666,33 +637,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                                 <?= $statusLabel ?>
                                             </span>
                                         </td>
-                                        <td>
-                                            <?php if ($request['status'] == 'pending' && ($isDirektur || $hasFullAccess)): ?>
-                                            <div class="d-flex gap-1">
-                                                <form method="POST" style="display: inline;">
-                                                    <input type="hidden" name="action" value="approve">
-                                                    <input type="hidden" name="tr_number" value="<?= htmlspecialchars($request['tr_number']) ?>">
-                                                    <button type="submit" class="btn-action approve" title="Approve">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                </form>
-                                                <form method="POST" style="display: inline;">
-                                                    <input type="hidden" name="action" value="reject">
-                                                    <input type="hidden" name="tr_number" value="<?= htmlspecialchars($request['tr_number']) ?>">
-                                                    <button type="submit" class="btn-action reject" title="Reject" onclick="return confirm('Yakin ingin reject TR ini?')">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?>
-                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
+                                    <td colspan="7" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data transaction request
                                     </td>
                                 </tr>
