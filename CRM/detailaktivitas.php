@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 
+// Set timezone ke WIB
+date_default_timezone_set('Asia/Jakarta');
+
 // Cek login
 if (!isLoggedIn()) {
     setFlash('Silakan login dulu!', 'warning');
@@ -106,13 +109,13 @@ if (!$activity) {
 }
 
 // ============================================
-// UPDATE STATUS OVERDUE OTOMATIS
+// UPDATE STATUS OVERDUE OTOMATIS (WIB)
 // ============================================
 $stmt = $db->prepare("UPDATE activity_details SET status = 'overdue' 
                       WHERE sales_activity_id = ? 
                       AND status = 'in_progress' 
                       AND due_date IS NOT NULL 
-                      AND due_date < NOW()");
+                      AND due_date < DATE_ADD(NOW(), INTERVAL 7 HOUR)");
 $stmt->execute([$leadsId]);
 
 // ============================================
