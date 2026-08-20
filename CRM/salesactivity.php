@@ -305,7 +305,7 @@ foreach ($activities as &$act) {
 }
 unset($act);
 
-$sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic 
+$sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
                 FROM accounts ORDER BY nama_pt ASC";
 $accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
 
@@ -323,10 +323,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $account_id = (int)$_POST['account_id'];
         
+        // Ambil sales_id dari account yang dipilih
+        $stmt = $db->prepare("SELECT sales_id FROM accounts WHERE id = ?");
+        $stmt->execute([$account_id]);
+        $accountSalesId = $stmt->fetchColumn();
+        
         if ($userRole === 'sales') {
             $sales_id = $userId;
         } else {
-            $sales_id = !empty($_POST['sales_id']) ? (int)$_POST['sales_id'] : NULL;
+            // Sales otomatis dari account management
+            $sales_id = $accountSalesId ? (int)$accountSalesId : NULL;
         }
         
         $leads_number = generateLeadsNumber($db);
@@ -973,7 +979,8 @@ $role = $_SESSION['role'] ?? 'user';
                                         data-badan_usaha="<?= htmlspecialchars($acc['badan_usaha'] ?? 'PT') ?>"
                                         data-bidang_usaha="<?= htmlspecialchars($acc['bidang_usaha'] ?? '-') ?>"
                                         data-nama_pic="<?= htmlspecialchars($acc['nama_pic'] ?? '-') ?>"
-                                        data-no_hp_pic="<?= htmlspecialchars($acc['no_hp_pic'] ?? '-') ?>">
+                                        data-no_hp_pic="<?= htmlspecialchars($acc['no_hp_pic'] ?? '-') ?>"
+                                        data-sales_id="<?= $acc['sales_id'] ?? '' ?>">
                                         <?= htmlspecialchars($acc['nama_pt']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -1003,16 +1010,16 @@ $role = $_SESSION['role'] ?? 'user';
                         
                         <?php if ($userRole !== 'sales'): ?>
                         <div class="mb-3">
-                            <label class="form-label">Sales</label>
-                            <select name="sales_id" id="sales_id" class="form-select">
-                                <option value="">-- Pilih Sales --</option>
-                                <?php foreach ($salesUsers as $s): ?>
-                                    <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['full_name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label class="form-label">Sales <small class="text-muted">(Otomatis dari Account)</small></label>
+                            <input type="text" id="sales_name_display" class="form-control" readonly>
+                            <input type="hidden" name="sales_id" id="sales_id_hidden" value="">
                         </div>
                         <?php else: ?>
                             <input type="hidden" name="sales_id" value="<?= $userId ?>">
+                            <div class="mb-3">
+                                <label class="form-label">Sales</label>
+                                <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" readonly>
+                            </div>
                         <?php endif; ?>
                     </div>
                     <div class="modal-footer">
@@ -1083,11 +1090,29 @@ $role = $_SESSION['role'] ?? 'user';
                     $('#bidang_usaha').val(selectedOption.data('bidang_usaha'));
                     $('#nama_pic').val(selectedOption.data('nama_pic'));
                     $('#no_hp_pic').val(selectedOption.data('no_hp_pic'));
+                    
+                    // Auto isi Sales
+                    var salesId = selectedOption.data('sales_id');
+                    if (salesId) {
+                        $('#sales_id_hidden').val(salesId);
+                        var salesName = '';
+                        <?php foreach ($salesUsers as $s): ?>
+                        if (salesId == <?= $s['id'] ?>) {
+                            salesName = '<?= htmlspecialchars($s['full_name']) ?>';
+                        }
+                        <?php endforeach; ?>
+                        $('#sales_name_display').val(salesName);
+                    } else {
+                        $('#sales_id_hidden').val('');
+                        $('#sales_name_display').val('Tidak ada Sales terdaftar');
+                    }
                 } else {
                     $('#badan_usaha').val('');
                     $('#bidang_usaha').val('');
                     $('#nama_pic').val('');
                     $('#no_hp_pic').val('');
+                    $('#sales_id_hidden').val('');
+                    $('#sales_name_display').val('');
                 }
             });
         });
