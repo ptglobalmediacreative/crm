@@ -157,6 +157,9 @@ $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 
+// Filter Bulan
+$filterMonth = isset($_GET['month']) ? bersihkan($_GET['month']) : date('Y-m');
+
 $where = "WHERE 1=1";
 $params = [];
 
@@ -168,6 +171,11 @@ if ($userRole === 'sales') {
 if (!empty($search)) {
     $where .= " AND (sa.leads_number LIKE ? OR a.nama_pt LIKE ? OR a.nama_pic LIKE ?)";
     $params = array_merge($params, ["%$search%", "%$search%", "%$search%"]);
+}
+
+if (!empty($filterMonth)) {
+    $where .= " AND DATE_FORMAT(sa.created_at, '%Y-%m') = ?";
+    $params[] = $filterMonth;
 }
 
 $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
@@ -621,11 +629,12 @@ $role = $_SESSION['role'] ?? 'user';
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
-                <form method="GET" class="d-flex gap-2">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari Leads Number, Nama PT..." value="<?= htmlspecialchars($search) ?>" style="width: 250px;">
+                <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
+                    <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars($filterMonth) ?>" style="width: 170px;" onchange="this.form.submit()">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari Leads Number, Nama PT..." value="<?= htmlspecialchars($search) ?>" style="width: 200px;">
                     <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
-                    <?php if (!empty($search)): ?>
-                        <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i></a>
+                    <?php if (!empty($search) || $filterMonth !== date('Y-m')): ?>
+                        <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i> Reset</a>
                     <?php endif; ?>
                 </form>
             </div>
@@ -729,15 +738,15 @@ $role = $_SESSION['role'] ?? 'user';
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
