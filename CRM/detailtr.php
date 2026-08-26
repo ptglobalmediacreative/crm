@@ -1282,10 +1282,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 
                 <div id="viewSummary">
                     <?php if ($hasBeenApproved && $userRole === 'sales'): ?>
-                    <div class="alert alert-warning mb-3">
-                        <i class="fas fa-lock"></i> 
-                        TR ini sudah di-approve, data tidak bisa diedit lagi.
-                    </div>
                     <?php endif; ?>
                     
                     <div class="row">
