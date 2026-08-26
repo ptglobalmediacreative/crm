@@ -17,7 +17,13 @@ if (!isLoggedIn()) {
 // ============================================
 // CEK AKSES HALAMAN
 // ============================================
-requirePermission('detail_transaction_request', 'view');
+requirePermission('transaction_request', 'view');
+
+// ============================================
+// AMBIL MENU YANG BOLEH DIAKSES USER
+// ============================================
+$userMenus = getUserMenus();
+$menuNames = array_column($userMenus, 'module_name');
 
 // ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
@@ -50,780 +56,439 @@ $hasFullAccess = in_array($userRole, $fullAccessRoles);
 $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
 
 // ============================================
-// AMBIL DATA TRANSACTION REQUEST UNTUK DROPDOWN
+// AMBIL TR NUMBER DARI URL
 // ============================================
-if ($userRole === 'sales') {
-    $stmt = $db->prepare("SELECT tr.id, tr.trf_number, tr.subject, a.nama_pt 
-                          FROM transaction_requests tr 
-                          LEFT JOIN accounts a ON tr.account_id = a.id 
-                          WHERE tr.sales_id = ? AND tr.status = 'approved'
-                          ORDER BY tr.created_at DESC");
-    $stmt->execute([$userId]);
-} else {
-    $stmt = $db->prepare("SELECT tr.id, tr.trf_number, tr.subject, a.nama_pt 
-                          FROM transaction_requests tr 
-                          LEFT JOIN accounts a ON tr.account_id = a.id 
-                          WHERE tr.status = 'approved'
-                          ORDER BY tr.created_at DESC");
-    $stmt->execute();
+$tr_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
+
+if (empty($tr_number)) {
+    setFlash('TR Number tidak ditemukan!', 'danger');
+    redirect('transactionrequest.php');
 }
-$trRequests = $stmt->fetchAll();
+
+// ============================================
+// AMBIL DATA TRANSACTION REQUEST
+// ============================================
+$sql = "SELECT ad.tr_number, 
+               ad.due_date,
+               MIN(ad.created_at) as request_date,
+               a.id as account_id,
+               a.nama_pt, 
+               a.badan_usaha,
+               a.alamat,
+               a.npwp,
+               a.pic_name,
+               a.pic_jabatan,
+               a.pic_phone,
+               a.pic_email,
+               u.full_name as sales_name,
+               sa.sales_id,
+               sa.id as sales_activity_id,
+               sa.kode_transaction_request_form,
+               CASE 
+                   WHEN EXISTS (
+                       SELECT 1 FROM detail_transaction_requests dtr 
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'rejected'
+                   ) THEN 'rejected'
+                   WHEN EXISTS (
+                       SELECT 1 FROM detail_transaction_requests dtr 
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'pending'
+                   ) THEN 'pending'
+                   WHEN EXISTS (
+                       SELECT 1 FROM detail_transaction_requests dtr 
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'approved'
+                   ) THEN 'approved'
+                   ELSE 'pending'
+               END as status
+        FROM activity_details ad
+        LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+        LEFT JOIN accounts a ON sa.account_id = a.id
+        LEFT JOIN users u ON sa.sales_id = u.id
+        WHERE ad.tr_number = ?
+        GROUP BY ad.tr_number, sa.sales_id, sa.id
+        LIMIT 1";
+$stmt = $db->prepare($sql);
+$stmt->execute([$tr_number]);
+$request = $stmt->fetch();
+
+if (!$request) {
+    setFlash('Data transaction request tidak ditemukan!', 'danger');
+    redirect('transactionrequest.php');
+}
 
 // ============================================
 // AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
 // ============================================
-try {
-    $stmt = $db->query("SELECT id, nama_produk FROM products ORDER BY nama_produk");
-    $produkList = $stmt->fetchAll();
-} catch(PDOException $e) {
-    $produkList = [];
-    if (strpos($e->getMessage(), 'Base table or view not found') !== false) {
-        setFlash('Tabel products belum dibuat. Silakan buat tabel products terlebih dahulu.', 'warning');
-    }
-}
+$sqlProduk = "SELECT id, nama_produk, kode_produk, tipe_produk FROM produk WHERE status = 'aktif' ORDER BY nama_produk ASC";
+$stmtProduk = $db->prepare($sqlProduk);
+$stmtProduk->execute();
+$produkList = $stmtProduk->fetchAll();
 
 // ============================================
-// FUNGSI UNTUK MENDAPATKAN STATUS APPROVAL
+// AMBIL DATA DETAIL TRANSACTION REQUEST (JIKA ADA)
 // ============================================
-function getApprovalStatus($detailData) {
-    if (!$detailData) return 'pending';
+$sqlDetail = "SELECT * FROM detail_transaction_requests WHERE trf_number = ?";
+$stmtDetail = $db->prepare($sqlDetail);
+$stmtDetail->execute([$tr_number]);
+$detailTR = $stmtDetail->fetch();
+
+// ============================================
+// AMBIL DATA DETAIL UNIT
+// ============================================
+$sqlUnit = "SELECT * FROM tr_detail_units WHERE trf_number = ? ORDER BY id ASC";
+$stmtUnit = $db->prepare($sqlUnit);
+$stmtUnit->execute([$tr_number]);
+$detailUnits = $stmtUnit->fetchAll();
+
+// ============================================
+// AMBIL DATA TERM OF PAYMENT
+// ============================================
+$sqlTOP = "SELECT * FROM tr_term_of_payments WHERE trf_number = ? ORDER BY id ASC";
+$stmtTOP = $db->prepare($sqlTOP);
+$stmtTOP->execute([$tr_number]);
+$termPayments = $stmtTOP->fetchAll();
+
+// ============================================
+// AMBIL DATA ADDITIONAL COST
+// ============================================
+$sqlCost = "SELECT * FROM tr_additional_costs WHERE trf_number = ?";
+$stmtCost = $db->prepare($sqlCost);
+$stmtCost->execute([$tr_number]);
+$additionalCost = $stmtCost->fetch();
+
+// ============================================
+// AMBIL DATA MEDIATOR
+// ============================================
+$sqlMediator = "SELECT * FROM tr_mediators WHERE trf_number = ?";
+$stmtMediator = $db->prepare($sqlMediator);
+$stmtMediator->execute([$tr_number]);
+$mediator = $stmtMediator->fetch();
+
+// ============================================
+// HANDLE FORM SUBMISSION
+// ============================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
     
-    $status = $detailData['status'] ?? 'draft';
-    
-    if ($status === 'completed') return 'success';
-    if ($status === 'rejected') return 'rejected';
-    
-    $approval_level = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
-    
-    if ($approval_level >= 4) return 'success';
-    if ($approval_level > 0) return 'in_progress';
-    
-    return 'pending';
-}
-
-// ============================================
-// MAPPING APPROVAL LEVEL KE ROLE (Sales → Direktur Sales → Business → Direktur Operasional → Direktur Utama)
-// ============================================
-function getApprovalLevelRole($level) {
-    $mapping = [
-        1 => 'direktur_sales',
-        2 => 'business',
-        3 => 'direktur_operasional',
-        4 => 'direktur_utama'
-    ];
-    return $mapping[$level] ?? null;
-}
-
-function getApprovalLevelLabel($level) {
-    $mapping = [
-        1 => 'Direktur Sales',
-        2 => 'Business',
-        3 => 'Direktur Operasional',
-        4 => 'Direktur Utama'
-    ];
-    return $mapping[$level] ?? '-';
-}
-
-function getCurrentApprover($approval_level) {
-    $approvers = [
-        1 => ['job_title' => 'Direktur Sales', 'role' => 'direktur_sales'],
-        2 => ['job_title' => 'Business', 'role' => 'business'],
-        3 => ['job_title' => 'Direktur Operasional', 'role' => 'direktur_operasional'],
-        4 => ['job_title' => 'Direktur Utama', 'role' => 'direktur_utama']
-    ];
-    return $approvers[$approval_level] ?? null;
-}
-
-function getNextApprover($approval_level) {
-    $next_level = $approval_level + 1;
-    $approvers = [
-        1 => ['job_title' => 'Direktur Sales', 'role' => 'direktur_sales'],
-        2 => ['job_title' => 'Business', 'role' => 'business'],
-        3 => ['job_title' => 'Direktur Operasional', 'role' => 'direktur_operasional'],
-        4 => ['job_title' => 'Direktur Utama', 'role' => 'direktur_utama']
-    ];
-    return $approvers[$next_level] ?? null;
-}
-
-function getApproverName($db, $role) {
-    try {
-        $stmt = $db->prepare("SELECT full_name FROM users WHERE role = ? AND status = 'active' LIMIT 1");
-        $stmt->execute([$role]);
-        $result = $stmt->fetch();
-        return $result ? $result['full_name'] : '-';
-    } catch(PDOException $e) {
-        return '-';
-    }
-}
-
-// ============================================
-// TAMBAHKAN KOLOM APPROVAL_LEVEL JIKA BELUM ADA
-// ============================================
-try {
-    $stmt = $db->query("SHOW COLUMNS FROM detail_transaction_requests LIKE 'approval_level'");
-    if ($stmt->rowCount() == 0) {
-        $db->exec("ALTER TABLE detail_transaction_requests ADD COLUMN approval_level INT DEFAULT 0");
-    }
-} catch(PDOException $e) {
-    // Tabel mungkin belum ada
-}
-
-// ============================================
-// PROSES SIMPAN / UPDATE
-// ============================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
-    
-    if ($action === 'save') {
-        $trf_number = isset($_POST['trf_number']) ? bersihkan($_POST['trf_number']) : '';
-        $transaction_request_id = isset($_POST['transaction_request_id']) ? (int)$_POST['transaction_request_id'] : 0;
-        $account_id = isset($_POST['account_id']) ? (int)$_POST['account_id'] : 0;
-        
-        // Data Customer - dengan pengecekan isset
-        $nama_pt = isset($_POST['nama_pt']) ? bersihkan($_POST['nama_pt']) : '';
-        $npwp = isset($_POST['npwp']) ? bersihkan($_POST['npwp']) : '';
-        $alamat = isset($_POST['alamat']) ? bersihkan($_POST['alamat']) : '';
-        $nama_pic = isset($_POST['nama_pic']) ? bersihkan($_POST['nama_pic']) : '';
-        $jabatan_pic = isset($_POST['jabatan_pic']) ? bersihkan($_POST['jabatan_pic']) : '';
-        $no_hp_pic = isset($_POST['no_hp_pic']) ? bersihkan($_POST['no_hp_pic']) : '';
-        $email_pic = isset($_POST['email_pic']) ? bersihkan($_POST['email_pic']) : '';
-        
-        // Detail Unit - PRIORITAS dari hidden fields, lalu POST, lalu database
-        $units = [];
-        if (isset($_POST['units_data']) && !empty($_POST['units_data'])) {
-            $units = json_decode($_POST['units_data'], true);
-            if (!is_array($units)) $units = [];
-        }
-        
-        // Jika units kosong dan ada data POST dari form unit
-        if (empty($units) && isset($_POST['unit_name']) && is_array($_POST['unit_name'])) {
-            for ($i = 0; $i < count($_POST['unit_name']); $i++) {
-                if (!empty($_POST['unit_name'][$i])) {
-                    $qty = (int)$_POST['qty'][$i];
-                    $price = (float)str_replace(['.', ','], '', $_POST['price'][$i]);
-                    $ppn_percent = 11;
-                    $ppn = $price * ($ppn_percent / 100);
-                    $grand_total_unit = ($price + $ppn) * $qty;
-                    
-                    $transaction_type = isset($_POST['transaction_type'][$i]) ? $_POST['transaction_type'][$i] : '';
-                    if ($transaction_type === 'Other' && isset($_POST['transaction_type_other'][$i]) && !empty($_POST['transaction_type_other'][$i])) {
-                        $transaction_type = 'Other - ' . $_POST['transaction_type_other'][$i];
-                    }
-                    
-                    $units[] = [
-                        'unit_name' => $_POST['unit_name'][$i],
-                        'qty' => $qty,
-                        'price' => $price,
-                        'ppn_percent' => $ppn_percent,
-                        'ppn' => $ppn,
-                        'grand_total' => $grand_total_unit,
-                        'specification' => isset($_POST['specification'][$i]) ? $_POST['specification'][$i] : '',
-                        'additional_attachment' => isset($_POST['additional_attachment'][$i]) ? $_POST['additional_attachment'][$i] : '',
-                        'warranty' => isset($_POST['warranty'][$i]) ? $_POST['warranty'][$i] : '',
-                        'machine_location' => isset($_POST['machine_location'][$i]) ? $_POST['machine_location'][$i] : '',
-                        'delivery_terms' => isset($_POST['delivery_terms'][$i]) ? $_POST['delivery_terms'][$i] : '',
-                        'delivery_schedule' => isset($_POST['delivery_schedule'][$i]) ? $_POST['delivery_schedule'][$i] : '',
-                        'transaction_type' => $transaction_type
-                    ];
-                }
-            }
-        }
-        
-        // Jika masih kosong, ambil dari database
-        if (empty($units)) {
-            $units = json_decode($detailData['units'] ?? '[]', true);
-            if (!is_array($units)) $units = [];
-        }
-        
-        // Term Of Payment - PRIORITAS dari hidden fields, lalu POST, lalu database
-        $top = [];
-        if (isset($_POST['top_data']) && !empty($_POST['top_data'])) {
-            $top = json_decode($_POST['top_data'], true);
-            if (!is_array($top)) {
-                $top = [
-                    'booking_fee' => 0,
-                    'booking_fee_remark' => '',
-                    'nominal_po_leasing' => 0,
-                    'nominal_po_leasing_remark' => '',
-                    'down_payments' => [],
-                    'installments' => [],
-                    'grand_total_top' => 0
-                ];
-            }
-        } else {
-            // Proses dari POST
-            $top = [
-                'booking_fee' => (float)str_replace(['.', ','], '', isset($_POST['booking_fee']) ? $_POST['booking_fee'] : 0),
-                'booking_fee_remark' => isset($_POST['booking_fee_remark']) ? bersihkan($_POST['booking_fee_remark']) : '',
-                'nominal_po_leasing' => (float)str_replace(['.', ','], '', isset($_POST['nominal_po_leasing']) ? $_POST['nominal_po_leasing'] : 0),
-                'nominal_po_leasing_remark' => isset($_POST['nominal_po_leasing_remark']) ? bersihkan($_POST['nominal_po_leasing_remark']) : '',
-                'down_payments' => [],
-                'installments' => [],
-                'grand_total_top' => 0
-            ];
-            
-            // Down Payments dengan Remark
-            if (isset($_POST['dp_name']) && is_array($_POST['dp_name'])) {
-                for ($i = 0; $i < count($_POST['dp_name']); $i++) {
-                    if (!empty($_POST['dp_name'][$i]) && !empty($_POST['dp_value'][$i])) {
-                        $top['down_payments'][] = [
-                            'name' => $_POST['dp_name'][$i],
-                            'value' => (float)str_replace(['.', ','], '', $_POST['dp_value'][$i]),
-                            'remark' => isset($_POST['dp_remark'][$i]) ? bersihkan($_POST['dp_remark'][$i]) : ''
-                        ];
-                    }
-                }
-            }
-            
-            // Installments dengan Remark
-            if (isset($_POST['installment_name']) && is_array($_POST['installment_name'])) {
-                for ($i = 0; $i < count($_POST['installment_name']); $i++) {
-                    if (!empty($_POST['installment_name'][$i]) && !empty($_POST['installment_value'][$i])) {
-                        $top['installments'][] = [
-                            'name' => $_POST['installment_name'][$i],
-                            'value' => (float)str_replace(['.', ','], '', $_POST['installment_value'][$i]),
-                            'remark' => isset($_POST['installment_remark'][$i]) ? bersihkan($_POST['installment_remark'][$i]) : ''
-                        ];
-                    }
-                }
-            }
-            
-            $top_grand_total = $top['booking_fee'] + $top['nominal_po_leasing'];
-            foreach ($top['down_payments'] as $dp) {
-                $top_grand_total += $dp['value'];
-            }
-            foreach ($top['installments'] as $inst) {
-                $top_grand_total += $inst['value'];
-            }
-            $top['grand_total_top'] = $top_grand_total;
-        }
-        
-        // Jika top kosong, ambil dari database
-        if (empty($top) || (isset($top['booking_fee']) && $top['booking_fee'] == 0 && empty($top['down_payments']) && empty($top['installments']))) {
-            $top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
-            if (!is_array($top)) {
-                $top = [
-                    'booking_fee' => 0,
-                    'booking_fee_remark' => '',
-                    'nominal_po_leasing' => 0,
-                    'nominal_po_leasing_remark' => '',
-                    'down_payments' => [],
-                    'installments' => [],
-                    'grand_total_top' => 0
-                ];
-            }
-        }
-        
-        // Additional Cost - PRIORITAS dari hidden fields, lalu POST, lalu database
-        $additional_cost = [];
-        if (isset($_POST['additional_data']) && !empty($_POST['additional_data'])) {
-            $additional_cost = json_decode($_POST['additional_data'], true);
-            if (!is_array($additional_cost)) {
-                $additional_cost = [
-                    'insurance_ops' => 0,
-                    'insurance_ops_remark' => '',
-                    'insurance_cargo' => 0,
-                    'insurance_cargo_remark' => '',
-                    'delivery_cost' => 0,
-                    'delivery_cost_remark' => '',
-                    'free_part' => 0,
-                    'free_part_remark' => '',
-                    'free_service' => 0,
-                    'free_service_remark' => '',
-                    'mediator_fee' => 0,
-                    'mediator_fee_remark' => '',
-                    'others' => 0,
-                    'others_remark' => '',
-                    'total_additional' => 0
-                ];
-            }
-        } else {
-            $additional_cost = [
-                'insurance_ops' => (float)str_replace(['.', ','], '', isset($_POST['insurance_ops']) ? $_POST['insurance_ops'] : 0),
-                'insurance_ops_remark' => isset($_POST['insurance_ops_remark']) ? bersihkan($_POST['insurance_ops_remark']) : '',
-                'insurance_cargo' => (float)str_replace(['.', ','], '', isset($_POST['insurance_cargo']) ? $_POST['insurance_cargo'] : 0),
-                'insurance_cargo_remark' => isset($_POST['insurance_cargo_remark']) ? bersihkan($_POST['insurance_cargo_remark']) : '',
-                'delivery_cost' => (float)str_replace(['.', ','], '', isset($_POST['delivery_cost']) ? $_POST['delivery_cost'] : 0),
-                'delivery_cost_remark' => isset($_POST['delivery_cost_remark']) ? bersihkan($_POST['delivery_cost_remark']) : '',
-                'free_part' => (float)str_replace(['.', ','], '', isset($_POST['free_part']) ? $_POST['free_part'] : 0),
-                'free_part_remark' => isset($_POST['free_part_remark']) ? bersihkan($_POST['free_part_remark']) : '',
-                'free_service' => (float)str_replace(['.', ','], '', isset($_POST['free_service']) ? $_POST['free_service'] : 0),
-                'free_service_remark' => isset($_POST['free_service_remark']) ? bersihkan($_POST['free_service_remark']) : '',
-                'mediator_fee' => (float)str_replace(['.', ','], '', isset($_POST['mediator_fee']) ? $_POST['mediator_fee'] : 0),
-                'mediator_fee_remark' => isset($_POST['mediator_fee_remark']) ? bersihkan($_POST['mediator_fee_remark']) : '',
-                'others' => (float)str_replace(['.', ','], '', isset($_POST['others_cost']) ? $_POST['others_cost'] : 0),
-                'others_remark' => isset($_POST['others_remark']) ? bersihkan($_POST['others_remark']) : '',
-                'total_additional' => 0
-            ];
-            
-            $additional_cost['total_additional'] = 
-                $additional_cost['insurance_ops'] + 
-                $additional_cost['insurance_cargo'] + 
-                $additional_cost['delivery_cost'] + 
-                $additional_cost['free_part'] + 
-                $additional_cost['free_service'] + 
-                $additional_cost['mediator_fee'] + 
-                $additional_cost['others'];
-        }
-        
-        // Jika additional_cost kosong, ambil dari database
-        $hasAdditional = false;
-        foreach ($additional_cost as $key => $val) {
-            if ($key != 'total_additional' && $val > 0) {
-                $hasAdditional = true;
-                break;
-            }
-        }
-        if (!$hasAdditional) {
-            $additional_cost = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
-            if (!is_array($additional_cost)) {
-                $additional_cost = [
-                    'insurance_ops' => 0,
-                    'insurance_ops_remark' => '',
-                    'insurance_cargo' => 0,
-                    'insurance_cargo_remark' => '',
-                    'delivery_cost' => 0,
-                    'delivery_cost_remark' => '',
-                    'free_part' => 0,
-                    'free_part_remark' => '',
-                    'free_service' => 0,
-                    'free_service_remark' => '',
-                    'mediator_fee' => 0,
-                    'mediator_fee_remark' => '',
-                    'others' => 0,
-                    'others_remark' => '',
-                    'total_additional' => 0
-                ];
-            }
-        }
-        
-        // Mediator Fee - PRIORITAS dari hidden fields, lalu POST, lalu database
-        $mediator_fee = [];
-        if (isset($_POST['mediator_data']) && !empty($_POST['mediator_data'])) {
-            $mediator_fee = json_decode($_POST['mediator_data'], true);
-            if (!is_array($mediator_fee)) {
-                $mediator_fee = [
-                    'name' => '',
-                    'id_card_no' => '',
-                    'npwp_no' => '',
-                    'bank_name' => '',
-                    'bank_account' => '',
-                    'amount' => 0
-                ];
-            }
-        } else {
-            $mediator_fee = [
-                'name' => isset($_POST['mediator_name']) ? bersihkan($_POST['mediator_name']) : '',
-                'id_card_no' => isset($_POST['mediator_id_card']) ? bersihkan($_POST['mediator_id_card']) : '',
-                'npwp_no' => isset($_POST['mediator_npwp']) ? bersihkan($_POST['mediator_npwp']) : '',
-                'bank_name' => isset($_POST['mediator_bank']) ? bersihkan($_POST['mediator_bank']) : '',
-                'bank_account' => isset($_POST['mediator_bank_account']) ? bersihkan($_POST['mediator_bank_account']) : '',
-                'amount' => (float)str_replace(['.', ','], '', isset($_POST['mediator_amount']) ? $_POST['mediator_amount'] : 0)
-            ];
-        }
-        
-        // Jika mediator_fee kosong, ambil dari database
-        if (empty($mediator_fee['name']) && empty($mediator_fee['id_card_no'])) {
-            $mediator_fee = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
-            if (!is_array($mediator_fee)) {
-                $mediator_fee = [
-                    'name' => '',
-                    'id_card_no' => '',
-                    'npwp_no' => '',
-                    'bank_name' => '',
-                    'bank_account' => '',
-                    'amount' => 0
-                ];
-            }
-        }
-        
-        $grand_total = 0;
-        foreach ($units as $unit) {
-            $grand_total += $unit['grand_total'] ?? 0;
-        }
-        
-        $status = isset($_POST['status']) ? $_POST['status'] : 'draft';
-        $approval_level = isset($_POST['approval_level']) ? (int)$_POST['approval_level'] : 0;
-        
-        $stmt = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
-        $stmt->execute([$trf_number]);
-        $existing = $stmt->fetch();
-        
+    // ============================================
+    // SAVE DETAIL TRANSACTION REQUEST
+    // ============================================
+    if ($action === 'save_detail_tr') {
         try {
-            if ($existing) {
-                $stmt = $db->prepare("UPDATE detail_transaction_requests SET 
-                                      transaction_request_id = ?,
-                                      account_id = ?,
-                                      nama_pt = ?,
-                                      npwp = ?,
-                                      alamat = ?,
-                                      nama_pic = ?,
-                                      jabatan_pic = ?,
-                                      no_hp_pic = ?,
-                                      email_pic = ?,
-                                      units = ?,
-                                      term_of_payment = ?,
-                                      additional_cost = ?,
-                                      mediator_fee = ?,
-                                      grand_total = ?,
-                                      status = ?,
-                                      approval_level = ?
-                                      WHERE trf_number = ?");
-                $result = $stmt->execute([
-                    $transaction_request_id,
-                    $account_id,
-                    $nama_pt,
-                    $npwp,
-                    $alamat,
-                    $nama_pic,
-                    $jabatan_pic,
-                    $no_hp_pic,
-                    $email_pic,
-                    json_encode($units, JSON_UNESCAPED_UNICODE),
-                    json_encode($top, JSON_UNESCAPED_UNICODE),
-                    json_encode($additional_cost, JSON_UNESCAPED_UNICODE),
-                    json_encode($mediator_fee, JSON_UNESCAPED_UNICODE),
-                    $grand_total,
-                    $status,
-                    $approval_level,
-                    $trf_number
-                ]);
-                
-                if ($result) {
-                    setFlash('Data Detail TR berhasil diupdate!', 'success');
-                } else {
-                    setFlash('Gagal mengupdate data!', 'danger');
-                }
+            $db->beginTransaction();
+            
+            // Cek apakah sudah ada data
+            $checkSql = "SELECT id FROM detail_transaction_requests WHERE trf_number = ?";
+            $checkStmt = $db->prepare($checkSql);
+            $checkStmt->execute([$tr_number]);
+            $existingDetail = $checkStmt->fetch();
+            
+            if ($existingDetail) {
+                // Update
+                $updateSql = "UPDATE detail_transaction_requests SET 
+                    status = 'pending',
+                    updated_at = NOW()
+                    WHERE trf_number = ?";
+                $updateStmt = $db->prepare($updateSql);
+                $updateStmt->execute([$tr_number]);
             } else {
-                $stmt = $db->prepare("INSERT INTO detail_transaction_requests 
-                                      (trf_number, transaction_request_id, account_id, 
-                                       nama_pt, npwp, alamat, nama_pic, jabatan_pic, no_hp_pic, email_pic,
-                                       units, term_of_payment, additional_cost, mediator_fee, grand_total, status, approval_level) 
-                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $result = $stmt->execute([
-                    $trf_number,
-                    $transaction_request_id,
-                    $account_id,
-                    $nama_pt,
-                    $npwp,
-                    $alamat,
-                    $nama_pic,
-                    $jabatan_pic,
-                    $no_hp_pic,
-                    $email_pic,
-                    json_encode($units, JSON_UNESCAPED_UNICODE),
-                    json_encode($top, JSON_UNESCAPED_UNICODE),
-                    json_encode($additional_cost, JSON_UNESCAPED_UNICODE),
-                    json_encode($mediator_fee, JSON_UNESCAPED_UNICODE),
-                    $grand_total,
-                    $status,
-                    $approval_level
+                // Insert
+                $insertSql = "INSERT INTO detail_transaction_requests (
+                    trf_number, status, created_at, updated_at
+                ) VALUES (?, 'pending', NOW(), NOW())";
+                $insertStmt = $db->prepare($insertSql);
+                $insertStmt->execute([$tr_number]);
+            }
+            
+            $db->commit();
+            setFlash('Data berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menyimpan data: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+    }
+    
+    // ============================================
+    // SAVE DETAIL UNIT
+    // ============================================
+    if ($action === 'save_unit') {
+        try {
+            $db->beginTransaction();
+            
+            $unit_id = $_POST['unit_id'] ?? '';
+            $qty = (int)($_POST['qty'] ?? 0);
+            $price = (float)($_POST['price'] ?? 0);
+            $specification = $_POST['specification'] ?? '';
+            $additional_attachment = $_POST['additional_attachment'] ?? '';
+            $waranty = $_POST['waranty'] ?? '';
+            $machine_location = $_POST['machine_location'] ?? '';
+            $delivery_terms = $_POST['delivery_terms'] ?? '';
+            $delivery_schedule = $_POST['delivery_schedule'] ?? '';
+            $transaction_type = $_POST['transaction_type'] ?? '';
+            $transaction_type_other = $_POST['transaction_type_other'] ?? '';
+            
+            // Hitung PPN dan Grand Total
+            $ppn = $price * 0.11;
+            $grand_total = ($price + $ppn) * $qty;
+            
+            // Jika transaction type Other, gabungkan dengan input manual
+            if ($transaction_type === 'Other' && !empty($transaction_type_other)) {
+                $transaction_type = 'Other: ' . $transaction_type_other;
+            }
+            
+            $unitId = $_POST['unit_id_hidden'] ?? 0;
+            
+            if ($unitId > 0) {
+                // Update
+                $updateSql = "UPDATE tr_detail_units SET 
+                    unit_id = ?, qty = ?, price = ?, ppn = ?, grand_total = ?,
+                    specification = ?, additional_attachment = ?, waranty = ?,
+                    machine_location = ?, delivery_terms = ?, delivery_schedule = ?,
+                    transaction_type = ?, updated_at = NOW()
+                    WHERE id = ? AND trf_number = ?";
+                $updateStmt = $db->prepare($updateSql);
+                $updateStmt->execute([
+                    $unit_id, $qty, $price, $ppn, $grand_total,
+                    $specification, $additional_attachment, $waranty,
+                    $machine_location, $delivery_terms, $delivery_schedule,
+                    $transaction_type, $unitId, $tr_number
                 ]);
-                
-                if ($result) {
-                    setFlash('Data Detail TR berhasil disimpan!', 'success');
-                } else {
-                    setFlash('Gagal menyimpan data!', 'danger');
+            } else {
+                // Insert
+                $insertSql = "INSERT INTO tr_detail_units (
+                    trf_number, unit_id, qty, price, ppn, grand_total,
+                    specification, additional_attachment, waranty,
+                    machine_location, delivery_terms, delivery_schedule,
+                    transaction_type, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertStmt = $db->prepare($insertSql);
+                $insertStmt->execute([
+                    $tr_number, $unit_id, $qty, $price, $ppn, $grand_total,
+                    $specification, $additional_attachment, $waranty,
+                    $machine_location, $delivery_terms, $delivery_schedule,
+                    $transaction_type
+                ]);
+            }
+            
+            $db->commit();
+            setFlash('Detail unit berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menyimpan detail unit: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+    }
+    
+    // ============================================
+    // DELETE DETAIL UNIT
+    // ============================================
+    if ($action === 'delete_unit') {
+        $unitId = (int)($_POST['unit_id'] ?? 0);
+        if ($unitId > 0) {
+            try {
+                $deleteSql = "DELETE FROM tr_detail_units WHERE id = ? AND trf_number = ?";
+                $deleteStmt = $db->prepare($deleteSql);
+                $deleteStmt->execute([$unitId, $tr_number]);
+                setFlash('Detail unit berhasil dihapus!', 'success');
+            } catch (Exception $e) {
+                setFlash('Gagal menghapus detail unit!', 'danger');
+            }
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+    }
+    
+    // ============================================
+    // SAVE TERM OF PAYMENT
+    // ============================================
+    if ($action === 'save_top') {
+        try {
+            $db->beginTransaction();
+            
+            // Hapus data TOP lama
+            $deleteSql = "DELETE FROM tr_term_of_payments WHERE trf_number = ?";
+            $deleteStmt = $db->prepare($deleteSql);
+            $deleteStmt->execute([$tr_number]);
+            
+            // Simpan Booking Fee
+            $booking_fee = (float)($_POST['booking_fee'] ?? 0);
+            if ($booking_fee > 0) {
+                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
+                              VALUES (?, 'booking_fee', 'Booking Fee', ?, NOW())";
+                $insertStmt = $db->prepare($insertSql);
+                $insertStmt->execute([$tr_number, $booking_fee]);
+            }
+            
+            // Simpan Down Payment (bisa multiple)
+            $dp_labels = $_POST['dp_label'] ?? [];
+            $dp_amounts = $_POST['dp_amount'] ?? [];
+            foreach ($dp_labels as $index => $label) {
+                if (!empty($label) && isset($dp_amounts[$index]) && $dp_amounts[$index] > 0) {
+                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
+                                  VALUES (?, 'down_payment', ?, ?, NOW())";
+                    $insertStmt = $db->prepare($insertSql);
+                    $insertStmt->execute([$tr_number, $label, $dp_amounts[$index]]);
                 }
             }
-        } catch (PDOException $e) {
-            error_log("Error saving detail TR: " . $e->getMessage());
-            setFlash('Terjadi kesalahan: ' . $e->getMessage(), 'danger');
+            
+            // Simpan Angsuran (bisa multiple)
+            $angsuran_labels = $_POST['angsuran_label'] ?? [];
+            $angsuran_amounts = $_POST['angsuran_amount'] ?? [];
+            foreach ($angsuran_labels as $index => $label) {
+                if (!empty($label) && isset($angsuran_amounts[$index]) && $angsuran_amounts[$index] > 0) {
+                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
+                                  VALUES (?, 'angsuran', ?, ?, NOW())";
+                    $insertStmt = $db->prepare($insertSql);
+                    $insertStmt->execute([$tr_number, $label, $angsuran_amounts[$index]]);
+                }
+            }
+            
+            // Simpan Nominal PO Leasing
+            $nominal_po = (float)($_POST['nominal_po_leasing'] ?? 0);
+            if ($nominal_po > 0) {
+                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
+                              VALUES (?, 'nominal_po', 'Nominal PO Leasing', ?, NOW())";
+                $insertStmt = $db->prepare($insertSql);
+                $insertStmt->execute([$tr_number, $nominal_po]);
+            }
+            
+            $db->commit();
+            setFlash('Term of Payment berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menyimpan Term of Payment: ' . $e->getMessage(), 'danger');
         }
-        
-        // Redirect ke mode VIEW (tanpa edit parameter) setelah save
-        redirect('detailtr.php?tr_number=' . urlencode($trf_number) . '&tab=' . ($_POST['active_tab'] ?? 'summary'));
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
     }
     
-    if ($action === 'approve') {
-        $id = (int)$_POST['id'];
-        $current_level = isset($_POST['approval_level']) ? (int)$_POST['approval_level'] : 0;
-        $new_level = $current_level + 1;
-        
-        // Mapping level ke role (Sales → Direktur Sales → Business → Direktur Operasional → Direktur Utama)
-        $role_mapping = [
-            1 => 'direktur_sales',
-            2 => 'business',
-            3 => 'direktur_operasional',
-            4 => 'direktur_utama'
-        ];
-        
-        $required_role = $role_mapping[$new_level] ?? null;
-        
-        // Cek apakah user memiliki hak approve
-        if ($required_role && $userRole !== $required_role && !$hasFullAccess) {
-            setFlash('Anda tidak memiliki akses untuk approve di level ini!', 'danger');
-            redirect('detailtr.php?tr_number=' . urlencode($_POST['trf_number']));
+    // ============================================
+    // SAVE ADDITIONAL COST
+    // ============================================
+    if ($action === 'save_cost') {
+        try {
+            $db->beginTransaction();
+            
+            $insurance_ops = (float)($_POST['insurance_ops'] ?? 0);
+            $insurance_cargo = (float)($_POST['insurance_cargo'] ?? 0);
+            $delivery_cost = (float)($_POST['delivery_cost'] ?? 0);
+            $free_part = $_POST['free_part'] ?? '';
+            $free_service = $_POST['free_service'] ?? '';
+            $mediator_fee = (float)($_POST['mediator_fee'] ?? 0);
+            $others = $_POST['others'] ?? '';
+            
+            $costId = $_POST['cost_id'] ?? 0;
+            
+            if ($costId > 0) {
+                // Update
+                $updateSql = "UPDATE tr_additional_costs SET 
+                    insurance_ops = ?, insurance_cargo = ?, delivery_cost = ?,
+                    free_part = ?, free_service = ?, mediator_fee = ?, others = ?,
+                    updated_at = NOW()
+                    WHERE id = ? AND trf_number = ?";
+                $updateStmt = $db->prepare($updateSql);
+                $updateStmt->execute([
+                    $insurance_ops, $insurance_cargo, $delivery_cost,
+                    $free_part, $free_service, $mediator_fee, $others,
+                    $costId, $tr_number
+                ]);
+            } else {
+                // Insert
+                $insertSql = "INSERT INTO tr_additional_costs (
+                    trf_number, insurance_ops, insurance_cargo, delivery_cost,
+                    free_part, free_service, mediator_fee, others, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertStmt = $db->prepare($insertSql);
+                $insertStmt->execute([
+                    $tr_number, $insurance_ops, $insurance_cargo, $delivery_cost,
+                    $free_part, $free_service, $mediator_fee, $others
+                ]);
+            }
+            
+            $db->commit();
+            setFlash('Additional Cost berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menyimpan Additional Cost: ' . $e->getMessage(), 'danger');
         }
-        
-        // Jika sudah level 4 (Direktur Utama), status menjadi completed
-        if ($new_level >= 4) {
-            $stmt = $db->prepare("UPDATE detail_transaction_requests SET approval_level = ?, status = 'completed' WHERE id = ?");
-            $stmt->execute([$new_level, $id]);
-            setFlash('TR berhasil di-approve oleh Direktur Utama dan selesai!', 'success');
-        } else {
-            $stmt = $db->prepare("UPDATE detail_transaction_requests SET approval_level = ? WHERE id = ?");
-            $stmt->execute([$new_level, $id]);
-            $next_approver = getApprovalLevelLabel($new_level + 1);
-            setFlash('TR berhasil di-approve, selanjutnya menunggu persetujuan ' . $next_approver . '!', 'success');
-        }
-        redirect('detailtr.php?tr_number=' . urlencode($_POST['trf_number']));
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
     }
     
-    if ($action === 'reject') {
-        $id = (int)$_POST['id'];
-        $stmt = $db->prepare("UPDATE detail_transaction_requests SET status = 'rejected' WHERE id = ?");
-        $stmt->execute([$id]);
-        setFlash('TR ditolak!', 'danger');
-        redirect('detailtr.php?tr_number=' . urlencode($_POST['trf_number']));
+    // ============================================
+    // SAVE MEDIATOR
+    // ============================================
+    if ($action === 'save_mediator') {
+        try {
+            $db->beginTransaction();
+            
+            $name = $_POST['mediator_name'] ?? '';
+            $id_card = $_POST['mediator_id_card'] ?? '';
+            $npwp = $_POST['mediator_npwp'] ?? '';
+            $bank_name = $_POST['mediator_bank_name'] ?? '';
+            $bank_account = $_POST['mediator_bank_account'] ?? '';
+            $amount = (float)($_POST['mediator_amount'] ?? 0);
+            
+            $mediatorId = $_POST['mediator_id'] ?? 0;
+            
+            if ($mediatorId > 0) {
+                // Update
+                $updateSql = "UPDATE tr_mediators SET 
+                    name = ?, id_card_no = ?, npwp_no = ?,
+                    bank_name = ?, bank_account = ?, amount = ?,
+                    updated_at = NOW()
+                    WHERE id = ? AND trf_number = ?";
+                $updateStmt = $db->prepare($updateSql);
+                $updateStmt->execute([
+                    $name, $id_card, $npwp,
+                    $bank_name, $bank_account, $amount,
+                    $mediatorId, $tr_number
+                ]);
+            } else {
+                // Insert
+                $insertSql = "INSERT INTO tr_mediators (
+                    trf_number, name, id_card_no, npwp_no,
+                    bank_name, bank_account, amount, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertStmt = $db->prepare($insertSql);
+                $insertStmt->execute([
+                    $tr_number, $name, $id_card, $npwp,
+                    $bank_name, $bank_account, $amount
+                ]);
+            }
+            
+            $db->commit();
+            setFlash('Data Mediator berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menyimpan data Mediator: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
     }
 }
 
 // ============================================
-// AMBIL DATA DETAIL TR
+// HITUNG TOTAL GRAND TOTAL UNIT
 // ============================================
-$detailData = null;
-$trf_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
-
-if (!empty($trf_number)) {
-    $stmt = $db->prepare("SELECT dtr.*, tr.subject, tr.jenis_tugas, tr.description, tr.due_date, 
-                          a.id as account_id, a.nama_pt as account_nama_pt, a.npwp as account_npwp, 
-                          a.alamat as account_alamat, a.nama_pic as account_nama_pic, 
-                          a.jabatan_pic as account_jabatan_pic, a.no_hp_pic as account_no_hp_pic, 
-                          a.email_pic as account_email_pic, a.badan_usaha
-                          FROM detail_transaction_requests dtr
-                          LEFT JOIN transaction_requests tr ON dtr.transaction_request_id = tr.id
-                          LEFT JOIN accounts a ON dtr.account_id = a.id
-                          WHERE dtr.trf_number = ?");
-    $stmt->execute([$trf_number]);
-    $detailData = $stmt->fetch();
-    
-    if (!$detailData) {
-        $stmt = $db->prepare("SELECT tr.*, a.id as account_id, a.nama_pt, a.npwp, a.alamat, 
-                              a.nama_pic, a.jabatan_pic, a.no_hp_pic, a.email_pic, a.badan_usaha
-                              FROM transaction_requests tr
-                              LEFT JOIN accounts a ON tr.account_id = a.id
-                              WHERE tr.trf_number = ?");
-        $stmt->execute([$trf_number]);
-        $trData = $stmt->fetch();
-        
-        if ($trData) {
-            $detailData = [
-                'id' => null,
-                'trf_number' => $trData['trf_number'],
-                'transaction_request_id' => $trData['id'],
-                'account_id' => $trData['account_id'],
-                'nama_pt' => $trData['nama_pt'] ?? '',
-                'npwp' => $trData['npwp'] ?? '',
-                'alamat' => $trData['alamat'] ?? '',
-                'nama_pic' => $trData['nama_pic'] ?? '',
-                'jabatan_pic' => $trData['jabatan_pic'] ?? '',
-                'no_hp_pic' => $trData['no_hp_pic'] ?? '',
-                'email_pic' => $trData['email_pic'] ?? '',
-                'units' => '[]',
-                'term_of_payment' => '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}',
-                'additional_cost' => '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}',
-                'mediator_fee' => '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}',
-                'grand_total' => 0,
-                'status' => 'draft',
-                'approval_level' => 0,
-                'subject' => $trData['subject'] ?? '',
-                'jenis_tugas' => $trData['jenis_tugas'] ?? '',
-                'description' => $trData['description'] ?? '',
-                'due_date' => $trData['due_date'] ?? '',
-                'account_nama_pt' => $trData['nama_pt'] ?? '',
-                'account_npwp' => $trData['npwp'] ?? '',
-                'account_alamat' => $trData['alamat'] ?? '',
-                'account_nama_pic' => $trData['nama_pic'] ?? '',
-                'account_jabatan_pic' => $trData['jabatan_pic'] ?? '',
-                'account_no_hp_pic' => $trData['no_hp_pic'] ?? '',
-                'account_email_pic' => $trData['email_pic'] ?? '',
-                'badan_usaha' => $trData['badan_usaha'] ?? ''
-            ];
-        }
-    }
-}
-
-$requests = [];
-if ($userRole === 'sales') {
-    $stmt = $db->prepare("SELECT dtr.*, tr.subject, a.nama_pt 
-                          FROM detail_transaction_requests dtr
-                          LEFT JOIN transaction_requests tr ON dtr.transaction_request_id = tr.id
-                          LEFT JOIN accounts a ON dtr.account_id = a.id
-                          WHERE tr.sales_id = ?
-                          ORDER BY dtr.created_at DESC");
-    $stmt->execute([$userId]);
-} else {
-    $stmt = $db->prepare("SELECT dtr.*, tr.subject, a.nama_pt 
-                          FROM detail_transaction_requests dtr
-                          LEFT JOIN transaction_requests tr ON dtr.transaction_request_id = tr.id
-                          LEFT JOIN accounts a ON dtr.account_id = a.id
-                          ORDER BY dtr.created_at DESC");
-    $stmt->execute();
-}
-$requests = $stmt->fetchAll();
-
-// ============================================
-// FUNGSI UNTUK MENAMPILKAN DATA DENGAN VIEW/EDIT MODE
-// ============================================
-$editMode = isset($_GET['edit']) ? $_GET['edit'] : null;
-$activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'summary';
-
-// JIKA DATA SUDAH ADA DI DATABASE, DEFAULTNYA VIEW MODE (editMode = null)
-// KECUALI JIKA ADA PARAMETER edit=yang diinginkan
-if ($detailData && isset($detailData['id']) && $detailData['id'] !== null) {
-    // HANYA SET editMode JIKA ADA PARAMETER edit DI URL
-    if (isset($_GET['edit']) && in_array($_GET['edit'], ['unit', 'top', 'additional', 'mediator'])) {
-        $editMode = $_GET['edit'];
-    } else {
-        // DEFAULT: VIEW MODE (TIDAK EDIT)
-        $editMode = null;
-    }
-}
-
-// AMBIL DATA DARI DATABASE
-$units = json_decode($detailData['units'] ?? '[]', true);
-$top = json_decode($detailData['term_of_payment'] ?? '{"booking_fee":0,"booking_fee_remark":"","nominal_po_leasing":0,"nominal_po_leasing_remark":"","down_payments":[],"installments":[],"grand_total_top":0}', true);
-$additional = json_decode($detailData['additional_cost'] ?? '{"insurance_ops":0,"insurance_ops_remark":"","insurance_cargo":0,"insurance_cargo_remark":"","delivery_cost":0,"delivery_cost_remark":"","free_part":0,"free_part_remark":"","free_service":0,"free_service_remark":"","mediator_fee":0,"mediator_fee_remark":"","others":0,"others_remark":"","total_additional":0}', true);
-$mediator = json_decode($detailData['mediator_fee'] ?? '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}', true);
-
-// CEK APAKAH ADA ADDITIONAL COST
-$hasAdditional = false;
-if (is_array($additional)) {
-    foreach ($additional as $key => $val) {
-        if ($key != 'total_additional' && $val > 0) {
-            $hasAdditional = true;
-            break;
-        }
-    }
-}
-
-// Pastikan data tidak null
-if (!is_array($units)) $units = [];
-if (!is_array($top)) {
-    $top = [
-        'booking_fee' => 0,
-        'booking_fee_remark' => '',
-        'nominal_po_leasing' => 0,
-        'nominal_po_leasing_remark' => '',
-        'down_payments' => [],
-        'installments' => [],
-        'grand_total_top' => 0
-    ];
-}
-if (!is_array($additional)) {
-    $additional = [
-        'insurance_ops' => 0,
-        'insurance_ops_remark' => '',
-        'insurance_cargo' => 0,
-        'insurance_cargo_remark' => '',
-        'delivery_cost' => 0,
-        'delivery_cost_remark' => '',
-        'free_part' => 0,
-        'free_part_remark' => '',
-        'free_service' => 0,
-        'free_service_remark' => '',
-        'mediator_fee' => 0,
-        'mediator_fee_remark' => '',
-        'others' => 0,
-        'others_remark' => '',
-        'total_additional' => 0
-    ];
-}
-if (!is_array($mediator)) {
-    $mediator = [
-        'name' => '',
-        'id_card_no' => '',
-        'npwp_no' => '',
-        'bank_name' => '',
-        'bank_account' => '',
-        'amount' => 0
-    ];
-}
-
-// Cek apakah data sudah ada di database
-$isDataExists = ($detailData && isset($detailData['id']) && $detailData['id'] !== null);
-
-// Siapkan data untuk hidden fields - selalu gunakan data dari database sebagai default
-$units_json = json_encode($units);
-$top_json = json_encode($top);
-$additional_json = json_encode($additional);
-$mediator_json = json_encode($mediator);
-
-// Hanya update hidden fields dengan data POST jika ada dan valid
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save') {
-    if (isset($_POST['units_data']) && !empty($_POST['units_data'])) {
-        $temp_units = json_decode($_POST['units_data'], true);
-        if (is_array($temp_units) && !empty($temp_units)) {
-            $units_json = json_encode($temp_units);
-        }
-    }
-    if (isset($_POST['top_data']) && !empty($_POST['top_data'])) {
-        $temp_top = json_decode($_POST['top_data'], true);
-        if (is_array($temp_top) && !empty($temp_top)) {
-            $top_json = json_encode($temp_top);
-        }
-    }
-    if (isset($_POST['additional_data']) && !empty($_POST['additional_data'])) {
-        $temp_additional = json_decode($_POST['additional_data'], true);
-        if (is_array($temp_additional) && !empty($temp_additional)) {
-            $additional_json = json_encode($temp_additional);
-        }
-    }
-    if (isset($_POST['mediator_data']) && !empty($_POST['mediator_data'])) {
-        $temp_mediator = json_decode($_POST['mediator_data'], true);
-        if (is_array($temp_mediator) && !empty($temp_mediator)) {
-            $mediator_json = json_encode($temp_mediator);
-        }
-    }
+$totalUnitGrandTotal = 0;
+foreach ($detailUnits as $unit) {
+    $totalUnitGrandTotal += $unit['grand_total'];
 }
 
 // ============================================
-// CEK APAKAH USER BISA APPROVE
+// HITUNG TOTAL TERM OF PAYMENT
 // ============================================
-function canUserApprove($userRole, $approvalLevel, $status) {
-    if ($status === 'rejected' || $status === 'completed') return false;
-    
-    $nextLevel = $approvalLevel + 1;
-    
-    // Mapping level ke role
-    $role_mapping = [
-        1 => 'direktur_sales',
-        2 => 'business',
-        3 => 'direktur_operasional',
-        4 => 'direktur_utama'
-    ];
-    
-    $required_role = $role_mapping[$nextLevel] ?? null;
-    
-    if (!$required_role) return false;
-    
-    // Cek apakah user role sesuai atau memiliki full access
-    return ($userRole === $required_role);
+$totalTOP = 0;
+foreach ($termPayments as $top) {
+    $totalTOP += $top['amount'];
 }
 
 // ============================================
-// CEK APAKAH USER BISA REJECT
+// HITUNG TOTAL ADDITIONAL COST
 // ============================================
-function canUserReject($userRole, $approvalLevel, $status) {
-    if ($status === 'rejected' || $status === 'completed') return false;
-    
-    // User yang bisa reject adalah user yang memiliki role sesuai dengan level approval berikutnya
-    // atau user dengan full access
-    $nextLevel = $approvalLevel + 1;
-    
-    $role_mapping = [
-        1 => 'direktur_sales',
-        2 => 'business',
-        3 => 'direktur_operasional',
-        4 => 'direktur_utama'
-    ];
-    
-    $required_role = $role_mapping[$nextLevel] ?? null;
-    
-    if (!$required_role) return false;
-    
-    return ($userRole === $required_role);
+$totalAdditionalCost = 0;
+if ($additionalCost) {
+    $totalAdditionalCost = $additionalCost['insurance_ops'] + 
+                           $additionalCost['insurance_cargo'] + 
+                           $additionalCost['delivery_cost'] + 
+                           $additionalCost['mediator_fee'];
 }
 ?>
 <!DOCTYPE html>
@@ -831,7 +496,7 @@ function canUserReject($userRole, $approvalLevel, $status) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Detail Transaction Request - PT Ganda Elang Tangguh</title>
+    <title>Detail TR - <?= htmlspecialchars($tr_number) ?> - PT Ganda Elang Tangguh</title>
     
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
@@ -847,49 +512,90 @@ function canUserReject($userRole, $approvalLevel, $status) {
             background: #f0f2f5;
             padding-bottom: 70px;
         }
-        .top-header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 10px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: #0e1a2b;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            padding: 30px 20px;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s ease;
         }
-        .top-header .header-left { display: flex; align-items: center; gap: 10px; }
-        .top-header .header-left .logo-wrapper { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-        .top-header .header-left .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .top-header .header-left .brand-text .brand-name { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
-        .top-header .header-left .brand-text .brand-name span { color: #ffd700; }
-        .top-header .header-left .brand-text .brand-sub { font-size: 8px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; text-transform: uppercase; }
-        .top-header .header-right { display: flex; align-items: center; gap: 12px; }
-        .top-header .header-right .notif-icon { position: relative; color: rgba(255,255,255,0.6); font-size: 16px; cursor: pointer; }
-        .top-header .header-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
-        .top-header .header-right .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 13px; text-decoration: none; border: 2px solid rgba(255,215,0,0.2); transition: border-color 0.3s ease; }
-        .top-header .header-right .user-avatar:hover { border-color: #ffd700; }
-        .welcome-banner {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-radius: 12px;
-            padding: 16px 24px;
-            color: #fff;
-            margin-bottom: 16px;
-            position: relative;
-            overflow: hidden;
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
+
+        .sidebar .brand { 
+            display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; 
+            padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .welcome-banner .welcome-text .greeting { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 400; }
-        .welcome-banner .welcome-text h3 { font-weight: 700; font-size: 18px; margin: 2px 0 0; }
-        .welcome-banner .welcome-text h3 span { color: #ffd700; }
-        .welcome-banner .welcome-icon { font-size: 32px; color: rgba(255,215,0,0.05); position: absolute; right: 15px; bottom: 10px; }
+        .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
+        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
+        .sidebar .brand .brand-text h5 span { color: #ffd700; }
+        .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+
+        .sidebar .nav-item { 
+            display: flex; align-items: center; padding: 12px 16px; 
+            color: rgba(255,255,255,0.6); text-decoration: none; 
+            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; 
+            font-size: 14px; position: relative;
+        }
+        .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
+        .sidebar .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .sidebar .nav-item.active { 
+            background: rgba(255, 215, 0, 0.1); 
+            color: #ffd700; 
+            box-shadow: inset 3px 0 0 #ffd700;
+        }
+        
+        .sidebar .user-profile { 
+            margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); 
+            display: flex; align-items: center; gap: 12px; 
+        }
+        .sidebar .user-profile .avatar { 
+            width: 42px; height: 42px; border-radius: 50%; 
+            background: linear-gradient(135deg, #1a1a2e, #16213e); 
+            color: #ffd700; display: flex; align-items: center; justify-content: center; 
+            font-weight: 700; font-size: 16px; border: 2px solid rgba(255,215,0,0.2);
+        }
+        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #fff; }
+        .sidebar .user-profile .user-info .role { font-size: 12px; color: rgba(255,255,255,0.4); }
+
+        .sidebar .logout-btn {
+            display: block; text-align: center; margin-top: 15px; 
+            padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; 
+            font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); 
+            transition: all 0.2s;
+        }
+        .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
+
+        .main-content { margin-left: 260px; padding: 30px; width: 100%; }
+
+        .page-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
+        }
+        .page-header h4 { 
+            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
+            letter-spacing: -0.5px;
+        }
+        .page-header h4 span { color: #ffd700; }
+
         .card-custom {
             background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border: 1px solid rgba(0,0,0,0.03);
-            margin-bottom: 20px;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid #e0e4ea;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
         }
+        .card-custom:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
+        
         .card-custom .card-header-custom {
-            padding: 16px 20px;
+            padding: 20px 24px;
             border-bottom: 1px solid #f0f2f5;
             display: flex;
             justify-content: space-between;
@@ -898,1694 +604,1031 @@ function canUserReject($userRole, $approvalLevel, $status) {
             gap: 10px;
         }
         .card-custom .card-header-custom h6 {
-            font-weight: 600;
-            color: #1a1a2e;
+            font-weight: 700;
+            color: #0e1a2b;
             margin: 0;
-            font-size: 14px;
+            font-size: 16px;
         }
         .card-custom .card-header-custom h6 i {
             color: #ffd700;
             margin-right: 8px;
         }
-        .card-custom .card-body-custom {
-            padding: 20px;
-        }
-        .form-label {
+        .card-custom .card-body-custom { padding: 24px; }
+
+        .info-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #999;
             font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0e1a2b;
+            margin-bottom: 15px;
+        }
+
+        .form-label {
             font-size: 12px;
-            color: #333;
+            font-weight: 600;
+            color: #555;
             margin-bottom: 4px;
         }
-        .form-label .required { color: #e74c3c; }
-        .form-label .optional { font-weight: 400; color: #999; font-size: 10px; }
         .form-control, .form-select {
-            border-radius: 8px;
-            padding: 8px 12px;
-            border: 2px solid #e0e4ea;
-            transition: all 0.3s ease;
             font-size: 13px;
-            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e0e4ea;
+            padding: 8px 12px;
         }
         .form-control:focus, .form-select:focus {
             border-color: #ffd700;
-            box-shadow: 0 0 0 3px rgba(255,215,0,0.1);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
         }
-        .form-control[readonly] {
-            background: #f8f9fa;
-            border-color: #d0d5dc;
-        }
-        .form-control-sm { font-size: 12px; padding: 6px 10px; }
+
         .btn-primary-custom {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            background: #0e1a2b;
             border: none;
             border-radius: 8px;
-            padding: 8px 20px;
+            padding: 10px 24px;
             font-weight: 600;
             font-size: 13px;
             transition: all 0.3s ease;
             color: #fff;
         }
-        .btn-primary-custom:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(26,26,46,0.3); color: #fff; }
+        .btn-primary-custom:hover {
+            background: #1a2d4a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(14, 26, 43, 0.3);
+            color: #fff;
+        }
         .btn-primary-custom i { margin-right: 6px; }
+
+        .btn-warning-custom {
+            background: #ffd700;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            color: #0e1a2b;
+        }
+        .btn-warning-custom:hover {
+            background: #e6c200;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            color: #0e1a2b;
+        }
+        .btn-warning-custom i { margin-right: 6px; }
+
+        .btn-danger-custom {
+            background: #e74c3c;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            color: #fff;
+        }
+        .btn-danger-custom:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            color: #fff;
+        }
+        .btn-danger-custom i { margin-right: 6px; }
+
         .btn-secondary-custom {
             background: #f0f2f5;
             border: none;
             border-radius: 8px;
-            padding: 8px 20px;
+            padding: 10px 24px;
             font-weight: 600;
             font-size: 13px;
             transition: all 0.3s ease;
             color: #555;
         }
         .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
-        .btn-success-custom {
-            background: #27ae60;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
+
+        .badge-status-tr {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
             font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
         }
-        .btn-success-custom:hover { background: #219a52; color: #fff; }
-        .btn-warning-custom {
-            background: #f39c12;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-warning-custom:hover { background: #e67e22; color: #fff; }
-        .btn-danger-custom {
-            background: #e74c3c;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-danger-custom:hover { background: #c0392b; color: #fff; }
-        .btn-edit-custom {
-            background: #3498db;
-            border: none;
-            border-radius: 8px;
-            padding: 5px 12px;
+        .badge-status-tr.pending { background: rgba(241, 196, 15, 0.15); color: #d4a017; }
+        .badge-status-tr.approved { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
+        .badge-status-tr.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
+
+        .table-custom { margin-bottom: 0; font-size: 13px; }
+        .table-custom th {
             font-weight: 600;
             font-size: 12px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-edit-custom:hover { background: #2980b9; color: #fff; }
-        .btn-sm-custom { padding: 4px 12px; font-size: 12px; border-radius: 6px; }
-        .badge-status {
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        .badge-status.draft { background: rgba(149,165,166,0.15); color: #7f8c8d; }
-        .badge-status.in_progress { background: rgba(241,196,15,0.15); color: #d4a017; }
-        .badge-status.success { background: rgba(46,204,113,0.15); color: #27ae60; }
-        .badge-status.rejected { background: rgba(231,76,60,0.15); color: #c0392b; }
-        .badge-trf {
-            background: rgba(52,152,219,0.12);
-            color: #2980b9;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        .unit-row {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid #e0e4ea;
-        }
-        .unit-row .btn-remove-unit {
-            color: #e74c3c;
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-        }
-        .unit-row .btn-remove-unit:hover { color: #c0392b; }
-        .unit-row .form-control, .unit-row .form-select { font-size: 12px; padding: 6px 10px; }
-        .dp-row, .installment-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 6px;
-            padding: 6px;
-            background: #fafafa;
-            border-radius: 6px;
-            border: 1px solid #e8edf2;
-        }
-        .dp-row .form-control, .installment-row .form-control { flex: 1; font-size: 12px; padding: 6px 10px; }
-        .dp-row .btn, .installment-row .btn { padding: 4px 8px; font-size: 12px; }
-        .summary-item {
-            display: flex;
-            padding: 6px 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            margin-bottom: 4px;
-            border: 1px solid #e8edf2;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .summary-item .label {
-            font-weight: 600;
-            color: #555;
-            width: 160px;
-            flex-shrink: 0;
-            font-size: 12px;
-        }
-        .summary-item .value { color: #1a1a2e; font-size: 12px; word-break: break-word; }
-        .summary-item .value .badge { font-size: 11px; }
-        .summary-item .text-muted { font-size: 11px; }
-        .empty-state {
-            text-align: center;
-            padding: 30px 20px;
-            color: #999;
-        }
-        .empty-state i { font-size: 36px; color: #ddd; margin-bottom: 8px; }
-        .empty-state p { font-size: 13px; margin: 0; }
-        .edit-form-container {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 16px;
-            border: 1px solid #e0e4ea;
-        }
-        .info-row {
-            display: flex;
-            padding: 6px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: #7f8c8d;
             border-bottom: 1px solid #f0f2f5;
-            flex-wrap: wrap;
+            padding: 12px 16px;
+            background: #fafafa;
+            white-space: nowrap;
         }
-        .info-row:last-child { border-bottom: none; }
-        .info-row .info-label {
-            font-weight: 600;
-            color: #555;
-            width: 180px;
-            flex-shrink: 0;
-            font-size: 13px;
+        .table-custom td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f2f5;
         }
-        .info-row .info-value { color: #1a1a2e; font-size: 13px; word-break: break-word; }
-        .nav-tabs-custom {
-            border-bottom: 2px solid #e8edf2;
-            padding: 0 16px;
-            background: #f8f9fa;
-            border-radius: 12px 12px 0 0;
-        }
-        .nav-tabs-custom .nav-link {
-            border: none;
-            padding: 10px 16px;
-            font-weight: 600;
-            font-size: 13px;
-            color: #999;
-            transition: all 0.3s ease;
+        .table-custom tr:last-child td { border-bottom: none; }
+        .table-custom tr:hover { background: #f8f9fa; }
+
+        .section-divider {
+            border-top: 2px dashed #e0e4ea;
+            margin: 30px 0;
             position: relative;
-            text-decoration: none;
-            display: inline-block;
         }
-        .nav-tabs-custom .nav-link:hover { color: #1a1a2e; background: transparent; }
-        .nav-tabs-custom .nav-link.active { color: #ffd700; background: transparent; }
-        .nav-tabs-custom .nav-link.active::after {
-            content: '';
+        .section-divider span {
             position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #ffd700;
-            border-radius: 3px 3px 0 0;
-        }
-        .nav-tabs-custom .nav-link i { margin-right: 6px; }
-        .tab-content-custom {
-            padding: 16px 20px 20px;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
             background: #fff;
-            border-radius: 0 0 12px 12px;
-            border: 1px solid #e8edf2;
-            border-top: none;
-        }
-        .section-title {
+            padding: 0 15px;
             font-weight: 700;
-            color: #1a1a2e;
-            font-size: 15px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #f0f2f5;
-        }
-        .section-title i { color: #ffd700; margin-right: 8px; }
-        .alert { border-radius: 10px; border: none; padding: 10px 14px; font-size: 13px; }
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #ffffff;
-            border-top: 1px solid rgba(0,0,0,0.05);
-            padding: 5px 0 env(safe-area-inset-bottom);
-            z-index: 999;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
-        }
-        .bottom-nav .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            padding: 3px 8px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            position: relative;
-            min-width: 45px;
-        }
-        .bottom-nav .nav-item .nav-icon { font-size: 17px; color: #999; transition: all 0.3s ease; }
-        .bottom-nav .nav-item .nav-label { font-size: 8px; color: #999; font-weight: 500; margin-top: 2px; transition: all 0.3s ease; }
-        .bottom-nav .nav-item.active .nav-icon { color: #ffd700; }
-        .bottom-nav .nav-item.active .nav-label { color: #1a1a2e; font-weight: 600; }
-        .bottom-nav .nav-item.active::before { content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 18px; height: 2px; background: #ffd700; border-radius: 0 0 2px 2px; }
-        .desktop-nav-wrapper {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            padding: 0 30px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .desktop-nav-wrapper .brand-section { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
-        .desktop-nav-wrapper .brand-section .logo-wrapper { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-        .desktop-nav-wrapper .brand-section .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-name span { color: #ffd700; }
-        .desktop-nav-wrapper .brand-section .brand-text .brand-sub { font-size: 8px; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase; }
-        .desktop-nav-wrapper .desktop-menu { display: flex; align-items: center; gap: 4px; }
-        .desktop-nav-wrapper .desktop-menu .nav-link { color: rgba(255,255,255,0.6); padding: 8px 16px; display: flex; align-items: center; gap: 6px; text-decoration: none; font-size: 13px; font-weight: 500; border-radius: 8px; transition: all 0.3s ease; }
-        .desktop-nav-wrapper .desktop-menu .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .desktop-nav-wrapper .desktop-menu .nav-link.active { color: #ffd700; background: rgba(255,215,0,0.08); }
-        .desktop-nav-wrapper .desktop-menu .nav-link i { font-size: 14px; }
-        .desktop-nav-wrapper .nav-right { display: flex; align-items: center; gap: 16px; }
-        .desktop-nav-wrapper .nav-right .notif-icon { position: relative; color: rgba(255,255,255,0.6); font-size: 17px; cursor: pointer; }
-        .desktop-nav-wrapper .nav-right .notif-icon .badge-notif { position: absolute; top: -5px; right: -6px; background: #d63031; color: #fff; font-size: 8px; padding: 1px 5px; border-radius: 50%; min-width: 16px; text-align: center; }
-        .desktop-nav-wrapper .nav-right .user-info { text-align: right; color: #fff; }
-        .desktop-nav-wrapper .nav-right .user-info .name { font-weight: 600; font-size: 13px; line-height: 1.2; }
-        .desktop-nav-wrapper .nav-right .user-info .role { font-size: 10px; color: rgba(255,255,255,0.4); }
-        .desktop-nav-wrapper .nav-right .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: center; color: #ffd700; font-weight: 700; font-size: 14px; text-decoration: none; border: 2px solid rgba(255,215,0,0.2); transition: border-color 0.3s ease; }
-        .desktop-nav-wrapper .nav-right .user-avatar:hover { border-color: #ffd700; }
-        .desktop-nav-wrapper .nav-right .logout-btn { color: rgba(255,255,255,0.5); padding: 5px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1); }
-        .desktop-nav-wrapper .nav-right .logout-btn:hover { color: #ff6b6b; background: rgba(214,48,49,0.1); border-color: rgba(214,48,49,0.3); }
-        .footer-text {
-            text-align: center;
-            padding: 16px 0 8px;
-            color: #999;
-            font-size: 11px;
-        }
-        .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
-        .footer-text a:hover { color: #ffd700; }
-        .currency-input { position: relative; }
-        .currency-input .currency-prefix {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #999;
-            font-weight: 600;
             font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .currency-input .form-control { padding-left: 32px; }
-        .alert-info-custom {
-            background: #e8f4fd;
-            border: 1px solid #c5e0f7;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 12px;
-            color: #2c7fb8;
-        }
-        .alert-info-custom i { margin-right: 6px; }
 
-        /* Approval Card Style */
-        .approval-card {
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .summary-item {
             background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px 20px;
-            border-left: 4px solid #ffd700;
-            margin-bottom: 16px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border-left: 3px solid #ffd700;
         }
-        .approval-card .approval-title {
-            font-weight: 700;
-            color: #1a1a2e;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        .approval-card .approval-title i {
-            color: #ffd700;
-            margin-right: 8px;
-        }
-        .approval-step {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 0;
-        }
-        .approval-step .step-number {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-        .approval-step .step-number.done {
-            background: #27ae60;
+
+        .total-box {
+            background: #0e1a2b;
             color: #fff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-align: center;
         }
-        .approval-step .step-number.active {
-            background: #ffd700;
-            color: #1a1a2e;
-        }
-        .approval-step .step-number.pending {
-            background: #e0e4ea;
-            color: #999;
-        }
-        .approval-step .step-number.rejected {
-            background: #e74c3c;
-            color: #fff;
-        }
-        .approval-step .step-info {
-            flex: 1;
-        }
-        .approval-step .step-info .step-label {
-            font-weight: 600;
-            font-size: 13px;
-            color: #1a1a2e;
-        }
-        .approval-step .step-info .step-status {
+        .total-box .total-label {
             font-size: 11px;
-            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.6);
         }
-        .approval-step .step-info .step-status .text-success { color: #27ae60; }
-        .approval-step .step-info .step-status .text-warning { color: #f39c12; }
-        .approval-step .step-info .step-status .text-danger { color: #e74c3c; }
-        .approval-step .step-info .step-status .text-muted { color: #999; }
-
-        .approval-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e0e4ea;
+        .total-box .total-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffd700;
         }
 
-        @media (min-width: 769px) {
-            .bottom-nav { display: none !important; }
-            body { padding-bottom: 0; }
-            .top-header { display: none !important; }
-        }
-        @media (max-width: 768px) {
-            .desktop-nav-wrapper { display: none !important; }
-            body { padding-bottom: 65px; }
-            .welcome-banner { padding: 14px 18px; }
-            .welcome-banner .welcome-text h3 { font-size: 16px; }
-            .welcome-banner .welcome-icon { display: none; }
-            .card-custom .card-header-custom { padding: 12px 16px; }
-            .card-custom .card-body-custom { padding: 15px; }
-            .dp-row, .installment-row { flex-wrap: wrap; }
-            .nav-tabs-custom .nav-link { padding: 8px 12px; font-size: 12px; }
-            .info-row { flex-wrap: wrap; }
-            .info-row .info-label { width: 100%; }
-            .summary-item { flex-wrap: wrap; }
-            .summary-item .label { width: 100%; }
-            .tab-content-custom { padding: 12px 14px; }
-            .unit-row { padding: 10px; }
-            .approval-step { flex-wrap: wrap; }
-            .approval-actions { justify-content: center; }
-        }
-        @media (max-width: 480px) {
-            .modal-body { padding: 14px 16px; }
-            .modal-header { padding: 14px 16px; }
-            .unit-row { padding: 8px; }
-            .nav-tabs-custom .nav-link { padding: 6px 10px; font-size: 11px; }
-            .info-row .info-label { width: 100%; }
-            .summary-item .label { width: 100%; }
-            .dp-row .form-control, .installment-row .form-control { font-size: 11px; }
-            .dp-row { flex-wrap: wrap; }
-            .installment-row { flex-wrap: wrap; }
-            .approval-step .step-number { width: 24px; height: 24px; font-size: 10px; }
-            .approval-step .step-info .step-label { font-size: 12px; }
+        .mobile-toggle { display: none; }
+
+        @media (max-width: 991px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 20px; }
+            .mobile-toggle { 
+                display: flex !important; background: #0e1a2b; border: none; 
+                width: 40px; height: 40px; border-radius: 8px; 
+                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
 
-<!-- DESKTOP NAVBAR -->
-<div class="desktop-nav-wrapper">
-    <div class="brand-section">
-        <div class="logo-wrapper">
-            <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
-        </div>
-        <div class="brand-text">
-            <div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div>
-            <div class="brand-sub">Customer Relationship Management System</div>
-        </div>
-    </div>
-    <div class="desktop-menu">
-        <a href="dashboard.php" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a>
-        <?php if (canAccessMenu('account_management')): ?>
-            <a href="account_management.php" class="nav-link"><i class="fas fa-building"></i> Account</a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('sales_activity')): ?>
-            <a href="salesactivity.php" class="nav-link"><i class="fas fa-chart-bar"></i> Sales Activity</a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('transaction_request')): ?>
-            <a href="transactionrequest.php" class="nav-link"><i class="fas fa-file-signature"></i> TR Request</a>
-        <?php endif; ?>
-        <?php if (canAccessMenu('produk')): ?>
-            <a href="produk.php" class="nav-link"><i class="fas fa-box"></i> Produk</a>
-        <?php endif; ?>
-    </div>
-    <div class="nav-right">
-        <div class="notif-icon"><i class="fas fa-bell"></i><span class="badge-notif">0</span></div>
-        <div class="user-info"><div class="name"><?= htmlspecialchars($fullName) ?></div><div class="role"><?= getRoleLabel($role) ?></div></div>
-        <a href="logout.php" class="user-avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></a>
-        <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </div>
-</div>
+    <!-- SIDEBAR MODERN -->
+    <nav class="sidebar" id="sidebar">
+        <a href="dashboard.php" class="brand">
+            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
+            <div class="brand-text">
+                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
+                <small>PT Ganda Elang Tangguh</small>
+            </div>
+        </a>
 
-<!-- MOBILE HEADER -->
-<header class="top-header">
-    <div class="header-left">
-        <div class="logo-wrapper"><img src="images/logo.webp" alt="PT Ganda Elang Tangguh"></div>
-        <div class="brand-text"><div class="brand-name">PT GANDA <span>ELANG</span> TANGGUH</div><div class="brand-sub">Customer Relationship Management</div></div>
-    </div>
-    <div class="header-right">
-        <div class="notif-icon"><i class="fas fa-bell"></i><span class="badge-notif">0</span></div>
-        <a href="logout.php" class="user-avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></a>
-    </div>
-</header>
-
-<!-- MAIN CONTENT -->
-<main style="padding: 12px 16px 0; max-width: 1400px; margin: 0 auto;">
-
-    <div class="welcome-banner">
-        <div class="welcome-text">
-            <div class="greeting">Detail Transaction Request</div>
-            <h3>Detail Transaction Request Form</h3>
-        </div>
-        <i class="fas fa-file-alt welcome-icon"></i>
-    </div>
-
-    <?= showFlash() ?>
-
-    <?php if ($detailData): ?>
-    <form method="POST" id="formDetailTR">
-        <input type="hidden" name="action" value="save">
-        <input type="hidden" name="id" value="<?= $detailData['id'] ?? '' ?>">
-        <input type="hidden" name="trf_number" value="<?= htmlspecialchars($detailData['trf_number']) ?>">
-        <input type="hidden" name="transaction_request_id" value="<?= $detailData['transaction_request_id'] ?? '' ?>">
-        <input type="hidden" name="account_id" value="<?= $detailData['account_id'] ?? '' ?>">
-        <input type="hidden" name="status" id="formStatus" value="<?= $detailData['status'] ?? 'draft' ?>">
-        <input type="hidden" name="approval_level" id="formApprovalLevel" value="<?= $detailData['approval_level'] ?? 0 ?>">
-        <input type="hidden" name="active_tab" id="activeTabInput" value="<?= $activeTab ?>">
-        <input type="hidden" name="edit_mode" id="editMode" value="<?= $editMode ?>">
+        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
         
-        <!-- HIDDEN FIELDS UNTUK MENYIMPAN SEMUA DATA -->
-        <input type="hidden" name="units_data" id="units_data" value='<?= htmlspecialchars($units_json) ?>'>
-        <input type="hidden" name="top_data" id="top_data" value='<?= htmlspecialchars($top_json) ?>'>
-        <input type="hidden" name="additional_data" id="additional_data" value='<?= htmlspecialchars($additional_json) ?>'>
-        <input type="hidden" name="mediator_data" id="mediator_data" value='<?= htmlspecialchars($mediator_json) ?>'>
+        <?php if (in_array('sales_activity', $menuNames)): ?>
+            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i> Sales Activity</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('account_management', $menuNames)): ?>
+            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('transaction_request', $menuNames)): ?>
+            <a href="transactionrequest.php" class="nav-item active"><i class="fas fa-file-signature"></i> TR Request</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('produk', $menuNames)): ?>
+            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('delivery_order', $menuNames)): ?>
+            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+        <?php endif; ?>
+        
+        <?php if (in_array('data_user', $menuNames)): ?>
+            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
+        <?php endif; ?>
 
-        <!-- APPROVAL SECTION (DITARUH DI ATAS TAB) -->
-        <?php
-        $approvalLevel = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
-        $status = $detailData['status'] ?? 'draft';
-        $isRejected = ($status === 'rejected');
-        $isCompleted = ($status === 'completed');
-        
-        // Mapping approval level untuk ditampilkan
-        $approvalSteps = [
-            1 => ['label' => 'Direktur Sales', 'role' => 'direktur_sales'],
-            2 => ['label' => 'Business', 'role' => 'business'],
-            3 => ['label' => 'Direktur Operasional', 'role' => 'direktur_operasional'],
-            4 => ['label' => 'Direktur Utama', 'role' => 'direktur_utama']
-        ];
-        ?>
-        
-        <div class="approval-card">
-            <div class="approval-title">
-                <i class="fas fa-check-circle"></i> Status Approval
-                <?php if ($isRejected): ?>
-                    <span class="badge-status rejected ms-2">Rejected</span>
-                <?php elseif ($isCompleted): ?>
-                    <span class="badge-status success ms-2">Completed</span>
-                <?php elseif ($approvalLevel >= 1): ?>
-                    <span class="badge-status in_progress ms-2">In Progress</span>
-                <?php else: ?>
-                    <span class="badge-status draft ms-2">Pending Approval</span>
-                <?php endif; ?>
+        <div class="user-profile">
+            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
+            <div class="user-info">
+                <div class="name"><?= htmlspecialchars($fullName) ?></div>
+                <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
-            
-            <?php foreach ($approvalSteps as $level => $step): ?>
-                <?php
-                $isDone = ($approvalLevel >= $level);
-                $isActive = ($approvalLevel == $level - 1 && !$isRejected && !$isCompleted);
-                $isPending = ($approvalLevel < $level - 1 && !$isRejected && !$isCompleted);
-                $isRejectedStep = ($isRejected && $approvalLevel < $level);
-                
-                $stepClass = '';
-                if ($isRejectedStep) {
-                    $stepClass = 'rejected';
-                } elseif ($isDone) {
-                    $stepClass = 'done';
-                } elseif ($isActive) {
-                    $stepClass = 'active';
-                } else {
-                    $stepClass = 'pending';
-                }
-                
-                $statusText = '';
-                if ($isRejectedStep) {
-                    $statusText = '<span class="text-danger">Rejected</span>';
-                } elseif ($isDone) {
-                    $statusText = '<span class="text-success"><i class="fas fa-check-circle"></i> Approved</span>';
-                } elseif ($isActive) {
-                    $statusText = '<span class="text-warning"><i class="fas fa-clock"></i> Menunggu Persetujuan</span>';
-                } else {
-                    $statusText = '<span class="text-muted"><i class="fas fa-hourglass"></i> Pending</span>';
-                }
-                ?>
-                <div class="approval-step">
-                    <div class="step-number <?= $stepClass ?>">
-                        <?php if ($isDone): ?>
-                            <i class="fas fa-check"></i>
-                        <?php elseif ($isRejectedStep): ?>
-                            <i class="fas fa-times"></i>
-                        <?php else: ?>
-                            <?= $level ?>
-                        <?php endif; ?>
-                    </div>
-                    <div class="step-info">
-                        <div class="step-label"><?= $step['label'] ?></div>
-                        <div class="step-status">
-                            <?= $statusText ?>
-                            <?php if ($isActive && !$isRejected && !$isCompleted): ?>
-                                <span class="text-muted ms-2">(<?= getApproverName($db, $step['role']) ?>)</span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-            
-            <!-- APPROVAL ACTIONS -->
-            <?php
-            // CEK APAKAH USER BISA APPROVE
-            $canApprove = canUserApprove($userRole, $approvalLevel, $status);
-            $canReject = canUserReject($userRole, $approvalLevel, $status);
-            ?>
-            
-            <?php if ($canApprove || $canReject): ?>
-            <div class="approval-actions">
-                <?php if ($canApprove): ?>
-                    <button type="button" class="btn btn-success-custom" onclick="approveTR(<?= $detailData['id'] ?>, '<?= $detailData['trf_number'] ?>', <?= $approvalLevel ?>)">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                <?php endif; ?>
-                
-                <?php if ($canReject): ?>
-                    <button type="button" class="btn btn-danger-custom" onclick="rejectTR(<?= $detailData['id'] ?>, '<?= $detailData['trf_number'] ?>')">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
         </div>
+        <a href="logout.php" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </nav>
 
-        <!-- TAB NAVIGATION -->
-        <div class="card-custom" style="padding: 0; overflow: hidden;">
-            <div class="nav-tabs-custom">
-                <ul class="nav nav-tabs" id="detailTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=summary" class="nav-link <?= $activeTab == 'summary' ? 'active' : '' ?>">
-                            <i class="fas fa-info-circle"></i> Summary
-                        </a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=unit" class="nav-link <?= $activeTab == 'unit' ? 'active' : '' ?>">
-                            <i class="fas fa-box"></i> Detail Unit
-                        </a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=top" class="nav-link <?= $activeTab == 'top' ? 'active' : '' ?>">
-                            <i class="fas fa-money-bill-wave"></i> Term Of Payment
-                        </a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=additional" class="nav-link <?= $activeTab == 'additional' ? 'active' : '' ?>">
-                            <i class="fas fa-plus-circle"></i> Additional Cost
-                        </a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=mediator" class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>">
-                            <i class="fas fa-user-tie"></i> Mediator Fee
-                        </a>
-                    </li>
-                </ul>
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        
+        <!-- HEADER -->
+        <div class="page-header">
+            <div style="display:flex; gap:15px; align-items:center;">
+                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <h4><span><i class="fas fa-file-signature" style="color:#ffd700;"></i></span> Detail TR: <?= htmlspecialchars($tr_number) ?></h4>
+                </div>
             </div>
-
-            <div class="tab-content tab-content-custom" id="detailTabContent">
-                <!-- TAB 1: SUMMARY -->
-                <div class="tab-pane fade <?= $activeTab == 'summary' ? 'show active' : '' ?>" id="summary" role="tabpanel">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="info-row"><span class="info-label">TR Number</span><span class="info-value"><span class="badge-trf"><i class="fas fa-file-signature"></i> <?= htmlspecialchars($detailData['trf_number']) ?></span></span></div>
-                            <div class="info-row"><span class="info-label">Nama PT</span><span class="info-value"><?= htmlspecialchars($detailData['account_nama_pt'] ?? $detailData['nama_pt'] ?? '-') ?></span></div>
-                            <div class="info-row"><span class="info-label">No NPWP</span><span class="info-value"><?= htmlspecialchars($detailData['account_npwp'] ?? $detailData['npwp'] ?? '-') ?></span></div>
-                            <div class="info-row"><span class="info-label">Alamat</span><span class="info-value"><?= htmlspecialchars($detailData['account_alamat'] ?? $detailData['alamat'] ?? '-') ?></span></div>
-                            <div class="info-row"><span class="info-label">Nama PIC</span><span class="info-value"><?= htmlspecialchars($detailData['account_nama_pic'] ?? $detailData['nama_pic'] ?? '-') ?></span></div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="info-row"><span class="info-label">Jabatan PIC</span><span class="info-value"><?= htmlspecialchars($detailData['account_jabatan_pic'] ?? $detailData['jabatan_pic'] ?? '-') ?></span></div>
-                            <div class="info-row"><span class="info-label">No Telepon PIC</span><span class="info-value"><?= htmlspecialchars($detailData['account_no_hp_pic'] ?? $detailData['no_hp_pic'] ?? '-') ?></span></div>
-                            <div class="info-row"><span class="info-label">Email PIC</span><span class="info-value"><?= htmlspecialchars($detailData['account_email_pic'] ?? $detailData['email_pic'] ?? '-') ?></span></div>
-                            <div class="info-row"><span class="info-label">Subject</span><span class="info-value"><?= htmlspecialchars($detailData['subject'] ?? '-') ?></span></div>
-                            <div class="info-row"><span class="info-label">Due Date</span><span class="info-value"><?= !empty($detailData['due_date']) ? date('d/m/Y', strtotime($detailData['due_date'])) : '-' ?></span></div>
-                        </div>
-                    </div>
-                    
-                    <!-- STATUS & APPROVAL INFORMATION -->
-                    <div class="row mt-2">
-                        <div class="col-md-12">
-                            <?php
-                            $approvalLevel = isset($detailData['approval_level']) ? (int)$detailData['approval_level'] : 0;
-                            $status = $detailData['status'] ?? 'draft';
-                            $approvalStatus = getApprovalStatus($detailData);
-                            ?>
-                            <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge-status <?= $approvalStatus ?>"><?php if ($status === 'rejected') { echo 'Rejected'; } elseif ($approvalStatus === 'success') { echo 'Success'; } elseif ($approvalStatus === 'in_progress') { echo 'In Progress'; } else { echo 'Pending'; } ?></span></span></div>
-                            <?php if ($status !== 'rejected' && $status !== 'completed'): ?>
-                            <div class="info-row"><span class="info-label">Current Approver</span><span class="info-value"><?php if ($approvalLevel >= 4) { echo 'Completed'; } else { $current = getCurrentApprover($approvalLevel + 1); echo $current ? $current['job_title'] : '-'; } ?></span></div>
-                            <div class="info-row"><span class="info-label">Current Approver Name</span><span class="info-value"><?php if ($approvalLevel >= 4) { echo 'Completed'; } else { $current = getCurrentApprover($approvalLevel + 1); echo $current ? getApproverName($db, $current['role']) : '-'; } ?></span></div>
-                            <div class="info-row"><span class="info-label">Next Approver</span><span class="info-value"><?php if ($approvalLevel >= 4) { echo 'Completed'; } else { $next = getNextApprover($approvalLevel); echo $next ? $next['job_title'] : '-'; } ?></span></div>
-                            <?php endif; ?>
-                            <div class="info-row"><span class="info-label">Approval Level</span><span class="info-value"><?= $approvalLevel ?> / 4 <?php if ($approvalLevel > 0 && $approvalLevel < 4): ?><span class="badge bg-warning text-dark ms-2">In Progress</span><?php elseif ($approvalLevel >= 4): ?><span class="badge bg-success ms-2">Completed</span><?php elseif ($status === 'rejected'): ?><span class="badge bg-danger ms-2">Rejected</span><?php else: ?><span class="badge bg-secondary ms-2">Pending</span><?php endif; ?></span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: DETAIL UNIT -->
-                <div class="tab-pane fade <?= $activeTab == 'unit' ? 'show active' : '' ?>" id="unit" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="section-title mb-0"><i class="fas fa-box"></i> Detail Unit</h5>
-                        <?php if ($editMode == 'unit'): ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=unit" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php else: ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom">
-                                <i class="fas fa-edit"></i> <?= empty($units) ? 'Tambah Unit' : 'Edit Unit' ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <?php if ($editMode == 'unit'): ?>
-                        <div class="edit-form-container">
-                            <div id="unitContainer">
-                                <?php 
-                                $unitIndex = 0;
-                                if (empty($units)) {
-                                    $units = [['unit_name' => '', 'qty' => 1, 'price' => 0, 'ppn_percent' => 11, 'ppn' => 0, 'grand_total' => 0, 'specification' => '', 'additional_attachment' => '', 'warranty' => '', 'machine_location' => '', 'delivery_terms' => '', 'delivery_schedule' => date('Y-m-d', strtotime('+30 days')), 'transaction_type' => '']];
-                                }
-                                foreach ($units as $unit):
-                                ?>
-                                <div class="unit-row" data-index="<?= $unitIndex ?>">
-                                    <div class="row">
-                                        <div class="col-md-12 text-end">
-                                            <?php if (count($units) > 1): ?>
-                                                <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit"><i class="fas fa-times-circle"></i></button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Unit <span class="required">*</span></label>
-                                            <select name="unit_name[]" class="form-select form-select-sm" required>
-                                                <option value="">-- Pilih Unit --</option>
-                                                <?php foreach ($produkList as $produk): ?>
-                                                    <option value="<?= htmlspecialchars($produk['nama_produk']) ?>" <?= ($unit['unit_name'] == $produk['nama_produk']) ? 'selected' : '' ?>><?= htmlspecialchars($produk['nama_produk']) ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2 mb-2">
-                                            <label class="form-label">QTY <span class="required">*</span></label>
-                                            <input type="number" name="qty[]" class="form-control form-control-sm qty" value="<?= $unit['qty'] ?? 1 ?>" min="1" required onchange="calculateUnit(this)">
-                                        </div>
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Price (Non PPN) <span class="required">*</span></label>
-                                            <div class="currency-input">
-                                                <span class="currency-prefix">Rp</span>
-                                                <input type="text" name="price[]" class="form-control form-control-sm price" value="<?= number_format($unit['price'] ?? 0, 0, ',', '.') ?>" required oninput="calculateUnit(this)">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">PPN (11%)</label>
-                                            <input type="text" name="ppn[]" class="form-control form-control-sm ppn" value="<?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?>" readonly>
-                                        </div>
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">Grand Total (Include PPN)</label>
-                                            <input type="text" name="grand_total_unit[]" class="form-control form-control-sm grand-total-unit" value="<?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?>" readonly>
-                                        </div>
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Spesification <span class="required">*</span></label>
-                                            <input type="text" name="specification[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['specification'] ?? '') ?>" required>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Additional Attachment / Safety Devices</label>
-                                            <input type="text" name="additional_attachment[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['additional_attachment'] ?? '') ?>">
-                                        </div>
-                                        <div class="col-md-6 mb-2">
-                                            <label class="form-label">Warranty</label>
-                                            <input type="text" name="warranty[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['warranty'] ?? '') ?>">
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Machine Location Works <span class="required">*</span></label>
-                                            <input type="text" name="machine_location[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['machine_location'] ?? '') ?>" required>
-                                        </div>
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Delivery Terms <span class="required">*</span></label>
-                                            <input type="text" name="delivery_terms[]" class="form-control form-control-sm" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" value="<?= htmlspecialchars($unit['delivery_terms'] ?? '') ?>" required>
-                                        </div>
-                                        <div class="col-md-4 mb-2">
-                                            <label class="form-label">Delivery Schedule Plan <span class="required">*</span></label>
-                                            <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="<?= htmlspecialchars($unit['delivery_schedule'] ?? date('Y-m-d', strtotime('+30 days'))) ?>" required>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-12 mb-2">
-                                            <label class="form-label">Transaction Type <span class="required">*</span></label>
-                                            <div class="row">
-                                                <div class="col-md-4">
-                                                    <select name="transaction_type[]" class="form-select form-select-sm transaction-type-select" required onchange="showOtherInput(this)">
-                                                        <option value="">-- Pilih Transaction Type --</option>
-                                                        <option value="Cash On Delivery" <?= ($unit['transaction_type'] == 'Cash On Delivery') ? 'selected' : '' ?>>Cash On Delivery</option>
-                                                        <option value="Leasing" <?= ($unit['transaction_type'] == 'Leasing') ? 'selected' : '' ?>>Leasing</option>
-                                                        <option value="Direct Credit" <?= ($unit['transaction_type'] == 'Direct Credit') ? 'selected' : '' ?>>Direct Credit</option>
-                                                        <option value="Other" <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'selected' : '' ?>>Other</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-4" id="otherInputContainer_<?= $unitIndex ?>" style="display: <?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false) ? 'block' : 'none' ?>">
-                                                    <input type="text" name="transaction_type_other[]" class="form-control form-control-sm" placeholder="Spesifikasi Other" value="<?= (strpos($unit['transaction_type'] ?? '', 'Other') !== false && strpos($unit['transaction_type'] ?? '', '-') !== false) ? trim(substr($unit['transaction_type'], strpos($unit['transaction_type'], '-') + 1)) : '' ?>">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <?php 
-                                $unitIndex++;
-                                endforeach; 
-                                ?>
-                            </div>
-                            
-                            <!-- TOMBOL TAMBAH UNIT -->
-                            <div class="text-start mt-3 mb-3">
-                                <button type="button" class="btn btn-sm btn-primary-custom" onclick="addUnit()">
-                                    <i class="fas fa-plus-circle"></i> Tambah Unit
-                                </button>
-                            </div>
-                            
-                            <div class="text-end mt-2">
-                                <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()"><i class="fas fa-save"></i> Simpan Unit</button>
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=unit" class="btn btn-sm btn-secondary-custom ms-2"><i class="fas fa-times"></i> Batal</a>
-                            </div>
-                        </div>
-                    <?php elseif (!empty($units)): ?>
-                        <?php foreach ($units as $unit): ?>
-                        <div class="summary-item"><span class="label">Unit</span><span class="value"><strong><?= htmlspecialchars($unit['unit_name']) ?></strong></span></div>
-                        <div class="summary-item"><span class="label">QTY</span><span class="value"><?= $unit['qty'] ?? 0 ?></span></div>
-                        <div class="summary-item"><span class="label">Price (Non PPN)</span><span class="value">Rp <?= number_format($unit['price'] ?? 0, 0, ',', '.') ?></span></div>
-                        <div class="summary-item"><span class="label">PPN (11%)</span><span class="value">Rp <?= number_format($unit['ppn'] ?? 0, 0, ',', '.') ?></span></div>
-                        <div class="summary-item"><span class="label">Grand Total (Include PPN)</span><span class="value"><strong>Rp <?= number_format($unit['grand_total'] ?? 0, 0, ',', '.') ?></strong></span></div>
-                        <div class="summary-item"><span class="label">Spesification</span><span class="value"><?= htmlspecialchars($unit['specification'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">Additional Attachment</span><span class="value"><?= htmlspecialchars($unit['additional_attachment'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">Warranty</span><span class="value"><?= htmlspecialchars($unit['warranty'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">Machine Location</span><span class="value"><?= htmlspecialchars($unit['machine_location'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">Delivery Terms</span><span class="value"><?= htmlspecialchars($unit['delivery_terms'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">Delivery Schedule</span><span class="value"><?= !empty($unit['delivery_schedule']) ? date('d/m/Y', strtotime($unit['delivery_schedule'])) : '-' ?></span></div>
-                        <div class="summary-item"><span class="label">Transaction Type</span><span class="value"><span class="badge bg-info"><?= htmlspecialchars($unit['transaction_type'] ?? '-') ?></span></span></div>
-                        <hr class="my-2">
-                        <?php endforeach; ?>
-                        <div class="text-center mt-3">
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Unit</a>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-state">
-                            <i class="fas fa-box-open"></i>
-                            <p>Belum ada data unit. Klik tombol di bawah untuk menambahkan unit.</p>
-                            <div class="mt-3">
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=unit&tab=unit" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah Unit</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- TAB 3: TERM OF PAYMENT -->
-                <div class="tab-pane fade <?= $activeTab == 'top' ? 'show active' : '' ?>" id="top" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="section-title mb-0"><i class="fas fa-money-bill-wave"></i> Term Of Payment</h5>
-                        <?php if ($editMode == 'top'): ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=top" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php else: ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom">
-                                <i class="fas fa-edit"></i> <?= (empty($top['down_payments']) && empty($top['installments']) && $top['booking_fee'] == 0 && $top['nominal_po_leasing'] == 0) ? 'Tambah TOP' : 'Edit TOP' ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <?php if ($editMode == 'top'): ?>
-                        <div class="edit-form-container">
-                            <div class="row">
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label">Booking Fee</label>
-                                    <div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="booking_fee" class="form-control form-control-sm top-input" value="<?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal"></div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label">Remark Booking Fee</label>
-                                    <input type="text" name="booking_fee_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($top['booking_fee_remark'] ?? '') ?>" placeholder="Keterangan">
-                                </div>
-                                <div class="col-md-4 mb-2 text-end">
-                                    <label class="form-label">Grand Total TOP</label>
-                                    <h4 class="text-success" id="grandTotalTOP" style="font-size: 18px; margin: 0;">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></h4>
-                                    <input type="hidden" name="grand_total_top" id="grandTotalTOPHidden" value="<?= $top['grand_total_top'] ?? 0 ?>">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label">Nominal PO Leasing</label>
-                                    <div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="nominal_po_leasing" class="form-control form-control-sm top-input" value="<?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()" placeholder="Nominal"></div>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label">Remark PO Leasing</label>
-                                    <input type="text" name="nominal_po_leasing_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($top['nominal_po_leasing_remark'] ?? '') ?>" placeholder="Keterangan">
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Down Payment</label>
-                                <div id="dpContainer">
-                                    <?php if (!empty($top['down_payments'])): ?>
-                                        <?php foreach ($top['down_payments'] as $dp): ?>
-                                        <div class="dp-row">
-                                            <input type="text" name="dp_name[]" class="form-control form-control-sm" placeholder="Nama DP" value="<?= htmlspecialchars($dp['name'] ?? '') ?>">
-                                            <div class="currency-input" style="flex:1;"><span class="currency-prefix">Rp</span><input type="text" name="dp_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($dp['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()"></div>
-                                            <input type="text" name="dp_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($dp['remark'] ?? '') ?>">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-primary-custom mt-1" onclick="addDP()"><i class="fas fa-plus"></i> Tambah DP</button>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Angsuran</label>
-                                <div id="installmentContainer">
-                                    <?php if (!empty($top['installments'])): ?>
-                                        <?php foreach ($top['installments'] as $inst): ?>
-                                        <div class="installment-row">
-                                            <input type="text" name="installment_name[]" class="form-control form-control-sm" placeholder="Nama Angsuran" value="<?= htmlspecialchars($inst['name'] ?? '') ?>">
-                                            <div class="currency-input" style="flex:1;"><span class="currency-prefix">Rp</span><input type="text" name="installment_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" value="<?= number_format($inst['value'] ?? 0, 0, ',', '.') ?>" oninput="calculateTOP()"></div>
-                                            <input type="text" name="installment_remark[]" class="form-control form-control-sm" placeholder="Remark" value="<?= htmlspecialchars($inst['remark'] ?? '') ?>">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-primary-custom mt-1" onclick="addInstallment()"><i class="fas fa-plus"></i> Tambah Angsuran</button>
-                            </div>
-                            <div class="text-end mt-2">
-                                <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()"><i class="fas fa-save"></i> Simpan TOP</button>
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=top" class="btn btn-sm btn-secondary-custom ms-2"><i class="fas fa-times"></i> Batal</a>
-                            </div>
-                        </div>
-                    <?php elseif (!empty($top['down_payments']) || !empty($top['installments']) || $top['booking_fee'] > 0 || $top['nominal_po_leasing'] > 0): ?>
-                        <div class="summary-item"><span class="label">Booking Fee</span><span class="value">Rp <?= number_format($top['booking_fee'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($top['booking_fee_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($top['booking_fee_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item"><span class="label">Nominal PO Leasing</span><span class="value">Rp <?= number_format($top['nominal_po_leasing'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($top['nominal_po_leasing_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($top['nominal_po_leasing_remark']) ?>)</span><?php endif; ?></div>
-                        <?php foreach ($top['down_payments'] ?? [] as $dp): ?>
-                        <div class="summary-item"><span class="label"><?= htmlspecialchars($dp['name'] ?? 'Down Payment') ?></span><span class="value">Rp <?= number_format($dp['value'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($dp['remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($dp['remark']) ?>)</span><?php endif; ?></div>
-                        <?php endforeach; ?>
-                        <?php foreach ($top['installments'] ?? [] as $inst): ?>
-                        <div class="summary-item"><span class="label"><?= htmlspecialchars($inst['name'] ?? 'Angsuran') ?></span><span class="value">Rp <?= number_format($inst['value'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($inst['remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($inst['remark']) ?>)</span><?php endif; ?></div>
-                        <?php endforeach; ?>
-                        <div class="summary-item" style="background: #d4edda; border-radius: 6px;"><span class="label" style="font-weight: 700; color: #155724;">Grand Total TOP</span><span class="value" style="font-weight: 700; color: #155724;">Rp <?= number_format($top['grand_total_top'] ?? 0, 0, ',', '.') ?></span></div>
-                        <div class="text-center mt-3">
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit TOP</a>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-state">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            <p>Belum ada data Term Of Payment. Klik tombol di bawah untuk menambahkan.</p>
-                            <div class="mt-3">
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=top&tab=top" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah TOP</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- TAB 4: ADDITIONAL COST -->
-                <div class="tab-pane fade <?= $activeTab == 'additional' ? 'show active' : '' ?>" id="additional" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="section-title mb-0"><i class="fas fa-plus-circle"></i> Additional Cost / Machines</h5>
-                        <?php if ($editMode == 'additional'): ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=additional" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php else: ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom">
-                                <i class="fas fa-edit"></i> <?= !$hasAdditional ? 'Tambah Additional Cost' : 'Edit Additional Cost' ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <?php if ($editMode == 'additional'): ?>
-                        <div class="edit-form-container">
-                            <div class="row mb-2">
-                                <div class="col-md-6"><label class="form-label">Insurance Ops</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="insurance_ops" class="form-control form-control-sm additional-input" value="<?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal"></div></div>
-                                <div class="col-md-6"><label class="form-label">Remark Insurance Ops</label><input type="text" name="insurance_ops_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['insurance_ops_remark'] ?? '') ?>" placeholder="Keterangan"></div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6"><label class="form-label">Insurance Cargo <span class="required">*</span></label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="insurance_cargo" class="form-control form-control-sm additional-input" value="<?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" required placeholder="Nominal"></div></div>
-                                <div class="col-md-6"><label class="form-label">Remark Insurance Cargo</label><input type="text" name="insurance_cargo_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['insurance_cargo_remark'] ?? '') ?>" placeholder="Keterangan"></div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6"><label class="form-label">Delivery Cost</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="delivery_cost" class="form-control form-control-sm additional-input" value="<?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal"></div></div>
-                                <div class="col-md-6"><label class="form-label">Remark Delivery Cost</label><input type="text" name="delivery_cost_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['delivery_cost_remark'] ?? '') ?>" placeholder="Keterangan"></div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6"><label class="form-label">Free Part</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="free_part" class="form-control form-control-sm additional-input" value="<?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal"></div></div>
-                                <div class="col-md-6"><label class="form-label">Remark Free Part</label><input type="text" name="free_part_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['free_part_remark'] ?? '') ?>" placeholder="Keterangan"></div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6"><label class="form-label">Free Service</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="free_service" class="form-control form-control-sm additional-input" value="<?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal"></div></div>
-                                <div class="col-md-6"><label class="form-label">Remark Free Service</label><input type="text" name="free_service_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['free_service_remark'] ?? '') ?>" placeholder="Keterangan"></div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6"><label class="form-label">Mediator Fee</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="mediator_fee" class="form-control form-control-sm additional-input" id="mediatorFeeInput" value="<?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional(); updateMediatorAmount()" placeholder="Nominal"></div></div>
-                                <div class="col-md-6"><label class="form-label">Remark Mediator Fee</label><input type="text" name="mediator_fee_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['mediator_fee_remark'] ?? '') ?>" placeholder="Keterangan"></div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6"><label class="form-label">Others</label><div class="currency-input"><span class="currency-prefix">Rp</span><input type="text" name="others_cost" class="form-control form-control-sm additional-input" value="<?= number_format($additional['others'] ?? 0, 0, ',', '.') ?>" oninput="calculateAdditional()" placeholder="Nominal"></div></div>
-                                <div class="col-md-6"><label class="form-label">Remark Others</label><input type="text" name="others_remark" class="form-control form-control-sm" value="<?= htmlspecialchars($additional['others_remark'] ?? '') ?>" placeholder="Keterangan"></div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-12 text-end">
-                                    <label class="form-label" style="font-weight: 700;">Total Additional Cost</label>
-                                    <h4 class="text-primary" id="totalAdditional" style="font-size: 20px; margin: 0;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></h4>
-                                    <input type="hidden" name="total_additional" id="totalAdditionalHidden" value="<?= $additional['total_additional'] ?? 0 ?>">
-                                </div>
-                            </div>
-                            <div class="text-end mt-3">
-                                <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()"><i class="fas fa-save"></i> Simpan Additional Cost</button>
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=additional" class="btn btn-sm btn-secondary-custom ms-2"><i class="fas fa-times"></i> Batal</a>
-                            </div>
-                        </div>
-                    <?php elseif ($hasAdditional): ?>
-                        <div class="summary-item"><span class="label">Insurance Ops</span><span class="value">Rp <?= number_format($additional['insurance_ops'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['insurance_ops_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_ops_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item"><span class="label">Insurance Cargo</span><span class="value">Rp <?= number_format($additional['insurance_cargo'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['insurance_cargo_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['insurance_cargo_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item"><span class="label">Delivery Cost</span><span class="value">Rp <?= number_format($additional['delivery_cost'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['delivery_cost_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['delivery_cost_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item"><span class="label">Free Part</span><span class="value">Rp <?= number_format($additional['free_part'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['free_part_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['free_part_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item"><span class="label">Free Service</span><span class="value">Rp <?= number_format($additional['free_service'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['free_service_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['free_service_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item"><span class="label">Mediator Fee</span><span class="value">Rp <?= number_format($additional['mediator_fee'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['mediator_fee_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['mediator_fee_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item"><span class="label">Others</span><span class="value">Rp <?= number_format($additional['others'] ?? 0, 0, ',', '.') ?></span><?php if (!empty($additional['others_remark'])): ?><span class="text-muted ms-2">(<?= htmlspecialchars($additional['others_remark']) ?>)</span><?php endif; ?></div>
-                        <div class="summary-item" style="background: #cce5ff; border-radius: 6px; margin-top: 8px;"><span class="label" style="font-weight: 700; color: #004085;">Total Additional Cost</span><span class="value" style="font-weight: 700; color: #004085;">Rp <?= number_format($additional['total_additional'] ?? 0, 0, ',', '.') ?></span></div>
-                        <div class="text-center mt-3">
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Additional Cost</a>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-state">
-                            <i class="fas fa-coins"></i>
-                            <p>Belum ada data Additional Cost.</p>
-                            <div class="mt-2">
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=additional&tab=additional" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah Additional Cost</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- TAB 5: MEDIATOR FEE -->
-                <div class="tab-pane fade <?= $activeTab == 'mediator' ? 'show active' : '' ?>" id="mediator" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="section-title mb-0"><i class="fas fa-user-tie"></i> Data Mediator Fee</h5>
-                        <?php if ($editMode == 'mediator'): ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=mediator" class="btn btn-sm btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
-                        <?php else: ?>
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom">
-                                <i class="fas fa-edit"></i> <?= (empty($mediator['name']) && empty($mediator['id_card_no'])) ? 'Tambah Mediator' : 'Edit Mediator' ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <?php if ($editMode == 'mediator'): ?>
-                        <div class="edit-form-container">
-                            <div class="row">
-                                <div class="col-md-6 mb-2"><label class="form-label">Name <span class="required">*</span></label><input type="text" name="mediator_name" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>" required></div>
-                                <div class="col-md-6 mb-2"><label class="form-label">ID Card No <span class="required">*</span></label><input type="text" name="mediator_id_card" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>" required></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-2"><label class="form-label">NPWP No <span class="required">*</span></label><input type="text" name="mediator_npwp" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>" required></div>
-                                <div class="col-md-6 mb-2"><label class="form-label">Bank Name <span class="required">*</span></label><input type="text" name="mediator_bank" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>" required></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-2"><label class="form-label">Bank Account <span class="required">*</span></label><input type="text" name="mediator_bank_account" class="form-control form-control-sm" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>" required></div>
-                                <div class="col-md-6 mb-2"><label class="form-label">Amount <span class="required">*</span></label>
-                                    <div class="currency-input">
-                                        <span class="currency-prefix">Rp</span>
-                                        <input type="text" name="mediator_amount" id="mediatorAmount" class="form-control form-control-sm mediator-amount-input" value="<?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?>" required>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-end mt-2">
-                                <button type="submit" class="btn btn-sm btn-success-custom" onclick="saveDataToHidden()"><i class="fas fa-save"></i> Simpan Mediator</button>
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&tab=mediator" class="btn btn-sm btn-secondary-custom ms-2"><i class="fas fa-times"></i> Batal</a>
-                            </div>
-                        </div>
-                    <?php elseif (!empty($mediator['name']) && !empty($mediator['id_card_no'])): ?>
-                        <div class="summary-item"><span class="label">Name</span><span class="value"><?= htmlspecialchars($mediator['name'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">ID Card No</span><span class="value"><?= htmlspecialchars($mediator['id_card_no'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">NPWP No</span><span class="value"><?= htmlspecialchars($mediator['npwp_no'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">Bank Name</span><span class="value"><?= htmlspecialchars($mediator['bank_name'] ?? '-') ?></span></div>
-                        <div class="summary-item"><span class="label">Bank Account</span><span class="value"><?= htmlspecialchars($mediator['bank_account'] ?? '-') ?></span></div>
-                        <div class="summary-item" style="background: #fff3cd; border-radius: 6px;"><span class="label" style="font-weight: 700; color: #856404;">Amount</span><span class="value" style="font-weight: 700; color: #856404;">Rp <?= number_format($mediator['amount'] ?? 0, 0, ',', '.') ?></span></div>
-                        <div class="text-center mt-3">
-                            <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-edit"></i> Edit Mediator</a>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-state">
-                            <i class="fas fa-user"></i>
-                            <p>Belum ada data Mediator Fee.</p>
-                            <div class="mt-2">
-                                <a href="detailtr.php?tr_number=<?= urlencode($trf_number) ?>&edit=mediator&tab=mediator" class="btn btn-sm btn-edit-custom"><i class="fas fa-plus-circle"></i> Tambah Mediator</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
+            <div>
+                <a href="transactionrequest.php" class="btn btn-secondary-custom">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </a>
             </div>
         </div>
 
-        <!-- ACTION BUTTONS (KEMBALI SAJA) -->
+        <?= showFlash() ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: SUMMARY / INFORMASI ACCOUNT -->
+        <!-- ============================================ -->
         <div class="card-custom">
-            <div class="card-body-custom text-center">
-                <a href="detailtr.php" class="btn btn-secondary-custom"><i class="fas fa-arrow-left"></i> Kembali</a>
+            <div class="card-header-custom">
+                <h6><i class="fas fa-info-circle"></i> Summary</h6>
+                <span class="badge-status-tr <?= $request['status'] ?>">
+                    <?php if ($request['status'] == 'pending'): ?>
+                        <i class="fas fa-clock"></i> Pending
+                    <?php elseif ($request['status'] == 'approved'): ?>
+                        <i class="fas fa-check-circle"></i> Approved
+                    <?php elseif ($request['status'] == 'rejected'): ?>
+                        <i class="fas fa-times-circle"></i> Rejected
+                    <?php endif; ?>
+                </span>
+            </div>
+            <div class="card-body-custom">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-label">Nama PT</div>
+                        <div class="info-value"><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></div>
+                        
+                        <div class="info-label">No NPWP</div>
+                        <div class="info-value"><?= htmlspecialchars($request['npwp'] ?? '-') ?></div>
+                        
+                        <div class="info-label">Alamat</div>
+                        <div class="info-value"><?= htmlspecialchars($request['alamat'] ?? '-') ?></div>
+                        
+                        <div class="info-label">Nama PIC</div>
+                        <div class="info-value"><?= htmlspecialchars($request['pic_name'] ?? '-') ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label">Jabatan PIC</div>
+                        <div class="info-value"><?= htmlspecialchars($request['pic_jabatan'] ?? '-') ?></div>
+                        
+                        <div class="info-label">No Telepon PIC</div>
+                        <div class="info-value"><?= htmlspecialchars($request['pic_phone'] ?? '-') ?></div>
+                        
+                        <div class="info-label">Email PIC</div>
+                        <div class="info-value"><?= htmlspecialchars($request['pic_email'] ?? '-') ?></div>
+                        
+                        <div class="info-label">Kode TRF</div>
+                        <div class="info-value"><?= htmlspecialchars($request['kode_transaction_request_form'] ?? '-') ?></div>
+                    </div>
+                </div>
             </div>
         </div>
-    </form>
-    
-    <!-- Form Approve -->
-    <form method="POST" id="formApprove" style="display:none;">
-        <input type="hidden" name="action" value="approve">
-        <input type="hidden" name="id" id="approveId">
-        <input type="hidden" name="trf_number" id="approveTrfNumber">
-        <input type="hidden" name="approval_level" id="approveLevel">
-    </form>
-    
-    <!-- Form Reject -->
-    <form method="POST" id="formReject" style="display:none;">
-        <input type="hidden" name="action" value="reject">
-        <input type="hidden" name="id" id="rejectId">
-        <input type="hidden" name="trf_number" id="rejectTrfNumber">
-    </form>
-    
-    <?php else: ?>
-        <div class="alert alert-info"><i class="fas fa-info-circle"></i> Silakan pilih TRF Number terlebih dahulu.</div>
-    <?php endif; ?>
 
-    <div class="footer-text">&copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM</div>
+        <!-- ============================================ -->
+        <!-- SECTION: DETAIL UNIT -->
+        <!-- ============================================ -->
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
+                <button class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm()">
+                    <i class="fas fa-plus"></i> Tambah Unit
+                </button>
+            </div>
+            <div class="card-body-custom">
+                <!-- Form Tambah Unit -->
+                <div id="addUnitForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST" id="unitForm">
+                        <input type="hidden" name="action" value="save_unit">
+                        <input type="hidden" name="unit_id_hidden" id="unit_id_hidden" value="0">
+                        <input type="hidden" name="trf_number" value="<?= htmlspecialchars($tr_number) ?>">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Unit *</label>
+                                <select name="unit_id" id="unit_id" class="form-select" required>
+                                    <option value="">-- Pilih Unit --</option>
+                                    <?php foreach ($produkList as $produk): ?>
+                                        <option value="<?= $produk['id'] ?>">
+                                            <?= htmlspecialchars($produk['nama_produk']) ?> (<?= htmlspecialchars($produk['kode_produk']) ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">QTY *</label>
+                                <input type="number" name="qty" id="qty" class="form-control" min="1" required onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Price (Non PPN) *</label>
+                                <input type="number" name="price" id="price" class="form-control" min="0" step="0.01" required onchange="calculateTotal()">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">PPN (11%)</label>
+                                <input type="text" id="ppn_display" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Grand Total Include PPN</label>
+                                <input type="text" id="grand_total_display" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Specification *</label>
+                                <input type="text" name="specification" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Additional Attachment / Safety Devices</label>
+                                <input type="text" name="additional_attachment" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Waranty</label>
+                                <input type="text" name="waranty" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Machine Location Works *</label>
+                                <input type="text" name="machine_location" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Delivery Terms *</label>
+                                <input type="text" name="delivery_terms" class="form-control" placeholder="Contoh: Loco Jakarta / Franco Kalimantan" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Delivery Schedule Plan *</label>
+                                <input type="date" name="delivery_schedule" class="form-control" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Transaction Type *</label>
+                                <select name="transaction_type" id="transaction_type" class="form-select" required onchange="toggleOtherTransaction()">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Cash On Delivery">Cash On Delivery</option>
+                                    <option value="Leasing">Leasing</option>
+                                    <option value="Direct Credit">Direct Credit</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <input type="text" name="transaction_type_other" id="transaction_type_other" class="form-control mt-2" placeholder="Sebutkan..." style="display: none;">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Simpan Unit
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="hideAddUnitForm()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Tabel Detail Unit -->
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Unit</th>
+                                <th>QTY</th>
+                                <th>Price</th>
+                                <th>PPN</th>
+                                <th>Grand Total</th>
+                                <th>Specification</th>
+                                <th>Delivery Schedule</th>
+                                <th>Transaction Type</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($detailUnits) > 0): ?>
+                                <?php foreach ($detailUnits as $index => $unit): ?>
+                                    <tr>
+                                        <td><?= $index + 1 ?></td>
+                                        <td>
+                                            <?php 
+                                            // Cari nama produk
+                                            $namaUnit = '-';
+                                            foreach ($produkList as $produk) {
+                                                if ($produk['id'] == $unit['unit_id']) {
+                                                    $namaUnit = $produk['nama_produk'];
+                                                    break;
+                                                }
+                                            }
+                                            echo htmlspecialchars($namaUnit);
+                                            ?>
+                                        </td>
+                                        <td><?= $unit['qty'] ?></td>
+                                        <td>Rp <?= number_format($unit['price'], 0, ',', '.') ?></td>
+                                        <td>Rp <?= number_format($unit['ppn'], 0, ',', '.') ?></td>
+                                        <td><strong>Rp <?= number_format($unit['grand_total'], 0, ',', '.') ?></strong></td>
+                                        <td><?= htmlspecialchars($unit['specification']) ?></td>
+                                        <td><?= date('d/m/Y', strtotime($unit['delivery_schedule'])) ?></td>
+                                        <td><?= htmlspecialchars($unit['transaction_type']) ?></td>
+                                        <td>
+                                            <button class="btn btn-warning-custom btn-sm" onclick="editUnit(<?= $unit['id'] ?>, <?= $unit['unit_id'] ?>, <?= $unit['qty'] ?>, <?= $unit['price'] ?>, '<?= addslashes($unit['specification']) ?>', '<?= addslashes($unit['additional_attachment']) ?>', '<?= addslashes($unit['waranty']) ?>', '<?= addslashes($unit['machine_location']) ?>', '<?= addslashes($unit['delivery_terms']) ?>', '<?= $unit['delivery_schedule'] ?>', '<?= addslashes($unit['transaction_type']) ?>')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form method="POST" style="display: inline;" onsubmit="return confirm('Yakin ingin menghapus unit ini?');">
+                                                <input type="hidden" name="action" value="delete_unit">
+                                                <input type="hidden" name="unit_id" value="<?= $unit['id'] ?>">
+                                                <button type="submit" class="btn btn-danger-custom btn-sm">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <tr>
+                                    <td colspan="5" class="text-end"><strong>TOTAL</strong></td>
+                                    <td><strong>Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></strong></td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="10" class="text-center py-4 text-muted">
+                                        <i class="fas fa-box-open me-2"></i> Belum ada detail unit
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-</main>
+        <!-- ============================================ -->
+        <!-- SECTION: TERM OF PAYMENT -->
+        <!-- ============================================ -->
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-money-bill-wave"></i> Term Of Payment</h6>
+                <button class="btn btn-primary-custom btn-sm" onclick="showTOPSection()">
+                    <i class="fas fa-edit"></i> Edit TOP
+                </button>
+            </div>
+            <div class="card-body-custom">
+                <!-- Form TOP -->
+                <div id="topForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="save_top">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Booking Fee</label>
+                                <input type="number" name="booking_fee" id="booking_fee" class="form-control" min="0" step="0.01" value="<?= $termPayments ? array_sum(array_column(array_filter($termPayments, function($t) { return $t['payment_type'] == 'booking_fee'; }), 'amount')) : 0 ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Nominal PO Leasing</label>
+                                <input type="number" name="nominal_po_leasing" id="nominal_po_leasing" class="form-control" min="0" step="0.01" value="<?= $termPayments ? array_sum(array_column(array_filter($termPayments, function($t) { return $t['payment_type'] == 'nominal_po'; }), 'amount')) : 0 ?>">
+                            </div>
+                        </div>
+                        
+                        <!-- Down Payment Section -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Down Payment</label>
+                            <div id="dpContainer">
+                                <?php 
+                                $dpPayments = array_filter($termPayments, function($t) { return $t['payment_type'] == 'down_payment'; });
+                                if (count($dpPayments) > 0): 
+                                    foreach ($dpPayments as $dp): ?>
+                                        <div class="row mb-2 dp-row">
+                                            <div class="col-md-5">
+                                                <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)" value="<?= htmlspecialchars($dp['payment_label']) ?>">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01" value="<?= $dp['amount'] ?>">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; 
+                                else: ?>
+                                    <div class="row mb-2 dp-row">
+                                        <div class="col-md-5">
+                                            <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary-custom btn-sm mt-2" onclick="addDPRow()">
+                                <i class="fas fa-plus"></i> Tambah DP
+                            </button>
+                        </div>
+                        
+                        <!-- Angsuran Section -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Angsuran</label>
+                            <div id="angsuranContainer">
+                                <?php 
+                                $angsuranPayments = array_filter($termPayments, function($t) { return $t['payment_type'] == 'angsuran'; });
+                                if (count($angsuranPayments) > 0): 
+                                    foreach ($angsuranPayments as $angsuran): ?>
+                                        <div class="row mb-2 angsuran-row">
+                                            <div class="col-md-5">
+                                                <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)" value="<?= htmlspecialchars($angsuran['payment_label']) ?>">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01" value="<?= $angsuran['amount'] ?>">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; 
+                                else: ?>
+                                    <div class="row mb-2 angsuran-row">
+                                        <div class="col-md-5">
+                                            <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary-custom btn-sm mt-2" onclick="addAngsuranRow()">
+                                <i class="fas fa-plus"></i> Tambah Angsuran
+                            </button>
+                        </div>
+                        
+                        <!-- Total TOP -->
+                        <div class="total-box mb-3">
+                            <div class="total-label">Grand Total TOP</div>
+                            <div class="total-value" id="totalTOPDisplay">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Simpan TOP
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="hideTOPSection()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Tabel TOP -->
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Jenis Pembayaran</th>
+                                <th>Label</th>
+                                <th>Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($termPayments) > 0): ?>
+                                <?php foreach ($termPayments as $index => $top): ?>
+                                    <tr>
+                                        <td><?= $index + 1 ?></td>
+                                        <td>
+                                            <?php 
+                                            $typeLabel = ucfirst(str_replace('_', ' ', $top['payment_type']));
+                                            echo $typeLabel;
+                                            ?>
+                                        </td>
+                                        <td><?= htmlspecialchars($top['payment_label']) ?></td>
+                                        <td>Rp <?= number_format($top['amount'], 0, ',', '.') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>TOTAL</strong></td>
+                                    <td><strong>Rp <?= number_format($totalTOP, 0, ',', '.') ?></strong></td>
+                                </tr>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="fas fa-money-bill me-2"></i> Belum ada data Term of Payment
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-<!-- BOTTOM NAVIGATION -->
-<nav class="bottom-nav">
-    <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large nav-icon"></i><span class="nav-label">Home</span></a>
-    <?php if (canAccessMenu('account_management')): ?>
-        <a href="account_management.php" class="nav-item"><i class="fas fa-building nav-icon"></i><span class="nav-label">Account</span></a>
-    <?php endif; ?>
-    <?php if (canAccessMenu('sales_activity')): ?>
-        <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar nav-icon"></i><span class="nav-label">Sales Activity</span></a>
-    <?php endif; ?>
-    <?php if (canAccessMenu('transaction_request')): ?>
-        <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature nav-icon"></i><span class="nav-label">TR Request</span></a>
-    <?php endif; ?>
-    <?php if (canAccessMenu('detail_transaction_request')): ?>
-        <a href="detailtr.php" class="nav-item active"><i class="fas fa-file-alt nav-icon"></i><span class="nav-label">Detail TR</span></a>
-    <?php endif; ?>
-    <a href="logout.php" class="nav-item"><i class="fas fa-sign-out-alt nav-icon" style="color:#d63031;"></i><span class="nav-label" style="color:#d63031;">Logout</span></a>
-</nav>
+        <!-- ============================================ -->
+        <!-- SECTION: ADDITIONAL COST / MACHINES -->
+        <!-- ============================================ -->
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-coins"></i> Additional Cost / Machines</h6>
+                <button class="btn btn-primary-custom btn-sm" onclick="showCostForm()">
+                    <i class="fas fa-edit"></i> Edit Cost
+                </button>
+            </div>
+            <div class="card-body-custom">
+                <!-- Form Additional Cost -->
+                <div id="costForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="save_cost">
+                        <input type="hidden" name="cost_id" value="<?= $additionalCost['id'] ?? 0 ?>">
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Insurance Ops</label>
+                                <input type="number" name="insurance_ops" class="form-control" min="0" step="0.01" value="<?= $additionalCost['insurance_ops'] ?? 0 ?>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Insurance Cargo *</label>
+                                <input type="number" name="insurance_cargo" class="form-control" min="0" step="0.01" required value="<?= $additionalCost['insurance_cargo'] ?? 0 ?>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Delivery Cost</label>
+                                <input type="number" name="delivery_cost" class="form-control" min="0" step="0.01" value="<?= $additionalCost['delivery_cost'] ?? 0 ?>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Free Part</label>
+                                <input type="text" name="free_part" class="form-control" value="<?= htmlspecialchars($additionalCost['free_part'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Free Service</label>
+                                <input type="text" name="free_service" class="form-control" value="<?= htmlspecialchars($additionalCost['free_service'] ?? '') ?>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Mediator Fee</label>
+                                <input type="number" name="mediator_fee" class="form-control" min="0" step="0.01" value="<?= $additionalCost['mediator_fee'] ?? 0 ?>">
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Others</label>
+                                <input type="text" name="others" class="form-control" value="<?= htmlspecialchars($additionalCost['others'] ?? '') ?>">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Simpan Cost
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="hideCostForm()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Tabel Additional Cost -->
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead>
+                            <tr>
+                                <th>Insurance Ops</th>
+                                <th>Insurance Cargo</th>
+                                <th>Delivery Cost</th>
+                                <th>Free Part</th>
+                                <th>Free Service</th>
+                                <th>Mediator Fee</th>
+                                <th>Others</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ($additionalCost): ?>
+                                <tr>
+                                    <td>Rp <?= number_format($additionalCost['insurance_ops'], 0, ',', '.') ?></td>
+                                    <td>Rp <?= number_format($additionalCost['insurance_cargo'], 0, ',', '.') ?></td>
+                                    <td>Rp <?= number_format($additionalCost['delivery_cost'], 0, ',', '.') ?></td>
+                                    <td><?= htmlspecialchars($additionalCost['free_part']) ?: '-' ?></td>
+                                    <td><?= htmlspecialchars($additionalCost['free_service']) ?: '-' ?></td>
+                                    <td>Rp <?= number_format($additionalCost['mediator_fee'], 0, ',', '.') ?></td>
+                                    <td><?= htmlspecialchars($additionalCost['others']) ?: '-' ?></td>
+                                    <td><strong>Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></strong></td>
+                                </tr>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">
+                                        <i class="fas fa-coins me-2"></i> Belum ada data Additional Cost
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-<!-- SCRIPTS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // ============================================
-    // TAB FUNCTIONS
-    // ============================================
-    function setActiveTab(tab) {
-        document.getElementById('activeTabInput').value = tab;
-        const url = new URL(window.location.href);
-        url.searchParams.set('tab', tab);
-        url.searchParams.delete('edit');
-        window.history.pushState({}, '', url);
-    }
+        <!-- ============================================ -->
+        <!-- SECTION: DATA MEDIATOR FEE -->
+        <!-- ============================================ -->
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
+                <button class="btn btn-primary-custom btn-sm" onclick="showMediatorForm()">
+                    <i class="fas fa-edit"></i> Edit Mediator
+                </button>
+            </div>
+            <div class="card-body-custom">
+                <!-- Form Mediator -->
+                <div id="mediatorForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="save_mediator">
+                        <input type="hidden" name="mediator_id" value="<?= $mediator['id'] ?? 0 ?>">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Name</label>
+                                <input type="text" name="mediator_name" class="form-control" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ID Card No</label>
+                                <input type="text" name="mediator_id_card" class="form-control" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">NPWP No</label>
+                                <input type="text" name="mediator_npwp" class="form-control" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Bank Name</label>
+                                <input type="text" name="mediator_bank_name" class="form-control" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Bank Account</label>
+                                <input type="text" name="mediator_bank_account" class="form-control" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Amount</label>
+                                <input type="number" name="mediator_amount" class="form-control" min="0" step="0.01" value="<?= $mediator['amount'] ?? ($additionalCost['mediator_fee'] ?? 0) ?>">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Simpan Mediator
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="hideMediatorForm()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Tabel Mediator -->
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>ID Card No</th>
+                                <th>NPWP No</th>
+                                <th>Bank Name</th>
+                                <th>Bank Account</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ($mediator): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($mediator['name']) ?></td>
+                                    <td><?= htmlspecialchars($mediator['id_card_no']) ?></td>
+                                    <td><?= htmlspecialchars($mediator['npwp_no']) ?></td>
+                                    <td><?= htmlspecialchars($mediator['bank_name']) ?></td>
+                                    <td><?= htmlspecialchars($mediator['bank_account']) ?></td>
+                                    <td><strong>Rp <?= number_format($mediator['amount'], 0, ',', '.') ?></strong></td>
+                                </tr>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="fas fa-user-tie me-2"></i> Belum ada data Mediator
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-    // ============================================
-    // UNIT FUNCTIONS
-    // ============================================
-    let unitIndex = <?= isset($unitIndex) ? $unitIndex : 0 ?>;
+        <!-- ============================================ -->
+        <!-- SECTION: TOTAL KESELURUHAN -->
+        <!-- ============================================ -->
+        <div class="card-custom">
+            <div class="card-body-custom">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="total-box">
+                            <div class="total-label">Total Unit</div>
+                            <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="total-box">
+                            <div class="total-label">Total TOP</div>
+                            <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="total-box">
+                            <div class="total-label">Total Additional Cost</div>
+                            <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    function removeUnit(btn) {
-        const row = btn.closest('.unit-row');
-        if (document.querySelectorAll('.unit-row').length > 1) {
-            row.remove();
-        } else {
-            alert('Minimal 1 unit harus ada!');
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ============================================
+        // FUNGSI UNTUK DETAIL UNIT
+        // ============================================
+        function showAddUnitForm() {
+            document.getElementById('addUnitForm').style.display = 'block';
+            document.getElementById('unitForm').reset();
+            document.getElementById('unit_id_hidden').value = '0';
         }
-    }
-
-    function addUnit() {
-        const container = document.getElementById('unitContainer');
-        const index = document.querySelectorAll('.unit-row').length;
         
-        const today = new Date();
-        today.setDate(today.getDate() + 30);
-        const defaultDate = today.toISOString().split('T')[0];
+        function hideAddUnitForm() {
+            document.getElementById('addUnitForm').style.display = 'none';
+        }
         
-        const template = `
-        <div class="unit-row" data-index="${index}">
-            <div class="row">
-                <div class="col-md-12 text-end">
-                    <button type="button" class="btn-remove-unit" onclick="removeUnit(this)" title="Hapus Unit"><i class="fas fa-times-circle"></i></button>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-2">
-                    <label class="form-label">Unit <span class="required">*</span></label>
-                    <select name="unit_name[]" class="form-select form-select-sm" required>
-                        <option value="">-- Pilih Unit --</option>
-                        <?php foreach ($produkList as $produk): ?>
-                            <option value="<?= htmlspecialchars($produk['nama_produk']) ?>"><?= htmlspecialchars($produk['nama_produk']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2 mb-2">
-                    <label class="form-label">QTY <span class="required">*</span></label>
-                    <input type="number" name="qty[]" class="form-control form-control-sm qty" value="1" min="1" required onchange="calculateUnit(this)">
-                </div>
-                <div class="col-md-4 mb-2">
-                    <label class="form-label">Price (Non PPN) <span class="required">*</span></label>
-                    <div class="currency-input">
-                        <span class="currency-prefix">Rp</span>
-                        <input type="text" name="price[]" class="form-control form-control-sm price" value="0" required oninput="calculateUnit(this)">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-3 mb-2">
-                    <label class="form-label">PPN (11%)</label>
-                    <input type="text" name="ppn[]" class="form-control form-control-sm ppn" value="0" readonly>
-                </div>
-                <div class="col-md-3 mb-2">
-                    <label class="form-label">Grand Total (Include PPN)</label>
-                    <input type="text" name="grand_total_unit[]" class="form-control form-control-sm grand-total-unit" value="0" readonly>
-                </div>
-                <div class="col-md-6 mb-2">
-                    <label class="form-label">Spesification <span class="required">*</span></label>
-                    <input type="text" name="specification[]" class="form-control form-control-sm" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-2">
-                    <label class="form-label">Additional Attachment / Safety Devices</label>
-                    <input type="text" name="additional_attachment[]" class="form-control form-control-sm">
-                </div>
-                <div class="col-md-6 mb-2">
-                    <label class="form-label">Warranty</label>
-                    <input type="text" name="warranty[]" class="form-control form-control-sm">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4 mb-2">
-                    <label class="form-label">Machine Location Works <span class="required">*</span></label>
-                    <input type="text" name="machine_location[]" class="form-control form-control-sm" required>
-                </div>
-                <div class="col-md-4 mb-2">
-                    <label class="form-label">Delivery Terms <span class="required">*</span></label>
-                    <input type="text" name="delivery_terms[]" class="form-control form-control-sm" placeholder="Contoh: Loco Jakarta atau Franco Kalimantan" required>
-                </div>
-                <div class="col-md-4 mb-2">
-                    <label class="form-label">Delivery Schedule Plan <span class="required">*</span></label>
-                    <input type="date" name="delivery_schedule[]" class="form-control form-control-sm" value="${defaultDate}" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12 mb-2">
-                    <label class="form-label">Transaction Type <span class="required">*</span></label>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <select name="transaction_type[]" class="form-select form-select-sm transaction-type-select" required onchange="showOtherInput(this)">
-                                <option value="">-- Pilih Transaction Type --</option>
-                                <option value="Cash On Delivery">Cash On Delivery</option>
-                                <option value="Leasing">Leasing</option>
-                                <option value="Direct Credit">Direct Credit</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4" id="otherInputContainer_${index}" style="display: none;">
-                            <input type="text" name="transaction_type_other[]" class="form-control form-control-sm" placeholder="Spesifikasi Other">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
+        function calculateTotal() {
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const qty = parseInt(document.getElementById('qty').value) || 0;
+            const ppn = price * 0.11;
+            const grandTotal = (price + ppn) * qty;
+            
+            document.getElementById('ppn_display').value = 'Rp ' + ppn.toLocaleString('id-ID');
+            document.getElementById('grand_total_display').value = 'Rp ' + grandTotal.toLocaleString('id-ID');
+        }
         
-        container.insertAdjacentHTML('beforeend', template);
-        unitIndex++;
-        
-        document.querySelectorAll('.qty, .price').forEach(input => {
-            calculateUnit(input);
-        });
-    }
-
-    function calculateUnit(input) {
-        const row = input.closest('.unit-row');
-        const qty = parseFloat(row.querySelector('.qty').value) || 0;
-        const price = parseFloat(row.querySelector('.price').value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        const ppnPercent = 11;
-        const ppn = price * (ppnPercent / 100);
-        const grandTotal = (price + ppn) * qty;
-        
-        row.querySelector('.ppn').value = formatNumber(ppn);
-        row.querySelector('.grand-total-unit').value = formatNumber(grandTotal);
-    }
-
-    function showOtherInput(select) {
-        const row = select.closest('.unit-row');
-        const index = row.dataset.index;
-        const otherContainer = document.getElementById('otherInputContainer_' + index);
-        
-        if (otherContainer) {
-            if (select.value === 'Other') {
-                otherContainer.style.display = 'block';
-                const otherInput = otherContainer.querySelector('input');
-                if (otherInput) otherInput.required = true;
+        function toggleOtherTransaction() {
+            const type = document.getElementById('transaction_type').value;
+            const otherInput = document.getElementById('transaction_type_other');
+            if (type === 'Other') {
+                otherInput.style.display = 'block';
             } else {
-                otherContainer.style.display = 'none';
-                const otherInput = otherContainer.querySelector('input');
-                if (otherInput) {
-                    otherInput.required = false;
-                    otherInput.value = '';
-                }
-            }
-        }
-    }
-
-    // ============================================
-    // TERM OF PAYMENT FUNCTIONS
-    // ============================================
-    function addDP() {
-        const container = document.getElementById('dpContainer');
-        const template = `
-        <div class="dp-row">
-            <input type="text" name="dp_name[]" class="form-control form-control-sm" placeholder="Nama DP">
-            <div class="currency-input" style="flex:1;">
-                <span class="currency-prefix">Rp</span>
-                <input type="text" name="dp_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" oninput="calculateTOP()">
-            </div>
-            <input type="text" name="dp_remark[]" class="form-control form-control-sm" placeholder="Remark">
-            <button type="button" class="btn btn-danger btn-sm" onclick="removeDP(this)"><i class="fas fa-times"></i></button>
-        </div>
-        `;
-        container.insertAdjacentHTML('beforeend', template);
-    }
-
-    function removeDP(btn) {
-        const row = btn.closest('.dp-row');
-        if (document.querySelectorAll('.dp-row').length > 0) {
-            row.remove();
-            calculateTOP();
-        }
-    }
-
-    function addInstallment() {
-        const container = document.getElementById('installmentContainer');
-        const template = `
-        <div class="installment-row">
-            <input type="text" name="installment_name[]" class="form-control form-control-sm" placeholder="Nama Angsuran">
-            <div class="currency-input" style="flex:1;">
-                <span class="currency-prefix">Rp</span>
-                <input type="text" name="installment_value[]" class="form-control form-control-sm top-input" placeholder="Nilai" oninput="calculateTOP()">
-            </div>
-            <input type="text" name="installment_remark[]" class="form-control form-control-sm" placeholder="Remark">
-            <button type="button" class="btn btn-danger btn-sm" onclick="removeInstallment(this)"><i class="fas fa-times"></i></button>
-        </div>
-        `;
-        container.insertAdjacentHTML('beforeend', template);
-    }
-
-    function removeInstallment(btn) {
-        const row = btn.closest('.installment-row');
-        if (document.querySelectorAll('.installment-row').length > 0) {
-            row.remove();
-            calculateTOP();
-        }
-    }
-
-    function calculateTOP() {
-        let total = 0;
-        
-        const bookingFeeInput = document.querySelector('input[name="booking_fee"]');
-        if (bookingFeeInput) {
-            total += parseFloat(bookingFeeInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        }
-        
-        const poLeasingInput = document.querySelector('input[name="nominal_po_leasing"]');
-        if (poLeasingInput) {
-            total += parseFloat(poLeasingInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        }
-        
-        document.querySelectorAll('input[name="dp_value[]"]').forEach(input => {
-            total += parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        });
-        
-        document.querySelectorAll('input[name="installment_value[]"]').forEach(input => {
-            total += parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-        });
-        
-        const grandTotalElement = document.getElementById('grandTotalTOP');
-        const grandTotalHidden = document.getElementById('grandTotalTOPHidden');
-        
-        if (grandTotalElement) {
-            grandTotalElement.textContent = 'Rp ' + formatNumber(total);
-        }
-        if (grandTotalHidden) {
-            grandTotalHidden.value = total;
-        }
-    }
-
-    // ============================================
-    // ADDITIONAL COST FUNCTIONS
-    // ============================================
-    function calculateAdditional() {
-        let total = 0;
-        
-        document.querySelectorAll('.additional-input').forEach(input => {
-            const val = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-            total += val;
-        });
-        
-        const totalElement = document.getElementById('totalAdditional');
-        const totalHidden = document.getElementById('totalAdditionalHidden');
-        
-        if (totalElement) {
-            totalElement.textContent = 'Rp ' + formatNumber(total);
-        }
-        if (totalHidden) {
-            totalHidden.value = total;
-        }
-    }
-
-    function updateMediatorAmount() {
-        const mediatorFeeInput = document.getElementById('mediatorFeeInput');
-        const mediatorAmount = document.getElementById('mediatorAmount');
-        
-        if (mediatorFeeInput && mediatorAmount) {
-            const val = parseFloat(mediatorFeeInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-            mediatorAmount.value = formatNumber(val);
-        }
-    }
-
-    // ============================================
-    // MEDIATOR AMOUNT FORMAT
-    // ============================================
-    function formatMediatorAmount(input) {
-        let val = input.value.replace(/\./g, '').replace(/,/g, '');
-        if (!isNaN(val) && val !== '') {
-            input.value = formatNumber(parseFloat(val) || 0);
-        }
-        updateMediatorData();
-    }
-
-    function updateMediatorData() {
-        const mediatorAmount = document.getElementById('mediatorAmount');
-        if (mediatorAmount) {
-            const val = parseFloat(mediatorAmount.value.replace(/\./g, '').replace(/,/g, '')) || 0;
-            try {
-                const mediatorData = JSON.parse(document.getElementById('mediator_data').value || '{"name":"","id_card_no":"","npwp_no":"","bank_name":"","bank_account":"","amount":0}');
-                mediatorData.amount = val;
-                document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
-            } catch(e) {
-                const mediatorData = {
-                    name: document.querySelector('input[name="mediator_name"]')?.value || '',
-                    id_card_no: document.querySelector('input[name="mediator_id_card"]')?.value || '',
-                    npwp_no: document.querySelector('input[name="mediator_npwp"]')?.value || '',
-                    bank_name: document.querySelector('input[name="mediator_bank"]')?.value || '',
-                    bank_account: document.querySelector('input[name="mediator_bank_account"]')?.value || '',
-                    amount: val
-                };
-                document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
-            }
-        }
-    }
-
-    // ============================================
-    // SAVE DATA TO HIDDEN FIELDS BEFORE SUBMIT
-    // ============================================
-    function saveDataToHidden() {
-        // 1. SAVE UNITS DATA
-        const unitRows = document.querySelectorAll('.unit-row');
-        if (unitRows.length > 0) {
-            const units = [];
-            unitRows.forEach(row => {
-                const unitData = {
-                    unit_name: row.querySelector('select[name="unit_name[]"]')?.value || '',
-                    qty: parseInt(row.querySelector('input[name="qty[]"]')?.value) || 0,
-                    price: parseFloat(row.querySelector('input[name="price[]"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                    ppn_percent: 11,
-                    ppn: parseFloat(row.querySelector('input[name="ppn[]"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                    grand_total: parseFloat(row.querySelector('input[name="grand_total_unit[]"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                    specification: row.querySelector('input[name="specification[]"]')?.value || '',
-                    additional_attachment: row.querySelector('input[name="additional_attachment[]"]')?.value || '',
-                    warranty: row.querySelector('input[name="warranty[]"]')?.value || '',
-                    machine_location: row.querySelector('input[name="machine_location[]"]')?.value || '',
-                    delivery_terms: row.querySelector('input[name="delivery_terms[]"]')?.value || '',
-                    delivery_schedule: row.querySelector('input[name="delivery_schedule[]"]')?.value || '',
-                    transaction_type: row.querySelector('select[name="transaction_type[]"]')?.value || ''
-                };
-                if (unitData.transaction_type === 'Other') {
-                    const otherInput = row.querySelector('input[name="transaction_type_other[]"]');
-                    if (otherInput && otherInput.value) {
-                        unitData.transaction_type = 'Other - ' + otherInput.value;
-                    }
-                }
-                if (unitData.unit_name) {
-                    units.push(unitData);
-                }
-            });
-            if (units.length > 0) {
-                document.getElementById('units_data').value = JSON.stringify(units);
+                otherInput.style.display = 'none';
             }
         }
         
-        // 2. SAVE TOP DATA
-        const bookingFeeInput = document.querySelector('input[name="booking_fee"]');
-        const poLeasingInput = document.querySelector('input[name="nominal_po_leasing"]');
-        
-        if (bookingFeeInput || poLeasingInput || document.querySelectorAll('input[name="dp_name[]"]').length > 0 || document.querySelectorAll('input[name="installment_name[]"]').length > 0) {
-            const topData = {
-                booking_fee: parseFloat(bookingFeeInput?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                booking_fee_remark: document.querySelector('input[name="booking_fee_remark"]')?.value || '',
-                nominal_po_leasing: parseFloat(poLeasingInput?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                nominal_po_leasing_remark: document.querySelector('input[name="nominal_po_leasing_remark"]')?.value || '',
-                down_payments: [],
-                installments: [],
-                grand_total_top: parseFloat(document.getElementById('grandTotalTOPHidden')?.value) || 0
-            };
+        function editUnit(id, unitId, qty, price, spec, attachment, waranty, location, deliveryTerms, deliverySchedule, transType) {
+            showAddUnitForm();
+            document.getElementById('unit_id_hidden').value = id;
+            document.getElementById('unit_id').value = unitId;
+            document.getElementById('qty').value = qty;
+            document.getElementById('price').value = price;
             
-            const dpNames = document.querySelectorAll('input[name="dp_name[]"]');
-            const dpValues = document.querySelectorAll('input[name="dp_value[]"]');
-            const dpRemarks = document.querySelectorAll('input[name="dp_remark[]"]');
-            for (let i = 0; i < dpNames.length; i++) {
-                if (dpNames[i]?.value && dpValues[i]?.value) {
-                    topData.down_payments.push({
-                        name: dpNames[i].value,
-                        value: parseFloat(dpValues[i].value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                        remark: dpRemarks[i]?.value || ''
-                    });
-                }
-            }
+            // Set specification dan field lainnya
+            const specInput = document.querySelector('input[name="specification"]');
+            const attachmentInput = document.querySelector('input[name="additional_attachment"]');
+            const warantyInput = document.querySelector('input[name="waranty"]');
+            const locationInput = document.querySelector('input[name="machine_location"]');
+            const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
+            const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
+            const transTypeInput = document.querySelector('select[name="transaction_type"]');
             
-            const instNames = document.querySelectorAll('input[name="installment_name[]"]');
-            const instValues = document.querySelectorAll('input[name="installment_value[]"]');
-            const instRemarks = document.querySelectorAll('input[name="installment_remark[]"]');
-            for (let i = 0; i < instNames.length; i++) {
-                if (instNames[i]?.value && instValues[i]?.value) {
-                    topData.installments.push({
-                        name: instNames[i].value,
-                        value: parseFloat(instValues[i].value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                        remark: instRemarks[i]?.value || ''
-                    });
-                }
-            }
+            specInput.value = spec;
+            attachmentInput.value = attachment;
+            warantyInput.value = waranty;
+            locationInput.value = location;
+            deliveryTermsInput.value = deliveryTerms;
+            deliveryScheduleInput.value = deliverySchedule;
+            transTypeInput.value = transType;
             
-            document.getElementById('top_data').value = JSON.stringify(topData);
+            calculateTotal();
+            toggleOtherTransaction();
         }
         
-        // 3. SAVE ADDITIONAL DATA
-        const additionalInputs = document.querySelectorAll('.additional-input');
-        if (additionalInputs.length > 0) {
-            const additionalData = {
-                insurance_ops: parseFloat(document.querySelector('input[name="insurance_ops"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                insurance_ops_remark: document.querySelector('input[name="insurance_ops_remark"]')?.value || '',
-                insurance_cargo: parseFloat(document.querySelector('input[name="insurance_cargo"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                insurance_cargo_remark: document.querySelector('input[name="insurance_cargo_remark"]')?.value || '',
-                delivery_cost: parseFloat(document.querySelector('input[name="delivery_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                delivery_cost_remark: document.querySelector('input[name="delivery_cost_remark"]')?.value || '',
-                free_part: parseFloat(document.querySelector('input[name="free_part"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                free_part_remark: document.querySelector('input[name="free_part_remark"]')?.value || '',
-                free_service: parseFloat(document.querySelector('input[name="free_service"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                free_service_remark: document.querySelector('input[name="free_service_remark"]')?.value || '',
-                mediator_fee: parseFloat(document.querySelector('input[name="mediator_fee"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                mediator_fee_remark: document.querySelector('input[name="mediator_fee_remark"]')?.value || '',
-                others: parseFloat(document.querySelector('input[name="others_cost"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0,
-                others_remark: document.querySelector('input[name="others_remark"]')?.value || '',
-                total_additional: parseFloat(document.getElementById('totalAdditionalHidden')?.value) || 0
-            };
-            document.getElementById('additional_data').value = JSON.stringify(additionalData);
+        // ============================================
+        // FUNGSI UNTUK TERM OF PAYMENT
+        // ============================================
+        function showTOPSection() {
+            document.getElementById('topForm').style.display = 'block';
         }
         
-        // 4. SAVE MEDIATOR DATA
-        const mediatorName = document.querySelector('input[name="mediator_name"]');
-        const mediatorIdCard = document.querySelector('input[name="mediator_id_card"]');
-        if (mediatorName || mediatorIdCard) {
-            const mediatorData = {
-                name: mediatorName?.value || '',
-                id_card_no: mediatorIdCard?.value || '',
-                npwp_no: document.querySelector('input[name="mediator_npwp"]')?.value || '',
-                bank_name: document.querySelector('input[name="mediator_bank"]')?.value || '',
-                bank_account: document.querySelector('input[name="mediator_bank_account"]')?.value || '',
-                amount: parseFloat(document.querySelector('input[name="mediator_amount"]')?.value.replace(/\./g, '').replace(/,/g, '')) || 0
-            };
-            document.getElementById('mediator_data').value = JSON.stringify(mediatorData);
-        }
-    }
-
-    // ============================================
-    // APPROVAL FUNCTIONS
-    // ============================================
-    function approveTR(id, trfNumber, currentLevel) {
-        if (confirm('Apakah Anda yakin ingin menyetujui TR ini?')) {
-            document.getElementById('approveId').value = id;
-            document.getElementById('approveTrfNumber').value = trfNumber;
-            document.getElementById('approveLevel').value = currentLevel;
-            document.getElementById('formApprove').submit();
-        }
-    }
-
-    function rejectTR(id, trfNumber) {
-        if (confirm('Apakah Anda yakin ingin menolak TR ini?')) {
-            document.getElementById('rejectId').value = id;
-            document.getElementById('rejectTrfNumber').value = trfNumber;
-            document.getElementById('formReject').submit();
-        }
-    }
-
-    // ============================================
-    // FORMAT NUMBER HELPER
-    // ============================================
-    function formatNumber(num) {
-        return num.toLocaleString('id-ID', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        });
-    }
-
-    // ============================================
-    // AUTO FORMAT INPUT (Rupiah)
-    // ============================================
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('price') || 
-            e.target.classList.contains('top-input') || 
-            e.target.classList.contains('additional-input') ||
-            e.target.classList.contains('mediator-amount-input') ||
-            e.target.id === 'mediatorFeeInput') {
-            let val = e.target.value.replace(/\./g, '').replace(/,/g, '');
-            if (!isNaN(val) && val !== '') {
-                e.target.value = formatNumber(parseFloat(val) || 0);
-            }
-        }
-    });
-
-    // ============================================
-    // HANDLE TAB CLICKS - HAPUS PARAMETER EDIT
-    // ============================================
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.nav-tabs-custom .nav-link').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                const url = new URL(this.href);
-                if (url.searchParams.has('edit')) {
-                    url.searchParams.delete('edit');
-                    this.href = url.toString();
-                }
-            });
-        });
-        
-        document.querySelectorAll('.mediator-amount-input').forEach(function(input) {
-            input.addEventListener('input', function() {
-                formatMediatorAmount(this);
-            });
-        });
-        
-        const form = document.getElementById('formDetailTR');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                saveDataToHidden();
-            });
+        function hideTOPSection() {
+            document.getElementById('topForm').style.display = 'none';
         }
         
-        document.querySelectorAll('.qty, .price').forEach(input => {
-            const row = input.closest('.unit-row');
-            if (row) {
-                calculateUnit(input);
-            }
-        });
+        function addDPRow() {
+            const container = document.getElementById('dpContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'row mb-2 dp-row';
+            newRow.innerHTML = `
+                <div class="col-md-5">
+                    <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)">
+                </div>
+                <div class="col-md-5">
+                    <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
         
-        calculateTOP();
-        calculateAdditional();
-        updateMediatorAmount();
+        function addAngsuranRow() {
+            const container = document.getElementById('angsuranContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'row mb-2 angsuran-row';
+            newRow.innerHTML = `
+                <div class="col-md-5">
+                    <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)">
+                </div>
+                <div class="col-md-5">
+                    <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
         
-        document.querySelectorAll('.transaction-type-select').forEach(select => {
-            if (select.value === 'Other') {
-                showOtherInput(select);
-            }
-        });
+        function removeRow(button) {
+            button.closest('.row').remove();
+        }
         
-        document.querySelectorAll('input[name="delivery_schedule[]"]').forEach(input => {
-            if (!input.value) {
-                const date = new Date();
-                date.setDate(date.getDate() + 30);
-                input.value = date.toISOString().split('T')[0];
-            }
-        });
-    });
-</script>
+        // ============================================
+        // FUNGSI UNTUK ADDITIONAL COST
+        // ============================================
+        function showCostForm() {
+            document.getElementById('costForm').style.display = 'block';
+        }
+        
+        function hideCostForm() {
+            document.getElementById('costForm').style.display = 'none';
+        }
+        
+        // ============================================
+        // FUNGSI UNTUK MEDIATOR
+        // ============================================
+        function showMediatorForm() {
+            document.getElementById('mediatorForm').style.display = 'block';
+        }
+        
+        function hideMediatorForm() {
+            document.getElementById('mediatorForm').style.display = 'none';
+        }
+    </script>
 </body>
 </html>
