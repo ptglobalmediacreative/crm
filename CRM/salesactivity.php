@@ -985,7 +985,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <input type="hidden" name="action" value="add">
                         
                         <div class="mb-3">
-                            <label class="form-label">Leads Number</label>
+                            <label class="form-label">Activity Number</label>
                             <div class="leads-number-display">
                                 <?= generateLeadsNumber($db) ?>
                             </div>
