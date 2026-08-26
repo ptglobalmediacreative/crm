@@ -1331,7 +1331,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
                 <?php if ($canEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm()">
-                    <i class="fas fa-edit"></i> Edit Unit
+                    <i class="fas fa-edit"></i> <?= count($detailUnits) > 0 ? 'Edit Unit' : 'Tambah Unit' ?>
                 </button>
                 <?php endif; ?>
             </div>
@@ -1424,6 +1424,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <button type="button" class="btn btn-danger-custom" id="deleteUnitBtn" style="display: none;" onclick="deleteUnit()">
                             <i class="fas fa-trash"></i> Hapus Unit
                         </button>
+                        <?php if (count($detailUnits) > 0): ?>
+                        <button type="button" class="btn btn-success-custom" onclick="showNewUnitForm()">
+                            <i class="fas fa-plus"></i> Tambah Unit Baru
+                        </button>
+                        <?php endif; ?>
                     </form>
                 </div>
                 
@@ -1950,6 +1955,44 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('unitForm').reset();
             document.getElementById('unit_id_hidden').value = '0';
             document.getElementById('deleteUnitBtn').style.display = 'none';
+            
+            // Jika ada data unit, langsung load data unit pertama
+            <?php if (count($detailUnits) > 0): ?>
+                <?php $firstUnit = $detailUnits[0]; ?>
+                document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
+                document.getElementById('unit_id').value = '<?= $firstUnit['unit_id'] ?>';
+                document.getElementById('qty').value = '<?= $firstUnit['qty'] ?>';
+                document.getElementById('price').value = '<?= $firstUnit['price'] ?>';
+                
+                const specInput = document.querySelector('input[name="specification"]');
+                const attachmentInput = document.querySelector('input[name="additional_attachment"]');
+                const warantyInput = document.querySelector('input[name="waranty"]');
+                const locationInput = document.querySelector('input[name="machine_location"]');
+                const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
+                const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
+                const transTypeInput = document.querySelector('select[name="transaction_type"]');
+                
+                specInput.value = '<?= addslashes($firstUnit['specification']) ?>';
+                attachmentInput.value = '<?= addslashes($firstUnit['additional_attachment']) ?>';
+                warantyInput.value = '<?= addslashes($firstUnit['waranty']) ?>';
+                locationInput.value = '<?= addslashes($firstUnit['machine_location']) ?>';
+                deliveryTermsInput.value = '<?= addslashes($firstUnit['delivery_terms']) ?>';
+                deliveryScheduleInput.value = '<?= $firstUnit['delivery_schedule'] ?>';
+                transTypeInput.value = '<?= addslashes($firstUnit['transaction_type']) ?>';
+                
+                calculateTotal();
+                toggleOtherTransaction();
+                document.getElementById('deleteUnitBtn').style.display = 'inline-block';
+            <?php endif; ?>
+        }
+        
+        function showNewUnitForm() {
+            document.getElementById('addUnitForm').style.display = 'block';
+            document.getElementById('unitForm').reset();
+            document.getElementById('unit_id_hidden').value = '0';
+            document.getElementById('deleteUnitBtn').style.display = 'none';
+            calculateTotal();
+            toggleOtherTransaction();
         }
         
         function hideAddUnitForm() {
