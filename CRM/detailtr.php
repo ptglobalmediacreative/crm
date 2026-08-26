@@ -1497,11 +1497,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                         <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
-                                <tr>
-                                    <td colspan="5" class="text-end"><strong>TOTAL</strong></td>
-                                    <td><strong>Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></strong></td>
-                                    <td colspan="<?= $canEdit ? '4' : '3' ?>"></td>
-                                </tr>
                             <?php else: ?>
                                 <tr>
                                     <td colspan="<?= $canEdit ? '10' : '9' ?>" class="text-center py-4 text-muted">
