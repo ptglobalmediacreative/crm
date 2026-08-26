@@ -148,6 +148,26 @@ $reviewOnlyRoles = ['sales_manager', 'direktur_sales', 'business', 'direktur_ope
 $isReviewOnly = in_array($userRole, $reviewOnlyRoles);
 
 // ============================================
+// CEK APAKAH TR SUDAH PERNAH DI-APPROVE
+// ============================================
+$hasBeenApproved = false;
+try {
+    $checkApproved = $db->prepare("SELECT COUNT(*) as total FROM tr_approval_history WHERE trf_number = ? AND status = 'approved'");
+    $checkApproved->execute([$tr_number]);
+    $approvedCount = $checkApproved->fetch()['total'];
+    if ($approvedCount > 0) {
+        $hasBeenApproved = true;
+    }
+} catch (Exception $e) {
+    $hasBeenApproved = false;
+}
+
+// Jika sudah pernah di-approve, maka tidak bisa edit
+if ($hasBeenApproved) {
+    $canEdit = false;
+}
+
+// ============================================
 // AMBIL DATA DETAIL TRANSACTION REQUEST (JIKA ADA)
 // ============================================
 $detailTR = null;
@@ -305,7 +325,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Cek hak edit untuk action selain approve/reject
     $editActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_cost', 'save_mediator'];
     if (in_array($action, $editActions) && !$canEdit) {
-        setFlash('Anda tidak memiliki hak untuk mengedit data ini!', 'danger');
+        if ($hasBeenApproved) {
+            setFlash('TR ini sudah di-approve, data tidak bisa diedit lagi!', 'danger');
+        } else {
+            setFlash('Anda tidak memiliki hak untuk mengedit data ini!', 'danger');
+        }
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
     }
     
@@ -1257,6 +1281,13 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 </div>
                 
                 <div id="viewSummary">
+                    <?php if ($hasBeenApproved && $userRole === 'sales'): ?>
+                    <div class="alert alert-warning mb-3">
+                        <i class="fas fa-lock"></i> 
+                        TR ini sudah di-approve, data tidak bisa diedit lagi.
+                    </div>
+                    <?php endif; ?>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="info-label">Nama PT</div>
