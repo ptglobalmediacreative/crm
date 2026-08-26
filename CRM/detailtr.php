@@ -88,6 +88,7 @@ $sql = "SELECT ad.tr_number,
                a.no_hp_pic,
                a.email_pic,
                u.full_name as sales_name,
+               u.id as sales_user_id,
                sa.sales_id,
                sa.id as sales_activity_id,
                CASE 
@@ -122,19 +123,6 @@ if (!$request) {
 }
 
 // ============================================
-// AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
-// ============================================
-$produkList = [];
-try {
-    $sqlProduk = "SELECT id, nama_produk, kode_produk, tipe_produk FROM produk WHERE status = 'aktif' ORDER BY nama_produk ASC";
-    $stmtProduk = $db->prepare($sqlProduk);
-    $stmtProduk->execute();
-    $produkList = $stmtProduk->fetchAll();
-} catch (Exception $e) {
-    $produkList = [];
-}
-
-// ============================================
 // AMBIL DATA DETAIL TRANSACTION REQUEST (JIKA ADA)
 // ============================================
 $detailTR = null;
@@ -145,6 +133,89 @@ try {
     $detailTR = $stmtDetail->fetch();
 } catch (Exception $e) {
     $detailTR = null;
+}
+
+// ============================================
+// AMBIL DATA APPROVAL HISTORY
+// ============================================
+$approvalHistory = [];
+try {
+    $sqlApproval = "SELECT * FROM tr_approval_history WHERE trf_number = ? ORDER BY approval_order ASC";
+    $stmtApproval = $db->prepare($sqlApproval);
+    $stmtApproval->execute([$tr_number]);
+    $approvalHistory = $stmtApproval->fetchAll();
+} catch (Exception $e) {
+    $approvalHistory = [];
+}
+
+// ============================================
+// DAFTAR APPROVAL LEVELS
+// ============================================
+$approvalLevels = [
+    1 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
+    2 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
+    3 => ['role' => 'business', 'label' => 'Divisi Business'],
+    4 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
+    5 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
+];
+
+// ============================================
+// TENTUKAN CURRENT APPROVER DAN NEXT APPROVER
+// ============================================
+$currentApprovalOrder = 1;
+$currentApproverLabel = '';
+$nextApproverLabel = '';
+
+if ($detailTR) {
+    // Cari approval terakhir yang sudah dilakukan
+    $lastApprovedOrder = 0;
+    foreach ($approvalHistory as $approval) {
+        if ($approval['status'] == 'approved') {
+            $lastApprovedOrder = max($lastApprovedOrder, $approval['approval_order']);
+        }
+    }
+    
+    // Cek apakah ada yang reject
+    $isRejected = false;
+    foreach ($approvalHistory as $approval) {
+        if ($approval['status'] == 'rejected') {
+            $isRejected = true;
+            break;
+        }
+    }
+    
+    if ($isRejected) {
+        $currentApprovalOrder = 0;
+        $currentApproverLabel = 'Rejected';
+        $nextApproverLabel = '-';
+    } else {
+        $currentApprovalOrder = $lastApprovedOrder + 1;
+        if ($currentApprovalOrder <= 5) {
+            $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
+            $nextOrder = $currentApprovalOrder + 1;
+            $nextApproverLabel = $nextOrder <= 5 ? $approvalLevels[$nextOrder]['label'] : 'Selesai';
+        } else {
+            $currentApproverLabel = 'Selesai';
+            $nextApproverLabel = '-';
+        }
+    }
+} else {
+    // Belum ada detail TR, approval belum dimulai
+    $currentApproverLabel = $approvalLevels[1]['label'];
+    $nextApproverLabel = $approvalLevels[2]['label'];
+}
+
+// ============================================
+// AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
+// ============================================
+$produkList = [];
+try {
+    $sqlProduk = "SELECT id, nama_produk, kode_produk, tipe_produk FROM produk WHERE status = 'aktif' ORDER BY nama_produk ASC";
+    $stmtProduk = $db->prepare($sqlProduk);
+    $stmtProduk->execute();
+    $produkList = $stmtProduk->fetchAll();
+} catch (Exception $e) {
+    $produkList = [];
 }
 
 // ============================================
@@ -204,7 +275,116 @@ try {
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    $redirectTab = $_POST['redirect_tab'] ?? 'summary';
+    
+    // ============================================
+    // SAVE SUMMARY / DESKRIPSI
+    // ============================================
+    if ($action === 'save_summary') {
+        try {
+            $db->beginTransaction();
+            
+            $deskripsi = $_POST['deskripsi'] ?? '';
+            
+            // Update atau insert detail_transaction_requests
+            if ($detailTR) {
+                $updateSql = "UPDATE detail_transaction_requests SET 
+                    deskripsi = ?, updated_at = NOW()
+                    WHERE trf_number = ?";
+                $updateStmt = $db->prepare($updateSql);
+                $updateStmt->execute([$deskripsi, $tr_number]);
+            } else {
+                $insertSql = "INSERT INTO detail_transaction_requests (
+                    trf_number, deskripsi, status, created_at, updated_at
+                ) VALUES (?, ?, 'pending', NOW(), NOW())";
+                $insertStmt = $db->prepare($insertSql);
+                $insertStmt->execute([$tr_number, $deskripsi]);
+            }
+            
+            $db->commit();
+            setFlash('Summary berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menyimpan summary: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
+    }
+    
+    // ============================================
+    // APPROVE / REJECT
+    // ============================================
+    if ($action === 'approve' || $action === 'reject') {
+        try {
+            $db->beginTransaction();
+            
+            $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
+            $catatan = $_POST['catatan'] ?? '';
+            $currentOrder = (int)($_POST['approval_order'] ?? 0);
+            
+            // Cek apakah user memiliki hak untuk approve
+            $canApprove = false;
+            if ($currentOrder > 0 && $currentOrder <= 5) {
+                $requiredRole = $approvalLevels[$currentOrder]['role'];
+                if ($userRole == $requiredRole || $userRole == 'it_support' || $userRole == 'admin') {
+                    $canApprove = true;
+                }
+            }
+            
+            if ($canApprove) {
+                // Cek apakah sudah ada approval untuk level ini
+                $checkApproval = $db->prepare("SELECT id FROM tr_approval_history WHERE trf_number = ? AND approval_order = ?");
+                $checkApproval->execute([$tr_number, $currentOrder]);
+                $existingApproval = $checkApproval->fetch();
+                
+                if ($existingApproval) {
+                    // Update existing approval
+                    $updateApproval = $db->prepare("UPDATE tr_approval_history SET 
+                        status = ?, catatan = ?, approved_by = ?, approved_at = NOW()
+                        WHERE id = ?");
+                    $updateApproval->execute([$approvalStatus, $catatan, $userId, $existingApproval['id']]);
+                } else {
+                    // Insert new approval
+                    $insertApproval = $db->prepare("INSERT INTO tr_approval_history (
+                        trf_number, approval_order, approval_role, status, catatan, approved_by, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+                    $insertApproval->execute([
+                        $tr_number, 
+                        $currentOrder, 
+                        $approvalLevels[$currentOrder]['role'],
+                        $approvalStatus, 
+                        $catatan, 
+                        $userId
+                    ]);
+                }
+                
+                // Update status di detail_transaction_requests
+                if ($approvalStatus == 'rejected') {
+                    // Jika reject, status TR menjadi rejected
+                    $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'rejected', updated_at = NOW() WHERE trf_number = ?");
+                    $updateDetail->execute([$tr_number]);
+                } else {
+                    // Jika approve, cek apakah ini approval terakhir
+                    if ($currentOrder >= 5) {
+                        // Semua sudah approve
+                        $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'approved', updated_at = NOW() WHERE trf_number = ?");
+                        $updateDetail->execute([$tr_number]);
+                    } else {
+                        // Masih ada approval berikutnya
+                        $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+                        $updateDetail->execute([$tr_number]);
+                    }
+                }
+                
+                $db->commit();
+                setFlash($approvalStatus == 'approved' ? 'TR berhasil di-approve!' : 'TR berhasil di-reject!', 'success');
+            } else {
+                setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
+            }
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal melakukan approval: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
+    }
     
     // ============================================
     // SAVE DETAIL UNIT
@@ -696,23 +876,23 @@ if ($additionalCost) {
         }
         .btn-primary-custom i { margin-right: 6px; }
 
-        .btn-warning-custom {
-            background: #ffd700;
+        .btn-success-custom {
+            background: #27ae60;
             border: none;
             border-radius: 8px;
             padding: 10px 24px;
             font-weight: 600;
             font-size: 13px;
             transition: all 0.3s ease;
-            color: #0e1a2b;
+            color: #fff;
         }
-        .btn-warning-custom:hover {
-            background: #e6c200;
+        .btn-success-custom:hover {
+            background: #219a52;
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-            color: #0e1a2b;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+            color: #fff;
         }
-        .btn-warning-custom i { margin-right: 6px; }
+        .btn-success-custom i { margin-right: 6px; }
 
         .btn-danger-custom {
             background: #e74c3c;
@@ -731,6 +911,24 @@ if ($additionalCost) {
             color: #fff;
         }
         .btn-danger-custom i { margin-right: 6px; }
+
+        .btn-warning-custom {
+            background: #ffd700;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            color: #0e1a2b;
+        }
+        .btn-warning-custom:hover {
+            background: #e6c200;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            color: #0e1a2b;
+        }
+        .btn-warning-custom i { margin-right: 6px; }
 
         .btn-secondary-custom {
             background: #f0f2f5;
@@ -791,6 +989,48 @@ if ($additionalCost) {
             font-size: 22px;
             font-weight: 800;
             color: #ffd700;
+        }
+
+        .approval-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .approval-timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e0e4ea;
+        }
+        .approval-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .approval-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e0e4ea;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #e0e4ea;
+        }
+        .approval-item.completed::before {
+            background: #27ae60;
+            box-shadow: 0 0 0 2px #27ae60;
+        }
+        .approval-item.rejected::before {
+            background: #e74c3c;
+            box-shadow: 0 0 0 2px #e74c3c;
+        }
+        .approval-item.current::before {
+            background: #ffd700;
+            box-shadow: 0 0 0 2px #ffd700;
         }
 
         .mobile-toggle { display: none; }
@@ -966,67 +1206,189 @@ if ($additionalCost) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-info-circle"></i> Summary</h6>
-                <span class="badge-status-tr <?= $request['status'] ?>">
-                    <?php if ($request['status'] == 'pending'): ?>
-                        <i class="fas fa-clock"></i> Pending
-                    <?php elseif ($request['status'] == 'approved'): ?>
-                        <i class="fas fa-check-circle"></i> Approved
-                    <?php elseif ($request['status'] == 'rejected'): ?>
-                        <i class="fas fa-times-circle"></i> Rejected
-                    <?php endif; ?>
-                </span>
+                <div>
+                    <span class="badge-status-tr <?= $request['status'] ?> me-2">
+                        <?php if ($request['status'] == 'pending'): ?>
+                            <i class="fas fa-clock"></i> Pending
+                        <?php elseif ($request['status'] == 'approved'): ?>
+                            <i class="fas fa-check-circle"></i> Approved
+                        <?php elseif ($request['status'] == 'rejected'): ?>
+                            <i class="fas fa-times-circle"></i> Rejected
+                        <?php endif; ?>
+                    </span>
+                    <button class="btn btn-primary-custom btn-sm" onclick="showEditSummary()">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
             </div>
             <div class="card-body-custom">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="info-label">Nama PT</div>
-                        <div class="info-value"><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></div>
+                <!-- Form Edit Summary -->
+                <div id="editSummaryForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="save_summary">
                         
-                        <div class="info-label">No NPWP</div>
-                        <div class="info-value"><?= htmlspecialchars($request['npwp'] ?? '-') ?></div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Salesman</label>
+                                <input type="text" class="form-control" value="<?= htmlspecialchars($request['sales_name'] ?? '-') ?>" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <input type="text" class="form-control" value="<?= ucfirst($request['status']) ?>" readonly>
+                            </div>
+                        </div>
                         
-                        <div class="info-label">Alamat</div>
-                        <div class="info-value"><?= htmlspecialchars($request['alamat'] ?? '-') ?></div>
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea name="deskripsi" class="form-control" rows="4"><?= htmlspecialchars($detailTR['deskripsi'] ?? '') ?></textarea>
+                        </div>
                         
-                        <div class="info-label">Nama PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['nama_pic'] ?? '-') ?></div>
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="hideEditSummary()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- View Summary -->
+                <div id="viewSummary">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-label">Nama PT</div>
+                            <div class="info-value"><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></div>
+                            
+                            <div class="info-label">No NPWP</div>
+                            <div class="info-value"><?= htmlspecialchars($request['npwp'] ?? '-') ?></div>
+                            
+                            <div class="info-label">Alamat</div>
+                            <div class="info-value"><?= htmlspecialchars($request['alamat'] ?? '-') ?></div>
+                            
+                            <div class="info-label">Nama PIC</div>
+                            <div class="info-value"><?= htmlspecialchars($request['nama_pic'] ?? '-') ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-label">Jabatan PIC</div>
+                            <div class="info-value"><?= htmlspecialchars($request['jabatan_pic'] ?? '-') ?></div>
+                            
+                            <div class="info-label">No Telepon PIC</div>
+                            <div class="info-value"><?= htmlspecialchars($request['no_hp_pic'] ?? '-') ?></div>
+                            
+                            <div class="info-label">Email PIC</div>
+                            <div class="info-value"><?= htmlspecialchars($request['email_pic'] ?? '-') ?></div>
+                            
+                            <div class="info-label">Badan Usaha</div>
+                            <div class="info-value"><?= htmlspecialchars($request['badan_usaha'] ?? '-') ?></div>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Jabatan PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['jabatan_pic'] ?? '-') ?></div>
-                        
-                        <div class="info-label">No Telepon PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['no_hp_pic'] ?? '-') ?></div>
-                        
-                        <div class="info-label">Email PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['email_pic'] ?? '-') ?></div>
-                        
-                        <div class="info-label">Badan Usaha</div>
-                        <div class="info-value"><?= htmlspecialchars($request['badan_usaha'] ?? '-') ?></div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-label">Salesman</div>
+                            <div class="info-value"><?= htmlspecialchars($request['sales_name'] ?? '-') ?></div>
+                            
+                            <div class="info-label">Deskripsi</div>
+                            <div class="info-value"><?= nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-label">Status</div>
+                            <div class="info-value">
+                                <span class="badge-status-tr <?= $request['status'] ?>">
+                                    <?= ucfirst($request['status']) ?>
+                                </span>
+                            </div>
+                            
+                            <div class="info-label">Current Approver</div>
+                            <div class="info-value"><?= htmlspecialchars($currentApproverLabel) ?></div>
+                            
+                            <div class="info-label">Next Approver</div>
+                            <div class="info-value"><?= htmlspecialchars($nextApproverLabel) ?></div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Total Keseluruhan -->
-                <div class="row mt-4">
-                    <div class="col-md-4">
-                        <div class="total-box">
-                            <div class="total-label">Total Unit</div>
-                            <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
+                <!-- Approval Timeline -->
+                <hr>
+                <h6 class="mb-3"><i class="fas fa-clipboard-check" style="color: #ffd700;"></i> Approval Timeline</h6>
+                <div class="approval-timeline">
+                    <?php foreach ($approvalLevels as $order => $level): ?>
+                        <?php 
+                        $approvalStatus = '';
+                        $approvalNote = '';
+                        $approvedByName = '';
+                        $approvalClass = '';
+                        
+                        foreach ($approvalHistory as $history) {
+                            if ($history['approval_order'] == $order) {
+                                $approvalStatus = $history['status'];
+                                $approvalNote = $history['catatan'];
+                                $approvedByName = $history['approved_by'];
+                                break;
+                            }
+                        }
+                        
+                        if ($approvalStatus == 'approved') {
+                            $approvalClass = 'completed';
+                        } elseif ($approvalStatus == 'rejected') {
+                            $approvalClass = 'rejected';
+                        } elseif ($order == $currentApprovalOrder && $request['status'] != 'rejected') {
+                            $approvalClass = 'current';
+                        }
+                        ?>
+                        <div class="approval-item <?= $approvalClass ?>">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong><?= $level['label'] ?></strong>
+                                    <?php if ($approvalStatus == 'approved'): ?>
+                                        <span class="badge bg-success ms-2">Approved</span>
+                                    <?php elseif ($approvalStatus == 'rejected'): ?>
+                                        <span class="badge bg-danger ms-2">Rejected</span>
+                                    <?php elseif ($order == $currentApprovalOrder && $request['status'] != 'rejected'): ?>
+                                        <span class="badge bg-warning ms-2">Current</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary ms-2">Waiting</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php if ($approvalNote): ?>
+                                <small class="text-muted">Catatan: <?= htmlspecialchars($approvalNote) ?></small>
+                            <?php endif; ?>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="total-box">
-                            <div class="total-label">Total TOP</div>
-                            <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="total-box">
-                            <div class="total-label">Total Additional Cost</div>
-                            <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
+                
+                <!-- Tombol Approve/Reject untuk current approver -->
+                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 5 && $request['status'] != 'rejected' && $request['status'] != 'approved'): ?>
+                    <?php 
+                    $canApprove = false;
+                    $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
+                    if ($userRole == $requiredRole || $userRole == 'it_support' || $userRole == 'admin') {
+                        $canApprove = true;
+                    }
+                    ?>
+                    <?php if ($canApprove): ?>
+                    <div class="mt-4 p-3" style="background: #f8f9fa; border-radius: 10px;">
+                        <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
+                        <form method="POST" id="approvalForm">
+                            <input type="hidden" name="action" id="approvalAction" value="approve">
+                            <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
+                            <div class="mb-3">
+                                <label class="form-label">Catatan (Optional)</label>
+                                <textarea name="catatan" class="form-control" rows="3" placeholder="Masukkan catatan..."></textarea>
+                            </div>
+                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
+                                <i class="fas fa-check-circle"></i> Approve
+                            </button>
+                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
+                                <i class="fas fa-times-circle"></i> Reject
+                            </button>
+                        </form>
+                    </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
@@ -1578,6 +1940,29 @@ if ($additionalCost) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ============================================
+        // FUNGSI UNTUK SUMMARY
+        // ============================================
+        function showEditSummary() {
+            document.getElementById('editSummaryForm').style.display = 'block';
+            document.getElementById('viewSummary').style.display = 'none';
+        }
+        
+        function hideEditSummary() {
+            document.getElementById('editSummaryForm').style.display = 'none';
+            document.getElementById('viewSummary').style.display = 'block';
+        }
+        
+        function submitApproval(action) {
+            if (action === 'reject') {
+                if (!confirm('Yakin ingin me-reject TR ini?')) {
+                    return;
+                }
+            }
+            document.getElementById('approvalAction').value = action;
+            document.getElementById('approvalForm').submit();
+        }
+        
         // ============================================
         // FUNGSI UNTUK DETAIL UNIT
         // ============================================
