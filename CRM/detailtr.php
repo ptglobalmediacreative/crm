@@ -684,6 +684,11 @@ if ($additionalCost) {
 }
 
 // ============================================
+// HITUNG TOTAL MASUKAN
+// ============================================
+$totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
+
+// ============================================
 // CEK KELENGKAPAN DATA UNTUK APPROVAL
 // ============================================
 $isDataComplete = true;
@@ -1263,6 +1268,25 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             
                             <div class="info-label">Next Approver</div>
                             <div class="info-value"><?= htmlspecialchars($nextApproverLabel) ?></div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="total-box mb-2">
+                                <div class="total-label">Grand Total Include PPN (Detail Unit)</div>
+                                <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
+                            </div>
+                            <div class="total-box mb-2" style="background: #1a2d4a;">
+                                <div class="total-label">Total Additional Cost</div>
+                                <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
+                            </div>
+                            <div class="total-box" style="background: #27ae60;">
+                                <div class="total-label">Total Masukan</div>
+                                <div class="total-value">Rp <?= number_format($totalMasukan, 0, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1956,7 +1980,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('unit_id_hidden').value = '0';
             document.getElementById('deleteUnitBtn').style.display = 'none';
             
-            // Jika ada data unit, langsung load data unit pertama
             <?php if (count($detailUnits) > 0): ?>
                 <?php $firstUnit = $detailUnits[0]; ?>
                 document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
