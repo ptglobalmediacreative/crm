@@ -142,6 +142,18 @@ if (!$request) {
 }
 
 // ============================================
+// CEK HAK EDIT (HANYA SALES YANG BISA EDIT TR MILIKNYA)
+// ============================================
+$canEdit = false;
+if ($userRole === 'sales' && isset($request['sales_user_id']) && $request['sales_user_id'] == $userId) {
+    $canEdit = true;
+}
+
+// Role yang hanya bisa review/approve (tidak bisa edit)
+$reviewOnlyRoles = ['sales_manager', 'direktur_sales', 'business', 'direktur_operasional', 'direktur_utama', 'finance', 'it_support', 'admin'];
+$isReviewOnly = in_array($userRole, $reviewOnlyRoles);
+
+// ============================================
 // AMBIL DATA DETAIL TRANSACTION REQUEST (JIKA ADA)
 // ============================================
 $detailTR = null;
@@ -298,6 +310,13 @@ try {
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    
+    // Cek hak edit untuk action selain approve/reject
+    $editActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_cost', 'save_mediator'];
+    if (in_array($action, $editActions) && !$canEdit) {
+        setFlash('Anda tidak memiliki hak untuk mengedit data ini!', 'danger');
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
+    }
     
     // ============================================
     // SAVE SUMMARY / DESKRIPSI
@@ -780,8 +799,7 @@ if ($additionalCost) {
 $isDataComplete = true;
 $missingSections = [];
 
-// Cek Deskripsi
-if (empty($detailTR['deskripsi'])) {
+// Cek Deskripsiif (empty($detailTR['deskripsi'])) {
     $isDataComplete = false;
     $missingSections[] = 'Deskripsi (Summary)';
 }
@@ -1282,9 +1300,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             <i class="fas fa-times-circle"></i> Rejected
                         <?php endif; ?>
                     </span>
+                    <?php if ($canEdit): ?>
                     <button class="btn btn-primary-custom btn-sm" onclick="showEditSummary()">
                         <i class="fas fa-edit"></i> Edit
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="card-body-custom">
@@ -1320,6 +1340,14 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 
                 <!-- View Summary -->
                 <div id="viewSummary">
+                    <?php if ($isReviewOnly): ?>
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> 
+                        Anda login sebagai <strong><?= getRoleLabel($userRole) ?></strong>. 
+                        Anda hanya dapat melakukan review dan approval.
+                    </div>
+                    <?php endif; ?>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="info-label">Nama PT</div>
@@ -1439,9 +1467,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
+                <?php if ($canEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm()">
                     <i class="fas fa-plus"></i> Tambah Unit
                 </button>
+                <?php endif; ?>
             </div>
             <div class="card-body-custom">
                 <!-- Form Tambah Unit -->
@@ -1547,7 +1577,9 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 <th>Specification</th>
                                 <th>Delivery Schedule</th>
                                 <th>Transaction Type</th>
+                                <?php if ($canEdit): ?>
                                 <th>Aksi</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -1574,6 +1606,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                         <td><?= htmlspecialchars($unit['specification']) ?></td>
                                         <td><?= date('d/m/Y', strtotime($unit['delivery_schedule'])) ?></td>
                                         <td><?= htmlspecialchars($unit['transaction_type']) ?></td>
+                                        <?php if ($canEdit): ?>
                                         <td>
                                             <button class="btn btn-warning-custom btn-sm" onclick="editUnit(<?= $unit['id'] ?>, <?= $unit['unit_id'] ?>, <?= $unit['qty'] ?>, <?= $unit['price'] ?>, '<?= addslashes($unit['specification']) ?>', '<?= addslashes($unit['additional_attachment']) ?>', '<?= addslashes($unit['waranty']) ?>', '<?= addslashes($unit['machine_location']) ?>', '<?= addslashes($unit['delivery_terms']) ?>', '<?= $unit['delivery_schedule'] ?>', '<?= addslashes($unit['transaction_type']) ?>')">
                                                 <i class="fas fa-edit"></i>
@@ -1586,16 +1619,17 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                                 </button>
                                             </form>
                                         </td>
+                                        <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
                                 <tr>
                                     <td colspan="5" class="text-end"><strong>TOTAL</strong></td>
                                     <td><strong>Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></strong></td>
-                                    <td colspan="4"></td>
+                                    <td colspan="<?= $canEdit ? '4' : '3' ?>"></td>
                                 </tr>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="<?= $canEdit ? '10' : '9' ?>" class="text-center py-4 text-muted">
                                         <i class="fas fa-box-open me-2"></i> Belum ada detail unit
                                     </td>
                                 </tr>
@@ -1614,9 +1648,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-money-bill-wave"></i> Term Of Payment</h6>
+                <?php if ($canEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showTOPSection()">
                     <i class="fas fa-edit"></i> Edit TOP
                 </button>
+                <?php endif; ?>
             </div>
             <div class="card-body-custom">
                 <!-- Form TOP -->
@@ -1779,9 +1815,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-coins"></i> Additional Cost / Machines</h6>
+                <?php if ($canEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showCostForm()">
                     <i class="fas fa-edit"></i> Edit Cost
                 </button>
+                <?php endif; ?>
             </div>
             <div class="card-body-custom">
                 <!-- Form Additional Cost -->
@@ -1884,9 +1922,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
+                <?php if ($canEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showMediatorForm()">
                     <i class="fas fa-edit"></i> Edit Mediator
                 </button>
+                <?php endif; ?>
             </div>
             <div class="card-body-custom">
                 <!-- Form Mediator -->
