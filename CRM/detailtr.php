@@ -76,14 +76,13 @@ $sql = "SELECT ad.tr_number,
                a.badan_usaha,
                a.alamat,
                a.npwp,
-               a.pic_name,
-               a.pic_jabatan,
-               a.pic_phone,
-               a.pic_email,
+               a.nama_pic,
+               a.jabatan_pic,
+               a.no_hp_pic,
+               a.email_pic,
                u.full_name as sales_name,
                sa.sales_id,
                sa.id as sales_activity_id,
-               sa.kode_transaction_request_form,
                CASE 
                    WHEN EXISTS (
                        SELECT 1 FROM detail_transaction_requests dtr 
@@ -118,50 +117,80 @@ if (!$request) {
 // ============================================
 // AMBIL DATA PRODUK UNTUK DROPDOWN UNIT
 // ============================================
-$sqlProduk = "SELECT id, nama_produk, kode_produk, tipe_produk FROM produk WHERE status = 'aktif' ORDER BY nama_produk ASC";
-$stmtProduk = $db->prepare($sqlProduk);
-$stmtProduk->execute();
-$produkList = $stmtProduk->fetchAll();
+$produkList = [];
+try {
+    $sqlProduk = "SELECT id, nama_produk, kode_produk, tipe_produk FROM produk WHERE status = 'aktif' ORDER BY nama_produk ASC";
+    $stmtProduk = $db->prepare($sqlProduk);
+    $stmtProduk->execute();
+    $produkList = $stmtProduk->fetchAll();
+} catch (Exception $e) {
+    $produkList = [];
+}
 
 // ============================================
 // AMBIL DATA DETAIL TRANSACTION REQUEST (JIKA ADA)
 // ============================================
-$sqlDetail = "SELECT * FROM detail_transaction_requests WHERE trf_number = ?";
-$stmtDetail = $db->prepare($sqlDetail);
-$stmtDetail->execute([$tr_number]);
-$detailTR = $stmtDetail->fetch();
+$detailTR = null;
+try {
+    $sqlDetail = "SELECT * FROM detail_transaction_requests WHERE trf_number = ?";
+    $stmtDetail = $db->prepare($sqlDetail);
+    $stmtDetail->execute([$tr_number]);
+    $detailTR = $stmtDetail->fetch();
+} catch (Exception $e) {
+    $detailTR = null;
+}
 
 // ============================================
 // AMBIL DATA DETAIL UNIT
 // ============================================
-$sqlUnit = "SELECT * FROM tr_detail_units WHERE trf_number = ? ORDER BY id ASC";
-$stmtUnit = $db->prepare($sqlUnit);
-$stmtUnit->execute([$tr_number]);
-$detailUnits = $stmtUnit->fetchAll();
+$detailUnits = [];
+try {
+    $sqlUnit = "SELECT * FROM tr_detail_units WHERE trf_number = ? ORDER BY id ASC";
+    $stmtUnit = $db->prepare($sqlUnit);
+    $stmtUnit->execute([$tr_number]);
+    $detailUnits = $stmtUnit->fetchAll();
+} catch (Exception $e) {
+    $detailUnits = [];
+}
 
 // ============================================
 // AMBIL DATA TERM OF PAYMENT
 // ============================================
-$sqlTOP = "SELECT * FROM tr_term_of_payments WHERE trf_number = ? ORDER BY id ASC";
-$stmtTOP = $db->prepare($sqlTOP);
-$stmtTOP->execute([$tr_number]);
-$termPayments = $stmtTOP->fetchAll();
+$termPayments = [];
+try {
+    $sqlTOP = "SELECT * FROM tr_term_of_payments WHERE trf_number = ? ORDER BY id ASC";
+    $stmtTOP = $db->prepare($sqlTOP);
+    $stmtTOP->execute([$tr_number]);
+    $termPayments = $stmtTOP->fetchAll();
+} catch (Exception $e) {
+    $termPayments = [];
+}
 
 // ============================================
 // AMBIL DATA ADDITIONAL COST
 // ============================================
-$sqlCost = "SELECT * FROM tr_additional_costs WHERE trf_number = ?";
-$stmtCost = $db->prepare($sqlCost);
-$stmtCost->execute([$tr_number]);
-$additionalCost = $stmtCost->fetch();
+$additionalCost = null;
+try {
+    $sqlCost = "SELECT * FROM tr_additional_costs WHERE trf_number = ?";
+    $stmtCost = $db->prepare($sqlCost);
+    $stmtCost->execute([$tr_number]);
+    $additionalCost = $stmtCost->fetch();
+} catch (Exception $e) {
+    $additionalCost = null;
+}
 
 // ============================================
 // AMBIL DATA MEDIATOR
 // ============================================
-$sqlMediator = "SELECT * FROM tr_mediators WHERE trf_number = ?";
-$stmtMediator = $db->prepare($sqlMediator);
-$stmtMediator->execute([$tr_number]);
-$mediator = $stmtMediator->fetch();
+$mediator = null;
+try {
+    $sqlMediator = "SELECT * FROM tr_mediators WHERE trf_number = ?";
+    $stmtMediator = $db->prepare($sqlMediator);
+    $stmtMediator->execute([$tr_number]);
+    $mediator = $stmtMediator->fetch();
+} catch (Exception $e) {
+    $mediator = null;
+}
 
 // ============================================
 // HANDLE FORM SUBMISSION
@@ -229,6 +258,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $machine_location, $delivery_terms, $delivery_schedule,
                     $transaction_type
                 ]);
+            }
+            
+            // Update status di detail_transaction_requests
+            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetail->execute([$tr_number]);
+            if ($checkDetail->fetch()) {
+                $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+                $updateDetail->execute([$tr_number]);
+            } else {
+                $insertDetail = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                $insertDetail->execute([$tr_number]);
             }
             
             $db->commit();
@@ -312,6 +352,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $nominal_po]);
             }
             
+            // Update status di detail_transaction_requests
+            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetail->execute([$tr_number]);
+            if ($checkDetail->fetch()) {
+                $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+                $updateDetail->execute([$tr_number]);
+            } else {
+                $insertDetail = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                $insertDetail->execute([$tr_number]);
+            }
+            
             $db->commit();
             setFlash('Term of Payment berhasil disimpan!', 'success');
         } catch (Exception $e) {
@@ -362,6 +413,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tr_number, $insurance_ops, $insurance_cargo, $delivery_cost,
                     $free_part, $free_service, $mediator_fee, $others
                 ]);
+            }
+            
+            // Update status di detail_transaction_requests
+            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetail->execute([$tr_number]);
+            if ($checkDetail->fetch()) {
+                $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+                $updateDetail->execute([$tr_number]);
+            } else {
+                $insertDetail = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                $insertDetail->execute([$tr_number]);
             }
             
             $db->commit();
@@ -838,20 +900,20 @@ if ($additionalCost) {
                         <div class="info-value"><?= htmlspecialchars($request['alamat'] ?? '-') ?></div>
                         
                         <div class="info-label">Nama PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['pic_name'] ?? '-') ?></div>
+                        <div class="info-value"><?= htmlspecialchars($request['nama_pic'] ?? '-') ?></div>
                     </div>
                     <div class="col-md-6">
                         <div class="info-label">Jabatan PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['pic_jabatan'] ?? '-') ?></div>
+                        <div class="info-value"><?= htmlspecialchars($request['jabatan_pic'] ?? '-') ?></div>
                         
                         <div class="info-label">No Telepon PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['pic_phone'] ?? '-') ?></div>
+                        <div class="info-value"><?= htmlspecialchars($request['no_hp_pic'] ?? '-') ?></div>
                         
                         <div class="info-label">Email PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['pic_email'] ?? '-') ?></div>
+                        <div class="info-value"><?= htmlspecialchars($request['email_pic'] ?? '-') ?></div>
                         
-                        <div class="info-label">Kode TRF</div>
-                        <div class="info-value"><?= htmlspecialchars($request['kode_transaction_request_form'] ?? '-') ?></div>
+                        <div class="info-label">Badan Usaha</div>
+                        <div class="info-value"><?= htmlspecialchars($request['badan_usaha'] ?? '-') ?></div>
                     </div>
                 </div>
             </div>
@@ -873,7 +935,6 @@ if ($additionalCost) {
                     <form method="POST" id="unitForm">
                         <input type="hidden" name="action" value="save_unit">
                         <input type="hidden" name="unit_id_hidden" id="unit_id_hidden" value="0">
-                        <input type="hidden" name="trf_number" value="<?= htmlspecialchars($tr_number) ?>">
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -1140,7 +1201,7 @@ if ($additionalCost) {
                         <!-- Total TOP -->
                         <div class="total-box mb-3">
                             <div class="total-label">Grand Total TOP</div>
-                            <div class="total-value" id="totalTOPDisplay">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
+                            <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
                         </div>
                         
                         <button type="submit" class="btn btn-primary-custom">
