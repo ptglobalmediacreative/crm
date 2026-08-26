@@ -44,6 +44,25 @@ function getRoleLabel($role) {
 }
 
 // ============================================
+// FUNGSI UNTUK RESET APPROVAL HISTORY
+// ============================================
+function resetApprovalHistory($db, $tr_number) {
+    try {
+        // Hapus semua approval history
+        $deleteApproval = $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?");
+        $deleteApproval->execute([$tr_number]);
+        
+        // Reset status menjadi pending
+        $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+        $updateDetail->execute([$tr_number]);
+        
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+// ============================================
 // CEK USER UNTUK AKSES
 // ============================================
 $userId = $_SESSION['user_id'] ?? 0;
@@ -300,8 +319,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $deskripsi]);
             }
             
+            // Reset approval history
+            resetApprovalHistory($db, $tr_number);
+            
             $db->commit();
-            setFlash('Summary berhasil disimpan!', 'success');
+            setFlash('Summary berhasil disimpan! Approval history di-reset.', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan summary: ' . $e->getMessage(), 'danger');
@@ -320,11 +342,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $catatan = $_POST['catatan'] ?? '';
             $currentOrder = (int)($_POST['approval_order'] ?? 0);
             
-            // Cek apakah user memiliki hak untuk approve
+            // Cek apakah user memiliki hak untuk approve (HANYA role yang sesuai)
             $canApprove = false;
             if ($currentOrder > 0 && $currentOrder <= 5) {
                 $requiredRole = $approvalLevels[$currentOrder]['role'];
-                if ($userRole == $requiredRole || $userRole == 'it_support' || $userRole == 'admin') {
+                if ($userRole == $requiredRole) {
                     $canApprove = true;
                 }
             }
@@ -401,10 +423,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->commit();
                 setFlash($approvalStatus == 'approved' ? 'TR berhasil di-approve!' : 'TR berhasil di-reject!', 'success');
             } else {
-                if (!$checkDataComplete && $action === 'approve') {
-                    setFlash('Data belum lengkap! Semua section harus diisi sebelum approval.', 'danger');
-                } else {
+                if (!$canApprove) {
                     setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
+                } elseif (!$checkDataComplete && $action === 'approve') {
+                    setFlash('Data belum lengkap! Semua section harus diisi sebelum approval.', 'danger');
                 }
             }
         } catch (Exception $e) {
@@ -487,8 +509,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertDetail->execute([$tr_number]);
             }
             
+            // Reset approval history
+            resetApprovalHistory($db, $tr_number);
+            
             $db->commit();
-            setFlash('Detail unit berhasil disimpan!', 'success');
+            setFlash('Detail unit berhasil disimpan! Approval history di-reset.', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan detail unit: ' . $e->getMessage(), 'danger');
@@ -503,11 +528,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $unitId = (int)($_POST['unit_id'] ?? 0);
         if ($unitId > 0) {
             try {
+                $db->beginTransaction();
+                
                 $deleteSql = "DELETE FROM tr_detail_units WHERE id = ? AND trf_number = ?";
                 $deleteStmt = $db->prepare($deleteSql);
                 $deleteStmt->execute([$unitId, $tr_number]);
-                setFlash('Detail unit berhasil dihapus!', 'success');
+                
+                // Reset approval history
+                resetApprovalHistory($db, $tr_number);
+                
+                $db->commit();
+                setFlash('Detail unit berhasil dihapus! Approval history di-reset.', 'success');
             } catch (Exception $e) {
+                $db->rollBack();
                 setFlash('Gagal menghapus detail unit!', 'danger');
             }
         }
@@ -579,8 +612,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertDetail->execute([$tr_number]);
             }
             
+            // Reset approval history
+            resetApprovalHistory($db, $tr_number);
+            
             $db->commit();
-            setFlash('Term of Payment berhasil disimpan!', 'success');
+            setFlash('Term of Payment berhasil disimpan! Approval history di-reset.', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan Term of Payment: ' . $e->getMessage(), 'danger');
@@ -642,8 +678,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertDetail->execute([$tr_number]);
             }
             
+            // Reset approval history
+            resetApprovalHistory($db, $tr_number);
+            
             $db->commit();
-            setFlash('Additional Cost berhasil disimpan!', 'success');
+            setFlash('Additional Cost berhasil disimpan! Approval history di-reset.', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan Additional Cost: ' . $e->getMessage(), 'danger');
@@ -693,8 +732,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
             }
             
+            // Reset approval history
+            resetApprovalHistory($db, $tr_number);
+            
             $db->commit();
-            setFlash('Data Mediator berhasil disimpan!', 'success');
+            setFlash('Data Mediator berhasil disimpan! Approval history di-reset.', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan data Mediator: ' . $e->getMessage(), 'danger');
@@ -951,6 +993,12 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             color: #fff;
         }
         .btn-success-custom i { margin-right: 6px; }
+        .btn-success-custom:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         .btn-danger-custom {
             background: #e74c3c;
@@ -1423,10 +1471,18 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     <?php 
                     $canApprove = false;
                     $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
-                    if ($userRole == $requiredRole || $userRole == 'it_support' || $userRole == 'admin') {
+                    if ($userRole == $requiredRole) {
                         $canApprove = true;
                     }
                     ?>
+                    
+                    <?php if (!$canApprove): ?>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        Anda tidak memiliki hak untuk melakukan approval pada level ini. 
+                        Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
+                    </div>
+                    <?php endif; ?>
                     
                     <?php if ($canApprove && !$isDataComplete): ?>
                     <div class="alert alert-warning mt-3">
