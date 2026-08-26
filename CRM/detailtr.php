@@ -59,6 +59,13 @@ $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur
 // AMBIL TR NUMBER DARI URL
 // ============================================
 $tr_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
+$activeTab = isset($_GET['tab']) ? bersihkan($_GET['tab']) : 'summary';
+
+// Validasi tab
+$validTabs = ['summary', 'detail_unit', 'term_of_payment', 'additional_cost', 'mediator'];
+if (!in_array($activeTab, $validTabs)) {
+    $activeTab = 'summary';
+}
 
 if (empty($tr_number)) {
     setFlash('TR Number tidak ditemukan!', 'danger');
@@ -197,6 +204,7 @@ try {
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    $redirectTab = $_POST['redirect_tab'] ?? 'summary';
     
     // ============================================
     // SAVE DETAIL UNIT
@@ -277,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan detail unit: ' . $e->getMessage(), 'danger');
         }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=detail_unit");
     }
     
     // ============================================
@@ -295,7 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setFlash('Gagal menghapus detail unit!', 'danger');
             }
         }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=detail_unit");
     }
     
     // ============================================
@@ -369,7 +377,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan Term of Payment: ' . $e->getMessage(), 'danger');
         }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=term_of_payment");
     }
     
     // ============================================
@@ -432,7 +440,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan Additional Cost: ' . $e->getMessage(), 'danger');
         }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=additional_cost");
     }
     
     // ============================================
@@ -483,7 +491,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan data Mediator: ' . $e->getMessage(), 'danger');
         }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=mediator");
     }
 }
 
@@ -787,6 +795,51 @@ if ($additionalCost) {
 
         .mobile-toggle { display: none; }
 
+        /* Tab Navigation Styles */
+        .tab-nav {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid #e0e4ea;
+            margin-bottom: 25px;
+            padding: 0;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .tab-nav .nav-tabs {
+            border-bottom: none;
+            padding: 5px;
+            gap: 5px;
+            display: flex;
+        }
+        .tab-nav .nav-tabs .nav-item {
+            margin: 0;
+        }
+        .tab-nav .nav-tabs .nav-link {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #666;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .tab-nav .nav-tabs .nav-link i {
+            font-size: 14px;
+        }
+        .tab-nav .nav-tabs .nav-link:hover {
+            background: #f8f9fa;
+            color: #0e1a2b;
+        }
+        .tab-nav .nav-tabs .nav-link.active {
+            background: #0e1a2b;
+            color: #ffd700;
+        }
+
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
@@ -795,6 +848,10 @@ if ($additionalCost) {
                 display: flex !important; background: #0e1a2b; border: none; 
                 width: 40px; height: 40px; border-radius: 8px; 
                 color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
+            }
+            .tab-nav .nav-tabs .nav-link {
+                padding: 10px 15px;
+                font-size: 12px;
             }
         }
     </style>
@@ -871,9 +928,41 @@ if ($additionalCost) {
 
         <?= showFlash() ?>
 
+        <!-- TAB NAVIGATION -->
+        <div class="tab-nav">
+            <ul class="nav nav-tabs" id="trTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'summary' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=summary">
+                        <i class="fas fa-info-circle"></i> Summary
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'detail_unit' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=detail_unit">
+                        <i class="fas fa-boxes"></i> Detail Unit
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'term_of_payment' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=term_of_payment">
+                        <i class="fas fa-money-bill-wave"></i> Term Of Payment
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'additional_cost' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=additional_cost">
+                        <i class="fas fa-coins"></i> Additional Cost
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=mediator">
+                        <i class="fas fa-user-tie"></i> Data Mediator
+                    </a>
+                </li>
+            </ul>
+        </div>
+
         <!-- ============================================ -->
-        <!-- SECTION: SUMMARY / INFORMASI ACCOUNT -->
+        <!-- TAB CONTENT: SUMMARY -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'summary'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-info-circle"></i> Summary</h6>
@@ -916,12 +1005,36 @@ if ($additionalCost) {
                         <div class="info-value"><?= htmlspecialchars($request['badan_usaha'] ?? '-') ?></div>
                     </div>
                 </div>
+                
+                <!-- Total Keseluruhan -->
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="total-box">
+                            <div class="total-label">Total Unit</div>
+                            <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="total-box">
+                            <div class="total-label">Total TOP</div>
+                            <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="total-box">
+                            <div class="total-label">Total Additional Cost</div>
+                            <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: DETAIL UNIT -->
+        <!-- TAB CONTENT: DETAIL UNIT -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'detail_unit'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
@@ -1043,7 +1156,6 @@ if ($additionalCost) {
                                         <td><?= $index + 1 ?></td>
                                         <td>
                                             <?php 
-                                            // Cari nama produk
                                             $namaUnit = '-';
                                             foreach ($produkList as $produk) {
                                                 if ($produk['id'] == $unit['unit_id']) {
@@ -1092,10 +1204,12 @@ if ($additionalCost) {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: TERM OF PAYMENT -->
+        <!-- TAB CONTENT: TERM OF PAYMENT -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'term_of_payment'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-money-bill-wave"></i> Term Of Payment</h6>
@@ -1255,10 +1369,12 @@ if ($additionalCost) {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: ADDITIONAL COST / MACHINES -->
+        <!-- TAB CONTENT: ADDITIONAL COST -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'additional_cost'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-coins"></i> Additional Cost / Machines</h6>
@@ -1358,10 +1474,12 @@ if ($additionalCost) {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: DATA MEDIATOR FEE -->
+        <!-- TAB CONTENT: DATA MEDIATOR -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'mediator'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
@@ -1453,34 +1571,7 @@ if ($additionalCost) {
                 </div>
             </div>
         </div>
-
-        <!-- ============================================ -->
-        <!-- SECTION: TOTAL KESELURUHAN -->
-        <!-- ============================================ -->
-        <div class="card-custom">
-            <div class="card-body-custom">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="total-box">
-                            <div class="total-label">Total Unit</div>
-                            <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="total-box">
-                            <div class="total-label">Total TOP</div>
-                            <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="total-box">
-                            <div class="total-label">Total Additional Cost</div>
-                            <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php endif; ?>
 
     </div>
 
@@ -1527,7 +1618,6 @@ if ($additionalCost) {
             document.getElementById('qty').value = qty;
             document.getElementById('price').value = price;
             
-            // Set specification dan field lainnya
             const specInput = document.querySelector('input[name="specification"]');
             const attachmentInput = document.querySelector('input[name="additional_attachment"]');
             const warantyInput = document.querySelector('input[name="waranty"]');
