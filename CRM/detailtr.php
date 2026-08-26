@@ -1128,7 +1128,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     <i class="fas fa-bars"></i>
                 </button>
                 <div>
-                    <h4><span><i class="fas fa-file-signature" style="color:#ffd700;"></i></span> Detail TR: <?= htmlspecialchars($tr_number) ?></h4>
+                    <h4><span><i class="fas fa-file-signature" style="color:#ffd700;"></i></span> Detail TR - <?= htmlspecialchars($tr_number) ?></h4>
                 </div>
             </div>
             <div>
