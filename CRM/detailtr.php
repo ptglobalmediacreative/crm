@@ -357,30 +357,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
+            // Cek kelengkapan data untuk KEDUA action (approve dan reject)
             $checkDataComplete = true;
-            if ($action === 'approve') {
-                $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ?");
-                $checkDetailTR->execute([$tr_number]);
-                $detailData = $checkDetailTR->fetch();
-                
-                $checkUnits = $db->prepare("SELECT COUNT(*) as total FROM tr_detail_units WHERE trf_number = ?");
-                $checkUnits->execute([$tr_number]);
-                $unitCount = $checkUnits->fetch()['total'];
-                
-                $checkTOP = $db->prepare("SELECT COUNT(*) as total FROM tr_term_of_payments WHERE trf_number = ?");
-                $checkTOP->execute([$tr_number]);
-                $topCount = $checkTOP->fetch()['total'];
-                
-                $checkCost = $db->prepare("SELECT insurance_cargo FROM tr_additional_costs WHERE trf_number = ?");
-                $checkCost->execute([$tr_number]);
-                $costData = $checkCost->fetch();
-                
-                if (empty($detailData['deskripsi']) || $unitCount == 0 || $topCount == 0 || !$costData || empty($costData['insurance_cargo'])) {
-                    $checkDataComplete = false;
-                }
+            $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetailTR->execute([$tr_number]);
+            $detailData = $checkDetailTR->fetch();
+            
+            $checkUnits = $db->prepare("SELECT COUNT(*) as total FROM tr_detail_units WHERE trf_number = ?");
+            $checkUnits->execute([$tr_number]);
+            $unitCount = $checkUnits->fetch()['total'];
+            
+            $checkTOP = $db->prepare("SELECT COUNT(*) as total FROM tr_term_of_payments WHERE trf_number = ?");
+            $checkTOP->execute([$tr_number]);
+            $topCount = $checkTOP->fetch()['total'];
+            
+            $checkCost = $db->prepare("SELECT insurance_cargo FROM tr_additional_costs WHERE trf_number = ?");
+            $checkCost->execute([$tr_number]);
+            $costData = $checkCost->fetch();
+            
+            if (empty($detailData['deskripsi']) || $unitCount == 0 || $topCount == 0 || !$costData || empty($costData['insurance_cargo'])) {
+                $checkDataComplete = false;
             }
             
-            if ($canApprove && ($checkDataComplete || $action === 'reject')) {
+            if ($canApprove && $checkDataComplete) {
                 $checkApproval = $db->prepare("SELECT id FROM tr_approval_history WHERE trf_number = ? AND approval_order = ?");
                 $checkApproval->execute([$tr_number, $currentOrder]);
                 $existingApproval = $checkApproval->fetch();
@@ -411,8 +410,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 if (!$canApprove) {
                     setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
-                } elseif (!$checkDataComplete && $action === 'approve') {
-                    setFlash('Data belum lengkap! Semua section harus diisi sebelum approval.', 'danger');
+                } elseif (!$checkDataComplete) {
+                    setFlash('Data belum lengkap! Semua section harus diisi sebelum approval atau reject.', 'danger');
                 }
             }
         } catch (Exception $e) {
@@ -920,6 +919,12 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             color: #fff;
         }
         .btn-danger-custom i { margin-right: 6px; }
+        .btn-danger-custom:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         .btn-warning-custom {
             background: #ffd700;
@@ -1221,9 +1226,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 </div>
                 
                 <div id="viewSummary">
-                    <?php if ($isReviewOnly): ?>
-                    <?php endif; ?>
-                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="info-label">Nama PT</div>
@@ -1306,7 +1308,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 <li><?= htmlspecialchars($section) ?></li>
                             <?php endforeach; ?>
                         </ul>
-                        <small class="text-muted">Silakan lengkapi semua data terlebih dahulu sebelum melakukan approval.</small>
+                        <small class="text-muted">Silakan lengkapi semua data terlebih dahulu sebelum melakukan approval atau reject.</small>
                     </div>
                     <?php endif; ?>
                     
@@ -1319,13 +1321,13 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')" <?= !$isDataComplete ? 'disabled' : '' ?>>
                                 <i class="fas fa-check-circle"></i> Approve
                             </button>
-                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
+                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')" <?= !$isDataComplete ? 'disabled' : '' ?>>
                                 <i class="fas fa-times-circle"></i> Reject
                             </button>
                         </form>
                         <?php if (!$isDataComplete): ?>
                         <small class="text-muted d-block mt-2">
-                            <i class="fas fa-info-circle"></i> Tombol Approve dinonaktifkan karena data belum lengkap.
+                            <i class="fas fa-info-circle"></i> Tombol Approve dan Reject dinonaktifkan karena data belum lengkap.
                         </small>
                         <?php endif; ?>
                     </div>
