@@ -1338,7 +1338,7 @@ function canSalesEdit($db, $account_id, $userId) {
                                     <option value="Construction">Construction</option>
                                     <option value="Agriculture">Agriculture</option>
                                     <option value="Forestry">Forestry</option>
-                                    <option value="Oil & Gas">Oil & Gas</option>
+                                    <option value="Oil and Gas">Oil and Gas</option>
                                     <option value="Industrial">Industrial</option>
                                     <option value="Rent Company">Rent Company</option>
                                     <option value="Trading">Trading</option>
