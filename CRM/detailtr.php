@@ -979,19 +979,22 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         .total-box {
             background: #0e1a2b;
             color: #fff;
-            padding: 15px 20px;
-            border-radius: 10px;
-            text-align: center;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .total-box .total-label {
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             color: rgba(255,255,255,0.6);
+            font-weight: 600;
         }
         .total-box .total-value {
-            font-size: 22px;
-            font-weight: 800;
+            font-size: 16px;
+            font-weight: 700;
             color: #ffd700;
         }
 
@@ -1276,16 +1279,16 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     <div class="row">
                         <div class="col-md-12">
                             <div class="total-box mb-2">
-                                <div class="total-label">Grand Total Include PPN (Detail Unit)</div>
-                                <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
+                                <span class="total-label">Grand Total Include PPN (Detail Unit)</span>
+                                <span class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></span>
                             </div>
                             <div class="total-box mb-2" style="background: #1a2d4a;">
-                                <div class="total-label">Total Additional Cost</div>
-                                <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
+                                <span class="total-label">Total Additional Cost</span>
+                                <span class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
                             </div>
                             <div class="total-box" style="background: #27ae60;">
-                                <div class="total-label">Total Masukan</div>
-                                <div class="total-value">Rp <?= number_format($totalMasukan, 0, ',', '.') ?></div>
+                                <span class="total-label">Total Masukan</span>
+                                <span class="total-value">Rp <?= number_format($totalMasukan, 0, ',', '.') ?></span>
                             </div>
                         </div>
                     </div>
@@ -1518,8 +1521,8 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <div class="row mt-3">
                             <div class="col-md-12">
                                 <div class="total-box">
-                                    <div class="total-label">Total Grand Total Unit</div>
-                                    <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
+                                    <span class="total-label">Total Grand Total Unit</span>
+                                    <span class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></span>
                                 </div>
                             </div>
                         </div>
@@ -1721,8 +1724,8 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="total-box">
-                                    <div class="total-label">Grand Total TOP</div>
-                                    <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
+                                    <span class="total-label">Grand Total TOP</span>
+                                    <span class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></span>
                                 </div>
                             </div>
                         </div>
@@ -1834,8 +1837,8 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="total-box">
-                                    <div class="total-label">Total Additional Cost</div>
-                                    <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
+                                    <span class="total-label">Total Additional Cost</span>
+                                    <span class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
                                 </div>
                             </div>
                         </div>
