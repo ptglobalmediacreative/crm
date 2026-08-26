@@ -48,11 +48,9 @@ function getRoleLabel($role) {
 // ============================================
 function resetApprovalHistory($db, $tr_number) {
     try {
-        // Hapus semua approval history
         $deleteApproval = $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?");
         $deleteApproval->execute([$tr_number]);
         
-        // Reset status menjadi pending
         $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
         $updateDetail->execute([$tr_number]);
         
@@ -69,10 +67,6 @@ $userId = $_SESSION['user_id'] ?? 0;
 $userRole = $_SESSION['role'] ?? 'user';
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
-
-$fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
-$hasFullAccess = in_array($userRole, $fullAccessRoles);
-$isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
 
 // ============================================
 // AMBIL TR NUMBER DARI URL
@@ -198,7 +192,6 @@ $currentApproverLabel = '';
 $nextApproverLabel = '';
 
 if ($detailTR) {
-    // Cari approval terakhir yang sudah dilakukan
     $lastApprovedOrder = 0;
     foreach ($approvalHistory as $approval) {
         if ($approval['status'] == 'approved') {
@@ -206,7 +199,6 @@ if ($detailTR) {
         }
     }
     
-    // Cek apakah ada yang reject
     $isRejected = false;
     foreach ($approvalHistory as $approval) {
         if ($approval['status'] == 'rejected') {
@@ -235,7 +227,6 @@ if ($detailTR) {
         }
     }
 } else {
-    // Belum ada detail TR, approval belum dimulai
     $currentApproverLabel = $approvalLevels[1]['label'];
     $nextApproverLabel = $approvalLevels[2]['label'];
 }
@@ -327,22 +318,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $deskripsi = $_POST['deskripsi'] ?? '';
             
-            // Update atau insert detail_transaction_requests
             if ($detailTR) {
-                $updateSql = "UPDATE detail_transaction_requests SET 
-                    deskripsi = ?, updated_at = NOW()
-                    WHERE trf_number = ?";
+                $updateSql = "UPDATE detail_transaction_requests SET deskripsi = ?, updated_at = NOW() WHERE trf_number = ?";
                 $updateStmt = $db->prepare($updateSql);
                 $updateStmt->execute([$deskripsi, $tr_number]);
             } else {
-                $insertSql = "INSERT INTO detail_transaction_requests (
-                    trf_number, deskripsi, status, created_at, updated_at
-                ) VALUES (?, ?, 'pending', NOW(), NOW())";
+                $insertSql = "INSERT INTO detail_transaction_requests (trf_number, deskripsi, status, created_at, updated_at) VALUES (?, ?, 'pending', NOW(), NOW())";
                 $insertStmt = $db->prepare($insertSql);
                 $insertStmt->execute([$tr_number, $deskripsi]);
             }
             
-            // Reset approval history
             resetApprovalHistory($db, $tr_number);
             
             $db->commit();
@@ -364,7 +349,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
             $currentOrder = (int)($_POST['approval_order'] ?? 0);
             
-            // Cek apakah user memiliki hak untuk approve (HANYA role yang sesuai)
             $canApprove = false;
             if ($currentOrder > 0 && $currentOrder <= 5) {
                 $requiredRole = $approvalLevels[$currentOrder]['role'];
@@ -373,7 +357,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            // Cek kelengkapan data sebelum approve (hanya untuk action approve)
             $checkDataComplete = true;
             if ($action === 'approve') {
                 $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ?");
@@ -398,44 +381,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             if ($canApprove && ($checkDataComplete || $action === 'reject')) {
-                // Cek apakah sudah ada approval untuk level ini
                 $checkApproval = $db->prepare("SELECT id FROM tr_approval_history WHERE trf_number = ? AND approval_order = ?");
                 $checkApproval->execute([$tr_number, $currentOrder]);
                 $existingApproval = $checkApproval->fetch();
                 
                 if ($existingApproval) {
-                    // Update existing approval
-                    $updateApproval = $db->prepare("UPDATE tr_approval_history SET 
-                        status = ?, catatan = '', approved_by = ?, approved_at = NOW()
-                        WHERE id = ?");
+                    $updateApproval = $db->prepare("UPDATE tr_approval_history SET status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
                     $updateApproval->execute([$approvalStatus, $userId, $existingApproval['id']]);
                 } else {
-                    // Insert new approval
-                    $insertApproval = $db->prepare("INSERT INTO tr_approval_history (
-                        trf_number, approval_order, approval_role, status, catatan, approved_by, created_at
-                    ) VALUES (?, ?, ?, ?, '', ?, NOW())");
-                    $insertApproval->execute([
-                        $tr_number, 
-                        $currentOrder, 
-                        $approvalLevels[$currentOrder]['role'],
-                        $approvalStatus, 
-                        $userId
-                    ]);
+                    $insertApproval = $db->prepare("INSERT INTO tr_approval_history (trf_number, approval_order, approval_role, status, catatan, approved_by, created_at) VALUES (?, ?, ?, ?, '', ?, NOW())");
+                    $insertApproval->execute([$tr_number, $currentOrder, $approvalLevels[$currentOrder]['role'], $approvalStatus, $userId]);
                 }
                 
-                // Update status di detail_transaction_requests
                 if ($approvalStatus == 'rejected') {
-                    // Jika reject, status TR menjadi rejected
                     $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'rejected', updated_at = NOW() WHERE trf_number = ?");
                     $updateDetail->execute([$tr_number]);
                 } else {
-                    // Jika approve, cek apakah ini approval terakhir
                     if ($currentOrder >= 5) {
-                        // Semua sudah approve
                         $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'approved', updated_at = NOW() WHERE trf_number = ?");
                         $updateDetail->execute([$tr_number]);
                     } else {
-                        // Masih ada approval berikutnya
                         $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
                         $updateDetail->execute([$tr_number]);
                     }
@@ -476,11 +441,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $transaction_type = $_POST['transaction_type'] ?? '';
             $transaction_type_other = $_POST['transaction_type_other'] ?? '';
             
-            // Hitung PPN dan Grand Total
             $ppn = $price * 0.11;
             $grand_total = ($price + $ppn) * $qty;
             
-            // Jika transaction type Other, gabungkan dengan input manual
             if ($transaction_type === 'Other' && !empty($transaction_type_other)) {
                 $transaction_type = 'Other: ' . $transaction_type_other;
             }
@@ -488,38 +451,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $unitId = $_POST['unit_id_hidden'] ?? 0;
             
             if ($unitId > 0) {
-                // Update
-                $updateSql = "UPDATE tr_detail_units SET 
-                    unit_id = ?, qty = ?, price = ?, ppn = ?, grand_total = ?,
-                    specification = ?, additional_attachment = ?, waranty = ?,
-                    machine_location = ?, delivery_terms = ?, delivery_schedule = ?,
-                    transaction_type = ?, updated_at = NOW()
-                    WHERE id = ? AND trf_number = ?";
+                $updateSql = "UPDATE tr_detail_units SET unit_id = ?, qty = ?, price = ?, ppn = ?, grand_total = ?, specification = ?, additional_attachment = ?, waranty = ?, machine_location = ?, delivery_terms = ?, delivery_schedule = ?, transaction_type = ?, updated_at = NOW() WHERE id = ? AND trf_number = ?";
                 $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([
-                    $unit_id, $qty, $price, $ppn, $grand_total,
-                    $specification, $additional_attachment, $waranty,
-                    $machine_location, $delivery_terms, $delivery_schedule,
-                    $transaction_type, $unitId, $tr_number
-                ]);
+                $updateStmt->execute([$unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type, $unitId, $tr_number]);
             } else {
-                // Insert
-                $insertSql = "INSERT INTO tr_detail_units (
-                    trf_number, unit_id, qty, price, ppn, grand_total,
-                    specification, additional_attachment, waranty,
-                    machine_location, delivery_terms, delivery_schedule,
-                    transaction_type, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertSql = "INSERT INTO tr_detail_units (trf_number, unit_id, qty, price, ppn, grand_total, specification, additional_attachment, waranty, machine_location, delivery_terms, delivery_schedule, transaction_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                 $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([
-                    $tr_number, $unit_id, $qty, $price, $ppn, $grand_total,
-                    $specification, $additional_attachment, $waranty,
-                    $machine_location, $delivery_terms, $delivery_schedule,
-                    $transaction_type
-                ]);
+                $insertStmt->execute([$tr_number, $unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type]);
             }
             
-            // Update status di detail_transaction_requests
             $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
             $checkDetail->execute([$tr_number]);
             if ($checkDetail->fetch()) {
@@ -530,7 +470,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertDetail->execute([$tr_number]);
             }
             
-            // Reset approval history
             resetApprovalHistory($db, $tr_number);
             
             $db->commit();
@@ -550,14 +489,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($unitId > 0) {
             try {
                 $db->beginTransaction();
-                
                 $deleteSql = "DELETE FROM tr_detail_units WHERE id = ? AND trf_number = ?";
                 $deleteStmt = $db->prepare($deleteSql);
                 $deleteStmt->execute([$unitId, $tr_number]);
-                
-                // Reset approval history
                 resetApprovalHistory($db, $tr_number);
-                
                 $db->commit();
                 setFlash('Detail unit berhasil dihapus! Approval history di-reset.', 'success');
             } catch (Exception $e) {
@@ -575,54 +510,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
             
-            // Hapus data TOP lama
             $deleteSql = "DELETE FROM tr_term_of_payments WHERE trf_number = ?";
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
             
-            // Simpan Booking Fee
             $booking_fee = (float)($_POST['booking_fee'] ?? 0);
             if ($booking_fee > 0) {
-                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
-                              VALUES (?, 'booking_fee', 'Booking Fee', ?, NOW())";
+                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'booking_fee', 'Booking Fee', ?, NOW())";
                 $insertStmt = $db->prepare($insertSql);
                 $insertStmt->execute([$tr_number, $booking_fee]);
             }
             
-            // Simpan Down Payment (bisa multiple)
             $dp_labels = $_POST['dp_label'] ?? [];
             $dp_amounts = $_POST['dp_amount'] ?? [];
             foreach ($dp_labels as $index => $label) {
                 if (!empty($label) && isset($dp_amounts[$index]) && $dp_amounts[$index] > 0) {
-                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
-                                  VALUES (?, 'down_payment', ?, ?, NOW())";
+                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'down_payment', ?, ?, NOW())";
                     $insertStmt = $db->prepare($insertSql);
                     $insertStmt->execute([$tr_number, $label, $dp_amounts[$index]]);
                 }
             }
             
-            // Simpan Angsuran (bisa multiple)
             $angsuran_labels = $_POST['angsuran_label'] ?? [];
             $angsuran_amounts = $_POST['angsuran_amount'] ?? [];
             foreach ($angsuran_labels as $index => $label) {
                 if (!empty($label) && isset($angsuran_amounts[$index]) && $angsuran_amounts[$index] > 0) {
-                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
-                                  VALUES (?, 'angsuran', ?, ?, NOW())";
+                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'angsuran', ?, ?, NOW())";
                     $insertStmt = $db->prepare($insertSql);
                     $insertStmt->execute([$tr_number, $label, $angsuran_amounts[$index]]);
                 }
             }
             
-            // Simpan Nominal PO Leasing
             $nominal_po = (float)($_POST['nominal_po_leasing'] ?? 0);
             if ($nominal_po > 0) {
-                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) 
-                              VALUES (?, 'nominal_po', 'Nominal PO Leasing', ?, NOW())";
+                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'nominal_po', 'Nominal PO Leasing', ?, NOW())";
                 $insertStmt = $db->prepare($insertSql);
                 $insertStmt->execute([$tr_number, $nominal_po]);
             }
             
-            // Update status di detail_transaction_requests
             $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
             $checkDetail->execute([$tr_number]);
             if ($checkDetail->fetch()) {
@@ -633,7 +558,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertDetail->execute([$tr_number]);
             }
             
-            // Reset approval history
             resetApprovalHistory($db, $tr_number);
             
             $db->commit();
@@ -663,32 +587,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $costId = $_POST['cost_id'] ?? 0;
             
             if ($costId > 0) {
-                // Update
-                $updateSql = "UPDATE tr_additional_costs SET 
-                    insurance_ops = ?, insurance_cargo = ?, delivery_cost = ?,
-                    free_part = ?, free_service = ?, mediator_fee = ?, others = ?,
-                    updated_at = NOW()
-                    WHERE id = ? AND trf_number = ?";
+                $updateSql = "UPDATE tr_additional_costs SET insurance_ops = ?, insurance_cargo = ?, delivery_cost = ?, free_part = ?, free_service = ?, mediator_fee = ?, others = ?, updated_at = NOW() WHERE id = ? AND trf_number = ?";
                 $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([
-                    $insurance_ops, $insurance_cargo, $delivery_cost,
-                    $free_part, $free_service, $mediator_fee, $others,
-                    $costId, $tr_number
-                ]);
+                $updateStmt->execute([$insurance_ops, $insurance_cargo, $delivery_cost, $free_part, $free_service, $mediator_fee, $others, $costId, $tr_number]);
             } else {
-                // Insert
-                $insertSql = "INSERT INTO tr_additional_costs (
-                    trf_number, insurance_ops, insurance_cargo, delivery_cost,
-                    free_part, free_service, mediator_fee, others, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertSql = "INSERT INTO tr_additional_costs (trf_number, insurance_ops, insurance_cargo, delivery_cost, free_part, free_service, mediator_fee, others, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                 $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([
-                    $tr_number, $insurance_ops, $insurance_cargo, $delivery_cost,
-                    $free_part, $free_service, $mediator_fee, $others
-                ]);
+                $insertStmt->execute([$tr_number, $insurance_ops, $insurance_cargo, $delivery_cost, $free_part, $free_service, $mediator_fee, $others]);
             }
             
-            // Update status di detail_transaction_requests
             $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
             $checkDetail->execute([$tr_number]);
             if ($checkDetail->fetch()) {
@@ -699,7 +606,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertDetail->execute([$tr_number]);
             }
             
-            // Reset approval history
             resetApprovalHistory($db, $tr_number);
             
             $db->commit();
@@ -728,32 +634,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mediatorId = $_POST['mediator_id'] ?? 0;
             
             if ($mediatorId > 0) {
-                // Update
-                $updateSql = "UPDATE tr_mediators SET 
-                    name = ?, id_card_no = ?, npwp_no = ?,
-                    bank_name = ?, bank_account = ?, amount = ?,
-                    updated_at = NOW()
-                    WHERE id = ? AND trf_number = ?";
+                $updateSql = "UPDATE tr_mediators SET name = ?, id_card_no = ?, npwp_no = ?, bank_name = ?, bank_account = ?, amount = ?, updated_at = NOW() WHERE id = ? AND trf_number = ?";
                 $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([
-                    $name, $id_card, $npwp,
-                    $bank_name, $bank_account, $amount,
-                    $mediatorId, $tr_number
-                ]);
+                $updateStmt->execute([$name, $id_card, $npwp, $bank_name, $bank_account, $amount, $mediatorId, $tr_number]);
             } else {
-                // Insert
-                $insertSql = "INSERT INTO tr_mediators (
-                    trf_number, name, id_card_no, npwp_no,
-                    bank_name, bank_account, amount, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertSql = "INSERT INTO tr_mediators (trf_number, name, id_card_no, npwp_no, bank_name, bank_account, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                 $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([
-                    $tr_number, $name, $id_card, $npwp,
-                    $bank_name, $bank_account, $amount
-                ]);
+                $insertStmt->execute([$tr_number, $name, $id_card, $npwp, $bank_name, $bank_account, $amount]);
             }
             
-            // Reset approval history
             resetApprovalHistory($db, $tr_number);
             
             $db->commit();
@@ -787,10 +676,7 @@ foreach ($termPayments as $top) {
 // ============================================
 $totalAdditionalCost = 0;
 if ($additionalCost) {
-    $totalAdditionalCost = $additionalCost['insurance_ops'] + 
-                           $additionalCost['insurance_cargo'] + 
-                           $additionalCost['delivery_cost'] + 
-                           $additionalCost['mediator_fee'];
+    $totalAdditionalCost = $additionalCost['insurance_ops'] + $additionalCost['insurance_cargo'] + $additionalCost['delivery_cost'] + $additionalCost['mediator_fee'];
 }
 
 // ============================================
@@ -799,24 +685,21 @@ if ($additionalCost) {
 $isDataComplete = true;
 $missingSections = [];
 
-// Cek Deskripsiif (empty($detailTR['deskripsi'])) {
+if (empty($detailTR['deskripsi'])) {
     $isDataComplete = false;
     $missingSections[] = 'Deskripsi (Summary)';
 }
 
-// Cek Detail Unit
 if (count($detailUnits) == 0) {
     $isDataComplete = false;
     $missingSections[] = 'Detail Unit';
 }
 
-// Cek Term of Payment
 if (count($termPayments) == 0) {
     $isDataComplete = false;
     $missingSections[] = 'Term of Payment';
 }
 
-// Cek Additional Cost (Insurance Cargo wajib)
 if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
     $isDataComplete = false;
     $missingSections[] = 'Additional Cost (Insurance Cargo wajib diisi)';
@@ -1308,7 +1191,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 </div>
             </div>
             <div class="card-body-custom">
-                <!-- Form Edit Summary -->
                 <div id="editSummaryForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_summary">
@@ -1338,7 +1220,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <!-- View Summary -->
                 <div id="viewSummary">
                     <?php if ($isReviewOnly): ?>
                     <div class="alert alert-info mb-3">
@@ -1404,7 +1285,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </div>
                 </div>
                 
-                <!-- Tombol Approve/Reject untuk current approver -->
                 <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 5 && $request['status'] == 'pending'): ?>
                     <?php 
                     $canApprove = false;
@@ -1474,7 +1354,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <!-- Form Tambah Unit -->
                 <div id="addUnitForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <form method="POST" id="unitForm">
                         <input type="hidden" name="action" value="save_unit">
@@ -1563,7 +1442,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <!-- Tabel Detail Unit -->
                 <div class="table-responsive">
                     <table class="table table-custom">
                         <thead>
@@ -1655,7 +1533,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <!-- Form TOP -->
                 <div id="topForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_top">
@@ -1671,7 +1548,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             </div>
                         </div>
                         
-                        <!-- Down Payment Section -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Down Payment</label>
                             <div id="dpContainer">
@@ -1710,7 +1586,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             </button>
                         </div>
                         
-                        <!-- Angsuran Section -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Angsuran</label>
                             <div id="angsuranContainer">
@@ -1749,7 +1624,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             </button>
                         </div>
                         
-                        <!-- Total TOP -->
                         <div class="total-box mb-3">
                             <div class="total-label">Grand Total TOP</div>
                             <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
@@ -1764,7 +1638,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <!-- Tabel TOP -->
                 <div class="table-responsive">
                     <table class="table table-custom">
                         <thead>
@@ -1822,7 +1695,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <!-- Form Additional Cost -->
                 <div id="costForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_cost">
@@ -1874,7 +1746,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <!-- Tabel Additional Cost -->
                 <div class="table-responsive">
                     <table class="table table-custom">
                         <thead>
@@ -1929,7 +1800,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <!-- Form Mediator -->
                 <div id="mediatorForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_mediator">
@@ -1977,7 +1847,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <!-- Tabel Mediator -->
                 <div class="table-responsive">
                     <table class="table table-custom">
                         <thead>
@@ -2019,9 +1888,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // FUNGSI UNTUK SUMMARY
-        // ============================================
         function showEditSummary() {
             document.getElementById('editSummaryForm').style.display = 'block';
             document.getElementById('viewSummary').style.display = 'none';
@@ -2047,9 +1913,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('approvalForm').submit();
         }
         
-        // ============================================
-        // FUNGSI UNTUK DETAIL UNIT
-        // ============================================
         function showAddUnitForm() {
             document.getElementById('addUnitForm').style.display = 'block';
             document.getElementById('unitForm').reset();
@@ -2107,9 +1970,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             toggleOtherTransaction();
         }
         
-        // ============================================
-        // FUNGSI UNTUK TERM OF PAYMENT
-        // ============================================
         function showTOPSection() {
             document.getElementById('topForm').style.display = 'block';
         }
@@ -2158,9 +2018,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             button.closest('.row').remove();
         }
         
-        // ============================================
-        // FUNGSI UNTUK ADDITIONAL COST
-        // ============================================
         function showCostForm() {
             document.getElementById('costForm').style.display = 'block';
         }
@@ -2169,9 +2026,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('costForm').style.display = 'none';
         }
         
-        // ============================================
-        // FUNGSI UNTUK MEDIATOR
-        // ============================================
         function showMediatorForm() {
             document.getElementById('mediatorForm').style.display = 'block';
         }
