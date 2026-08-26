@@ -236,7 +236,7 @@ if ($detailTR) {
 // ============================================
 $produkList = [];
 try {
-    $sqlProduk = "SELECT id, nama_produk, kode_produk, tipe_produk FROM produk WHERE status = 'aktif' ORDER BY nama_produk ASC";
+    $sqlProduk = "SELECT id, nama_produk FROM products ORDER BY nama_produk ASC";
     $stmtProduk = $db->prepare($sqlProduk);
     $stmtProduk->execute();
     $produkList = $stmtProduk->fetchAll();
@@ -1363,7 +1363,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                     <option value="">-- Pilih Unit --</option>
                                     <?php foreach ($produkList as $produk): ?>
                                         <option value="<?= $produk['id'] ?>">
-                                            <?= htmlspecialchars($produk['nama_produk']) ?> (<?= htmlspecialchars($produk['kode_produk']) ?>)
+                                            <?= htmlspecialchars($produk['nama_produk']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
