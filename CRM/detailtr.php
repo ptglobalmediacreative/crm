@@ -998,6 +998,44 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             color: #ffd700;
         }
 
+        .summary-totals {
+            border: 1px solid #e0e4ea;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .summary-total-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f2f5;
+            background: #fafafa;
+        }
+        .summary-total-item:last-child {
+            border-bottom: none;
+        }
+        .summary-total-label {
+            font-size: 12px;
+            color: #555;
+            font-weight: 600;
+        }
+        .summary-total-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0e1a2b;
+        }
+        .summary-total-grand {
+            background: #f0f2f5;
+        }
+        .summary-total-grand .summary-total-label {
+            font-weight: 700;
+            color: #0e1a2b;
+        }
+        .summary-total-grand .summary-total-value {
+            font-size: 16px;
+            color: #d4a017;
+        }
+
         .mobile-toggle { display: none; }
 
         /* Tab Navigation Styles */
@@ -1276,20 +1314,18 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     
                     <hr>
                     
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="total-box mb-2">
-                                <span class="total-label">Grand Total Include PPN (Detail Unit)</span>
-                                <span class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></span>
-                            </div>
-                            <div class="total-box mb-2" style="background: #1a2d4a;">
-                                <span class="total-label">Total Additional Cost</span>
-                                <span class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
-                            </div>
-                            <div class="total-box" style="background: #27ae60;">
-                                <span class="total-label">Total Masukan</span>
-                                <span class="total-value">Rp <?= number_format($totalMasukan, 0, ',', '.') ?></span>
-                            </div>
+                    <div class="summary-totals">
+                        <div class="summary-total-item">
+                            <span class="summary-total-label">Grand Total Include PPN (Detail Unit)</span>
+                            <span class="summary-total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></span>
+                        </div>
+                        <div class="summary-total-item">
+                            <span class="summary-total-label">Total Additional Cost</span>
+                            <span class="summary-total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
+                        </div>
+                        <div class="summary-total-item summary-total-grand">
+                            <span class="summary-total-label">Total Masukan</span>
+                            <span class="summary-total-value">Rp <?= number_format($totalMasukan, 0, ',', '.') ?></span>
                         </div>
                     </div>
                 </div>
