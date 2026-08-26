@@ -1222,11 +1222,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 
                 <div id="viewSummary">
                     <?php if ($isReviewOnly): ?>
-                    <div class="alert alert-info mb-3">
-                        <i class="fas fa-info-circle"></i> 
-                        Anda login sebagai <strong><?= getRoleLabel($userRole) ?></strong>. 
-                        Anda hanya dapat melakukan review dan approval.
-                    </div>
                     <?php endif; ?>
                     
                     <div class="row">
