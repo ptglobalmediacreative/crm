@@ -856,7 +856,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <thead>
                             <tr>
                                 <th>No</th>
-                                <th>Leads Number</th>
+                                <th>Activity Number</th>
                                 <th>Nama PT</th>
                                 <th>Badan Usaha</th>
                                 <th>Business Segment</th>
