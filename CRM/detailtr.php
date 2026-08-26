@@ -971,26 +971,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         .badge-status-tr.approved { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
         .badge-status-tr.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
 
-        .table-custom { margin-bottom: 0; font-size: 13px; }
-        .table-custom th {
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            color: #7f8c8d;
-            border-bottom: 1px solid #f0f2f5;
-            padding: 12px 16px;
-            background: #fafafa;
-            white-space: nowrap;
-        }
-        .table-custom td {
-            padding: 12px 16px;
-            vertical-align: middle;
-            border-bottom: 1px solid #f0f2f5;
-        }
-        .table-custom tr:last-child td { border-bottom: none; }
-        .table-custom tr:hover { background: #f8f9fa; }
-
         .total-box {
             background: #0e1a2b;
             color: #fff;
@@ -1447,56 +1427,78 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <div class="table-responsive">
-                    <table class="table table-custom">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Unit</th>
-                                <th>QTY</th>
-                                <th>Price</th>
-                                <th>PPN</th>
-                                <th>Grand Total</th>
-                                <th>Specification</th>
-                                <th>Delivery Schedule</th>
-                                <th>Transaction Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (count($detailUnits) > 0): ?>
-                                <?php foreach ($detailUnits as $index => $unit): ?>
-                                    <tr onclick="editUnit(<?= $unit['id'] ?>, <?= $unit['unit_id'] ?>, <?= $unit['qty'] ?>, <?= $unit['price'] ?>, '<?= addslashes($unit['specification']) ?>', '<?= addslashes($unit['additional_attachment']) ?>', '<?= addslashes($unit['waranty']) ?>', '<?= addslashes($unit['machine_location']) ?>', '<?= addslashes($unit['delivery_terms']) ?>', '<?= $unit['delivery_schedule'] ?>', '<?= addslashes($unit['transaction_type']) ?>')" style="cursor: pointer;">
-                                        <td><?= $index + 1 ?></td>
-                                        <td>
-                                            <?php 
-                                            $namaUnit = '-';
-                                            foreach ($produkList as $produk) {
-                                                if ($produk['id'] == $unit['unit_id']) {
-                                                    $namaUnit = $produk['nama_produk'];
-                                                    break;
-                                                }
+                <div id="viewUnit">
+                    <?php if (count($detailUnits) > 0): ?>
+                        <?php foreach ($detailUnits as $index => $unit): ?>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="info-label">Unit</div>
+                                    <div class="info-value">
+                                        <?php 
+                                        $namaUnit = '-';
+                                        foreach ($produkList as $produk) {
+                                            if ($produk['id'] == $unit['unit_id']) {
+                                                $namaUnit = $produk['nama_produk'];
+                                                break;
                                             }
-                                            echo htmlspecialchars($namaUnit);
-                                            ?>
-                                        </td>
-                                        <td><?= $unit['qty'] ?></td>
-                                        <td>Rp <?= number_format($unit['price'], 0, ',', '.') ?></td>
-                                        <td>Rp <?= number_format($unit['ppn'], 0, ',', '.') ?></td>
-                                        <td><strong>Rp <?= number_format($unit['grand_total'], 0, ',', '.') ?></strong></td>
-                                        <td><?= htmlspecialchars($unit['specification']) ?></td>
-                                        <td><?= date('d/m/Y', strtotime($unit['delivery_schedule'])) ?></td>
-                                        <td><?= htmlspecialchars($unit['transaction_type']) ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
-                                        <i class="fas fa-box-open me-2"></i> Belum ada detail unit
-                                    </td>
-                                </tr>
+                                        }
+                                        echo htmlspecialchars($namaUnit);
+                                        ?>
+                                    </div>
+                                    
+                                    <div class="info-label">QTY</div>
+                                    <div class="info-value"><?= $unit['qty'] ?></div>
+                                    
+                                    <div class="info-label">Price (Non PPN)</div>
+                                    <div class="info-value">Rp <?= number_format($unit['price'], 0, ',', '.') ?></div>
+                                    
+                                    <div class="info-label">PPN (11%)</div>
+                                    <div class="info-value">Rp <?= number_format($unit['ppn'], 0, ',', '.') ?></div>
+                                    
+                                    <div class="info-label">Grand Total Include PPN</div>
+                                    <div class="info-value"><strong>Rp <?= number_format($unit['grand_total'], 0, ',', '.') ?></strong></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-label">Specification</div>
+                                    <div class="info-value"><?= htmlspecialchars($unit['specification']) ?></div>
+                                    
+                                    <div class="info-label">Additional Attachment / Safety Devices</div>
+                                    <div class="info-value"><?= htmlspecialchars($unit['additional_attachment']) ?: '-' ?></div>
+                                    
+                                    <div class="info-label">Waranty</div>
+                                    <div class="info-value"><?= htmlspecialchars($unit['waranty']) ?: '-' ?></div>
+                                    
+                                    <div class="info-label">Machine Location Works</div>
+                                    <div class="info-value"><?= htmlspecialchars($unit['machine_location']) ?></div>
+                                    
+                                    <div class="info-label">Delivery Terms</div>
+                                    <div class="info-value"><?= htmlspecialchars($unit['delivery_terms']) ?></div>
+                                    
+                                    <div class="info-label">Delivery Schedule Plan</div>
+                                    <div class="info-value"><?= date('d/m/Y', strtotime($unit['delivery_schedule'])) ?></div>
+                                    
+                                    <div class="info-label">Transaction Type</div>
+                                    <div class="info-value"><?= htmlspecialchars($unit['transaction_type']) ?></div>
+                                </div>
+                            </div>
+                            <?php if ($index < count($detailUnits) - 1): ?>
+                                <hr>
                             <?php endif; ?>
-                        </tbody>
-                    </table>
+                        <?php endforeach; ?>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="total-box">
+                                    <div class="total-label">Total Grand Total Unit</div>
+                                    <div class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-box-open me-2"></i> Belum ada detail unit
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -1627,11 +1629,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             </button>
                         </div>
                         
-                        <div class="total-box mb-3">
-                            <div class="total-label">Grand Total TOP</div>
-                            <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
-                        </div>
-                        
                         <button type="submit" class="btn btn-primary-custom">
                             <i class="fas fa-save"></i> Simpan TOP
                         </button>
@@ -1641,46 +1638,70 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <div class="table-responsive">
-                    <table class="table table-custom">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Jenis Pembayaran</th>
-                                <th>Label</th>
-                                <th>Nominal</th>
-                                <th>Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (count($termPayments) > 0): ?>
-                                <?php foreach ($termPayments as $index => $top): ?>
-                                    <tr>
-                                        <td><?= $index + 1 ?></td>
-                                        <td>
-                                            <?php 
-                                            $typeLabel = ucfirst(str_replace('_', ' ', $top['payment_type']));
-                                            echo $typeLabel;
-                                            ?>
-                                        </td>
-                                        <td><?= htmlspecialchars($top['payment_label']) ?></td>
-                                        <td>Rp <?= number_format($top['amount'], 0, ',', '.') ?></td>
-                                        <td><?= htmlspecialchars($top['keterangan'] ?? '-') ?></td>
-                                    </tr>
+                <div id="viewTOP">
+                    <?php if (count($termPayments) > 0): ?>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <?php 
+                                $bookingFee = array_filter($termPayments, function($t) { return $t['payment_type'] == 'booking_fee'; });
+                                if (count($bookingFee) > 0):
+                                    $bf = array_values($bookingFee)[0];
+                                ?>
+                                <div class="info-label">Booking Fee</div>
+                                <div class="info-value">Rp <?= number_format($bf['amount'], 0, ',', '.') ?></div>
+                                <div class="info-label">Keterangan Booking Fee</div>
+                                <div class="info-value"><?= htmlspecialchars($bf['keterangan'] ?? '-') ?></div>
+                                <?php endif; ?>
+                                
+                                <?php 
+                                $nominalPO = array_filter($termPayments, function($t) { return $t['payment_type'] == 'nominal_po'; });
+                                if (count($nominalPO) > 0):
+                                    $npo = array_values($nominalPO)[0];
+                                ?>
+                                <div class="info-label">Nominal PO Leasing</div>
+                                <div class="info-value">Rp <?= number_format($npo['amount'], 0, ',', '.') ?></div>
+                                <div class="info-label">Keterangan PO Leasing</div>
+                                <div class="info-value"><?= htmlspecialchars($npo['keterangan'] ?? '-') ?></div>
+                                <?php endif; ?>
+                                
+                                <?php 
+                                $dpPayments = array_filter($termPayments, function($t) { return $t['payment_type'] == 'down_payment'; });
+                                foreach ($dpPayments as $dp):
+                                ?>
+                                <div class="info-label"><?= htmlspecialchars($dp['payment_label']) ?></div>
+                                <div class="info-value">Rp <?= number_format($dp['amount'], 0, ',', '.') ?></div>
+                                <div class="info-label">Keterangan <?= htmlspecialchars($dp['payment_label']) ?></div>
+                                <div class="info-value"><?= htmlspecialchars($dp['keterangan'] ?? '-') ?></div>
                                 <?php endforeach; ?>
-                                <tr>
-                                    <td colspan="4" class="text-end"><strong>TOTAL</strong></td>
-                                    <td><strong>Rp <?= number_format($totalTOP, 0, ',', '.') ?></strong></td>
-                                </tr>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted">
-                                        <i class="fas fa-money-bill me-2"></i> Belum ada data Term of Payment
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                            </div>
+                            <div class="col-md-6">
+                                <?php 
+                                $angsuranPayments = array_filter($termPayments, function($t) { return $t['payment_type'] == 'angsuran'; });
+                                foreach ($angsuranPayments as $angsuran):
+                                ?>
+                                <div class="info-label"><?= htmlspecialchars($angsuran['payment_label']) ?></div>
+                                <div class="info-value">Rp <?= number_format($angsuran['amount'], 0, ',', '.') ?></div>
+                                <div class="info-label">Keterangan <?= htmlspecialchars($angsuran['payment_label']) ?></div>
+                                <div class="info-value"><?= htmlspecialchars($angsuran['keterangan'] ?? '-') ?></div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="total-box">
+                                    <div class="total-label">Grand Total TOP</div>
+                                    <div class="total-value">Rp <?= number_format($totalTOP, 0, ',', '.') ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-money-bill me-2"></i> Belum ada data Term of Payment
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -1751,41 +1772,49 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <div class="table-responsive">
-                    <table class="table table-custom">
-                        <thead>
-                            <tr>
-                                <th>Insurance Ops</th>
-                                <th>Insurance Cargo</th>
-                                <th>Delivery Cost</th>
-                                <th>Free Part</th>
-                                <th>Free Service</th>
-                                <th>Mediator Fee</th>
-                                <th>Others</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if ($additionalCost): ?>
-                                <tr>
-                                    <td>Rp <?= number_format($additionalCost['insurance_ops'], 0, ',', '.') ?></td>
-                                    <td>Rp <?= number_format($additionalCost['insurance_cargo'], 0, ',', '.') ?></td>
-                                    <td>Rp <?= number_format($additionalCost['delivery_cost'], 0, ',', '.') ?></td>
-                                    <td><?= htmlspecialchars($additionalCost['free_part']) ?: '-' ?></td>
-                                    <td><?= htmlspecialchars($additionalCost['free_service']) ?: '-' ?></td>
-                                    <td>Rp <?= number_format($additionalCost['mediator_fee'], 0, ',', '.') ?></td>
-                                    <td><?= htmlspecialchars($additionalCost['others']) ?: '-' ?></td>
-                                    <td><strong>Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></strong></td>
-                                </tr>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
-                                        <i class="fas fa-coins me-2"></i> Belum ada data Additional Cost
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                <div id="viewCost">
+                    <?php if ($additionalCost): ?>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-label">Insurance Ops</div>
+                                <div class="info-value">Rp <?= number_format($additionalCost['insurance_ops'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Insurance Cargo</div>
+                                <div class="info-value">Rp <?= number_format($additionalCost['insurance_cargo'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Delivery Cost</div>
+                                <div class="info-value">Rp <?= number_format($additionalCost['delivery_cost'], 0, ',', '.') ?></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label">Free Part</div>
+                                <div class="info-value"><?= htmlspecialchars($additionalCost['free_part']) ?: '-' ?></div>
+                                
+                                <div class="info-label">Free Service</div>
+                                <div class="info-value"><?= htmlspecialchars($additionalCost['free_service']) ?: '-' ?></div>
+                                
+                                <div class="info-label">Mediator Fee</div>
+                                <div class="info-value">Rp <?= number_format($additionalCost['mediator_fee'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Others</div>
+                                <div class="info-value"><?= htmlspecialchars($additionalCost['others']) ?: '-' ?></div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="total-box">
+                                    <div class="total-label">Total Additional Cost</div>
+                                    <div class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-coins me-2"></i> Belum ada data Additional Cost
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -1852,37 +1881,35 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <div class="table-responsive">
-                    <table class="table table-custom">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>ID Card No</th>
-                                <th>NPWP No</th>
-                                <th>Bank Name</th>
-                                <th>Bank Account</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if ($mediator): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($mediator['name']) ?></td>
-                                    <td><?= htmlspecialchars($mediator['id_card_no']) ?></td>
-                                    <td><?= htmlspecialchars($mediator['npwp_no']) ?></td>
-                                    <td><?= htmlspecialchars($mediator['bank_name']) ?></td>
-                                    <td><?= htmlspecialchars($mediator['bank_account']) ?></td>
-                                    <td><strong>Rp <?= number_format($mediator['amount'], 0, ',', '.') ?></strong></td>
-                                </tr>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">
-                                        <i class="fas fa-user-tie me-2"></i> Belum ada data Mediator
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                <div id="viewMediator">
+                    <?php if ($mediator): ?>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-label">Name</div>
+                                <div class="info-value"><?= htmlspecialchars($mediator['name']) ?></div>
+                                
+                                <div class="info-label">ID Card No</div>
+                                <div class="info-value"><?= htmlspecialchars($mediator['id_card_no']) ?></div>
+                                
+                                <div class="info-label">NPWP No</div>
+                                <div class="info-value"><?= htmlspecialchars($mediator['npwp_no']) ?></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label">Bank Name</div>
+                                <div class="info-value"><?= htmlspecialchars($mediator['bank_name']) ?></div>
+                                
+                                <div class="info-label">Bank Account</div>
+                                <div class="info-value"><?= htmlspecialchars($mediator['bank_account']) ?></div>
+                                
+                                <div class="info-label">Amount</div>
+                                <div class="info-value"><strong>Rp <?= number_format($mediator['amount'], 0, ',', '.') ?></strong></div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-user-tie me-2"></i> Belum ada data Mediator
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
