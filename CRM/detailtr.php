@@ -329,7 +329,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            if ($canApprove) {
+            // Cek kelengkapan data sebelum approve (hanya untuk action approve)
+            $checkDataComplete = true;
+            if ($action === 'approve') {
+                $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ?");
+                $checkDetailTR->execute([$tr_number]);
+                $detailData = $checkDetailTR->fetch();
+                
+                $checkUnits = $db->prepare("SELECT COUNT(*) as total FROM tr_detail_units WHERE trf_number = ?");
+                $checkUnits->execute([$tr_number]);
+                $unitCount = $checkUnits->fetch()['total'];
+                
+                $checkTOP = $db->prepare("SELECT COUNT(*) as total FROM tr_term_of_payments WHERE trf_number = ?");
+                $checkTOP->execute([$tr_number]);
+                $topCount = $checkTOP->fetch()['total'];
+                
+                $checkCost = $db->prepare("SELECT insurance_cargo FROM tr_additional_costs WHERE trf_number = ?");
+                $checkCost->execute([$tr_number]);
+                $costData = $checkCost->fetch();
+                
+                if (empty($detailData['deskripsi']) || $unitCount == 0 || $topCount == 0 || !$costData || empty($costData['insurance_cargo'])) {
+                    $checkDataComplete = false;
+                }
+            }
+            
+            if ($canApprove && ($checkDataComplete || $action === 'reject')) {
                 // Cek apakah sudah ada approval untuk level ini
                 $checkApproval = $db->prepare("SELECT id FROM tr_approval_history WHERE trf_number = ? AND approval_order = ?");
                 $checkApproval->execute([$tr_number, $currentOrder]);
@@ -377,7 +401,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->commit();
                 setFlash($approvalStatus == 'approved' ? 'TR berhasil di-approve!' : 'TR berhasil di-reject!', 'success');
             } else {
-                setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
+                if (!$checkDataComplete && $action === 'approve') {
+                    setFlash('Data belum lengkap! Semua section harus diisi sebelum approval.', 'danger');
+                } else {
+                    setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
+                }
             }
         } catch (Exception $e) {
             $db->rollBack();
@@ -700,6 +728,36 @@ if ($additionalCost) {
                            $additionalCost['insurance_cargo'] + 
                            $additionalCost['delivery_cost'] + 
                            $additionalCost['mediator_fee'];
+}
+
+// ============================================
+// CEK KELENGKAPAN DATA UNTUK APPROVAL
+// ============================================
+$isDataComplete = true;
+$missingSections = [];
+
+// Cek Deskripsi
+if (empty($detailTR['deskripsi'])) {
+    $isDataComplete = false;
+    $missingSections[] = 'Deskripsi (Summary)';
+}
+
+// Cek Detail Unit
+if (count($detailUnits) == 0) {
+    $isDataComplete = false;
+    $missingSections[] = 'Detail Unit';
+}
+
+// Cek Term of Payment
+if (count($termPayments) == 0) {
+    $isDataComplete = false;
+    $missingSections[] = 'Term of Payment';
+}
+
+// Cek Additional Cost (Insurance Cargo wajib)
+if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
+    $isDataComplete = false;
+    $missingSections[] = 'Additional Cost (Insurance Cargo wajib diisi)';
 }
 ?>
 <!DOCTYPE html>
@@ -1369,6 +1427,20 @@ if ($additionalCost) {
                         $canApprove = true;
                     }
                     ?>
+                    
+                    <?php if ($canApprove && !$isDataComplete): ?>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Data belum lengkap!</strong> Section yang belum diisi:
+                        <ul class="mb-0 mt-2">
+                            <?php foreach ($missingSections as $section): ?>
+                                <li><?= htmlspecialchars($section) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <small class="text-muted">Silakan lengkapi semua data terlebih dahulu sebelum melakukan approval.</small>
+                    </div>
+                    <?php endif; ?>
+                    
                     <?php if ($canApprove): ?>
                     <div class="mt-4 p-3" style="background: #f8f9fa; border-radius: 10px;">
                         <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
@@ -1379,13 +1451,18 @@ if ($additionalCost) {
                                 <label class="form-label">Catatan (Optional)</label>
                                 <textarea name="catatan" class="form-control" rows="3" placeholder="Masukkan catatan..."></textarea>
                             </div>
-                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
+                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')" <?= !$isDataComplete ? 'disabled' : '' ?>>
                                 <i class="fas fa-check-circle"></i> Approve
                             </button>
                             <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
                                 <i class="fas fa-times-circle"></i> Reject
                             </button>
                         </form>
+                        <?php if (!$isDataComplete): ?>
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle"></i> Tombol Approve dinonaktifkan karena data belum lengkap.
+                        </small>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
                 <?php endif; ?>
@@ -1956,6 +2033,11 @@ if ($additionalCost) {
         function submitApproval(action) {
             if (action === 'reject') {
                 if (!confirm('Yakin ingin me-reject TR ini?')) {
+                    return;
+                }
+            }
+            if (action === 'approve') {
+                if (!confirm('Yakin ingin meng-approve TR ini?')) {
                     return;
                 }
             }
