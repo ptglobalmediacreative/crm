@@ -170,45 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     // ============================================
-    // SAVE DETAIL TRANSACTION REQUEST
-    // ============================================
-    if ($action === 'save_detail_tr') {
-        try {
-            $db->beginTransaction();
-            
-            // Cek apakah sudah ada data
-            $checkSql = "SELECT id FROM detail_transaction_requests WHERE trf_number = ?";
-            $checkStmt = $db->prepare($checkSql);
-            $checkStmt->execute([$tr_number]);
-            $existingDetail = $checkStmt->fetch();
-            
-            if ($existingDetail) {
-                // Update
-                $updateSql = "UPDATE detail_transaction_requests SET 
-                    status = 'pending',
-                    updated_at = NOW()
-                    WHERE trf_number = ?";
-                $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([$tr_number]);
-            } else {
-                // Insert
-                $insertSql = "INSERT INTO detail_transaction_requests (
-                    trf_number, status, created_at, updated_at
-                ) VALUES (?, 'pending', NOW(), NOW())";
-                $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([$tr_number]);
-            }
-            
-            $db->commit();
-            setFlash('Data berhasil disimpan!', 'success');
-        } catch (Exception $e) {
-            $db->rollBack();
-            setFlash('Gagal menyimpan data: ' . $e->getMessage(), 'danger');
-        }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number));
-    }
-    
-    // ============================================
     // SAVE DETAIL UNIT
     // ============================================
     if ($action === 'save_unit') {
@@ -743,37 +704,6 @@ if ($additionalCost) {
         .table-custom tr:last-child td { border-bottom: none; }
         .table-custom tr:hover { background: #f8f9fa; }
 
-        .section-divider {
-            border-top: 2px dashed #e0e4ea;
-            margin: 30px 0;
-            position: relative;
-        }
-        .section-divider span {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fff;
-            padding: 0 15px;
-            font-weight: 700;
-            font-size: 12px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        .summary-item {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-radius: 10px;
-            border-left: 3px solid #ffd700;
-        }
-
         .total-box {
             background: #0e1a2b;
             color: #fff;
@@ -959,11 +889,11 @@ if ($additionalCost) {
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">QTY *</label>
-                                <input type="number" name="qty" id="qty" class="form-control" min="1" required onchange="calculateTotal()">
+                                <input type="number" name="qty" id="qty" class="form-control" min="1" required onchange="calculateTotal()" onkeyup="calculateTotal()">
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">Price (Non PPN) *</label>
-                                <input type="number" name="price" id="price" class="form-control" min="0" step="0.01" required onchange="calculateTotal()">
+                                <input type="number" name="price" id="price" class="form-control" min="0" step="0.01" required onchange="calculateTotal()" onkeyup="calculateTotal()">
                             </div>
                         </div>
                         
