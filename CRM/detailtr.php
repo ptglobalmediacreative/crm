@@ -343,7 +343,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             
             $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
-            $catatan = $_POST['catatan'] ?? '';
             $currentOrder = (int)($_POST['approval_order'] ?? 0);
             
             // Cek apakah user memiliki hak untuk approve (HANYA role yang sesuai)
@@ -388,20 +387,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingApproval) {
                     // Update existing approval
                     $updateApproval = $db->prepare("UPDATE tr_approval_history SET 
-                        status = ?, catatan = ?, approved_by = ?, approved_at = NOW()
+                        status = ?, catatan = '', approved_by = ?, approved_at = NOW()
                         WHERE id = ?");
-                    $updateApproval->execute([$approvalStatus, $catatan, $userId, $existingApproval['id']]);
+                    $updateApproval->execute([$approvalStatus, $userId, $existingApproval['id']]);
                 } else {
                     // Insert new approval
                     $insertApproval = $db->prepare("INSERT INTO tr_approval_history (
                         trf_number, approval_order, approval_role, status, catatan, approved_by, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+                    ) VALUES (?, ?, ?, ?, '', ?, NOW())");
                     $insertApproval->execute([
                         $tr_number, 
                         $currentOrder, 
                         $approvalLevels[$currentOrder]['role'],
                         $approvalStatus, 
-                        $catatan, 
                         $userId
                     ]);
                 }
@@ -656,7 +654,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $updateStmt->execute([
                     $insurance_ops, $insurance_cargo, $delivery_cost,
                     $free_part, $free_service, $mediator_fee, $others,
-                    $costId, $tr_number                ]);
+                    $costId, $tr_number
+                ]);
             } else {
                 // Insert
                 $insertSql = "INSERT INTO tr_additional_costs (
@@ -1414,10 +1413,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <form method="POST" id="approvalForm">
                             <input type="hidden" name="action" id="approvalAction" value="approve">
                             <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
-                            <div class="mb-3">
-                                <label class="form-label">Catatan (Optional)</label>
-                                <textarea name="catatan" class="form-control" rows="3" placeholder="Masukkan catatan..."></textarea>
-                            </div>
                             <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')" <?= !$isDataComplete ? 'disabled' : '' ?>>
                                 <i class="fas fa-check-circle"></i> Approve
                             </button>
