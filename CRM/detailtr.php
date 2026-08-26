@@ -512,7 +512,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
             
-            // Booking Fee
             $booking_fee = (float)($_POST['booking_fee'] ?? 0);
             $booking_fee_keterangan = $_POST['booking_fee_keterangan'] ?? '';
             if ($booking_fee > 0) {
@@ -521,7 +520,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $booking_fee, $booking_fee_keterangan]);
             }
             
-            // Down Payment
             $dp_labels = $_POST['dp_label'] ?? [];
             $dp_amounts = $_POST['dp_amount'] ?? [];
             $dp_keterangans = $_POST['dp_keterangan'] ?? [];
@@ -534,7 +532,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            // Angsuran
             $angsuran_labels = $_POST['angsuran_label'] ?? [];
             $angsuran_amounts = $_POST['angsuran_amount'] ?? [];
             $angsuran_keterangans = $_POST['angsuran_keterangan'] ?? [];
@@ -547,7 +544,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            // Nominal PO Leasing
             $nominal_po = (float)($_POST['nominal_po_leasing'] ?? 0);
             $nominal_po_keterangan = $_POST['nominal_po_leasing_keterangan'] ?? '';
             if ($nominal_po > 0) {
@@ -1355,7 +1351,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
                 <?php if ($canEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm()">
-                    <i class="fas fa-plus"></i> Tambah Unit
+                    <i class="fas fa-edit"></i> Edit Unit
                 </button>
                 <?php endif; ?>
             </div>
@@ -1445,6 +1441,9 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <button type="button" class="btn btn-secondary-custom" onclick="hideAddUnitForm()">
                             <i class="fas fa-times"></i> Batal
                         </button>
+                        <button type="button" class="btn btn-danger-custom" id="deleteUnitBtn" style="display: none;" onclick="deleteUnit()">
+                            <i class="fas fa-trash"></i> Hapus Unit
+                        </button>
                     </form>
                 </div>
                 
@@ -1461,15 +1460,12 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 <th>Specification</th>
                                 <th>Delivery Schedule</th>
                                 <th>Transaction Type</th>
-                                <?php if ($canEdit): ?>
-                                <th>Aksi</th>
-                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (count($detailUnits) > 0): ?>
                                 <?php foreach ($detailUnits as $index => $unit): ?>
-                                    <tr>
+                                    <tr onclick="editUnit(<?= $unit['id'] ?>, <?= $unit['unit_id'] ?>, <?= $unit['qty'] ?>, <?= $unit['price'] ?>, '<?= addslashes($unit['specification']) ?>', '<?= addslashes($unit['additional_attachment']) ?>', '<?= addslashes($unit['waranty']) ?>', '<?= addslashes($unit['machine_location']) ?>', '<?= addslashes($unit['delivery_terms']) ?>', '<?= $unit['delivery_schedule'] ?>', '<?= addslashes($unit['transaction_type']) ?>')" style="cursor: pointer;">
                                         <td><?= $index + 1 ?></td>
                                         <td>
                                             <?php 
@@ -1490,25 +1486,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                         <td><?= htmlspecialchars($unit['specification']) ?></td>
                                         <td><?= date('d/m/Y', strtotime($unit['delivery_schedule'])) ?></td>
                                         <td><?= htmlspecialchars($unit['transaction_type']) ?></td>
-                                        <?php if ($canEdit): ?>
-                                        <td>
-                                            <button class="btn btn-warning-custom btn-sm" onclick="editUnit(<?= $unit['id'] ?>, <?= $unit['unit_id'] ?>, <?= $unit['qty'] ?>, <?= $unit['price'] ?>, '<?= addslashes($unit['specification']) ?>', '<?= addslashes($unit['additional_attachment']) ?>', '<?= addslashes($unit['waranty']) ?>', '<?= addslashes($unit['machine_location']) ?>', '<?= addslashes($unit['delivery_terms']) ?>', '<?= $unit['delivery_schedule'] ?>', '<?= addslashes($unit['transaction_type']) ?>')">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <form method="POST" style="display: inline;" onsubmit="return confirm('Yakin ingin menghapus unit ini?');">
-                                                <input type="hidden" name="action" value="delete_unit">
-                                                <input type="hidden" name="unit_id" value="<?= $unit['id'] ?>">
-                                                <button type="submit" class="btn btn-danger-custom btn-sm">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </td>
-                                        <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="<?= $canEdit ? '10' : '9' ?>" class="text-center py-4 text-muted">
+                                    <td colspan="9" class="text-center py-4 text-muted">
                                         <i class="fas fa-box-open me-2"></i> Belum ada detail unit
                                     </td>
                                 </tr>
@@ -1940,6 +1922,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('addUnitForm').style.display = 'block';
             document.getElementById('unitForm').reset();
             document.getElementById('unit_id_hidden').value = '0';
+            document.getElementById('deleteUnitBtn').style.display = 'none';
         }
         
         function hideAddUnitForm() {
@@ -1991,6 +1974,23 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             
             calculateTotal();
             toggleOtherTransaction();
+            document.getElementById('deleteUnitBtn').style.display = 'inline-block';
+        }
+        
+        function deleteUnit() {
+            const unitId = document.getElementById('unit_id_hidden').value;
+            if (unitId > 0) {
+                if (confirm('Yakin ingin menghapus unit ini?')) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.innerHTML = `
+                        <input type="hidden" name="action" value="delete_unit">
+                        <input type="hidden" name="unit_id" value="${unitId}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
         }
         
         function showTOPSection() {
