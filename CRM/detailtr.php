@@ -203,19 +203,23 @@ if ($detailTR) {
         }
     }
     
-    if ($isRejected) {
+    if ($isRejected || $detailTR['status'] == 'rejected') {
         $currentApprovalOrder = 0;
-        $currentApproverLabel = 'Rejected';
-        $nextApproverLabel = '-';
+        $currentApproverLabel = 'No More Approval';
+        $nextApproverLabel = 'No More Approval';
+    } elseif ($detailTR['status'] == 'approved') {
+        $currentApprovalOrder = 0;
+        $currentApproverLabel = 'No More Approval';
+        $nextApproverLabel = 'No More Approval';
     } else {
         $currentApprovalOrder = $lastApprovedOrder + 1;
         if ($currentApprovalOrder <= 5) {
             $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
             $nextOrder = $currentApprovalOrder + 1;
-            $nextApproverLabel = $nextOrder <= 5 ? $approvalLevels[$nextOrder]['label'] : 'Selesai';
+            $nextApproverLabel = $nextOrder <= 5 ? $approvalLevels[$nextOrder]['label'] : 'No More Approval';
         } else {
-            $currentApproverLabel = 'Selesai';
-            $nextApproverLabel = '-';
+            $currentApproverLabel = 'No More Approval';
+            $nextApproverLabel = 'No More Approval';
         }
     }
 } else {
@@ -652,8 +656,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $updateStmt->execute([
                     $insurance_ops, $insurance_cargo, $delivery_cost,
                     $free_part, $free_service, $mediator_fee, $others,
-                    $costId, $tr_number
-                ]);
+                    $costId, $tr_number                ]);
             } else {
                 // Insert
                 $insertSql = "INSERT INTO tr_additional_costs (
@@ -1097,48 +1100,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             color: #ffd700;
         }
 
-        .approval-timeline {
-            position: relative;
-            padding-left: 30px;
-        }
-        .approval-timeline::before {
-            content: '';
-            position: absolute;
-            left: 10px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: #e0e4ea;
-        }
-        .approval-item {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .approval-item::before {
-            content: '';
-            position: absolute;
-            left: -25px;
-            top: 5px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #e0e4ea;
-            border: 2px solid #fff;
-            box-shadow: 0 0 0 2px #e0e4ea;
-        }
-        .approval-item.completed::before {
-            background: #27ae60;
-            box-shadow: 0 0 0 2px #27ae60;
-        }
-        .approval-item.rejected::before {
-            background: #e74c3c;
-            box-shadow: 0 0 0 2px #e74c3c;
-        }
-        .approval-item.current::before {
-            background: #ffd700;
-            box-shadow: 0 0 0 2px #ffd700;
-        }
-
         .mobile-toggle { display: none; }
 
         /* Tab Navigation Styles */
@@ -1416,58 +1377,8 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </div>
                 </div>
                 
-                <!-- Approval Timeline -->
-                <hr>
-                <h6 class="mb-3"><i class="fas fa-clipboard-check" style="color: #ffd700;"></i> Approval Timeline</h6>
-                <div class="approval-timeline">
-                    <?php foreach ($approvalLevels as $order => $level): ?>
-                        <?php 
-                        $approvalStatus = '';
-                        $approvalNote = '';
-                        $approvedByName = '';
-                        $approvalClass = '';
-                        
-                        foreach ($approvalHistory as $history) {
-                            if ($history['approval_order'] == $order) {
-                                $approvalStatus = $history['status'];
-                                $approvalNote = $history['catatan'];
-                                $approvedByName = $history['approved_by'];
-                                break;
-                            }
-                        }
-                        
-                        if ($approvalStatus == 'approved') {
-                            $approvalClass = 'completed';
-                        } elseif ($approvalStatus == 'rejected') {
-                            $approvalClass = 'rejected';
-                        } elseif ($order == $currentApprovalOrder && $request['status'] != 'rejected') {
-                            $approvalClass = 'current';
-                        }
-                        ?>
-                        <div class="approval-item <?= $approvalClass ?>">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong><?= $level['label'] ?></strong>
-                                    <?php if ($approvalStatus == 'approved'): ?>
-                                        <span class="badge bg-success ms-2">Approved</span>
-                                    <?php elseif ($approvalStatus == 'rejected'): ?>
-                                        <span class="badge bg-danger ms-2">Rejected</span>
-                                    <?php elseif ($order == $currentApprovalOrder && $request['status'] != 'rejected'): ?>
-                                        <span class="badge bg-warning ms-2">Current</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary ms-2">Waiting</span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <?php if ($approvalNote): ?>
-                                <small class="text-muted">Catatan: <?= htmlspecialchars($approvalNote) ?></small>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                
                 <!-- Tombol Approve/Reject untuk current approver -->
-                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 5 && $request['status'] != 'rejected' && $request['status'] != 'approved'): ?>
+                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 5 && $request['status'] == 'pending'): ?>
                     <?php 
                     $canApprove = false;
                     $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
