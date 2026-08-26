@@ -357,7 +357,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            // Cek kelengkapan data untuk KEDUA action (approve dan reject)
             $checkDataComplete = true;
             $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ?");
             $checkDetailTR->execute([$tr_number]);
@@ -513,38 +512,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
             
+            // Booking Fee
             $booking_fee = (float)($_POST['booking_fee'] ?? 0);
+            $booking_fee_keterangan = $_POST['booking_fee_keterangan'] ?? '';
             if ($booking_fee > 0) {
-                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'booking_fee', 'Booking Fee', ?, NOW())";
+                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, keterangan, created_at) VALUES (?, 'booking_fee', 'Booking Fee', ?, ?, NOW())";
                 $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([$tr_number, $booking_fee]);
+                $insertStmt->execute([$tr_number, $booking_fee, $booking_fee_keterangan]);
             }
             
+            // Down Payment
             $dp_labels = $_POST['dp_label'] ?? [];
             $dp_amounts = $_POST['dp_amount'] ?? [];
+            $dp_keterangans = $_POST['dp_keterangan'] ?? [];
             foreach ($dp_labels as $index => $label) {
                 if (!empty($label) && isset($dp_amounts[$index]) && $dp_amounts[$index] > 0) {
-                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'down_payment', ?, ?, NOW())";
+                    $keterangan = $dp_keterangans[$index] ?? '';
+                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, keterangan, created_at) VALUES (?, 'down_payment', ?, ?, ?, NOW())";
                     $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$tr_number, $label, $dp_amounts[$index]]);
+                    $insertStmt->execute([$tr_number, $label, $dp_amounts[$index], $keterangan]);
                 }
             }
             
+            // Angsuran
             $angsuran_labels = $_POST['angsuran_label'] ?? [];
             $angsuran_amounts = $_POST['angsuran_amount'] ?? [];
+            $angsuran_keterangans = $_POST['angsuran_keterangan'] ?? [];
             foreach ($angsuran_labels as $index => $label) {
                 if (!empty($label) && isset($angsuran_amounts[$index]) && $angsuran_amounts[$index] > 0) {
-                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'angsuran', ?, ?, NOW())";
+                    $keterangan = $angsuran_keterangans[$index] ?? '';
+                    $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, keterangan, created_at) VALUES (?, 'angsuran', ?, ?, ?, NOW())";
                     $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$tr_number, $label, $angsuran_amounts[$index]]);
+                    $insertStmt->execute([$tr_number, $label, $angsuran_amounts[$index], $keterangan]);
                 }
             }
             
+            // Nominal PO Leasing
             $nominal_po = (float)($_POST['nominal_po_leasing'] ?? 0);
+            $nominal_po_keterangan = $_POST['nominal_po_leasing_keterangan'] ?? '';
             if ($nominal_po > 0) {
-                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, created_at) VALUES (?, 'nominal_po', 'Nominal PO Leasing', ?, NOW())";
+                $insertSql = "INSERT INTO tr_term_of_payments (trf_number, payment_type, payment_label, amount, keterangan, created_at) VALUES (?, 'nominal_po', 'Nominal PO Leasing', ?, ?, NOW())";
                 $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([$tr_number, $nominal_po]);
+                $insertStmt->execute([$tr_number, $nominal_po, $nominal_po_keterangan]);
             }
             
             $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
@@ -1530,13 +1539,21 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <input type="hidden" name="action" value="save_top">
                         
                         <div class="row mb-3">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label">Booking Fee</label>
                                 <input type="number" name="booking_fee" id="booking_fee" class="form-control" min="0" step="0.01" value="<?= $termPayments ? array_sum(array_column(array_filter($termPayments, function($t) { return $t['payment_type'] == 'booking_fee'; }), 'amount')) : 0 ?>">
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label">Keterangan Booking Fee</label>
+                                <input type="text" name="booking_fee_keterangan" class="form-control" value="<?= $termPayments ? (array_values(array_filter($termPayments, function($t) { return $t['payment_type'] == 'booking_fee'; }))[0]['keterangan'] ?? '') : '' ?>">
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label">Nominal PO Leasing</label>
                                 <input type="number" name="nominal_po_leasing" id="nominal_po_leasing" class="form-control" min="0" step="0.01" value="<?= $termPayments ? array_sum(array_column(array_filter($termPayments, function($t) { return $t['payment_type'] == 'nominal_po'; }), 'amount')) : 0 ?>">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Ket. PO Leasing</label>
+                                <input type="text" name="nominal_po_leasing_keterangan" class="form-control" value="<?= $termPayments ? (array_values(array_filter($termPayments, function($t) { return $t['payment_type'] == 'nominal_po'; }))[0]['keterangan'] ?? '') : '' ?>">
                             </div>
                         </div>
                         
@@ -1548,26 +1565,32 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 if (count($dpPayments) > 0): 
                                     foreach ($dpPayments as $dp): ?>
                                         <div class="row mb-2 dp-row">
-                                            <div class="col-md-5">
+                                            <div class="col-md-4">
                                                 <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)" value="<?= htmlspecialchars($dp['payment_label']) ?>">
                                             </div>
-                                            <div class="col-md-5">
+                                            <div class="col-md-3">
                                                 <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01" value="<?= $dp['amount'] ?>">
                                             </div>
-                                            <div class="col-md-2">
+                                            <div class="col-md-4">
+                                                <input type="text" name="dp_keterangan[]" class="form-control" placeholder="Keterangan" value="<?= htmlspecialchars($dp['keterangan'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-md-1">
                                                 <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
                                             </div>
                                         </div>
                                     <?php endforeach; 
                                 else: ?>
                                     <div class="row mb-2 dp-row">
-                                        <div class="col-md-5">
+                                        <div class="col-md-4">
                                             <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)">
                                         </div>
-                                        <div class="col-md-5">
+                                        <div class="col-md-3">
                                             <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
                                         </div>
-                                        <div class="col-md-2">
+                                        <div class="col-md-4">
+                                            <input type="text" name="dp_keterangan[]" class="form-control" placeholder="Keterangan">
+                                        </div>
+                                        <div class="col-md-1">
                                             <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
                                         </div>
                                     </div>
@@ -1586,26 +1609,32 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 if (count($angsuranPayments) > 0): 
                                     foreach ($angsuranPayments as $angsuran): ?>
                                         <div class="row mb-2 angsuran-row">
-                                            <div class="col-md-5">
+                                            <div class="col-md-4">
                                                 <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)" value="<?= htmlspecialchars($angsuran['payment_label']) ?>">
                                             </div>
-                                            <div class="col-md-5">
+                                            <div class="col-md-3">
                                                 <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01" value="<?= $angsuran['amount'] ?>">
                                             </div>
-                                            <div class="col-md-2">
+                                            <div class="col-md-4">
+                                                <input type="text" name="angsuran_keterangan[]" class="form-control" placeholder="Keterangan" value="<?= htmlspecialchars($angsuran['keterangan'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-md-1">
                                                 <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
                                             </div>
                                         </div>
                                     <?php endforeach; 
                                 else: ?>
                                     <div class="row mb-2 angsuran-row">
-                                        <div class="col-md-5">
+                                        <div class="col-md-4">
                                             <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)">
                                         </div>
-                                        <div class="col-md-5">
+                                        <div class="col-md-3">
                                             <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
                                         </div>
-                                        <div class="col-md-2">
+                                        <div class="col-md-4">
+                                            <input type="text" name="angsuran_keterangan[]" class="form-control" placeholder="Keterangan">
+                                        </div>
+                                        <div class="col-md-1">
                                             <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
                                         </div>
                                     </div>
@@ -1638,6 +1667,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 <th>Jenis Pembayaran</th>
                                 <th>Label</th>
                                 <th>Nominal</th>
+                                <th>Keterangan</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1653,15 +1683,16 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                         </td>
                                         <td><?= htmlspecialchars($top['payment_label']) ?></td>
                                         <td>Rp <?= number_format($top['amount'], 0, ',', '.') ?></td>
+                                        <td><?= htmlspecialchars($top['keterangan'] ?? '-') ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                                 <tr>
-                                    <td colspan="3" class="text-end"><strong>TOTAL</strong></td>
+                                    <td colspan="4" class="text-end"><strong>TOTAL</strong></td>
                                     <td><strong>Rp <?= number_format($totalTOP, 0, ',', '.') ?></strong></td>
                                 </tr>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-muted">
+                                    <td colspan="5" class="text-center py-4 text-muted">
                                         <i class="fas fa-money-bill me-2"></i> Belum ada data Term of Payment
                                     </td>
                                 </tr>
@@ -1975,13 +2006,16 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             const newRow = document.createElement('div');
             newRow.className = 'row mb-2 dp-row';
             newRow.innerHTML = `
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)">
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-3">
                     <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-4">
+                    <input type="text" name="dp_keterangan[]" class="form-control" placeholder="Keterangan">
+                </div>
+                <div class="col-md-1">
                     <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
                 </div>
             `;
@@ -1993,13 +2027,16 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             const newRow = document.createElement('div');
             newRow.className = 'row mb-2 angsuran-row';
             newRow.innerHTML = `
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)">
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-3">
                     <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-4">
+                    <input type="text" name="angsuran_keterangan[]" class="form-control" placeholder="Keterangan">
+                </div>
+                <div class="col-md-1">
                     <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
                 </div>
             `;
