@@ -248,12 +248,13 @@ $approvalLevels = [
 ];
 
 // ============================================
-// PATH LOGO - KOP SURAT
+// PATH LOGO - KOP SURAT (HANYA LOGO PNG)
 // ============================================
 $logoPath = 'images/kopsurat.png';
 
 if (!file_exists($logoPath)) {
-    $logoHtml = '<div class="logo-text">PT GANDA ELANG TANGGUH</div>';
+    // Jika logo tidak ditemukan, tampilkan pesan error
+    $logoHtml = '<div style="color:red; font-size:12px;">LOGO TIDAK DITEMUKAN</div>';
 } else {
     $logoData = base64_encode(file_get_contents($logoPath));
     $logoHtml = '<img src="data:image/png;base64,' . $logoData . '" class="logo-img" alt="Logo">';
@@ -285,58 +286,19 @@ $html = '
             line-height: 1.4;
         }
         
+        /* KOP SURAT - HANYA LOGO */
         .kop-surat {
             border-bottom: 3px double #1a1a2e;
             padding-bottom: 10px;
             margin-bottom: 12px;
-        }
-        .kop-surat .logo-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
+            text-align: center;
         }
         .kop-surat .logo-img {
-            width: 120px;
+            max-width: 250px;
+            max-height: 100px;
+            width: auto;
             height: auto;
             object-fit: contain;
-            flex-shrink: 0;
-        }
-        .kop-surat .logo-text {
-            font-size: 24px;
-            font-weight: 900;
-            color: #1a1a2e;
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
-        .kop-surat .logo-text .gold {
-            color: #c9a84c;
-        }
-        .kop-surat .kop-text {
-            flex: 1;
-            text-align: center;
-        }
-        .kop-surat .kop-text .nama-pt {
-            font-size: 22px;
-            font-weight: 900;
-            letter-spacing: 1.5px;
-            color: #1a1a2e;
-        }
-        .kop-surat .kop-text .nama-pt .gold {
-            color: #c9a84c;
-        }
-        .kop-surat .kop-text .sub-title {
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 3px;
-            color: #555;
-            margin-top: 1px;
-        }
-        .kop-surat .kop-text .alamat {
-            font-size: 9px;
-            color: #777;
-            margin-top: 3px;
-            line-height: 1.5;
         }
         
         .judul-laporan {
@@ -511,20 +473,12 @@ $html = '
 </head>
 <body>
 
+<!-- KOP SURAT - HANYA LOGO PNG -->
 <div class="kop-surat">
-    <div class="logo-row">
-        ' . $logoHtml . '
-        <div class="kop-text">
-            <div class="nama-pt">PT GANDA ELANG <span class="gold">TANGGUH</span></div>
-            <div class="sub-title">CUSTOMER RELATIONSHIP MANAGEMENT</div>
-            <div class="alamat">
-                Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru<br>
-                Grogol Petamburan, Kota Adm. Jakarta Barat - DKI Jakarta
-            </div>
-        </div>
-    </div>
+    ' . $logoHtml . '
 </div>
 
+<!-- JUDUL -->
 <div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
 <div class="sub-judul">
     Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong> 
@@ -532,6 +486,7 @@ $html = '
     | Tanggal Cetak: ' . date('d/m/Y H:i') . '
 </div>
 
+<!-- A. DATA ACCOUNT -->
 <div class="section-title">A. DATA ACCOUNT</div>
 <div class="two-col">
     <div class="col">
@@ -570,6 +525,7 @@ $html = '
     </tr>
 </table>
 
+<!-- B. DETAIL UNIT -->
 <div class="section-title">B. DETAIL UNIT</div>
 ';
 
