@@ -363,9 +363,9 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             transition: all 0.3s ease;
         }
 
-        /* Tombol PDF */
+        /* Tombol PDF - Hanya untuk Approved */
         .btn-pdf {
-            background: #e74c3c;
+            background: #27ae60;
             border: none;
             border-radius: 6px;
             padding: 4px 12px;
@@ -379,12 +379,31 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             font-weight: 600;
         }
         .btn-pdf:hover {
-            background: #c0392b;
+            background: #1e8449;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
             color: #fff;
         }
         .btn-pdf i {
+            font-size: 13px;
+        }
+        
+        /* Tombol PDF Disabled (untuk yang belum approved) */
+        .btn-pdf-disabled {
+            background: #bdc3c7;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .btn-pdf-disabled i {
             font-size: 13px;
         }
 
@@ -613,6 +632,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                     <?php 
                                     $statusLabel = ucfirst($request['status']);
                                     $statusClass = $request['status'];
+                                    $isApproved = ($request['status'] == 'approved');
                                     ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
@@ -638,12 +658,18 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                             </span>
                                         </td>
                                         <td style="text-align:center;">
-                                            <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
-                                               class="btn-pdf" 
-                                               target="_blank"
-                                               title="Download PDF Detail TR">
-                                                <i class="fas fa-file-pdf"></i> PDF
-                                            </a>
+                                            <?php if ($isApproved): ?>
+                                                <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
+                                                   class="btn-pdf" 
+                                                   target="_blank"
+                                                   title="Download PDF Detail TR">
+                                                    <i class="fas fa-file-pdf"></i> PDF
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="btn-pdf-disabled" title="PDF hanya tersedia untuk TR yang sudah Approved">
+                                                    <i class="fas fa-file-pdf"></i> PDF
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
