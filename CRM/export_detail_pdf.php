@@ -364,6 +364,18 @@ $html = '
             width: 100px;
         }
         
+        .info-row-left {
+            padding: 1px 0;
+            font-size: 9px;
+            padding-left: 0px;
+        }
+        .info-row-left .label {
+            display: inline-block;
+            font-weight: 600;
+            color: #555;
+            width: 120px;
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -433,12 +445,16 @@ $html = '
         .approval-status-pending { color: #ffc107; font-weight: 700; }
         
         .footer {
-            margin-top: 10px;
-            padding-top: 6px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 6px 25px;
             border-top: 2px solid #222;
             font-size: 7px;
             color: #555;
             text-align: center;
+            background: #fff;
         }
         .footer .footer-alamat {
             font-size: 7px;
@@ -594,13 +610,13 @@ $html .= '
 
 if ($additionalCost) {
     $html .= '
-        <div class="info-row"><span class="label">Insurance Ops</span>: ' . formatRp($additionalCost['insurance_ops']) . '</div>
-        <div class="info-row"><span class="label">Insurance Cargo</span>: ' . formatRp($additionalCost['insurance_cargo']) . '</div>
-        <div class="info-row"><span class="label">Delivery Cost</span>: ' . formatRp($additionalCost['delivery_cost']) . '</div>
-        <div class="info-row"><span class="label">Mediator Fee</span>: ' . formatRp($additionalCost['mediator_fee']) . '</div>
-        <div class="info-row"><span class="label">Free Part</span>: ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
-        <div class="info-row"><span class="label">Free Service</span>: ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
-        <div class="info-row"><span class="label">Others</span>: ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
+        <div class="info-row-left"><span class="label">Insurance Ops</span>: ' . formatRp($additionalCost['insurance_ops']) . '</div>
+        <div class="info-row-left"><span class="label">Insurance Cargo</span>: ' . formatRp($additionalCost['insurance_cargo']) . '</div>
+        <div class="info-row-left"><span class="label">Delivery Cost</span>: ' . formatRp($additionalCost['delivery_cost']) . '</div>
+        <div class="info-row-left"><span class="label">Mediator Fee</span>: ' . formatRp($additionalCost['mediator_fee']) . '</div>
+        <div class="info-row-left"><span class="label">Free Part</span>: ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
+        <div class="info-row-left"><span class="label">Free Service</span>: ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
+        <div class="info-row-left"><span class="label">Others</span>: ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
         ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
@@ -618,12 +634,12 @@ $html .= '
 
 if ($mediator) {
     $html .= '
-    <div class="info-row"><span class="label">Name</span>: ' . htmlspecialchars($mediator['name']) . '</div>
-    <div class="info-row"><span class="label">ID Card</span>: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
-    <div class="info-row"><span class="label">NPWP</span>: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
-    <div class="info-row"><span class="label">Bank Name</span>: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
-    <div class="info-row"><span class="label">Bank Account</span>: ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
-    <div class="info-row"><span class="label">Amount</span>: <strong>' . formatRp($mediator['amount']) . '</strong></div>
+    <div class="info-row-left"><span class="label">Name</span>: ' . htmlspecialchars($mediator['name']) . '</div>
+    <div class="info-row-left"><span class="label">ID Card</span>: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+    <div class="info-row-left"><span class="label">NPWP</span>: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+    <div class="info-row-left"><span class="label">Bank Name</span>: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
+    <div class="info-row-left"><span class="label">Bank Account</span>: ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+    <div class="info-row-left"><span class="label">Amount</span>: <strong>' . formatRp($mediator['amount']) . '</strong></div>
     ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
@@ -679,7 +695,7 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// FOOTER
+// FOOTER - POSISI ABSOLUTE DI BAWAH
 $html .= '
 <div class="footer">
     <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
