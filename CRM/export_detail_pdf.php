@@ -253,7 +253,7 @@ $approvalLevels = [
 $logoPath = 'images/kopsurat.png';
 
 if (!file_exists($logoPath)) {
-    $logoHtml = '<div style="color:red; font-size:12px;">LOGO TIDAK DITEMUKAN</div>';
+    $logoHtml = '';
 } else {
     $logoData = base64_encode(file_get_contents($logoPath));
     $logoHtml = '<img src="data:image/png;base64,' . $logoData . '" class="logo-img" alt="Logo">';
@@ -265,7 +265,7 @@ if (!file_exists($logoPath)) {
 ob_end_clean();
 
 // ============================================
-// BUILD HTML PDF
+// BUILD HTML PDF - VERSI SEDERHANA DAN RAPIH
 // ============================================
 $html = '
 <!DOCTYPE html>
@@ -277,26 +277,25 @@ $html = '
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: "Times New Roman", Times, serif; 
+            font-family: "Helvetica", Arial, sans-serif; 
             font-size: 10px;
             padding: 15px 25px;
             background: #fff;
-            color: #1a1a1a;
-            line-height: 1.5;
+            color: #222;
+            line-height: 1.6;
         }
         
         .kop-surat {
-            border-bottom: 3px double #1a1a2e;
+            text-align: center;
+            border-bottom: 2px solid #222;
             padding-bottom: 8px;
             margin-bottom: 10px;
-            text-align: center;
         }
         .kop-surat .logo-img {
-            max-width: 200px;
-            max-height: 70px;
+            max-width: 180px;
+            max-height: 60px;
             width: auto;
             height: auto;
-            object-fit: contain;
         }
         
         .judul-laporan {
@@ -304,9 +303,9 @@ $html = '
             font-size: 14px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #1a1a2e;
-            margin: 6px 0 3px 0;
+            letter-spacing: 1px;
+            color: #222;
+            margin: 5px 0 3px 0;
         }
         .sub-judul {
             text-align: center;
@@ -322,57 +321,48 @@ $html = '
             font-weight: 700;
             text-transform: uppercase;
         }
-        .status-badge.pending { background: #fef9e7; color: #b7950b; }
-        .status-badge.approved { background: #ebf5fb; color: #1a5276; }
-        .status-badge.rejected { background: #fdedec; color: #922b21; }
+        .status-badge.pending { background: #fff3cd; color: #856404; }
+        .status-badge.approved { background: #d4edda; color: #155724; }
+        .status-badge.rejected { background: #f8d7da; color: #721c24; }
         
         .section-title {
             font-size: 11px;
             font-weight: 700;
-            border-bottom: 1px solid #1a1a2e;
+            border-bottom: 1px solid #222;
             padding: 4px 0 2px 0;
             margin: 8px 0 5px 0;
-            color: #1a1a2e;
+            color: #222;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         
         .info-row {
-            display: table;
-            width: 100%;
-            margin-bottom: 1px;
+            padding: 1px 0;
+            font-size: 9px;
         }
         .info-row .label {
-            display: table-cell;
-            width: 18%;
+            display: inline-block;
             font-weight: 600;
             color: #555;
-            padding: 1px 0;
+            width: 120px;
         }
         .info-row .value {
-            display: table-cell;
-            width: 82%;
-            padding: 1px 0;
+            display: inline-block;
         }
         
         .info-row-2col {
-            display: table;
-            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
         }
         .info-row-2col .col {
-            display: table-cell;
-            width: 50%;
-            vertical-align: top;
+            flex: 1;
+            min-width: 45%;
             padding-right: 15px;
         }
         .info-row-2col .col:last-child {
             padding-right: 0;
         }
         .info-row-2col .info-row .label {
-            width: 25%;
-        }
-        .info-row-2col .info-row .value {
-            width: 75%;
+            width: 100px;
         }
         
         table {
@@ -382,14 +372,13 @@ $html = '
             font-size: 9px;
         }
         table th {
-            background: #1a1a2e;
+            background: #222;
             color: #fff;
             font-weight: 600;
             font-size: 8px;
             text-transform: uppercase;
             padding: 3px 5px;
             text-align: center;
-            letter-spacing: 0.3px;
         }
         table td {
             padding: 3px 5px;
@@ -402,22 +391,21 @@ $html = '
         }
         
         .three-col {
-            display: table;
-            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
             margin: 5px 0;
+            gap: 8px;
         }
         .three-col .col {
-            display: table-cell;
-            width: 33.33%;
-            vertical-align: top;
+            flex: 1;
+            min-width: 30%;
             text-align: center;
-            padding: 0 5px;
         }
         .three-col .col .box {
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 6px 4px;
-            background: #fafafa;
+            padding: 5px 8px;
+            background: #f9f9f9;
         }
         .three-col .col .box.gold {
             border: 2px solid #c9a84c;
@@ -437,18 +425,18 @@ $html = '
             font-size: 14px;
         }
         .three-col .col .box.gold .label {
-            color: #1a1a2e;
+            color: #222;
             font-weight: 700;
         }
         
-        .approval-status-approved { color: #27ae60; font-weight: 700; }
-        .approval-status-rejected { color: #e74c3c; font-weight: 700; }
-        .approval-status-pending { color: #f39c12; font-weight: 700; }
+        .approval-status-approved { color: #28a745; font-weight: 700; }
+        .approval-status-rejected { color: #dc3545; font-weight: 700; }
+        .approval-status-pending { color: #ffc107; font-weight: 700; }
         
         .footer {
             margin-top: 10px;
             padding-top: 6px;
-            border-top: 2px solid #1a1a2e;
+            border-top: 2px solid #222;
             font-size: 7px;
             color: #555;
             text-align: center;
@@ -472,7 +460,6 @@ $html = '
         .text-right { text-align: right; }
         .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
-        .text-muted { color: #999; }
         
         @page {
             margin: 10mm 15mm 10mm 15mm;
@@ -482,9 +469,7 @@ $html = '
 <body>
 
 <!-- KOP SURAT -->
-<div class="kop-surat">
-    ' . $logoHtml . '
-</div>
+<div class="kop-surat">' . $logoHtml . '</div>
 
 <!-- JUDUL -->
 <div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
@@ -499,56 +484,21 @@ $html = '
 
 <div class="info-row-2col">
     <div class="col">
-        <div class="info-row">
-            <span class="label">Nama PT</span>
-            <span class="value">: ' . htmlspecialchars($request['nama_pt'] ?? '-') . '</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Badan Usaha</span>
-            <span class="value">: ' . htmlspecialchars($request['badan_usaha'] ?? '-') . '</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Alamat</span>
-            <span class="value">: ' . htmlspecialchars($request['alamat'] ?? '-') . '</span>
-        </div>
-        <div class="info-row">
-            <span class="label">NPWP</span>
-            <span class="value">: ' . htmlspecialchars($request['npwp'] ?? '-') . '</span>
-        </div>
+        <div class="info-row"><span class="label">Nama PT</span>: ' . htmlspecialchars($request['nama_pt'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Badan Usaha</span>: ' . htmlspecialchars($request['badan_usaha'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Alamat</span>: ' . htmlspecialchars($request['alamat'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">NPWP</span>: ' . htmlspecialchars($request['npwp'] ?? '-') . '</div>
     </div>
     <div class="col">
-        <div class="info-row">
-            <span class="label">Nama PIC</span>
-            <span class="value">: ' . htmlspecialchars($request['nama_pic'] ?? '-') . '</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Jabatan PIC</span>
-            <span class="value">: ' . htmlspecialchars($request['jabatan_pic'] ?? '-') . '</span>
-        </div>
-        <div class="info-row">
-            <span class="label">No HP PIC</span>
-            <span class="value">: ' . htmlspecialchars($request['no_hp_pic'] ?? '-') . '</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Email PIC</span>
-            <span class="value">: ' . htmlspecialchars($request['email_pic'] ?? '-') . '</span>
-        </div>
+        <div class="info-row"><span class="label">Nama PIC</span>: ' . htmlspecialchars($request['nama_pic'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Jabatan PIC</span>: ' . htmlspecialchars($request['jabatan_pic'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">No HP PIC</span>: ' . htmlspecialchars($request['no_hp_pic'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Email PIC</span>: ' . htmlspecialchars($request['email_pic'] ?? '-') . '</div>
     </div>
 </div>
 
-<div class="info-row">
-    <span class="label" style="width:10%;">Salesman</span>
-    <span class="value" style="width:23%;">: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</span>
-    <span class="label" style="width:10%;">Request Date</span>
-    <span class="value" style="width:23%;">: ' . date('d/m/Y', strtotime($request['request_date'])) . '</span>
-    <span class="label" style="width:10%;">Due Date</span>
-    <span class="value" style="width:24%;">: ' . date('d/m/Y', strtotime($request['due_date'])) . '</span>
-</div>
-
-<div class="info-row">
-    <span class="label" style="width:10%;">Deskripsi</span>
-    <span class="value" style="width:90%;">: ' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</span>
-</div>
+<div class="info-row"><span class="label" style="width:100px;">Salesman</span>: ' . htmlspecialchars($request['sales_name'] ?? '-') . ' | <span class="label" style="width:100px;">Request Date</span>: ' . date('d/m/Y', strtotime($request['request_date'])) . ' | <span class="label" style="width:100px;">Due Date</span>: ' . date('d/m/Y', strtotime($request['due_date'])) . '</div>
+<div class="info-row"><span class="label" style="width:100px;">Deskripsi</span>: ' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</div>
 
 <!-- B. DETAIL UNIT -->
 <div class="section-title">B. DETAIL UNIT</div>
@@ -559,13 +509,13 @@ if (count($detailUnits) > 0) {
     <table>
         <thead>
             <tr>
-                <th style="width:4%;">No</th>
+                <th style="width:5%;">No</th>
                 <th style="width:18%;">Unit</th>
-                <th style="width:5%;">QTY</th>
-                <th style="width:14%;">Price (Non PPN)</th>
+                <th style="width:6%;">QTY</th>
+                <th style="width:15%;">Price (Non PPN)</th>
                 <th style="width:10%;">PPN 11%</th>
-                <th style="width:15%;">Grand Total</th>
-                <th style="width:34%;">Specification</th>
+                <th style="width:16%;">Grand Total</th>
+                <th style="width:30%;">Specification</th>
             </tr>
         </thead>
         <tbody>';
@@ -589,37 +539,25 @@ if (count($detailUnits) > 0) {
         </tbody>
     </table>
     
-    <div style="display:table; width:100%; margin-top:3px; font-size:8px;">
-        <div style="display:table-cell; width:33%;">
-            <strong>Additional Attachment</strong> : ' . htmlspecialchars($detailUnits[0]['additional_attachment'] ?? '-') . '
-        </div>
-        <div style="display:table-cell; width:33%;">
-            <strong>Waranty</strong> : ' . htmlspecialchars($detailUnits[0]['waranty'] ?? '-') . '
-        </div>
-        <div style="display:table-cell; width:34%;">
-            <strong>Transaction Type</strong> : ' . htmlspecialchars($detailUnits[0]['transaction_type'] ?? '-') . '
-        </div>
+    <div style="display:flex; flex-wrap:wrap; margin-top:3px; font-size:8px;">
+        <div style="flex:1; min-width:30%;"><strong>Additional Attachment</strong>: ' . htmlspecialchars($detailUnits[0]['additional_attachment'] ?? '-') . '</div>
+        <div style="flex:1; min-width:30%;"><strong>Waranty</strong>: ' . htmlspecialchars($detailUnits[0]['waranty'] ?? '-') . '</div>
+        <div style="flex:1; min-width:30%;"><strong>Transaction Type</strong>: ' . htmlspecialchars($detailUnits[0]['transaction_type'] ?? '-') . '</div>
     </div>
-    <div style="display:table; width:100%; font-size:8px;">
-        <div style="display:table-cell; width:33%;">
-            <strong>Machine Location</strong> : ' . htmlspecialchars($detailUnits[0]['machine_location'] ?? '-') . '
-        </div>
-        <div style="display:table-cell; width:33%;">
-            <strong>Delivery Terms</strong> : ' . htmlspecialchars($detailUnits[0]['delivery_terms'] ?? '-') . '
-        </div>
-        <div style="display:table-cell; width:34%;">
-            <strong>Delivery Schedule</strong> : ' . (isset($detailUnits[0]['delivery_schedule']) ? date('d/m/Y', strtotime($detailUnits[0]['delivery_schedule'])) : '-') . '
-        </div>
+    <div style="display:flex; flex-wrap:wrap; font-size:8px;">
+        <div style="flex:1; min-width:30%;"><strong>Machine Location</strong>: ' . htmlspecialchars($detailUnits[0]['machine_location'] ?? '-') . '</div>
+        <div style="flex:1; min-width:30%;"><strong>Delivery Terms</strong>: ' . htmlspecialchars($detailUnits[0]['delivery_terms'] ?? '-') . '</div>
+        <div style="flex:1; min-width:30%;"><strong>Delivery Schedule</strong>: ' . (isset($detailUnits[0]['delivery_schedule']) ? date('d/m/Y', strtotime($detailUnits[0]['delivery_schedule'])) : '-') . '</div>
     </div>
     ';
 } else {
-    $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data Detail Unit</p>';
+    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data Detail Unit</p>';
 }
 
 // C. TERM OF PAYMENT & D. ADDITIONAL COST
 $html .= '
-<div style="display:table; width:100%; margin-top:5px;">
-    <div style="display:table-cell; width:55%; vertical-align:top; padding-right:10px;">
+<div style="display:flex; flex-wrap:wrap; margin-top:5px;">
+    <div style="flex:1; min-width:50%; padding-right:10px;">
         <div class="section-title" style="margin-top:0;">C. TERM OF PAYMENT</div>
         ';
 
@@ -652,18 +590,18 @@ if (count($termPayments) > 0) {
         </table>
         ';
 } else {
-    $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data TOP</p>';
+    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data TOP</p>';
 }
 
 $html .= '
     </div>
-    <div style="display:table-cell; width:45%; vertical-align:top; padding-left:10px;">
+    <div style="flex:1; min-width:40%; padding-left:10px;">
         <div class="section-title" style="margin-top:0;">D. ADDITIONAL COST</div>
         ';
 
 if ($additionalCost) {
     $html .= '
-        <div style="font-size:8px; line-height:1.6;">
+        <div style="font-size:8px; line-height:1.8;">
             <div><strong>Insurance Ops</strong> : ' . formatRp($additionalCost['insurance_ops']) . '</div>
             <div><strong>Insurance Cargo</strong> : ' . formatRp($additionalCost['insurance_cargo']) . '</div>
             <div><strong>Delivery Cost</strong> : ' . formatRp($additionalCost['delivery_cost']) . '</div>
@@ -674,7 +612,7 @@ if ($additionalCost) {
         </div>
         ';
 } else {
-    $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data</p>';
+    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data</p>';
 }
 
 $html .= '
@@ -689,51 +627,25 @@ $html .= '
 
 if ($mediator) {
     $html .= '
-    <div style="display:table; width:80%; margin:0 auto; font-size:8px;">
-        <div style="display:table-row;">
-            <div style="display:table-cell; width:15%; font-weight:600; color:#555;">Name</div>
-            <div style="display:table-cell; width:35%;">: ' . htmlspecialchars($mediator['name']) . '</div>
-            <div style="display:table-cell; width:15%; font-weight:600; color:#555;">Amount</div>
-            <div style="display:table-cell; width:35%;">: <strong>' . formatRp($mediator['amount']) . '</strong></div>
-        </div>
-        <div style="display:table-row;">
-            <div style="display:table-cell; font-weight:600; color:#555;">ID Card</div>
-            <div style="display:table-cell;">: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
-            <div style="display:table-cell; font-weight:600; color:#555;">NPWP</div>
-            <div style="display:table-cell;">: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
-        </div>
-        <div style="display:table-row;">
-            <div style="display:table-cell; font-weight:600; color:#555;">Bank Name</div>
-            <div style="display:table-cell;" colspan="3">: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . ' - ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
-        </div>
+    <div style="display:flex; flex-wrap:wrap; font-size:8px; max-width:80%; margin:0 auto;">
+        <div style="flex:1; min-width:45%;"><strong>Name</strong> : ' . htmlspecialchars($mediator['name']) . '</div>
+        <div style="flex:1; min-width:45%;"><strong>Amount</strong> : <strong>' . formatRp($mediator['amount']) . '</strong></div>
+        <div style="flex:1; min-width:45%;"><strong>ID Card</strong> : ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+        <div style="flex:1; min-width:45%;"><strong>NPWP</strong> : ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+        <div style="flex:1; min-width:100%;"><strong>Bank Name</strong> : ' . htmlspecialchars($mediator['bank_name'] ?? '-') . ' - ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
     </div>
     ';
 } else {
-    $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data Mediator</p>';
+    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
 }
 
 // F. REKAPITULASI TOTAL
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
 <div class="three-col">
-    <div class="col">
-        <div class="box">
-            <div class="label">Total Grand Total Unit</div>
-            <div class="value">' . formatRp($totalUnitGrandTotal) . '</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="box">
-            <div class="label">Total Additional Cost</div>
-            <div class="value">' . formatRp($totalAdditionalCost) . '</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="box gold">
-            <div class="label">TOTAL MASUKAN</div>
-            <div class="value">' . formatRp($totalMasukan) . '</div>
-        </div>
-    </div>
+    <div class="col"><div class="box"><div class="label">Total Grand Total Unit</div><div class="value">' . formatRp($totalUnitGrandTotal) . '</div></div></div>
+    <div class="col"><div class="box"><div class="label">Total Additional Cost</div><div class="value">' . formatRp($totalAdditionalCost) . '</div></div></div>
+    <div class="col"><div class="box gold"><div class="label">TOTAL MASUKAN</div><div class="value">' . formatRp($totalMasukan) . '</div></div></div>
 </div>
 ';
 
@@ -779,20 +691,11 @@ if (count($approvalHistory) > 0) {
 // FOOTER
 $html .= '
 <div class="footer">
-    <div class="footer-left">
-        <strong>PT GANDA ELANG TANGGUH</strong> - CRM
-    </div>
-    <div class="footer-right">
-        Dicetak: ' . date('d/m/Y H:i') . ' | Halaman {PAGE_NUM}
-    </div>
+    <div class="footer-left"><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
+    <div class="footer-right">Dicetak: ' . date('d/m/Y H:i') . ' | Halaman {PAGE_NUM}</div>
     <div class="clearfix"></div>
-    <div class="footer-alamat">
-        Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>
-        Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com
-    </div>
-    <div class="footer-note">
-        Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.
-    </div>
+    <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
+    <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
 </div>
 
 </body>
