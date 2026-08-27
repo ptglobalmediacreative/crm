@@ -307,6 +307,16 @@ $html = '
             color: #222;
             margin: 5px 0 3px 0;
         }
+        .info-tr {
+            text-align: center;
+            font-size: 9px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .info-tr .label {
+            font-weight: 600;
+            color: #222;
+        }
         
         .section-title {
             font-size: 11px;
@@ -438,6 +448,21 @@ $html = '
         .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
         
+        .mediator-row {
+            padding: 1px 0;
+            font-size: 8px;
+        }
+        .mediator-row .label {
+            display: inline-block;
+            font-weight: 600;
+            color: #555;
+            width: 100px;
+        }
+        .mediator-container {
+            max-width: 80%;
+            margin: 0 auto;
+        }
+        
         @page {
             margin: 10mm 15mm 10mm 15mm;
         }
@@ -450,8 +475,8 @@ $html = '
 
 <!-- JUDUL -->
 <div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
-<div style="text-align:center; font-size:9px; color:#666; margin-bottom:8px;">
-    Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong>
+<div class="info-tr">
+    Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong> &nbsp;|&nbsp; <span class="label">Request Date</span>: ' . date('d/m/Y', strtotime($request['request_date'])) . '
 </div>
 
 <!-- A. DATA ACCOUNT -->
@@ -473,8 +498,6 @@ $html = '
 </div>
 
 <div class="info-row"><span class="label" style="width:100px;">Salesman</span>: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</div>
-<div class="info-row"><span class="label" style="width:100px;">Request Date</span>: ' . date('d/m/Y', strtotime($request['request_date'])) . '</div>
-<div class="info-row"><span class="label" style="width:100px;">Due Date</span>: ' . date('d/m/Y', strtotime($request['due_date'])) . '</div>
 <div class="info-row"><span class="label" style="width:100px;">Deskripsi</span>: ' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</div>
 
 <!-- B. DETAIL UNIT -->
@@ -597,19 +620,20 @@ $html .= '
 </div>
 ';
 
-// E. DATA MEDIATOR
+// E. DATA MEDIATOR - DIBUAT RAPI
 $html .= '
 <div class="section-title" style="margin-top:5px;">E. DATA MEDIATOR</div>
 ';
 
 if ($mediator) {
     $html .= '
-    <div style="display:flex; flex-wrap:wrap; font-size:8px; max-width:80%; margin:0 auto;">
-        <div style="flex:1; min-width:45%;"><strong>Name</strong> : ' . htmlspecialchars($mediator['name']) . '</div>
-        <div style="flex:1; min-width:45%;"><strong>Amount</strong> : <strong>' . formatRp($mediator['amount']) . '</strong></div>
-        <div style="flex:1; min-width:45%;"><strong>ID Card</strong> : ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
-        <div style="flex:1; min-width:45%;"><strong>NPWP</strong> : ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
-        <div style="flex:1; min-width:100%;"><strong>Bank Name</strong> : ' . htmlspecialchars($mediator['bank_name'] ?? '-') . ' - ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+    <div class="mediator-container">
+        <div class="mediator-row"><span class="label">Name</span>: ' . htmlspecialchars($mediator['name']) . '</div>
+        <div class="mediator-row"><span class="label">ID Card</span>: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+        <div class="mediator-row"><span class="label">NPWP</span>: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+        <div class="mediator-row"><span class="label">Bank Name</span>: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
+        <div class="mediator-row"><span class="label">Bank Account</span>: ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+        <div class="mediator-row"><span class="label">Amount</span>: <strong>' . formatRp($mediator['amount']) . '</strong></div>
     </div>
     ';
 } else {
