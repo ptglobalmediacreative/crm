@@ -252,12 +252,9 @@ $approvalLevels = [
 // ============================================
 $logoPath = 'images/kopsurat.png';
 
-// Cek apakah file logo ada
 if (!file_exists($logoPath)) {
-    // Fallback ke teks jika logo tidak ditemukan
     $logoHtml = '<div class="logo-text">PT GANDA ELANG TANGGUH</div>';
 } else {
-    // Gunakan base64 encoding agar logo bisa tampil di Dompdf
     $logoData = base64_encode(file_get_contents($logoPath));
     $logoHtml = '<img src="data:image/png;base64,' . $logoData . '" class="logo-img" alt="Logo">';
 }
@@ -288,7 +285,6 @@ $html = '
             line-height: 1.4;
         }
         
-        /* ===== KOP SURAT ===== */
         .kop-surat {
             border-bottom: 3px double #1a1a2e;
             padding-bottom: 10px;
@@ -343,7 +339,6 @@ $html = '
             line-height: 1.5;
         }
         
-        /* ===== JUDUL ===== */
         .judul-laporan {
             text-align: center;
             font-size: 16px;
@@ -371,7 +366,6 @@ $html = '
         .status-badge.approved { background: #ebf5fb; color: #1a5276; }
         .status-badge.rejected { background: #fdedec; color: #922b21; }
         
-        /* ===== SECTION TITLE ===== */
         .section-title {
             font-size: 11px;
             font-weight: 700;
@@ -384,7 +378,6 @@ $html = '
             letter-spacing: 0.5px;
         }
         
-        /* ===== TABEL ===== */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -411,7 +404,6 @@ $html = '
             background: #fafafa;
         }
         
-        /* ===== TABLE INFO (tanpa border) ===== */
         .table-info td {
             padding: 2px 4px;
             border: none !important;
@@ -427,7 +419,6 @@ $html = '
             width: 78%;
         }
         
-        /* ===== TWO COLUMN ===== */
         .two-col {
             display: table;
             width: 100%;
@@ -443,7 +434,6 @@ $html = '
             padding-left: 12px;
         }
         
-        /* ===== TOTAL BOX ===== */
         .total-box {
             background: #1a1a2e;
             color: #fff;
@@ -466,7 +456,6 @@ $html = '
             color: #ffd700;
         }
         
-        /* ===== GRAND TOTAL ===== */
         .grand-total-row {
             border-top: 2px solid #1a1a2e !important;
         }
@@ -476,12 +465,10 @@ $html = '
             color: #c9a84c !important;
         }
         
-        /* ===== APPROVAL STATUS ===== */
         .approval-status-approved { color: #27ae60; font-weight: 700; }
         .approval-status-rejected { color: #e74c3c; font-weight: 700; }
         .approval-status-pending { color: #f39c12; font-weight: 700; }
         
-        /* ===== FOOTER ===== */
         .footer {
             margin-top: 14px;
             padding-top: 10px;
@@ -511,14 +498,11 @@ $html = '
             line-height: 1.5;
         }
         
-        /* ===== MISC ===== */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
         .text-muted { color: #999; }
-        .mt-1 { margin-top: 4px; }
-        .mb-1 { margin-bottom: 4px; }
         
         @page {
             margin: 15mm 18mm 15mm 18mm;
@@ -527,9 +511,6 @@ $html = '
 </head>
 <body>
 
-<!-- ============================================================ -->
-<!-- KOP SURAT DENGAN LOGO PNG -->
-<!-- ============================================================ -->
 <div class="kop-surat">
     <div class="logo-row">
         ' . $logoHtml . '
@@ -544,9 +525,6 @@ $html = '
     </div>
 </div>
 
-<!-- ============================================================ -->
-<!-- JUDUL -->
-<!-- ============================================================ -->
 <div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
 <div class="sub-judul">
     Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong> 
@@ -554,9 +532,6 @@ $html = '
     | Tanggal Cetak: ' . date('d/m/Y H:i') . '
 </div>
 
-<!-- ============================================================ -->
-<!-- A. DATA ACCOUNT -->
-<!-- ============================================================ -->
 <div class="section-title">A. DATA ACCOUNT</div>
 <div class="two-col">
     <div class="col">
@@ -595,9 +570,6 @@ $html = '
     </tr>
 </table>
 
-<!-- ============================================================ -->
-<!-- B. DETAIL UNIT -->
-<!-- ============================================================ -->
 <div class="section-title">B. DETAIL UNIT</div>
 ';
 
@@ -666,9 +638,6 @@ if (count($detailUnits) > 0) {
     $html .= '<p class="text-center text-muted" style="padding:8px 0;">Belum ada data Detail Unit</p>';
 }
 
-// ============================================================ -->
-<!-- C. TERM OF PAYMENT & D. ADDITIONAL COST -->
-// ============================================================ -->
 $html .= '
 <div style="display:table; width:100%; margin-top:4px;">
     <div style="display:table-cell; width:55%; vertical-align:top; padding-right:10px;">
@@ -744,9 +713,6 @@ $html .= '
 </div>
 ';
 
-// ============================================================ -->
-<!-- E. DATA MEDIATOR -->
-// ============================================================ -->
 $html .= '
 <div class="section-title" style="margin-top:4px;">E. DATA MEDIATOR</div>
 ';
@@ -776,9 +742,6 @@ if ($mediator) {
     $html .= '<p class="text-center text-muted" style="padding:8px 0;">Belum ada data Mediator</p>';
 }
 
-// ============================================================ -->
-<!-- F. REKAPITULASI TOTAL -->
-// ============================================================ -->
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
 <table class="table-info" style="width:65%; margin:0 auto;">
@@ -797,9 +760,6 @@ $html .= '
 </table>
 ';
 
-// ============================================================ -->
-// G. APPROVAL HISTORY
-// ============================================================ -->
 if (count($approvalHistory) > 0) {
     $html .= '
     <div class="section-title">G. APPROVAL HISTORY</div>
@@ -838,9 +798,6 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// ============================================================ -->
-<!-- FOOTER -->
-// ============================================================ -->
 $html .= '
 <div class="footer">
     <div class="footer-left">
