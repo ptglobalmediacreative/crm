@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Sabberworm\CSS\Value;
 
 use Sabberworm\CSS\OutputFormat;
@@ -9,25 +7,18 @@ use Sabberworm\CSS\OutputFormat;
 class CalcRuleValueList extends RuleValueList
 {
     /**
-     * @param int<1, max>|null $lineNumber
+     * @param int $iLineNo
      */
-    public function __construct(?int $lineNumber = null)
+    public function __construct($iLineNo = 0)
     {
-        parent::__construct(',', $lineNumber);
-    }
-
-    public function render(OutputFormat $outputFormat): string
-    {
-        return $outputFormat->getFormatter()->implode(' ', $this->components);
+        parent::__construct(',', $iLineNo);
     }
 
     /**
-     * @return array<string, bool|int|float|string|array<mixed>|null>
-     *
-     * @internal
+     * @return string
      */
-    public function getArrayRepresentation(): array
+    public function render(OutputFormat $oOutputFormat)
     {
-        throw new \BadMethodCallException('`getArrayRepresentation` is not yet implemented for `' . self::class . '`');
+        return $oOutputFormat->implode(' ', $this->aComponents);
     }
 }

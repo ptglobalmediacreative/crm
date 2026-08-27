@@ -1,102 +1,137 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Sabberworm\CSS\Property;
 
-use Sabberworm\CSS\Comment\CommentContainer;
+use Sabberworm\CSS\Comment\Comment;
 use Sabberworm\CSS\OutputFormat;
-use Sabberworm\CSS\Position\Position;
-use Sabberworm\CSS\Position\Positionable;
-use Sabberworm\CSS\ShortClassNameProvider;
 use Sabberworm\CSS\Value\URL;
 
 /**
  * Class representing an `@import` rule.
  */
-class Import implements AtRule, Positionable
+class Import implements AtRule
 {
-    use CommentContainer;
-    use Position;
-    use ShortClassNameProvider;
-
     /**
      * @var URL
      */
-    private $location;
+    private $oLocation;
 
     /**
-     * @var string|null
+     * @var string
      */
-    private $mediaQuery;
+    private $sMediaQuery;
 
     /**
-     * @param int<1, max>|null $lineNumber
+     * @var int
      */
-    public function __construct(URL $location, ?string $mediaQuery, ?int $lineNumber = null)
-    {
-        $this->location = $location;
-        $this->mediaQuery = $mediaQuery;
-        $this->setPosition($lineNumber);
-    }
-
-    public function setLocation(URL $location): void
-    {
-        $this->location = $location;
-    }
-
-    public function getLocation(): URL
-    {
-        return $this->location;
-    }
+    protected $iLineNo;
 
     /**
-     * @return non-empty-string
+     * @var array<array-key, Comment>
      */
-    public function render(OutputFormat $outputFormat): string
+    protected $aComments;
+
+    /**
+     * @param URL $oLocation
+     * @param string $sMediaQuery
+     * @param int $iLineNo
+     */
+    public function __construct(URL $oLocation, $sMediaQuery, $iLineNo = 0)
     {
-        return $outputFormat->getFormatter()->comments($this) . '@import ' . $this->location->render($outputFormat)
-            . ($this->mediaQuery === null ? '' : ' ' . $this->mediaQuery) . ';';
+        $this->oLocation = $oLocation;
+        $this->sMediaQuery = $sMediaQuery;
+        $this->iLineNo = $iLineNo;
+        $this->aComments = [];
     }
 
     /**
-     * @return non-empty-string
+     * @return int
      */
-    public function atRuleName(): string
+    public function getLineNo()
+    {
+        return $this->iLineNo;
+    }
+
+    /**
+     * @param URL $oLocation
+     *
+     * @return void
+     */
+    public function setLocation($oLocation)
+    {
+        $this->oLocation = $oLocation;
+    }
+
+    /**
+     * @return URL
+     */
+    public function getLocation()
+    {
+        return $this->oLocation;
+    }
+
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->render(new OutputFormat());
+    }
+
+    /**
+     * @return string
+     */
+    public function render(OutputFormat $oOutputFormat)
+    {
+        return "@import " . $this->oLocation->render($oOutputFormat)
+            . ($this->sMediaQuery === null ? '' : ' ' . $this->sMediaQuery) . ';';
+    }
+
+    /**
+     * @return string
+     */
+    public function atRuleName()
     {
         return 'import';
     }
 
     /**
-     * @return array{0: URL, 1?: non-empty-string}
+     * @return array<int, URL|string>
      */
-    public function atRuleArgs(): array
+    public function atRuleArgs()
     {
-        $result = [$this->location];
-        if (\is_string($this->mediaQuery) && $this->mediaQuery !== '') {
-            $result[] = $this->mediaQuery;
+        $aResult = [$this->oLocation];
+        if ($this->sMediaQuery) {
+            array_push($aResult, $this->sMediaQuery);
         }
-
-        return $result;
-    }
-
-    public function getMediaQuery(): ?string
-    {
-        return $this->mediaQuery;
+        return $aResult;
     }
 
     /**
-     * @return array<string, bool|int|float|string|array<mixed>|null>
+     * @param array<array-key, Comment> $aComments
      *
-     * @internal
+     * @return void
      */
-    public function getArrayRepresentation(): array
+    public function addComments(array $aComments)
     {
-        return [
-            'class' => $this->getShortClassName(),
-            // We're using the term "uri" here to match the wording used in the specs:
-            // https://www.w3.org/TR/CSS22/cascade.html#at-import
-            'uri' => $this->location->getArrayRepresentation(),
-        ];
+        $this->aComments = array_merge($this->aComments, $aComments);
+    }
+
+    /**
+     * @return array<array-key, Comment>
+     */
+    public function getComments()
+    {
+        return $this->aComments;
+    }
+
+    /**
+     * @param array<array-key, Comment> $aComments
+     *
+     * @return void
+     */
+    public function setComments(array $aComments)
+    {
+        $this->aComments = $aComments;
     }
 }

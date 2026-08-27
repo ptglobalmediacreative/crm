@@ -1,17 +1,21 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Sabberworm\CSS;
 
 interface Renderable
 {
-    public function render(OutputFormat $outputFormat): string;
+    /**
+     * @return string
+     */
+    public function __toString();
 
     /**
-     * @return array<string, bool|int|float|string|array<mixed>|null>
-     *
-     * @internal
+     * @return string
      */
-    public function getArrayRepresentation(): array;
+    public function render(OutputFormat $oOutputFormat);
+
+    /**
+     * @return int
+     */
+    public function getLineNo();
 }

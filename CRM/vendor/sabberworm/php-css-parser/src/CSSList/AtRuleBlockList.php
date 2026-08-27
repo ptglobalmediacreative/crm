@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Sabberworm\CSS\CSSList;
 
 use Sabberworm\CSS\OutputFormat;
@@ -13,59 +11,72 @@ use Sabberworm\CSS\Property\AtRule;
 class AtRuleBlockList extends CSSBlockList implements AtRule
 {
     /**
-     * @var non-empty-string
+     * @var string
      */
-    private $type;
+    private $sType;
 
     /**
      * @var string
      */
-    private $arguments;
+    private $sArgs;
 
     /**
-     * @param non-empty-string $type
-     * @param int<1, max>|null $lineNumber
+     * @param string $sType
+     * @param string $sArgs
+     * @param int $iLineNo
      */
-    public function __construct(string $type, string $arguments = '', ?int $lineNumber = null)
+    public function __construct($sType, $sArgs = '', $iLineNo = 0)
     {
-        parent::__construct($lineNumber);
-        $this->type = $type;
-        $this->arguments = $arguments;
+        parent::__construct($iLineNo);
+        $this->sType = $sType;
+        $this->sArgs = $sArgs;
     }
 
     /**
-     * @return non-empty-string
+     * @return string
      */
-    public function atRuleName(): string
+    public function atRuleName()
     {
-        return $this->type;
-    }
-
-    public function atRuleArgs(): string
-    {
-        return $this->arguments;
+        return $this->sType;
     }
 
     /**
-     * @return non-empty-string
+     * @return string
      */
-    public function render(OutputFormat $outputFormat): string
+    public function atRuleArgs()
     {
-        $formatter = $outputFormat->getFormatter();
-        $result = $formatter->comments($this);
-        $result .= $outputFormat->getContentBeforeAtRuleBlock();
-        $arguments = $this->arguments;
-        if ($arguments !== '') {
-            $arguments = ' ' . $arguments;
+        return $this->sArgs;
+    }
+
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->render(new OutputFormat());
+    }
+
+    /**
+     * @return string
+     */
+    public function render(OutputFormat $oOutputFormat)
+    {
+        $sArgs = $this->sArgs;
+        if ($sArgs) {
+            $sArgs = ' ' . $sArgs;
         }
-        $result .= "@{$this->type}$arguments{$formatter->spaceBeforeOpeningBrace()}{";
-        $result .= $this->renderListContents($outputFormat);
-        $result .= '}';
-        $result .= $outputFormat->getContentAfterAtRuleBlock();
-        return $result;
+        $sResult = $oOutputFormat->sBeforeAtRuleBlock;
+        $sResult .= "@{$this->sType}$sArgs{$oOutputFormat->spaceBeforeOpeningBrace()}{";
+        $sResult .= parent::render($oOutputFormat);
+        $sResult .= '}';
+        $sResult .= $oOutputFormat->sAfterAtRuleBlock;
+        return $sResult;
     }
 
-    public function isRootList(): bool
+    /**
+     * @return bool
+     */
+    public function isRootList()
     {
         return false;
     }
