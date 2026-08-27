@@ -605,14 +605,14 @@ $html .= '
 
 if ($additionalCost) {
     $html .= '
-        <div style="font-size:8px; line-height:1.8;">
-            <div><strong>Insurance Ops</strong> : ' . formatRp($additionalCost['insurance_ops']) . '</div>
-            <div><strong>Insurance Cargo</strong> : ' . formatRp($additionalCost['insurance_cargo']) . '</div>
-            <div><strong>Delivery Cost</strong> : ' . formatRp($additionalCost['delivery_cost']) . '</div>
-            <div><strong>Mediator Fee</strong> : ' . formatRp($additionalCost['mediator_fee']) . '</div>
-            <div><strong>Free Part</strong> : ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
-            <div><strong>Free Service</strong> : ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
-            <div><strong>Others</strong> : ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
+        <div style="font-size:8px; line-height:1.8; text-align:left;">
+            <div><span style="display:inline-block; width:120px; font-weight:600;">Insurance Ops</span> : ' . formatRp($additionalCost['insurance_ops']) . '</div>
+            <div><span style="display:inline-block; width:120px; font-weight:600;">Insurance Cargo</span> : ' . formatRp($additionalCost['insurance_cargo']) . '</div>
+            <div><span style="display:inline-block; width:120px; font-weight:600;">Delivery Cost</span> : ' . formatRp($additionalCost['delivery_cost']) . '</div>
+            <div><span style="display:inline-block; width:120px; font-weight:600;">Mediator Fee</span> : ' . formatRp($additionalCost['mediator_fee']) . '</div>
+            <div><span style="display:inline-block; width:120px; font-weight:600;">Free Part</span> : ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
+            <div><span style="display:inline-block; width:120px; font-weight:600;">Free Service</span> : ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
+            <div><span style="display:inline-block; width:120px; font-weight:600;">Others</span> : ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
         </div>
         ';
 } else {
@@ -624,27 +624,27 @@ $html .= '
 </div>
 ';
 
-// E. DATA MEDIATOR - DIBUAT SAMA RAPIHNYA DENGAN ADDITIONAL COST
+// E. DATA MEDIATOR
 $html .= '
 <div class="section-title" style="margin-top:5px;">E. DATA MEDIATOR</div>
 ';
 
 if ($mediator) {
     $html .= '
-    <div style="font-size:8px; line-height:1.8;">
-        <div><strong>Name</strong> : ' . htmlspecialchars($mediator['name']) . '</div>
-        <div><strong>ID Card</strong> : ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
-        <div><strong>NPWP</strong> : ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
-        <div><strong>Bank Name</strong> : ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
-        <div><strong>Bank Account</strong> : ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
-        <div><strong>Amount</strong> : <strong>' . formatRp($mediator['amount']) . '</strong></div>
+    <div style="font-size:8px; line-height:1.8; text-align:left;">
+        <div><span style="display:inline-block; width:120px; font-weight:600;">Name</span> : ' . htmlspecialchars($mediator['name']) . '</div>
+        <div><span style="display:inline-block; width:120px; font-weight:600;">ID Card</span> : ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+        <div><span style="display:inline-block; width:120px; font-weight:600;">NPWP</span> : ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+        <div><span style="display:inline-block; width:120px; font-weight:600;">Bank Name</span> : ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
+        <div><span style="display:inline-block; width:120px; font-weight:600;">Bank Account</span> : ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+        <div><span style="display:inline-block; width:120px; font-weight:600;">Amount</span> : <strong>' . formatRp($mediator['amount']) . '</strong></div>
     </div>
     ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
 }
 
-// F. REKAPITULASI TOTAL - DIPERKECIL
+// F. REKAPITULASI TOTAL
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
 <div class="three-col">
@@ -654,7 +654,7 @@ $html .= '
 </div>
 ';
 
-// G. APPROVAL HISTORY - APPROVED AT SESUAI TANGGAL APPROVE
+// G. APPROVAL HISTORY
 if (count($approvalHistory) > 0) {
     $html .= '
     <div class="section-title">G. APPROVAL HISTORY</div>
@@ -676,7 +676,6 @@ if (count($approvalHistory) > 0) {
         $statusLabel = ucfirst($approval['status']);
         $statusClass = $approval['status'] == 'approved' ? 'approval-status-approved' : ($approval['status'] == 'rejected' ? 'approval-status-rejected' : 'approval-status-pending');
         $approverName = !empty($approval['approver_name']) ? $approval['approver_name'] : ($approval['approved_by'] ?? '-');
-        // Format tanggal approve
         $approvedAt = !empty($approval['approved_at']) ? date('d/m/Y H:i', strtotime($approval['approved_at'])) : '-';
         
         $html .= '
