@@ -1,6 +1,12 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// ============================================
+// START OUTPUT BUFFERING - CEK SEBELUM ADA OUTPUT
+// ============================================
+ob_start();
+
+error_reporting(0); // Matikan error display untuk PDF
+ini_set('display_errors', 0);
+
 require_once 'config.php';
 require_once 'vendor/autoload.php'; // Dompdf
 
@@ -14,6 +20,8 @@ date_default_timezone_set('Asia/Jakarta');
 
 // Cek login
 if (!isLoggedIn()) {
+    // Bersihkan buffer dan tampilkan error
+    ob_end_clean();
     die('Silakan login dulu!');
 }
 
@@ -23,6 +31,7 @@ if (!isLoggedIn()) {
 $tr_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
 
 if (empty($tr_number)) {
+    ob_end_clean();
     die('TR Number tidak ditemukan!');
 }
 
@@ -97,6 +106,7 @@ $stmt->execute([$tr_number]);
 $request = $stmt->fetch();
 
 if (!$request) {
+    ob_end_clean();
     die('Data transaction request tidak ditemukan!');
 }
 
@@ -224,6 +234,11 @@ function getNamaProduk($unitId, $produkList) {
 }
 
 // ============================================
+// CLEAN OUTPUT BUFFER SEBELUM PDF
+// ============================================
+ob_end_clean();
+
+// ============================================
 // BUILD HTML PDF
 // ============================================
 $html = '
@@ -231,6 +246,7 @@ $html = '
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Detail TR - ' . htmlspecialchars($tr_number) . '</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -429,6 +445,14 @@ $html = '
         .mt-2 { margin-top: 5px; }
         .mb-2 { margin-bottom: 5px; }
         .text-muted { color: #999; }
+        
+        /* FIX UNTUK DOMpdf - TABLE BORDER */
+        table td, table th {
+            border: 1px solid #ddd;
+        }
+        .table-info td, .table-info th {
+            border: none !important;
+        }
     </style>
 </head>
 <body>
@@ -700,9 +724,12 @@ $html .= '
 // GENERATE PDF
 // ============================================
 $options = new Options();
-$options->set('defaultFont', 'times');
+$options->set('defaultFont', 'helvetica');
 $options->set('isHtml5ParserEnabled', true);
-$options->set('isRemoteEnabled', true);
+$options->set('isRemoteEnabled', false);
+$options->set('debugPng', false);
+$options->set('debugKeepTemp', false);
+$options->set('tempDir', sys_get_temp_dir());
 
 $dompdf = new Dompdf($options);
 $dompdf->loadHtml($html);
@@ -711,5 +738,12 @@ $dompdf->render();
 
 // Output PDF
 $filename = 'TR_' . $tr_number . '_' . date('Ymd_His') . '.pdf';
-$dompdf->stream($filename, array('Attachment' => true));
+
+// Hapus semua output yang mungkin masih ada
+header('Content-Type: application/pdf');
+header('Content-Disposition: attachment; filename="' . $filename . '"');
+header('Cache-Control: private, max-age=0, must-revalidate');
+header('Pragma: public');
+
+echo $dompdf->output();
 exit;
