@@ -274,7 +274,7 @@ if (!empty($badanUsaha) && $namaPT != '-') {
 ob_end_clean();
 
 // ============================================
-// BUILD HTML PDF - VERSI RAPIH
+// BUILD HTML PDF
 // ============================================
 $html = '
 <!DOCTYPE html>
@@ -403,7 +403,7 @@ $html = '
         .three-col .col .box {
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 5px 8px;
+            padding: 4px 6px;
             background: #f9f9f9;
         }
         .three-col .col .box.gold {
@@ -411,17 +411,17 @@ $html = '
             background: #faf8f0;
         }
         .three-col .col .box .label {
-            font-size: 8px;
+            font-size: 7px;
             font-weight: 600;
             color: #555;
         }
         .three-col .col .box .value {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 700;
             color: #c9a84c;
         }
         .three-col .col .box.gold .value {
-            font-size: 14px;
+            font-size: 11px;
         }
         .three-col .col .box.gold .label {
             color: #222;
@@ -466,10 +466,6 @@ $html = '
             font-weight: 600;
             color: #555;
             width: 100px;
-        }
-        .mediator-container {
-            max-width: 80%;
-            margin: 0 auto;
         }
         
         @page {
@@ -628,27 +624,27 @@ $html .= '
 </div>
 ';
 
-// E. DATA MEDIATOR
+// E. DATA MEDIATOR - DIBUAT SAMA RAPIHNYA DENGAN ADDITIONAL COST
 $html .= '
 <div class="section-title" style="margin-top:5px;">E. DATA MEDIATOR</div>
 ';
 
 if ($mediator) {
     $html .= '
-    <div class="mediator-container">
-        <div class="mediator-row"><span class="label">Name</span>: ' . htmlspecialchars($mediator['name']) . '</div>
-        <div class="mediator-row"><span class="label">ID Card</span>: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
-        <div class="mediator-row"><span class="label">NPWP</span>: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
-        <div class="mediator-row"><span class="label">Bank Name</span>: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
-        <div class="mediator-row"><span class="label">Bank Account</span>: ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
-        <div class="mediator-row"><span class="label">Amount</span>: <strong>' . formatRp($mediator['amount']) . '</strong></div>
+    <div style="font-size:8px; line-height:1.8;">
+        <div><strong>Name</strong> : ' . htmlspecialchars($mediator['name']) . '</div>
+        <div><strong>ID Card</strong> : ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+        <div><strong>NPWP</strong> : ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+        <div><strong>Bank Name</strong> : ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
+        <div><strong>Bank Account</strong> : ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+        <div><strong>Amount</strong> : <strong>' . formatRp($mediator['amount']) . '</strong></div>
     </div>
     ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
 }
 
-// F. REKAPITULASI TOTAL
+// F. REKAPITULASI TOTAL - DIPERKECIL
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
 <div class="three-col">
@@ -658,7 +654,7 @@ $html .= '
 </div>
 ';
 
-// G. APPROVAL HISTORY
+// G. APPROVAL HISTORY - APPROVED AT SESUAI TANGGAL APPROVE
 if (count($approvalHistory) > 0) {
     $html .= '
     <div class="section-title">G. APPROVAL HISTORY</div>
@@ -680,6 +676,8 @@ if (count($approvalHistory) > 0) {
         $statusLabel = ucfirst($approval['status']);
         $statusClass = $approval['status'] == 'approved' ? 'approval-status-approved' : ($approval['status'] == 'rejected' ? 'approval-status-rejected' : 'approval-status-pending');
         $approverName = !empty($approval['approver_name']) ? $approval['approver_name'] : ($approval['approved_by'] ?? '-');
+        // Format tanggal approve
+        $approvedAt = !empty($approval['approved_at']) ? date('d/m/Y H:i', strtotime($approval['approved_at'])) : '-';
         
         $html .= '
             <tr>
@@ -687,7 +685,7 @@ if (count($approvalHistory) > 0) {
                 <td>' . htmlspecialchars($levelLabel) . '</td>
                 <td class="text-center"><span class="' . $statusClass . '">' . $statusLabel . '</span></td>
                 <td>' . htmlspecialchars($approverName) . '</td>
-                <td class="text-center">' . ($approval['approved_at'] ? date('d/m/Y H:i', strtotime($approval['approved_at'])) : '-') . '</td>
+                <td class="text-center">' . $approvedAt . '</td>
             </tr>';
     }
     
