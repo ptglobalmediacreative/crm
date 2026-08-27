@@ -248,6 +248,20 @@ $approvalLevels = [
 ];
 
 // ============================================
+// PATH LOGO
+// ============================================
+$logoPath = 'images/logo.webp';
+// Cek apakah file logo ada
+if (!file_exists($logoPath)) {
+    // Fallback ke teks jika logo tidak ditemukan
+    $logoHtml = '<div class="logo-text">G E T</div>';
+} else {
+    // Gunakan base64 encoding agar logo bisa tampil di Dompdf
+    $logoData = base64_encode(file_get_contents($logoPath));
+    $logoHtml = '<img src="data:image/webp;base64,' . $logoData . '" class="logo-img" alt="Logo">';
+}
+
+// ============================================
 // CLEAN OUTPUT BUFFER SEBELUM PDF
 // ============================================
 ob_end_clean();
@@ -267,89 +281,95 @@ $html = '
         body { 
             font-family: "Times New Roman", Times, serif; 
             font-size: 10px;
-            padding: 15px 25px;
+            padding: 20px 30px;
             background: #fff;
             color: #1a1a1a;
-            line-height: 1.3;
+            line-height: 1.4;
         }
         
+        /* ===== KOP SURAT ===== */
         .kop-surat {
-            text-align: center;
-            border-bottom: 3px double #0e1a2b;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
-            position: relative;
+            border-bottom: 3px double #1a1a2e;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
         }
-        .kop-surat .logo-container {
+        .kop-surat .logo-row {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 15px;
+            gap: 20px;
         }
-        .kop-surat .logo-placeholder {
-            width: 70px;
-            height: 70px;
-            border: 2px solid #0e1a2b;
+        .kop-surat .logo-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .kop-surat .logo-text {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #1a1a2e;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 35px;
-            font-weight: 900;
-            color: #0e1a2b;
-            flex-shrink: 0;
-            background: #f8f8f8;
-        }
-        .kop-surat .logo-placeholder span {
-            color: #c9a84c;
-        }
-        .kop-surat .title-section {
-            text-align: left;
-        }
-        .kop-surat .title-section .nama-pt {
             font-size: 20px;
             font-weight: 900;
-            letter-spacing: 1px;
-            color: #0e1a2b;
+            color: #1a1a2e;
+            flex-shrink: 0;
+            background: #f8f8f8;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            line-height: 1.2;
         }
-        .kop-surat .title-section .nama-pt span {
+        .kop-surat .logo-text .gold {
             color: #c9a84c;
         }
-        .kop-surat .title-section .sub-title {
-            font-size: 11px;
+        .kop-surat .kop-text {
+            flex: 1;
+        }
+        .kop-surat .kop-text .nama-pt {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            color: #1a1a2e;
+        }
+        .kop-surat .kop-text .nama-pt .gold {
+            color: #c9a84c;
+        }
+        .kop-surat .kop-text .sub-title {
+            font-size: 12px;
             font-weight: 600;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             color: #555;
+            margin-top: 1px;
         }
-        .kop-surat .title-section .alamat {
+        .kop-surat .kop-text .alamat {
             font-size: 9px;
-            color: #666;
-            margin-top: 2px;
-        }
-        .kop-surat .garis-bawah {
-            border-bottom: 2px solid #0e1a2b;
+            color: #777;
             margin-top: 3px;
+            line-height: 1.5;
         }
         
+        /* ===== JUDUL ===== */
         .judul-laporan {
             text-align: center;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 6px 0 4px 0;
-            color: #0e1a2b;
+            letter-spacing: 2px;
+            color: #1a1a2e;
+            margin: 8px 0 4px 0;
         }
         .sub-judul {
             text-align: center;
             font-size: 10px;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
         .status-badge {
             display: inline-block;
-            padding: 1px 10px;
-            border-radius: 10px;
+            padding: 2px 14px;
+            border-radius: 12px;
             font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
@@ -358,24 +378,38 @@ $html = '
         .status-badge.approved { background: #ebf5fb; color: #1a5276; }
         .status-badge.rejected { background: #fdedec; color: #922b21; }
         
+        /* ===== SECTION TITLE ===== */
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            background: #f0f2f5;
+            padding: 4px 12px;
+            margin: 8px 0 5px 0;
+            border-left: 4px solid #c9a84c;
+            color: #1a1a2e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* ===== TABEL ===== */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
             font-size: 9px;
         }
         table th {
-            background: #0e1a2b;
+            background: #1a1a2e;
             color: #fff;
             font-weight: 600;
             font-size: 8px;
             text-transform: uppercase;
-            padding: 3px 5px;
+            padding: 4px 6px;
             text-align: center;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
         }
         table td {
-            padding: 3px 5px;
+            padding: 4px 6px;
             border-bottom: 1px solid #e8edf2;
             font-size: 9px;
             vertical-align: middle;
@@ -383,74 +417,82 @@ $html = '
         table tr:nth-child(even) td {
             background: #fafafa;
         }
-        .label-cell {
-            font-weight: 600;
-            color: #555;
-            width: 25%;
-        }
-        .value-cell {
-            width: 75%;
-        }
+        
+        /* ===== TABLE INFO (tanpa border) ===== */
         .table-info td {
             padding: 2px 4px;
-            border: none;
+            border: none !important;
             background: transparent !important;
             font-size: 9px;
         }
         .table-info .label-cell {
-            width: 20%;
+            font-weight: 600;
+            color: #555;
+            width: 22%;
         }
         .table-info .value-cell {
-            width: 80%;
+            width: 78%;
         }
         
-        .section-title {
-            font-size: 10px;
-            font-weight: 700;
-            background: #f0f2f5;
-            padding: 3px 8px;
-            margin: 6px 0 4px 0;
-            border-left: 3px solid #c9a84c;
-            color: #0e1a2b;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+        /* ===== TWO COLUMN ===== */
+        .two-col {
+            display: table;
+            width: 100%;
+        }
+        .two-col .col {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding-right: 12px;
+        }
+        .two-col .col:last-child {
+            padding-right: 0;
+            padding-left: 12px;
         }
         
+        /* ===== TOTAL BOX ===== */
         .total-box {
-            background: #0e1a2b;
+            background: #1a1a2e;
             color: #fff;
-            padding: 4px 10px;
-            border-radius: 3px;
+            padding: 5px 14px;
+            border-radius: 4px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 3px 0 2px 0;
+            margin: 4px 0 3px 0;
         }
         .total-box .total-label {
             font-size: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
             color: rgba(255,255,255,0.7);
         }
         .total-box .total-value {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             color: #ffd700;
         }
         
+        /* ===== GRAND TOTAL ===== */
         .grand-total-row {
-            border-top: 2px solid #0e1a2b !important;
+            border-top: 2px solid #1a1a2e !important;
         }
         .grand-total-row td {
-            font-size: 12px !important;
+            font-size: 13px !important;
             font-weight: 800 !important;
             color: #c9a84c !important;
         }
         
+        /* ===== APPROVAL STATUS ===== */
+        .approval-status-approved { color: #27ae60; font-weight: 700; }
+        .approval-status-rejected { color: #e74c3c; font-weight: 700; }
+        .approval-status-pending { color: #f39c12; font-weight: 700; }
+        
+        /* ===== FOOTER ===== */
         .footer {
-            margin-top: 10px;
-            padding-top: 6px;
-            border-top: 2px solid #0e1a2b;
+            margin-top: 14px;
+            padding-top: 8px;
+            border-top: 2px solid #1a1a2e;
             font-size: 8px;
             color: #888;
             text-align: center;
@@ -464,46 +506,36 @@ $html = '
         .footer .clearfix {
             clear: both;
         }
-        
-        @page {
-            margin: 12mm 15mm 12mm 15mm;
+        .footer .footer-note {
+            margin-top: 3px;
+            font-size: 7px;
+            color: #aaa;
         }
         
+        /* ===== MISC ===== */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
+        .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
         .text-muted { color: #999; }
+        .mt-1 { margin-top: 4px; }
+        .mb-1 { margin-bottom: 4px; }
         
-        .approval-status-approved { color: #27ae60; font-weight: 700; }
-        .approval-status-rejected { color: #e74c3c; font-weight: 700; }
-        .approval-status-pending { color: #f39c12; font-weight: 700; }
-        
-        .two-col {
-            display: table;
-            width: 100%;
-        }
-        .two-col .col {
-            display: table-cell;
-            width: 50%;
-            vertical-align: top;
-            padding-right: 10px;
-        }
-        .two-col .col:last-child {
-            padding-right: 0;
-            padding-left: 10px;
+        @page {
+            margin: 15mm 18mm 15mm 18mm;
         }
     </style>
 </head>
 <body>
 
+<!-- ============================================================ -->
 <!-- KOP SURAT DENGAN LOGO -->
+<!-- ============================================================ -->
 <div class="kop-surat">
-    <div class="logo-container">
-        <div class="logo-placeholder">
-            <span>G</span>E<span>T</span>
-        </div>
-        <div class="title-section">
-            <div class="nama-pt">PT GANDA ELANG <span>TANGGUH</span></div>
+    <div class="logo-row">
+        ' . $logoHtml . '
+        <div class="kop-text">
+            <div class="nama-pt">PT GANDA ELANG <span class="gold">TANGGUH</span></div>
             <div class="sub-title">CUSTOMER RELATIONSHIP MANAGEMENT</div>
             <div class="alamat">
                 Jl. Raya Industrial Estate, Blok A No. 12, Jakarta 12345<br>
@@ -511,10 +543,11 @@ $html = '
             </div>
         </div>
     </div>
-    <div class="garis-bawah"></div>
 </div>
 
+<!-- ============================================================ -->
 <!-- JUDUL -->
+<!-- ============================================================ -->
 <div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
 <div class="sub-judul">
     Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong> 
@@ -522,7 +555,9 @@ $html = '
     | Tanggal Cetak: ' . date('d/m/Y H:i') . '
 </div>
 
-<!-- SECTION A: DATA ACCOUNT (2 KOLOM) -->
+<!-- ============================================================ -->
+<!-- A. DATA ACCOUNT -->
+<!-- ============================================================ -->
 <div class="section-title">A. DATA ACCOUNT</div>
 <div class="two-col">
     <div class="col">
@@ -542,12 +577,22 @@ $html = '
         </table>
     </div>
 </div>
-<table class="table-info" style="margin-top:2px;">
-    <tr><td class="label-cell" style="width:15%;">Salesman</td><td class="value-cell">: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</td></tr>
-    <tr><td class="label-cell" style="width:15%;">Deskripsi</td><td class="value-cell">: ' . nl2br(htmlspecialchars(substr($detailTR['deskripsi'] ?? '-', 0, 150))) . '</td></tr>
+<table class="table-info" style="margin-top:2px; width:100%;">
+    <tr>
+        <td class="label-cell" style="width:12%;">Salesman</td>
+        <td class="value-cell" style="width:38%;">: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</td>
+        <td class="label-cell" style="width:12%;">Request Date</td>
+        <td class="value-cell" style="width:38%;">: ' . date('d/m/Y', strtotime($request['request_date'])) . '</td>
+    </tr>
+    <tr>
+        <td class="label-cell">Deskripsi</td>
+        <td class="value-cell" colspan="3">: ' . nl2br(htmlspecialchars(substr($detailTR['deskripsi'] ?? '-', 0, 200))) . '</td>
+    </tr>
 </table>
 
-<!-- SECTION B: DETAIL UNIT -->
+<!-- ============================================================ -->
+<!-- B. DETAIL UNIT -->
+<!-- ============================================================ -->
 <div class="section-title">B. DETAIL UNIT</div>
 ';
 
@@ -557,12 +602,12 @@ if (count($detailUnits) > 0) {
         <thead>
             <tr>
                 <th style="width:4%;">No</th>
-                <th style="width:18%;">Unit</th>
+                <th style="width:20%;">Unit</th>
                 <th style="width:6%;">QTY</th>
-                <th style="width:14%;">Price (Non PPN)</th>
+                <th style="width:16%;">Price (Non PPN)</th>
                 <th style="width:12%;">PPN 11%</th>
-                <th style="width:16%;">Grand Total</th>
-                <th style="width:30%;">Specification</th>
+                <th style="width:18%;">Grand Total</th>
+                <th style="width:24%;">Specification</th>
             </tr>
         </thead>
         <tbody>';
@@ -572,13 +617,13 @@ if (count($detailUnits) > 0) {
         $namaUnit = getNamaProduk($unit['unit_id'], $produkList);
         $html .= '
             <tr>
-                <td style="text-align:center;">' . $no++ . '</td>
+                <td class="text-center">' . $no++ . '</td>
                 <td>' . htmlspecialchars($namaUnit) . '</td>
-                <td style="text-align:center;">' . $unit['qty'] . '</td>
-                <td style="text-align:right;">' . formatRp($unit['price']) . '</td>
-                <td style="text-align:right;">' . formatRp($unit['ppn']) . '</td>
-                <td style="text-align:right; font-weight:700;">' . formatRp($unit['grand_total']) . '</td>
-                <td style="font-size:8px;">' . htmlspecialchars(substr($unit['specification'], 0, 50)) . '</td>
+                <td class="text-center">' . $unit['qty'] . '</td>
+                <td class="text-right">' . formatRp($unit['price']) . '</td>
+                <td class="text-right">' . formatRp($unit['ppn']) . '</td>
+                <td class="text-right fw-bold">' . formatRp($unit['grand_total']) . '</td>
+                <td style="font-size:8px;">' . htmlspecialchars(substr($unit['specification'], 0, 60)) . '</td>
             </tr>';
     }
     
@@ -592,13 +637,15 @@ if (count($detailUnits) > 0) {
     </div>
     ';
 } else {
-    $html .= '<p style="text-align:center; color:#999; font-style:italic; padding:5px 0;">Belum ada data Detail Unit</p>';
+    $html .= '<p class="text-center text-muted" style="padding:8px 0;">Belum ada data Detail Unit</p>';
 }
 
-// SECTION C: TERM OF PAYMENT & SECTION D: ADDITIONAL COST (2 KOLOM)
+// ============================================================ -->
+<!-- C. TERM OF PAYMENT & D. ADDITIONAL COST -->
+<!-- ============================================================ -->
 $html .= '
 <div style="display:table; width:100%; margin-top:4px;">
-    <div style="display:table-cell; width:55%; vertical-align:top; padding-right:8px;">
+    <div style="display:table-cell; width:55%; vertical-align:top; padding-right:10px;">
         <div class="section-title" style="margin-top:0;">C. TERM OF PAYMENT</div>
         ';
 
@@ -607,9 +654,9 @@ if (count($termPayments) > 0) {
         <table>
             <thead>
                 <tr>
-                    <th style="width:5%;">No</th>
-                    <th style="width:35%;">Payment</th>
-                    <th style="text-align:right; width:30%;">Amount</th>
+                    <th style="width:6%;">No</th>
+                    <th style="width:34%;">Payment</th>
+                    <th style="width:30%;" class="text-right">Amount</th>
                     <th style="width:30%;">Keterangan</th>
                 </tr>
             </thead>
@@ -617,12 +664,11 @@ if (count($termPayments) > 0) {
     
     $no = 1;
     foreach ($termPayments as $top) {
-        $paymentType = str_replace('_', ' ', ucfirst($top['payment_type']));
         $html .= '
             <tr>
-                <td style="text-align:center;">' . $no++ . '</td>
+                <td class="text-center">' . $no++ . '</td>
                 <td>' . htmlspecialchars($top['payment_label']) . '</td>
-                <td style="text-align:right; font-weight:600;">' . formatRp($top['amount']) . '</td>
+                <td class="text-right fw-bold">' . formatRp($top['amount']) . '</td>
                 <td style="font-size:8px;">' . htmlspecialchars($top['keterangan'] ?? '-') . '</td>
             </tr>';
     }
@@ -637,19 +683,19 @@ if (count($termPayments) > 0) {
         </div>
         ';
 } else {
-    $html .= '<p style="text-align:center; color:#999; font-style:italic; padding:5px 0;">Belum ada data TOP</p>';
+    $html .= '<p class="text-center text-muted" style="padding:8px 0;">Belum ada data TOP</p>';
 }
 
 $html .= '
     </div>
-    <div style="display:table-cell; width:45%; vertical-align:top; padding-left:8px;">
+    <div style="display:table-cell; width:45%; vertical-align:top; padding-left:10px;">
         <div class="section-title" style="margin-top:0;">D. ADDITIONAL COST</div>
         ';
 
 if ($additionalCost) {
     $html .= '
-        <table class="table-info">
-            <tr><td class="label-cell" style="width:40%;">Insurance Ops</td><td class="value-cell">: ' . formatRp($additionalCost['insurance_ops']) . '</td></tr>
+        <table class="table-info" style="width:100%;">
+            <tr><td class="label-cell" style="width:38%;">Insurance Ops</td><td class="value-cell">: ' . formatRp($additionalCost['insurance_ops']) . '</td></tr>
             <tr><td class="label-cell">Insurance Cargo</td><td class="value-cell">: ' . formatRp($additionalCost['insurance_cargo']) . '</td></tr>
             <tr><td class="label-cell">Delivery Cost</td><td class="value-cell">: ' . formatRp($additionalCost['delivery_cost']) . '</td></tr>
             <tr><td class="label-cell">Mediator Fee</td><td class="value-cell">: ' . formatRp($additionalCost['mediator_fee']) . '</td></tr>
@@ -663,7 +709,7 @@ if ($additionalCost) {
         </div>
         ';
 } else {
-    $html .= '<p style="text-align:center; color:#999; font-style:italic; padding:5px 0;">Belum ada data</p>';
+    $html .= '<p class="text-center text-muted" style="padding:8px 0;">Belum ada data</p>';
 }
 
 $html .= '
@@ -671,48 +717,67 @@ $html .= '
 </div>
 ';
 
-// SECTION E: DATA MEDIATOR
+// ============================================================ -->
+<!-- E. DATA MEDIATOR -->
+// ============================================================ -->
 $html .= '
 <div class="section-title" style="margin-top:4px;">E. DATA MEDIATOR</div>
 ';
 
 if ($mediator) {
     $html .= '
-    <table class="table-info">
-        <tr><td class="label-cell" style="width:15%;">Name</td><td class="value-cell">: ' . htmlspecialchars($mediator['name']) . '</td></tr>
-        <tr><td class="label-cell">Bank Name / Account</td><td class="value-cell">: ' . htmlspecialchars($mediator['bank_name']) . ' - ' . htmlspecialchars($mediator['bank_account']) . '</td></tr>
-        <tr><td class="label-cell">Amount</td><td class="value-cell">: <strong>' . formatRp($mediator['amount']) . '</strong></td></tr>
+    <table class="table-info" style="width:70%; margin:0 auto;">
+        <tr>
+            <td class="label-cell" style="width:18%;">Name</td>
+            <td class="value-cell" style="width:32%;">: ' . htmlspecialchars($mediator['name']) . '</td>
+            <td class="label-cell" style="width:18%;">Amount</td>
+            <td class="value-cell" style="width:32%;">: <strong>' . formatRp($mediator['amount']) . '</strong></td>
+        </tr>
+        <tr>
+            <td class="label-cell">Bank</td>
+            <td class="value-cell" colspan="3">: ' . htmlspecialchars($mediator['bank_name']) . ' - ' . htmlspecialchars($mediator['bank_account']) . '</td>
+        </tr>
     </table>
     ';
 } else {
-    $html .= '<p style="text-align:center; color:#999; font-style:italic; padding:5px 0;">Belum ada data Mediator</p>';
+    $html .= '<p class="text-center text-muted" style="padding:8px 0;">Belum ada data Mediator</p>';
 }
 
-// SECTION F: REKAPITULASI TOTAL
+// ============================================================ -->
+// F. REKAPITULASI TOTAL
+// ============================================================ -->
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
-<table class="table-info" style="width:60%; margin:0 auto;">
-    <tr><td class="label-cell" style="width:50%;">Total Grand Total Unit</td><td class="value-cell" style="text-align:right; font-weight:700;">' . formatRp($totalUnitGrandTotal) . '</td></tr>
-    <tr><td class="label-cell">Total Additional Cost</td><td class="value-cell" style="text-align:right; font-weight:700;">' . formatRp($totalAdditionalCost) . '</td></tr>
+<table class="table-info" style="width:65%; margin:0 auto;">
+    <tr>
+        <td class="label-cell" style="width:50%;">Total Grand Total Unit</td>
+        <td class="value-cell" style="text-align:right; font-weight:700;">' . formatRp($totalUnitGrandTotal) . '</td>
+    </tr>
+    <tr>
+        <td class="label-cell">Total Additional Cost</td>
+        <td class="value-cell" style="text-align:right; font-weight:700;">' . formatRp($totalAdditionalCost) . '</td>
+    </tr>
     <tr class="grand-total-row">
-        <td class="label-cell" style="font-size:12px; font-weight:800; color:#0e1a2b;">TOTAL MASUKAN</td>
-        <td class="value-cell" style="text-align:right; font-size:14px; font-weight:800; color:#c9a84c;">' . formatRp($totalMasukan) . '</td>
+        <td class="label-cell" style="font-size:13px; font-weight:800; color:#1a1a2e;">TOTAL MASUKAN</td>
+        <td class="value-cell" style="text-align:right; font-size:16px; font-weight:800; color:#c9a84c;">' . formatRp($totalMasukan) . '</td>
     </tr>
 </table>
 ';
 
-// SECTION G: APPROVAL HISTORY
+// ============================================================ -->
+// G. APPROVAL HISTORY
+// ============================================================ -->
 if (count($approvalHistory) > 0) {
     $html .= '
     <div class="section-title">G. APPROVAL HISTORY</div>
     <table>
         <thead>
             <tr>
-                <th style="width:12%;">Level</th>
-                <th style="width:20%;">Role</th>
-                <th style="width:20%;">Status</th>
-                <th style="width:25%;">Approved By</th>
-                <th style="width:23%;">Approved At</th>
+                <th style="width:10%;">Level</th>
+                <th style="width:22%;">Role</th>
+                <th style="width:18%;">Status</th>
+                <th style="width:28%;">Approved By</th>
+                <th style="width:22%;">Approved At</th>
             </tr>
         </thead>
         <tbody>';
@@ -726,11 +791,11 @@ if (count($approvalHistory) > 0) {
         
         $html .= '
             <tr>
-                <td style="text-align:center;">Level ' . $levelNum . '</td>
+                <td class="text-center">Level ' . $levelNum . '</td>
                 <td>' . htmlspecialchars($levelLabel) . '</td>
-                <td><span class="' . $statusClass . '">' . $statusLabel . '</span></td>
+                <td class="text-center"><span class="' . $statusClass . '">' . $statusLabel . '</span></td>
                 <td>' . htmlspecialchars($approverName) . '</td>
-                <td>' . ($approval['approved_at'] ? date('d/m/Y H:i', strtotime($approval['approved_at'])) : '-') . '</td>
+                <td class="text-center">' . ($approval['approved_at'] ? date('d/m/Y H:i', strtotime($approval['approved_at'])) : '-') . '</td>
             </tr>';
     }
     
@@ -740,7 +805,9 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
+// ============================================================ -->
 // FOOTER
+// ============================================================ -->
 $html .= '
 <div class="footer">
     <div class="footer-left">
@@ -750,7 +817,7 @@ $html .= '
         Dicetak: ' . date('d/m/Y H:i') . ' | Halaman {PAGE_NUM}
     </div>
     <div class="clearfix"></div>
-    <div style="margin-top:3px; font-size:7px; color:#aaa;">
+    <div class="footer-note">
         Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.
     </div>
 </div>
