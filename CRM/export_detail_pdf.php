@@ -265,7 +265,7 @@ if (!file_exists($logoPath)) {
 ob_end_clean();
 
 // ============================================
-// BUILD HTML PDF - VERSI SEDERHANA DAN RAPIH
+// BUILD HTML PDF - VERSI RAPIH
 // ============================================
 $html = '
 <!DOCTYPE html>
@@ -282,7 +282,7 @@ $html = '
             padding: 15px 25px;
             background: #fff;
             color: #222;
-            line-height: 1.6;
+            line-height: 1.8;
         }
         
         .kop-surat {
@@ -307,23 +307,6 @@ $html = '
             color: #222;
             margin: 5px 0 3px 0;
         }
-        .sub-judul {
-            text-align: center;
-            font-size: 9px;
-            color: #666;
-            margin-bottom: 8px;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 1px 10px;
-            border-radius: 10px;
-            font-size: 8px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .status-badge.pending { background: #fff3cd; color: #856404; }
-        .status-badge.approved { background: #d4edda; color: #155724; }
-        .status-badge.rejected { background: #f8d7da; color: #721c24; }
         
         .section-title {
             font-size: 11px;
@@ -344,9 +327,6 @@ $html = '
             font-weight: 600;
             color: #555;
             width: 120px;
-        }
-        .info-row .value {
-            display: inline-block;
         }
         
         .info-row-2col {
@@ -441,9 +421,6 @@ $html = '
             color: #555;
             text-align: center;
         }
-        .footer .footer-left { float: left; }
-        .footer .footer-right { float: right; }
-        .footer .clearfix { clear: both; }
         .footer .footer-alamat {
             font-size: 7px;
             color: #555;
@@ -473,10 +450,8 @@ $html = '
 
 <!-- JUDUL -->
 <div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
-<div class="sub-judul">
-    Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong> 
-    | Status: <span class="status-badge ' . $request['status'] . '">' . ucfirst($request['status']) . '</span>
-    | Tanggal Cetak: ' . date('d/m/Y H:i') . '
+<div style="text-align:center; font-size:9px; color:#666; margin-bottom:8px;">
+    Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong>
 </div>
 
 <!-- A. DATA ACCOUNT -->
@@ -497,7 +472,9 @@ $html = '
     </div>
 </div>
 
-<div class="info-row"><span class="label" style="width:100px;">Salesman</span>: ' . htmlspecialchars($request['sales_name'] ?? '-') . ' | <span class="label" style="width:100px;">Request Date</span>: ' . date('d/m/Y', strtotime($request['request_date'])) . ' | <span class="label" style="width:100px;">Due Date</span>: ' . date('d/m/Y', strtotime($request['due_date'])) . '</div>
+<div class="info-row"><span class="label" style="width:100px;">Salesman</span>: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</div>
+<div class="info-row"><span class="label" style="width:100px;">Request Date</span>: ' . date('d/m/Y', strtotime($request['request_date'])) . '</div>
+<div class="info-row"><span class="label" style="width:100px;">Due Date</span>: ' . date('d/m/Y', strtotime($request['due_date'])) . '</div>
 <div class="info-row"><span class="label" style="width:100px;">Deskripsi</span>: ' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</div>
 
 <!-- B. DETAIL UNIT -->
@@ -551,7 +528,7 @@ if (count($detailUnits) > 0) {
     </div>
     ';
 } else {
-    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data Detail Unit</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Detail Unit</p>';
 }
 
 // C. TERM OF PAYMENT & D. ADDITIONAL COST
@@ -590,7 +567,7 @@ if (count($termPayments) > 0) {
         </table>
         ';
 } else {
-    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data TOP</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data TOP</p>';
 }
 
 $html .= '
@@ -612,7 +589,7 @@ if ($additionalCost) {
         </div>
         ';
 } else {
-    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
 }
 
 $html .= '
@@ -636,7 +613,7 @@ if ($mediator) {
     </div>
     ';
 } else {
-    $html .= '<p class="text-center" style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
 }
 
 // F. REKAPITULASI TOTAL
@@ -691,9 +668,7 @@ if (count($approvalHistory) > 0) {
 // FOOTER
 $html .= '
 <div class="footer">
-    <div class="footer-left"><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
-    <div class="footer-right">Dicetak: ' . date('d/m/Y H:i') . ' | Halaman {PAGE_NUM}</div>
-    <div class="clearfix"></div>
+    <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
     <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
     <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
 </div>
