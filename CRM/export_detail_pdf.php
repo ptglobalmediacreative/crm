@@ -457,15 +457,18 @@ $html = '
         .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
         
-        .mediator-row {
+        .detail-row {
             padding: 1px 0;
             font-size: 8px;
         }
-        .mediator-row .label {
+        .detail-row .label {
             display: inline-block;
             font-weight: 600;
             color: #555;
-            width: 100px;
+            width: 120px;
+        }
+        .detail-row .value {
+            display: inline-block;
         }
         
         @page {
@@ -605,14 +608,14 @@ $html .= '
 
 if ($additionalCost) {
     $html .= '
-        <div style="font-size:8px; line-height:1.8; text-align:left;">
-            <div><span style="display:inline-block; width:120px; font-weight:600;">Insurance Ops</span> : ' . formatRp($additionalCost['insurance_ops']) . '</div>
-            <div><span style="display:inline-block; width:120px; font-weight:600;">Insurance Cargo</span> : ' . formatRp($additionalCost['insurance_cargo']) . '</div>
-            <div><span style="display:inline-block; width:120px; font-weight:600;">Delivery Cost</span> : ' . formatRp($additionalCost['delivery_cost']) . '</div>
-            <div><span style="display:inline-block; width:120px; font-weight:600;">Mediator Fee</span> : ' . formatRp($additionalCost['mediator_fee']) . '</div>
-            <div><span style="display:inline-block; width:120px; font-weight:600;">Free Part</span> : ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
-            <div><span style="display:inline-block; width:120px; font-weight:600;">Free Service</span> : ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
-            <div><span style="display:inline-block; width:120px; font-weight:600;">Others</span> : ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
+        <div>
+            <div class="detail-row"><span class="label">Insurance Ops</span>: ' . formatRp($additionalCost['insurance_ops']) . '</div>
+            <div class="detail-row"><span class="label">Insurance Cargo</span>: ' . formatRp($additionalCost['insurance_cargo']) . '</div>
+            <div class="detail-row"><span class="label">Delivery Cost</span>: ' . formatRp($additionalCost['delivery_cost']) . '</div>
+            <div class="detail-row"><span class="label">Mediator Fee</span>: ' . formatRp($additionalCost['mediator_fee']) . '</div>
+            <div class="detail-row"><span class="label">Free Part</span>: ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
+            <div class="detail-row"><span class="label">Free Service</span>: ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
+            <div class="detail-row"><span class="label">Others</span>: ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
         </div>
         ';
 } else {
@@ -631,13 +634,13 @@ $html .= '
 
 if ($mediator) {
     $html .= '
-    <div style="font-size:8px; line-height:1.8; text-align:left;">
-        <div><span style="display:inline-block; width:120px; font-weight:600;">Name</span> : ' . htmlspecialchars($mediator['name']) . '</div>
-        <div><span style="display:inline-block; width:120px; font-weight:600;">ID Card</span> : ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
-        <div><span style="display:inline-block; width:120px; font-weight:600;">NPWP</span> : ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
-        <div><span style="display:inline-block; width:120px; font-weight:600;">Bank Name</span> : ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
-        <div><span style="display:inline-block; width:120px; font-weight:600;">Bank Account</span> : ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
-        <div><span style="display:inline-block; width:120px; font-weight:600;">Amount</span> : <strong>' . formatRp($mediator['amount']) . '</strong></div>
+    <div>
+        <div class="detail-row"><span class="label">Name</span>: ' . htmlspecialchars($mediator['name']) . '</div>
+        <div class="detail-row"><span class="label">ID Card</span>: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+        <div class="detail-row"><span class="label">NPWP</span>: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+        <div class="detail-row"><span class="label">Bank Name</span>: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
+        <div class="detail-row"><span class="label">Bank Account</span>: ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+        <div class="detail-row"><span class="label">Amount</span>: <strong>' . formatRp($mediator['amount']) . '</strong></div>
     </div>
     ';
 } else {
