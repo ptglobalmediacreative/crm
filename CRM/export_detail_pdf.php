@@ -278,11 +278,11 @@ $html = '
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: "Times New Roman", Times, serif; 
-            font-size: 9px;
+            font-size: 10px;
             padding: 15px 25px;
             background: #fff;
             color: #1a1a1a;
-            line-height: 1.3;
+            line-height: 1.5;
         }
         
         .kop-surat {
@@ -327,89 +327,118 @@ $html = '
         .status-badge.rejected { background: #fdedec; color: #922b21; }
         
         .section-title {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
-            background: #f0f2f5;
-            padding: 3px 10px;
-            margin: 5px 0 3px 0;
-            border-left: 3px solid #c9a84c;
+            border-bottom: 1px solid #1a1a2e;
+            padding: 4px 0 2px 0;
+            margin: 8px 0 5px 0;
             color: #1a1a2e;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 1px;
+        }
+        .info-row .label {
+            display: table-cell;
+            width: 18%;
+            font-weight: 600;
+            color: #555;
+            padding: 1px 0;
+        }
+        .info-row .value {
+            display: table-cell;
+            width: 82%;
+            padding: 1px 0;
+        }
+        
+        .info-row-2col {
+            display: table;
+            width: 100%;
+        }
+        .info-row-2col .col {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding-right: 15px;
+        }
+        .info-row-2col .col:last-child {
+            padding-right: 0;
+        }
+        .info-row-2col .info-row .label {
+            width: 25%;
+        }
+        .info-row-2col .info-row .value {
+            width: 75%;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 2px;
-            font-size: 8px;
+            margin-bottom: 3px;
+            font-size: 9px;
         }
         table th {
             background: #1a1a2e;
             color: #fff;
             font-weight: 600;
-            font-size: 7px;
+            font-size: 8px;
             text-transform: uppercase;
-            padding: 2px 4px;
+            padding: 3px 5px;
             text-align: center;
             letter-spacing: 0.3px;
         }
         table td {
-            padding: 2px 4px;
+            padding: 3px 5px;
             border-bottom: 1px solid #e8edf2;
-            font-size: 8px;
+            font-size: 9px;
             vertical-align: middle;
-        }
-        table tr:nth-child(even) td {
-            background: #fafafa;
         }
         table tr:last-child td {
             border-bottom: none;
         }
         
-        .table-info td {
-            padding: 1px 3px;
-            border: none !important;
-            background: transparent !important;
-            font-size: 8px;
-        }
-        .table-info .label-cell {
-            font-weight: 600;
-            color: #555;
-            width: 18%;
-        }
-        .table-info .value-cell {
-            width: 82%;
-        }
-        
-        .two-col {
-            display: table;
-            width: 100%;
-        }
-        .two-col .col {
-            display: table-cell;
-            width: 50%;
-            vertical-align: top;
-            padding-right: 10px;
-        }
-        .two-col .col:last-child {
-            padding-right: 0;
-            padding-left: 10px;
-        }
-        
         .three-col {
             display: table;
             width: 100%;
+            margin: 5px 0;
         }
         .three-col .col {
             display: table-cell;
             width: 33.33%;
             vertical-align: top;
-            padding-right: 8px;
             text-align: center;
+            padding: 0 5px;
         }
-        .three-col .col:last-child {
-            padding-right: 0;
+        .three-col .col .box {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 6px 4px;
+            background: #fafafa;
+        }
+        .three-col .col .box.gold {
+            border: 2px solid #c9a84c;
+            background: #faf8f0;
+        }
+        .three-col .col .box .label {
+            font-size: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        .three-col .col .box .value {
+            font-size: 12px;
+            font-weight: 700;
+            color: #c9a84c;
+        }
+        .three-col .col .box.gold .value {
+            font-size: 14px;
+        }
+        .three-col .col .box.gold .label {
+            color: #1a1a2e;
+            font-weight: 700;
         }
         
         .approval-status-approved { color: #27ae60; font-weight: 700; }
@@ -417,22 +446,16 @@ $html = '
         .approval-status-pending { color: #f39c12; font-weight: 700; }
         
         .footer {
-            margin-top: 8px;
-            padding-top: 5px;
+            margin-top: 10px;
+            padding-top: 6px;
             border-top: 2px solid #1a1a2e;
             font-size: 7px;
             color: #555;
             text-align: center;
         }
-        .footer .footer-left {
-            float: left;
-        }
-        .footer .footer-right {
-            float: right;
-        }
-        .footer .clearfix {
-            clear: both;
-        }
+        .footer .footer-left { float: left; }
+        .footer .footer-right { float: right; }
+        .footer .clearfix { clear: both; }
         .footer .footer-alamat {
             font-size: 7px;
             color: #555;
@@ -450,17 +473,6 @@ $html = '
         .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
         .text-muted { color: #999; }
-        
-        .total-value-large {
-            font-size: 12px;
-            font-weight: 700;
-            color: #c9a84c;
-        }
-        .total-label {
-            font-size: 8px;
-            font-weight: 600;
-            color: #555;
-        }
         
         @page {
             margin: 10mm 15mm 10mm 15mm;
@@ -484,38 +496,59 @@ $html = '
 
 <!-- A. DATA ACCOUNT -->
 <div class="section-title">A. DATA ACCOUNT</div>
-<div class="two-col">
+
+<div class="info-row-2col">
     <div class="col">
-        <table class="table-info">
-            <tr><td class="label-cell">Nama PT</td><td class="value-cell">: ' . htmlspecialchars($request['nama_pt'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">Badan Usaha</td><td class="value-cell">: ' . htmlspecialchars($request['badan_usaha'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">Alamat</td><td class="value-cell">: ' . htmlspecialchars($request['alamat'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">NPWP</td><td class="value-cell">: ' . htmlspecialchars($request['npwp'] ?? '-') . '</td></tr>
-        </table>
+        <div class="info-row">
+            <span class="label">Nama PT</span>
+            <span class="value">: ' . htmlspecialchars($request['nama_pt'] ?? '-') . '</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Badan Usaha</span>
+            <span class="value">: ' . htmlspecialchars($request['badan_usaha'] ?? '-') . '</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Alamat</span>
+            <span class="value">: ' . htmlspecialchars($request['alamat'] ?? '-') . '</span>
+        </div>
+        <div class="info-row">
+            <span class="label">NPWP</span>
+            <span class="value">: ' . htmlspecialchars($request['npwp'] ?? '-') . '</span>
+        </div>
     </div>
     <div class="col">
-        <table class="table-info">
-            <tr><td class="label-cell">Nama PIC</td><td class="value-cell">: ' . htmlspecialchars($request['nama_pic'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">Jabatan PIC</td><td class="value-cell">: ' . htmlspecialchars($request['jabatan_pic'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">No HP PIC</td><td class="value-cell">: ' . htmlspecialchars($request['no_hp_pic'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">Email PIC</td><td class="value-cell">: ' . htmlspecialchars($request['email_pic'] ?? '-') . '</td></tr>
-        </table>
+        <div class="info-row">
+            <span class="label">Nama PIC</span>
+            <span class="value">: ' . htmlspecialchars($request['nama_pic'] ?? '-') . '</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Jabatan PIC</span>
+            <span class="value">: ' . htmlspecialchars($request['jabatan_pic'] ?? '-') . '</span>
+        </div>
+        <div class="info-row">
+            <span class="label">No HP PIC</span>
+            <span class="value">: ' . htmlspecialchars($request['no_hp_pic'] ?? '-') . '</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Email PIC</span>
+            <span class="value">: ' . htmlspecialchars($request['email_pic'] ?? '-') . '</span>
+        </div>
     </div>
 </div>
-<table class="table-info" style="margin-top:1px; width:100%;">
-    <tr>
-        <td class="label-cell" style="width:10%;">Salesman</td>
-        <td class="value-cell" style="width:23%;">: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</td>
-        <td class="label-cell" style="width:10%;">Request Date</td>
-        <td class="value-cell" style="width:23%;">: ' . date('d/m/Y', strtotime($request['request_date'])) . '</td>
-        <td class="label-cell" style="width:10%;">Due Date</td>
-        <td class="value-cell" style="width:24%;">: ' . date('d/m/Y', strtotime($request['due_date'])) . '</td>
-    </tr>
-    <tr>
-        <td class="label-cell">Deskripsi</td>
-        <td class="value-cell" colspan="5">: ' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</td>
-    </tr>
-</table>
+
+<div class="info-row">
+    <span class="label" style="width:10%;">Salesman</span>
+    <span class="value" style="width:23%;">: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</span>
+    <span class="label" style="width:10%;">Request Date</span>
+    <span class="value" style="width:23%;">: ' . date('d/m/Y', strtotime($request['request_date'])) . '</span>
+    <span class="label" style="width:10%;">Due Date</span>
+    <span class="value" style="width:24%;">: ' . date('d/m/Y', strtotime($request['due_date'])) . '</span>
+</div>
+
+<div class="info-row">
+    <span class="label" style="width:10%;">Deskripsi</span>
+    <span class="value" style="width:90%;">: ' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</span>
+</div>
 
 <!-- B. DETAIL UNIT -->
 <div class="section-title">B. DETAIL UNIT</div>
@@ -527,12 +560,12 @@ if (count($detailUnits) > 0) {
         <thead>
             <tr>
                 <th style="width:4%;">No</th>
-                <th style="width:16%;">Unit</th>
+                <th style="width:18%;">Unit</th>
                 <th style="width:5%;">QTY</th>
-                <th style="width:13%;">Price (Non PPN)</th>
+                <th style="width:14%;">Price (Non PPN)</th>
                 <th style="width:10%;">PPN 11%</th>
-                <th style="width:14%;">Grand Total</th>
-                <th style="width:38%;">Specification</th>
+                <th style="width:15%;">Grand Total</th>
+                <th style="width:34%;">Specification</th>
             </tr>
         </thead>
         <tbody>';
@@ -548,7 +581,7 @@ if (count($detailUnits) > 0) {
                 <td class="text-right">' . formatRp($unit['price']) . '</td>
                 <td class="text-right">' . formatRp($unit['ppn']) . '</td>
                 <td class="text-right fw-bold">' . formatRp($unit['grand_total']) . '</td>
-                <td style="font-size:7px;">' . htmlspecialchars($unit['specification']) . '</td>
+                <td style="font-size:8px;">' . htmlspecialchars($unit['specification']) . '</td>
             </tr>';
     }
     
@@ -556,24 +589,28 @@ if (count($detailUnits) > 0) {
         </tbody>
     </table>
     
-    <table class="table-info" style="margin-top:2px; width:100%;">
-        <tr>
-            <td class="label-cell" style="width:12%;">Additional Attachment</td>
-            <td class="value-cell" style="width:21%;">: ' . htmlspecialchars($detailUnits[0]['additional_attachment'] ?? '-') . '</td>
-            <td class="label-cell" style="width:10%;">Waranty</td>
-            <td class="value-cell" style="width:20%;">: ' . htmlspecialchars($detailUnits[0]['waranty'] ?? '-') . '</td>
-            <td class="label-cell" style="width:12%;">Transaction Type</td>
-            <td class="value-cell" style="width:25%;">: ' . htmlspecialchars($detailUnits[0]['transaction_type'] ?? '-') . '</td>
-        </tr>
-        <tr>
-            <td class="label-cell">Machine Location</td>
-            <td class="value-cell">: ' . htmlspecialchars($detailUnits[0]['machine_location'] ?? '-') . '</td>
-            <td class="label-cell">Delivery Terms</td>
-            <td class="value-cell">: ' . htmlspecialchars($detailUnits[0]['delivery_terms'] ?? '-') . '</td>
-            <td class="label-cell">Delivery Schedule</td>
-            <td class="value-cell">: ' . (isset($detailUnits[0]['delivery_schedule']) ? date('d/m/Y', strtotime($detailUnits[0]['delivery_schedule'])) : '-') . '</td>
-        </tr>
-    </table>
+    <div style="display:table; width:100%; margin-top:3px; font-size:8px;">
+        <div style="display:table-cell; width:33%;">
+            <strong>Additional Attachment</strong> : ' . htmlspecialchars($detailUnits[0]['additional_attachment'] ?? '-') . '
+        </div>
+        <div style="display:table-cell; width:33%;">
+            <strong>Waranty</strong> : ' . htmlspecialchars($detailUnits[0]['waranty'] ?? '-') . '
+        </div>
+        <div style="display:table-cell; width:34%;">
+            <strong>Transaction Type</strong> : ' . htmlspecialchars($detailUnits[0]['transaction_type'] ?? '-') . '
+        </div>
+    </div>
+    <div style="display:table; width:100%; font-size:8px;">
+        <div style="display:table-cell; width:33%;">
+            <strong>Machine Location</strong> : ' . htmlspecialchars($detailUnits[0]['machine_location'] ?? '-') . '
+        </div>
+        <div style="display:table-cell; width:33%;">
+            <strong>Delivery Terms</strong> : ' . htmlspecialchars($detailUnits[0]['delivery_terms'] ?? '-') . '
+        </div>
+        <div style="display:table-cell; width:34%;">
+            <strong>Delivery Schedule</strong> : ' . (isset($detailUnits[0]['delivery_schedule']) ? date('d/m/Y', strtotime($detailUnits[0]['delivery_schedule'])) : '-') . '
+        </div>
+    </div>
     ';
 } else {
     $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data Detail Unit</p>';
@@ -581,8 +618,8 @@ if (count($detailUnits) > 0) {
 
 // C. TERM OF PAYMENT & D. ADDITIONAL COST
 $html .= '
-<div style="display:table; width:100%; margin-top:3px;">
-    <div style="display:table-cell; width:55%; vertical-align:top; padding-right:8px;">
+<div style="display:table; width:100%; margin-top:5px;">
+    <div style="display:table-cell; width:55%; vertical-align:top; padding-right:10px;">
         <div class="section-title" style="margin-top:0;">C. TERM OF PAYMENT</div>
         ';
 
@@ -606,7 +643,7 @@ if (count($termPayments) > 0) {
                 <td class="text-center">' . $no++ . '</td>
                 <td>' . htmlspecialchars($top['payment_label']) . '</td>
                 <td class="text-right fw-bold">' . formatRp($top['amount']) . '</td>
-                <td style="font-size:7px;">' . htmlspecialchars($top['keterangan'] ?? '-') . '</td>
+                <td style="font-size:8px;">' . htmlspecialchars($top['keterangan'] ?? '-') . '</td>
             </tr>';
     }
     
@@ -620,21 +657,21 @@ if (count($termPayments) > 0) {
 
 $html .= '
     </div>
-    <div style="display:table-cell; width:45%; vertical-align:top; padding-left:8px;">
+    <div style="display:table-cell; width:45%; vertical-align:top; padding-left:10px;">
         <div class="section-title" style="margin-top:0;">D. ADDITIONAL COST</div>
         ';
 
 if ($additionalCost) {
     $html .= '
-        <table class="table-info" style="width:100%;">
-            <tr><td class="label-cell" style="width:40%;">Insurance Ops</td><td class="value-cell">: ' . formatRp($additionalCost['insurance_ops']) . '</td></tr>
-            <tr><td class="label-cell">Insurance Cargo</td><td class="value-cell">: ' . formatRp($additionalCost['insurance_cargo']) . '</td></tr>
-            <tr><td class="label-cell">Delivery Cost</td><td class="value-cell">: ' . formatRp($additionalCost['delivery_cost']) . '</td></tr>
-            <tr><td class="label-cell">Mediator Fee</td><td class="value-cell">: ' . formatRp($additionalCost['mediator_fee']) . '</td></tr>
-            <tr><td class="label-cell">Free Part</td><td class="value-cell">: ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">Free Service</td><td class="value-cell">: ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</td></tr>
-            <tr><td class="label-cell">Others</td><td class="value-cell">: ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</td></tr>
-        </table>
+        <div style="font-size:8px; line-height:1.6;">
+            <div><strong>Insurance Ops</strong> : ' . formatRp($additionalCost['insurance_ops']) . '</div>
+            <div><strong>Insurance Cargo</strong> : ' . formatRp($additionalCost['insurance_cargo']) . '</div>
+            <div><strong>Delivery Cost</strong> : ' . formatRp($additionalCost['delivery_cost']) . '</div>
+            <div><strong>Mediator Fee</strong> : ' . formatRp($additionalCost['mediator_fee']) . '</div>
+            <div><strong>Free Part</strong> : ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
+            <div><strong>Free Service</strong> : ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
+            <div><strong>Others</strong> : ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
+        </div>
         ';
 } else {
     $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data</p>';
@@ -647,54 +684,54 @@ $html .= '
 
 // E. DATA MEDIATOR
 $html .= '
-<div class="section-title" style="margin-top:3px;">E. DATA MEDIATOR</div>
+<div class="section-title" style="margin-top:5px;">E. DATA MEDIATOR</div>
 ';
 
 if ($mediator) {
     $html .= '
-    <table class="table-info" style="width:80%; margin:0 auto;">
-        <tr>
-            <td class="label-cell" style="width:15%;">Name</td>
-            <td class="value-cell" style="width:35%;">: ' . htmlspecialchars($mediator['name']) . '</td>
-            <td class="label-cell" style="width:15%;">Amount</td>
-            <td class="value-cell" style="width:35%;">: <strong>' . formatRp($mediator['amount']) . '</strong></td>
-        </tr>
-        <tr>
-            <td class="label-cell">ID Card</td>
-            <td class="value-cell">: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</td>
-            <td class="label-cell">NPWP</td>
-            <td class="value-cell">: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</td>
-        </tr>
-        <tr>
-            <td class="label-cell">Bank Name</td>
-            <td class="value-cell" colspan="3">: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . ' - ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</td>
-        </tr>
-    </table>
+    <div style="display:table; width:80%; margin:0 auto; font-size:8px;">
+        <div style="display:table-row;">
+            <div style="display:table-cell; width:15%; font-weight:600; color:#555;">Name</div>
+            <div style="display:table-cell; width:35%;">: ' . htmlspecialchars($mediator['name']) . '</div>
+            <div style="display:table-cell; width:15%; font-weight:600; color:#555;">Amount</div>
+            <div style="display:table-cell; width:35%;">: <strong>' . formatRp($mediator['amount']) . '</strong></div>
+        </div>
+        <div style="display:table-row;">
+            <div style="display:table-cell; font-weight:600; color:#555;">ID Card</div>
+            <div style="display:table-cell;">: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+            <div style="display:table-cell; font-weight:600; color:#555;">NPWP</div>
+            <div style="display:table-cell;">: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+        </div>
+        <div style="display:table-row;">
+            <div style="display:table-cell; font-weight:600; color:#555;">Bank Name</div>
+            <div style="display:table-cell;" colspan="3">: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . ' - ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+        </div>
+    </div>
     ';
 } else {
     $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data Mediator</p>';
 }
 
-// F. REKAPITULASI TOTAL - TANPA BLOK BIRU
+// F. REKAPITULASI TOTAL
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
-<div class="three-col" style="margin:3px 0;">
+<div class="three-col">
     <div class="col">
-        <div style="border:1px solid #ddd; border-radius:4px; padding:6px 4px; background:#fafafa;">
-            <div class="total-label">Total Grand Total Unit</div>
-            <div class="total-value-large">' . formatRp($totalUnitGrandTotal) . '</div>
+        <div class="box">
+            <div class="label">Total Grand Total Unit</div>
+            <div class="value">' . formatRp($totalUnitGrandTotal) . '</div>
         </div>
     </div>
     <div class="col">
-        <div style="border:1px solid #ddd; border-radius:4px; padding:6px 4px; background:#fafafa;">
-            <div class="total-label">Total Additional Cost</div>
-            <div class="total-value-large">' . formatRp($totalAdditionalCost) . '</div>
+        <div class="box">
+            <div class="label">Total Additional Cost</div>
+            <div class="value">' . formatRp($totalAdditionalCost) . '</div>
         </div>
     </div>
     <div class="col">
-        <div style="border:2px solid #c9a84c; border-radius:4px; padding:6px 4px; background:#faf8f0;">
-            <div class="total-label" style="font-weight:700; color:#1a1a2e;">TOTAL MASUKAN</div>
-            <div style="font-size:14px; font-weight:800; color:#c9a84c;">' . formatRp($totalMasukan) . '</div>
+        <div class="box gold">
+            <div class="label">TOTAL MASUKAN</div>
+            <div class="value">' . formatRp($totalMasukan) . '</div>
         </div>
     </div>
 </div>
