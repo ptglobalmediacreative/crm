@@ -259,6 +259,15 @@ if (!file_exists($logoPath)) {
     $logoHtml = '<img src="data:image/png;base64,' . $logoData . '" class="logo-img" alt="Logo">';
 }
 
+// Gabungkan Nama PT dengan Badan Usaha
+$namaPT = $request['nama_pt'] ?? '-';
+$badanUsaha = $request['badan_usaha'] ?? '';
+if (!empty($badanUsaha) && $namaPT != '-') {
+    $namaPTDisplay = $namaPT . ', ' . $badanUsaha;
+} else {
+    $namaPTDisplay = $namaPT;
+}
+
 // ============================================
 // CLEAN OUTPUT BUFFER SEBELUM PDF
 // ============================================
@@ -484,8 +493,7 @@ $html = '
 
 <div class="info-row-2col">
     <div class="col">
-        <div class="info-row"><span class="label">Nama PT</span>: ' . htmlspecialchars($request['nama_pt'] ?? '-') . '</div>
-        <div class="info-row"><span class="label">Badan Usaha</span>: ' . htmlspecialchars($request['badan_usaha'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Nama PT</span>: ' . htmlspecialchars($namaPTDisplay) . '</div>
         <div class="info-row"><span class="label">Alamat</span>: ' . htmlspecialchars($request['alamat'] ?? '-') . '</div>
         <div class="info-row"><span class="label">NPWP</span>: ' . htmlspecialchars($request['npwp'] ?? '-') . '</div>
     </div>
@@ -620,7 +628,7 @@ $html .= '
 </div>
 ';
 
-// E. DATA MEDIATOR - DIBUAT RAPI
+// E. DATA MEDIATOR
 $html .= '
 <div class="section-title" style="margin-top:5px;">E. DATA MEDIATOR</div>
 ';
