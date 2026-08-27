@@ -292,8 +292,8 @@ $html = '
             text-align: center;
         }
         .kop-surat .logo-img {
-            max-width: 220px;
-            max-height: 80px;
+            max-width: 200px;
+            max-height: 70px;
             width: auto;
             height: auto;
             object-fit: contain;
@@ -331,7 +331,7 @@ $html = '
             font-weight: 700;
             background: #f0f2f5;
             padding: 3px 10px;
-            margin: 6px 0 4px 0;
+            margin: 5px 0 3px 0;
             border-left: 3px solid #c9a84c;
             color: #1a1a2e;
             text-transform: uppercase;
@@ -341,7 +341,7 @@ $html = '
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
             font-size: 8px;
         }
         table th {
@@ -350,18 +350,21 @@ $html = '
             font-weight: 600;
             font-size: 7px;
             text-transform: uppercase;
-            padding: 3px 5px;
+            padding: 2px 4px;
             text-align: center;
             letter-spacing: 0.3px;
         }
         table td {
-            padding: 3px 5px;
+            padding: 2px 4px;
             border-bottom: 1px solid #e8edf2;
             font-size: 8px;
             vertical-align: middle;
         }
         table tr:nth-child(even) td {
             background: #fafafa;
+        }
+        table tr:last-child td {
+            border-bottom: none;
         }
         
         .table-info td {
@@ -373,10 +376,10 @@ $html = '
         .table-info .label-cell {
             font-weight: 600;
             color: #555;
-            width: 20%;
+            width: 18%;
         }
         .table-info .value-cell {
-            width: 80%;
+            width: 82%;
         }
         
         .two-col {
@@ -403,18 +406,10 @@ $html = '
             width: 33.33%;
             vertical-align: top;
             padding-right: 8px;
+            text-align: center;
         }
         .three-col .col:last-child {
             padding-right: 0;
-        }
-        
-        .grand-total-row {
-            border-top: 2px solid #1a1a2e !important;
-        }
-        .grand-total-row td {
-            font-size: 12px !important;
-            font-weight: 800 !important;
-            color: #c9a84c !important;
         }
         
         .approval-status-approved { color: #27ae60; font-weight: 700; }
@@ -422,8 +417,8 @@ $html = '
         .approval-status-pending { color: #f39c12; font-weight: 700; }
         
         .footer {
-            margin-top: 10px;
-            padding-top: 6px;
+            margin-top: 8px;
+            padding-top: 5px;
             border-top: 2px solid #1a1a2e;
             font-size: 7px;
             color: #555;
@@ -456,22 +451,19 @@ $html = '
         .fw-bold { font-weight: 700; }
         .text-muted { color: #999; }
         
-        .total-small {
-            font-size: 9px;
+        .total-value-large {
+            font-size: 12px;
             font-weight: 700;
-            color: #1a1a2e;
-            padding: 2px 0;
-        }
-        .total-small .label {
-            color: #555;
-            font-weight: 600;
-        }
-        .total-small .value {
             color: #c9a84c;
+        }
+        .total-label {
+            font-size: 8px;
+            font-weight: 600;
+            color: #555;
         }
         
         @page {
-            margin: 12mm 15mm 12mm 15mm;
+            margin: 10mm 15mm 10mm 15mm;
         }
     </style>
 </head>
@@ -683,26 +675,26 @@ if ($mediator) {
     $html .= '<p class="text-center text-muted" style="padding:5px 0;">Belum ada data Mediator</p>';
 }
 
-// F. REKAPITULASI TOTAL - TANPA BLOK BIRU BESAR
+// F. REKAPITULASI TOTAL - TANPA BLOK BIRU
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
 <div class="three-col" style="margin:3px 0;">
     <div class="col">
-        <div class="total-small">
-            <span class="label">Total Grand Total Unit</span><br>
-            <span class="value" style="font-size:11px;">' . formatRp($totalUnitGrandTotal) . '</span>
+        <div style="border:1px solid #ddd; border-radius:4px; padding:6px 4px; background:#fafafa;">
+            <div class="total-label">Total Grand Total Unit</div>
+            <div class="total-value-large">' . formatRp($totalUnitGrandTotal) . '</div>
         </div>
     </div>
     <div class="col">
-        <div class="total-small">
-            <span class="label">Total Additional Cost</span><br>
-            <span class="value" style="font-size:11px;">' . formatRp($totalAdditionalCost) . '</span>
+        <div style="border:1px solid #ddd; border-radius:4px; padding:6px 4px; background:#fafafa;">
+            <div class="total-label">Total Additional Cost</div>
+            <div class="total-value-large">' . formatRp($totalAdditionalCost) . '</div>
         </div>
     </div>
     <div class="col">
-        <div class="total-small" style="border:2px solid #c9a84c; border-radius:4px; padding:4px 8px; background:#faf8f0;">
-            <span class="label" style="color:#1a1a2e;">TOTAL MASUKAN</span><br>
-            <span class="value" style="font-size:14px; color:#c9a84c;">' . formatRp($totalMasukan) . '</span>
+        <div style="border:2px solid #c9a84c; border-radius:4px; padding:6px 4px; background:#faf8f0;">
+            <div class="total-label" style="font-weight:700; color:#1a1a2e;">TOTAL MASUKAN</div>
+            <div style="font-size:14px; font-weight:800; color:#c9a84c;">' . formatRp($totalMasukan) . '</div>
         </div>
     </div>
 </div>
