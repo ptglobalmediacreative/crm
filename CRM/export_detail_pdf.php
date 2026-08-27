@@ -457,17 +457,6 @@ $html = '
         .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
         
-        .detail-row {
-            padding: 1px 0;
-            font-size: 8px;
-        }
-        .detail-row .label {
-            display: inline-block;
-            font-weight: 600;
-            color: #555;
-            width: 120px;
-        }
-        
         @page {
             margin: 10mm 15mm 10mm 15mm;
         }
@@ -605,15 +594,13 @@ $html .= '
 
 if ($additionalCost) {
     $html .= '
-        <div>
-            <div class="detail-row"><span class="label">Insurance Ops</span>: ' . formatRp($additionalCost['insurance_ops']) . '</div>
-            <div class="detail-row"><span class="label">Insurance Cargo</span>: ' . formatRp($additionalCost['insurance_cargo']) . '</div>
-            <div class="detail-row"><span class="label">Delivery Cost</span>: ' . formatRp($additionalCost['delivery_cost']) . '</div>
-            <div class="detail-row"><span class="label">Mediator Fee</span>: ' . formatRp($additionalCost['mediator_fee']) . '</div>
-            <div class="detail-row"><span class="label">Free Part</span>: ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
-            <div class="detail-row"><span class="label">Free Service</span>: ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
-            <div class="detail-row"><span class="label">Others</span>: ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
-        </div>
+        <div class="info-row"><span class="label">Insurance Ops</span>: ' . formatRp($additionalCost['insurance_ops']) . '</div>
+        <div class="info-row"><span class="label">Insurance Cargo</span>: ' . formatRp($additionalCost['insurance_cargo']) . '</div>
+        <div class="info-row"><span class="label">Delivery Cost</span>: ' . formatRp($additionalCost['delivery_cost']) . '</div>
+        <div class="info-row"><span class="label">Mediator Fee</span>: ' . formatRp($additionalCost['mediator_fee']) . '</div>
+        <div class="info-row"><span class="label">Free Part</span>: ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Free Service</span>: ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Others</span>: ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
         ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
@@ -631,14 +618,12 @@ $html .= '
 
 if ($mediator) {
     $html .= '
-    <div>
-        <div class="detail-row"><span class="label">Name</span>: ' . htmlspecialchars($mediator['name']) . '</div>
-        <div class="detail-row"><span class="label">ID Card</span>: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
-        <div class="detail-row"><span class="label">NPWP</span>: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
-        <div class="detail-row"><span class="label">Bank Name</span>: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
-        <div class="detail-row"><span class="label">Bank Account</span>: ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
-        <div class="detail-row"><span class="label">Amount</span>: <strong>' . formatRp($mediator['amount']) . '</strong></div>
-    </div>
+    <div class="info-row"><span class="label">Name</span>: ' . htmlspecialchars($mediator['name']) . '</div>
+    <div class="info-row"><span class="label">ID Card</span>: ' . htmlspecialchars($mediator['id_card_no'] ?? '-') . '</div>
+    <div class="info-row"><span class="label">NPWP</span>: ' . htmlspecialchars($mediator['npwp_no'] ?? '-') . '</div>
+    <div class="info-row"><span class="label">Bank Name</span>: ' . htmlspecialchars($mediator['bank_name'] ?? '-') . '</div>
+    <div class="info-row"><span class="label">Bank Account</span>: ' . htmlspecialchars($mediator['bank_account'] ?? '-') . '</div>
+    <div class="info-row"><span class="label">Amount</span>: <strong>' . formatRp($mediator['amount']) . '</strong></div>
     ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
