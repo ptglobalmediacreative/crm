@@ -352,7 +352,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
         .badge-status-tr.approved { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
         .badge-status-tr.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
 
-        /* TR Number Style - Sama dengan Leads Number */
+        /* TR Number Link */
         .tr-number-link {
             color: #2980b9;
             text-decoration: none;
@@ -361,6 +361,31 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             letter-spacing: 0.5px;
             display: inline-block;
             transition: all 0.3s ease;
+        }
+
+        /* Tombol PDF */
+        .btn-pdf {
+            background: #e74c3c;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #fff;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+        .btn-pdf:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+            color: #fff;
+        }
+        .btn-pdf i {
+            font-size: 13px;
         }
 
         .btn-primary-custom {
@@ -578,6 +603,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                 <th>Due Date</th>
                                 <th>Sales</th>
                                 <th>Status</th>
+                                <th style="text-align:center;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -611,11 +637,19 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                                 <?= $statusLabel ?>
                                             </span>
                                         </td>
+                                        <td style="text-align:center;">
+                                            <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
+                                               class="btn-pdf" 
+                                               target="_blank"
+                                               title="Download PDF Detail TR">
+                                                <i class="fas fa-file-pdf"></i> PDF
+                                            </a>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="7" class="text-center py-4 text-muted">
+                                    <td colspan="8" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data transaction request
                                     </td>
                                 </tr>
