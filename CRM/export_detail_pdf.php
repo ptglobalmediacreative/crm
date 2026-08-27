@@ -273,7 +273,6 @@ $html = '
             line-height: 1.3;
         }
         
-        /* KOP SURAT - Dengan Logo */
         .kop-surat {
             text-align: center;
             border-bottom: 3px double #0e1a2b;
@@ -332,7 +331,6 @@ $html = '
             margin-top: 3px;
         }
         
-        /* JUDUL LAPORAN */
         .judul-laporan {
             text-align: center;
             font-size: 14px;
@@ -360,7 +358,6 @@ $html = '
         .status-badge.approved { background: #ebf5fb; color: #1a5276; }
         .status-badge.rejected { background: #fdedec; color: #922b21; }
         
-        /* TABEL DATA */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -407,7 +404,6 @@ $html = '
             width: 80%;
         }
         
-        /* SECTION TITLE */
         .section-title {
             font-size: 10px;
             font-weight: 700;
@@ -420,7 +416,6 @@ $html = '
             letter-spacing: 0.3px;
         }
         
-        /* TOTAL BOX */
         .total-box {
             background: #0e1a2b;
             color: #fff;
@@ -452,7 +447,6 @@ $html = '
             color: #c9a84c !important;
         }
         
-        /* FOOTER */
         .footer {
             margin-top: 10px;
             padding-top: 6px;
@@ -478,18 +472,12 @@ $html = '
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .fw-bold { font-weight: 700; }
-        .mt-1 { margin-top: 3px; }
-        .mb-1 { margin-bottom: 3px; }
         .text-muted { color: #999; }
-        .text-success { color: #27ae60; }
-        .text-danger { color: #e74c3c; }
-        .text-warning { color: #f39c12; }
         
         .approval-status-approved { color: #27ae60; font-weight: 700; }
         .approval-status-rejected { color: #e74c3c; font-weight: 700; }
         .approval-status-pending { color: #f39c12; font-weight: 700; }
         
-        /* 2 column layout untuk ringkas */
         .two-col {
             display: table;
             width: 100%;
@@ -508,9 +496,9 @@ $html = '
 </head>
 <body>
 
-<!-- ========================================== -->
+<!-- ========================================= -->
 <!-- KOP SURAT DENGAN LOGO -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 <div class="kop-surat">
     <div class="logo-container">
         <div class="logo-placeholder">
@@ -528,9 +516,9 @@ $html = '
     <div class="garis-bawah"></div>
 </div>
 
-<!-- ========================================== -->
+<!-- ========================================= -->
 <!-- JUDUL -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 <div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
 <div class="sub-judul">
     Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong> 
@@ -538,9 +526,9 @@ $html = '
     | Tanggal Cetak: ' . date('d/m/Y H:i') . '
 </div>
 
-<!-- ========================================== -->
+<!-- ========================================= -->
 <!-- SECTION A: DATA ACCOUNT (2 KOLOM) -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 <div class="section-title">A. DATA ACCOUNT</div>
 <div class="two-col">
     <div class="col">
@@ -565,9 +553,9 @@ $html = '
     <tr><td class="label-cell" style="width:15%;">Deskripsi</td><td class="value-cell">: ' . nl2br(htmlspecialchars(substr($detailTR['deskripsi'] ?? '-', 0, 150))) . '</td></tr>
 </table>
 
-<!-- ========================================== -->
+<!-- ========================================= -->
 <!-- SECTION B: DETAIL UNIT -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 <div class="section-title">B. DETAIL UNIT</div>
 ';
 
@@ -615,9 +603,9 @@ if (count($detailUnits) > 0) {
     $html .= '<p style="text-align:center; color:#999; font-style:italic; padding:5px 0;">Belum ada data Detail Unit</p>';
 }
 
-// ========================================== -->
+// ========================================= -->
 <!-- SECTION C: TERM OF PAYMENT & D: ADDITIONAL COST (2 KOLOM) -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 $html .= '
 <div style="display:table; width:100%; margin-top:4px;">
     <div style="display:table-cell; width:55%; vertical-align:top; padding-right:8px;">
@@ -693,9 +681,9 @@ $html .= '
 </div>
 ';
 
-// ========================================== -->
+// ========================================= -->
 <!-- SECTION E: DATA MEDIATOR -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 $html .= '
 <div class="section-title" style="margin-top:4px;">E. DATA MEDIATOR</div>
 ';
@@ -712,9 +700,9 @@ if ($mediator) {
     $html .= '<p style="text-align:center; color:#999; font-style:italic; padding:5px 0;">Belum ada data Mediator</p>';
 }
 
-// ========================================== -->
+// ========================================= -->
 <!-- SECTION F: REKAPITULASI TOTAL -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 $html .= '
 <div class="section-title">F. REKAPITULASI TOTAL</div>
 <table class="table-info" style="width:60%; margin:0 auto;">
@@ -727,9 +715,9 @@ $html .= '
 </table>
 ';
 
-// ========================================== -->
+// ========================================= -->
 <!-- SECTION G: APPROVAL HISTORY -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 if (count($approvalHistory) > 0) {
     $html .= '
     <div class="section-title">G. APPROVAL HISTORY</div>
@@ -768,9 +756,9 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// ========================================== -->
+// ========================================= -->
 <!-- FOOTER -->
-<!-- ========================================== -->
+<!-- ========================================= -->
 $html .= '
 <div class="footer">
     <div class="footer-left">
