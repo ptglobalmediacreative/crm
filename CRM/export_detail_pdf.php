@@ -667,10 +667,8 @@ $html .= '
         <td class="right money" style="width:16%">' . formatRp($totalAdditionalCost) . '</td>
     </tr>
     <tr>
-        <td class="label">Total Masukan</td>
-        <td class="right money green" colspan="1">' . formatRp($totalMasukan) . '</td>
-        <td class="label">Total TOP</td>
-        <td class="right money">' . formatRp($totalTOP) . '</td>
+        <td class="label" style="width:34%">Total Masukan</td>
+        <td class="right money green" colspan="3">' . formatRp($totalMasukan) . '</td>
     </tr>
 </table>
 
