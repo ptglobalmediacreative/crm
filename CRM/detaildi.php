@@ -88,13 +88,11 @@ try {
     $existingRecord = $checkExisting->fetch();
     
     if (!$existingRecord) {
-        // Ambil data dari activity_details
         $getActivityData = $db->prepare("SELECT id, sales_activity_id FROM activity_details WHERE di_number = ? ORDER BY id DESC LIMIT 1");
         $getActivityData->execute([$di_number]);
         $activityData = $getActivityData->fetch();
         
         if ($activityData) {
-            // Insert ke detail_delivery_instructions
             $insertDI = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, no_so, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, NULL, 'pending', 1, NOW(), NOW())");
             $insertDI->execute([$di_number, $activityData['sales_activity_id'], $activityData['id']]);
         }
@@ -337,7 +335,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detaildi.php?di_number=" . urlencode($di_number));
     }
     
+    // ============================================
     // SAVE DATA PENJUALAN
+    // ============================================
     if ($action === 'save_data_penjualan') {
         try {
             $db->beginTransaction();
@@ -363,7 +363,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detaildi.php?di_number=" . urlencode($di_number));
     }
     
+    // ============================================
     // APPROVE / REJECT
+    // ============================================
     if ($action === 'approve' || $action === 'reject') {
         try {
             $db->beginTransaction();
@@ -413,7 +415,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detaildi.php?di_number=" . urlencode($di_number));
     }
     
+    // ============================================
     // SAVE UNITS
+    // ============================================
     if ($action === 'save_units') {
         try {
             $db->beginTransaction();
@@ -467,7 +471,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detaildi.php?di_number=" . urlencode($di_number));
     }
     
+    // ============================================
     // SAVE ACCESSORIES
+    // ============================================
     if ($action === 'save_accessories') {
         try {
             $db->beginTransaction();
@@ -507,7 +513,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detaildi.php?di_number=" . urlencode($di_number));
     }
     
+    // ============================================
     // SAVE LOGISTICS
+    // ============================================
     if ($action === 'save_logistics') {
         try {
             $db->beginTransaction();
@@ -536,7 +544,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detaildi.php?di_number=" . urlencode($di_number));
     }
     
+    // ============================================
     // SAVE PRODUCT SUPPORT
+    // ============================================
     if ($action === 'save_product_support') {
         try {
             $db->beginTransaction();
@@ -910,7 +920,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?= showFlash() ?>
 
-        <!-- STATUS BAR -->
+        <!-- ============================================ -->
+        <!-- SECTION: STATUS BAR -->
+        <!-- ============================================ -->
         <div class="card-custom">
             <div class="card-body-custom" style="padding: 15px 24px;">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -935,7 +947,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- NOTIFIKASI HAK AKSES -->
+        <!-- ============================================ -->
+        <!-- SECTION: NOTIFIKASI HAK AKSES -->
+        <!-- ============================================ -->
         <?php if (!$canEdit && !$hasBeenApproved): ?>
         <div class="alert alert-info">
             <i class="fas fa-info-circle"></i> 
@@ -943,7 +957,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <?php endif; ?>
 
-        <!-- DATA PENJUALAN -->
+        <!-- ============================================ -->
+        <!-- SECTION: DATA PENJUALAN -->
+        <!-- ============================================ -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-file-invoice"></i> Data Penjualan</h6>
@@ -1009,7 +1025,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- DATA CUSTOMER -->
+        <!-- ============================================ -->
+        <!-- SECTION: DATA CUSTOMER -->
+        <!-- ============================================ -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-building"></i> Data Customer</h6>
@@ -1034,7 +1052,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- DATA UNIT -->
+        <!-- ============================================ -->
+        <!-- SECTION: DATA UNIT -->
+        <!-- ============================================ -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-boxes"></i> Data Unit</h6>
@@ -1121,7 +1141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- AKSESORIS -->
+        <!-- ============================================ -->
+        <!-- SECTION: AKSESORIS -->
+        <!-- ============================================ -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-tools"></i> Aksesoris</h6>
@@ -1192,7 +1214,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- LOGISTIK -->
+        <!-- ============================================ -->
+        <!-- SECTION: LOGISTIK -->
+        <!-- ============================================ -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-truck"></i> Logistik</h6>
@@ -1272,7 +1296,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- PRODUCT SUPPORT -->
+        <!-- ============================================ -->
+        <!-- SECTION: PRODUCT SUPPORT -->
+        <!-- ============================================ -->
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-headset"></i> Product Support</h6>
@@ -1423,7 +1449,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- APPROVAL SECTION -->
+        <!-- ============================================ -->
+        <!-- SECTION: APPROVAL -->
+        <!-- ============================================ -->
         <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
             <?php 
             $canApprove = false;
@@ -1468,9 +1496,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // FUNGSI TOGGLE SECTION
-        // ============================================
         function toggleSection(editId, viewId) {
             const editEl = document.getElementById(editId);
             const viewEl = document.getElementById(viewId);
@@ -1485,31 +1510,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         function submitApproval(action) {
             if (action === 'reject') {
-                if (!confirm('Yakin ingin me-reject DI ini?')) {
-                    return;
-                }
+                if (!confirm('Yakin ingin me-reject DI ini?')) return;
             }
             if (action === 'approve') {
-                if (!confirm('Yakin ingin meng-approve DI ini?')) {
-                    return;
-                }
+                if (!confirm('Yakin ingin meng-approve DI ini?')) return;
             }
             document.getElementById('approvalAction').value = action;
             document.getElementById('approvalForm').submit();
         }
         
-        // ============================================
-        // FUNGSI UNTUK UNIT
-        // ============================================
         let unitRowCount = 0;
-        
         function addUnitRow(data = null) {
             unitRowCount++;
             const container = document.getElementById('unitRows');
             const rowDiv = document.createElement('div');
             rowDiv.className = 'data-row';
             rowDiv.id = 'unitRow_' + unitRowCount;
-            
             rowDiv.innerHTML = `
                 <div class="data-header">
                     <strong><i class="fas fa-box"></i> Unit ${unitRowCount}</strong>
@@ -1556,22 +1572,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
             `;
-            
             container.appendChild(rowDiv);
         }
         
-        // ============================================
-        // FUNGSI UNTUK AKSESORIS
-        // ============================================
         let accessoryRowCount = 0;
-        
         function addAccessoryRow(data = null) {
             accessoryRowCount++;
             const container = document.getElementById('accessoryRows');
             const rowDiv = document.createElement('div');
             rowDiv.className = 'data-row';
             rowDiv.id = 'accessoryRow_' + accessoryRowCount;
-            
             rowDiv.innerHTML = `
                 <div class="data-header">
                     <strong><i class="fas fa-tools"></i> Aksesoris ${accessoryRowCount}</strong>
@@ -1602,13 +1612,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
             `;
-            
             container.appendChild(rowDiv);
         }
         
-        // ============================================
-        // FUNGSI UNTUK PRODUCT SUPPORT
-        // ============================================
         function addInputRow(containerId, inputName) {
             const container = document.getElementById(containerId);
             const newInput = document.createElement('input');
@@ -1619,9 +1625,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             container.appendChild(newInput);
         }
         
-        // ============================================
-        // FUNGSI UMUM
-        // ============================================
         function removeRow(rowId) {
             const row = document.getElementById(rowId);
             if (row) {
@@ -1638,9 +1641,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // ============================================
-        // LOAD DATA SAAT HALAMAN DIMUAT
-        // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             <?php if (count($diUnits) > 0): ?>
                 <?php foreach ($diUnits as $unit): ?>
