@@ -348,12 +348,14 @@ $html = '
             letter-spacing: 0.5px;
             background: #f5f5f5;
             border-radius: 2px;
+            page-break-after: avoid;
         }
         
         /* INFO ROW */
         .info-row {
             padding: 1px 0;
             font-size: 9px;
+            page-break-inside: avoid;
         }
         .info-row .label {
             display: inline-block;
@@ -365,6 +367,7 @@ $html = '
         .info-row-2col {
             display: flex;
             flex-wrap: wrap;
+            page-break-inside: avoid;
         }
         .info-row-2col .col {
             flex: 1;
@@ -381,6 +384,7 @@ $html = '
         .info-row-left {
             padding: 1px 0;
             font-size: 9px;
+            page-break-inside: avoid;
         }
         .info-row-left .label {
             display: inline-block;
@@ -395,6 +399,17 @@ $html = '
             border-collapse: collapse;
             margin-bottom: 5px;
             font-size: 9px;
+            page-break-inside: auto;
+        }
+        table thead {
+            display: table-header-group;
+        }
+        table tbody {
+            page-break-inside: avoid;
+        }
+        table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
         }
         table th {
             background: #222;
@@ -419,12 +434,28 @@ $html = '
             border-bottom: none;
         }
         
+        /* WRAPPER UNTUK MENCEGAH TABEL TERPOTONG */
+        .table-wrapper {
+            page-break-inside: avoid;
+        }
+        
+        /* DETAIL UNIT INFO */
+        .unit-detail-info {
+            font-size: 8px;
+            margin-top: 2px;
+            padding: 3px 5px;
+            background: #f9f9f9;
+            border-left: 2px solid #c9a84c;
+            page-break-inside: avoid;
+        }
+        
         /* THREE COLUMN BOX */
         .three-col {
             display: flex;
             flex-wrap: wrap;
             margin: 5px 0;
             gap: 8px;
+            page-break-inside: avoid;
         }
         .three-col .col {
             flex: 1;
@@ -465,23 +496,26 @@ $html = '
         .approval-status-rejected { color: #dc3545; font-weight: 700; }
         .approval-status-pending { color: #ffc107; font-weight: 700; }
         
-        /* FOOTER - HANYA DI AKHIR DOKUMEN */
-        .footer-end {
-            margin-top: 20px;
-            padding: 8px 0;
+        /* FOOTER - FIXED DI BAWAH SETIAP HALAMAN */
+        .footer {
+            position: fixed;
+            bottom: -10px;
+            left: 0;
+            right: 0;
+            padding: 6px 20px;
             border-top: 2px solid #222;
             font-size: 7px;
             color: #555;
             text-align: center;
             background: #fff;
         }
-        .footer-end .footer-alamat {
+        .footer .footer-alamat {
             font-size: 7px;
             color: #555;
             margin-top: 2px;
             line-height: 1.4;
         }
-        .footer-end .footer-note {
+        .footer .footer-note {
             margin-top: 2px;
             font-size: 6px;
             color: #aaa;
@@ -496,7 +530,7 @@ $html = '
         .mb-5 { margin-bottom: 5px; }
         
         @page {
-            margin: 10mm 15mm 10mm 15mm;
+            margin: 10mm 15mm 15mm 15mm;
         }
     </style>
 </head>
@@ -540,6 +574,8 @@ $html = '
 ';
 
 if (count($detailUnits) > 0) {
+    // Bungkus tabel dalam wrapper agar tidak terpotong
+    $html .= '<div class="table-wrapper">';
     $html .= '
     <table>
         <thead>
@@ -572,12 +608,13 @@ if (count($detailUnits) > 0) {
     
     $html .= '
         </tbody>
-    </table>';
+    </table>
+    </div>';
     
     // Detail tambahan untuk setiap unit
     foreach ($detailUnits as $index => $unit) {
         $html .= '
-    <div style="font-size:8px; margin-top:2px; padding:3px 5px; background:#f9f9f9; border-left:2px solid #c9a84c;">
+    <div class="unit-detail-info">
         <strong>Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong> 
         Additional Attachment: ' . htmlspecialchars($unit['additional_attachment'] ?? '-') . ' | 
         Waranty: ' . htmlspecialchars($unit['waranty'] ?? '-') . ' | 
@@ -599,6 +636,7 @@ $html .= '
         ';
 
 if (count($termPayments) > 0) {
+    $html .= '<div class="table-wrapper">';
     $html .= '
         <table>
             <thead>
@@ -625,7 +663,8 @@ if (count($termPayments) > 0) {
     $html .= '
             </tbody>
         </table>
-        <div style="font-size:8px; text-align:right; margin-top:2px;">
+        </div>
+        <div style="font-size:8px; text-align:right; margin-top:2px; page-break-inside: avoid;">
             <strong>Total TOP: ' . formatRp($totalTOP) . '</strong>
         </div>
         ';
@@ -664,6 +703,7 @@ $html .= '
 ';
 
 if (count($mediators) > 0) {
+    $html .= '<div class="table-wrapper">';
     $html .= '
     <table>
         <thead>
@@ -696,7 +736,8 @@ if (count($mediators) > 0) {
     $html .= '
         </tbody>
     </table>
-    <div style="font-size:8px; text-align:right; margin-top:2px;">
+    </div>
+    <div style="font-size:8px; text-align:right; margin-top:2px; page-break-inside: avoid;">
         <strong>Total Mediator Fee: ' . formatRp($totalMediatorFee) . '</strong>
     </div>
     ';
@@ -733,6 +774,7 @@ $html .= '
 if (count($approvalHistory) > 0) {
     $html .= '
     <div class="section-title">G. Approval History</div>
+    <div class="table-wrapper">
     <table>
         <thead>
             <tr>
@@ -766,12 +808,13 @@ if (count($approvalHistory) > 0) {
     $html .= '
         </tbody>
     </table>
+    </div>
     ';
 }
 
-// FOOTER - HANYA SEKALI DI AKHIR DOKUMEN (BUKAN FIXED)
+// FOOTER - FIXED DI BAWAH SETIAP HALAMAN
 $html .= '
-<div class="footer-end">
+<div class="footer">
     <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
     <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
     <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
