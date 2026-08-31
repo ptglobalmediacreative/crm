@@ -351,32 +351,34 @@ $html = '
             page-break-after: avoid;
         }
         
-        /* INFO ROW - DENGAN LABEL SEJAJAR */
+        /* INFO ROW - DENGAN LABEL SEJAJAR RATA */
         .info-row {
-            padding: 2px 0;
+            padding: 3px 0;
             font-size: 9px;
             page-break-inside: avoid;
-            display: flex;
-            align-items: flex-start;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
         .info-row .label {
-            display: inline-block;
+            display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 130px;
-            min-width: 130px;
-            flex-shrink: 0;
+            width: 140px;
+            min-width: 140px;
+            vertical-align: top;
             text-align: left;
+            padding-right: 5px;
         }
         .info-row .label::after {
             content: ":";
-            display: inline-block;
-            margin-left: 2px;
+            display: inline;
         }
         .info-row .value {
-            flex: 1;
-            padding-left: 5px;
+            display: table-cell;
+            vertical-align: top;
             text-align: left;
+            word-wrap: break-word;
         }
         
         .info-row-2col {
@@ -398,30 +400,32 @@ $html = '
         }
         
         .info-row-left {
-            padding: 2px 0;
+            padding: 3px 0;
             font-size: 9px;
             page-break-inside: avoid;
-            display: flex;
-            align-items: flex-start;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
         .info-row-left .label {
-            display: inline-block;
+            display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 130px;
-            min-width: 130px;
-            flex-shrink: 0;
+            width: 140px;
+            min-width: 140px;
+            vertical-align: top;
             text-align: left;
+            padding-right: 5px;
         }
         .info-row-left .label::after {
             content: ":";
-            display: inline-block;
-            margin-left: 2px;
+            display: inline;
         }
         .info-row-left .value {
-            flex: 1;
-            padding-left: 5px;
+            display: table-cell;
+            vertical-align: top;
             text-align: left;
+            word-wrap: break-word;
         }
         
         /* TABLE */
@@ -474,10 +478,31 @@ $html = '
         .unit-detail-info {
             font-size: 8px;
             margin-top: 2px;
-            padding: 3px 5px;
+            padding: 5px 8px;
             background: #f9f9f9;
             border-left: 2px solid #c9a84c;
             page-break-inside: avoid;
+            display: table;
+            width: 100%;
+        }
+        .unit-detail-info .unit-info-row {
+            display: table-row;
+        }
+        .unit-detail-info .unit-info-label {
+            display: table-cell;
+            font-weight: 600;
+            color: #555;
+            width: 130px;
+            min-width: 130px;
+            padding-right: 5px;
+            text-align: left;
+        }
+        .unit-detail-info .unit-info-label::after {
+            content: ":";
+        }
+        .unit-detail-info .unit-info-value {
+            display: table-cell;
+            text-align: left;
         }
         
         /* THREE COLUMN BOX */
@@ -527,24 +552,26 @@ $html = '
         .approval-status-rejected { color: #dc3545; font-weight: 700; }
         .approval-status-pending { color: #ffc107; font-weight: 700; }
         
-        /* FOOTER - HANYA DI AKHIR DOKUMEN */
-        .footer-end {
-            margin-top: 20px;
-            padding: 8px 0;
+        /* FOOTER - FIXED DI BAWAH SETIAP HALAMAN */
+        .footer {
+            position: fixed;
+            bottom: -15px;
+            left: 0;
+            right: 0;
+            padding: 5px 20px;
             border-top: 2px solid #222;
             font-size: 7px;
             color: #555;
             text-align: center;
             background: #fff;
-            page-break-inside: avoid;
         }
-        .footer-end .footer-alamat {
+        .footer .footer-alamat {
             font-size: 7px;
             color: #555;
             margin-top: 2px;
             line-height: 1.4;
         }
-        .footer-end .footer-note {
+        .footer .footer-note {
             margin-top: 2px;
             font-size: 6px;
             color: #aaa;
@@ -559,7 +586,7 @@ $html = '
         .mb-5 { margin-bottom: 5px; }
         
         @page {
-            margin: 10mm 15mm 10mm 15mm;
+            margin: 10mm 15mm 18mm 15mm;
         }
     </style>
 </head>
@@ -644,13 +671,33 @@ if (count($detailUnits) > 0) {
     foreach ($detailUnits as $index => $unit) {
         $html .= '
     <div class="unit-detail-info">
-        <strong>Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong><br>
-        <span class="label">Additional Attachment</span>: ' . htmlspecialchars($unit['additional_attachment'] ?? '-') . ' | 
-        <span class="label">Waranty</span>: ' . htmlspecialchars($unit['waranty'] ?? '-') . ' | 
-        <span class="label">Machine Location</span>: ' . htmlspecialchars($unit['machine_location'] ?? '-') . ' | 
-        <span class="label">Delivery Terms</span>: ' . htmlspecialchars($unit['delivery_terms'] ?? '-') . ' | 
-        <span class="label">Delivery Schedule</span>: ' . (isset($unit['delivery_schedule']) && !empty($unit['delivery_schedule']) ? date('d/m/Y', strtotime($unit['delivery_schedule'])) : '-') . ' | 
-        <span class="label">Transaction Type</span>: ' . htmlspecialchars($unit['transaction_type'] ?? '-') . '
+        <div class="unit-info-row">
+            <strong style="display:block; margin-bottom:3px;">Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong>
+        </div>
+        <div class="unit-info-row">
+            <span class="unit-info-label">Additional Attachment</span>
+            <span class="unit-info-value">' . htmlspecialchars($unit['additional_attachment'] ?? '-') . '</span>
+        </div>
+        <div class="unit-info-row">
+            <span class="unit-info-label">Waranty</span>
+            <span class="unit-info-value">' . htmlspecialchars($unit['waranty'] ?? '-') . '</span>
+        </div>
+        <div class="unit-info-row">
+            <span class="unit-info-label">Machine Location</span>
+            <span class="unit-info-value">' . htmlspecialchars($unit['machine_location'] ?? '-') . '</span>
+        </div>
+        <div class="unit-info-row">
+            <span class="unit-info-label">Delivery Terms</span>
+            <span class="unit-info-value">' . htmlspecialchars($unit['delivery_terms'] ?? '-') . '</span>
+        </div>
+        <div class="unit-info-row">
+            <span class="unit-info-label">Delivery Schedule</span>
+            <span class="unit-info-value">' . (isset($unit['delivery_schedule']) && !empty($unit['delivery_schedule']) ? date('d/m/Y', strtotime($unit['delivery_schedule'])) : '-') . '</span>
+        </div>
+        <div class="unit-info-row">
+            <span class="unit-info-label">Transaction Type</span>
+            <span class="unit-info-value">' . htmlspecialchars($unit['transaction_type'] ?? '-') . '</span>
+        </div>
     </div>';
     }
 } else {
@@ -841,9 +888,9 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// FOOTER - HANYA SEKALI DI AKHIR DOKUMEN (BUKAN FIXED)
+// FOOTER - FIXED DI BAWAH SETIAP HALAMAN
 $html .= '
-<div class="footer-end">
+<div class="footer">
     <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
     <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
     <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
