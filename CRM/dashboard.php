@@ -33,7 +33,9 @@ function getRoleLabel($role) {
         'direktur_sales' => 'Direktur Sales',
         'business' => 'Business',
         'sales_manager' => 'Sales Manager',
-        'sales' => 'Sales'
+        'sales' => 'Sales',
+        'service_support' => 'Service Support',
+        'part_support' => 'Part Support'
     ];
     return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
 }
@@ -73,6 +75,7 @@ if ($filterSalesId > 0) {
 // ============================================
 // DATA STATISTIK
 // ============================================
+// Total Leads
 if ($isSalesRole) {
     $sqlTotalLeads = "SELECT COUNT(*) FROM accounts WHERE sales_id = $userId";
 } else {
@@ -80,6 +83,15 @@ if ($isSalesRole) {
 }
 $totalLeads = $db->query($sqlTotalLeads)->fetchColumn();
 
+// Total Sales Activities
+if ($isSalesRole) {
+    $sqlTotalActivities = "SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId";
+} else {
+    $sqlTotalActivities = "SELECT COUNT(*) FROM sales_activities WHERE 1=1" . $sqlFilterSA;
+}
+$totalActivities = $db->query($sqlTotalActivities)->fetchColumn();
+
+// Pipeline Counts
 $pipelineCounts = [
     'New Lead' => 0,
     'Middle Prospek' => 0,
@@ -134,8 +146,17 @@ $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
             WHERE ad.jenis_tugas = 'Kontrak'" . $sqlFilterSA;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
-// Revenue Forecast
-$totalRevenue = 0;
+// Total TR Request
+if ($isSalesRole) {
+    $sqlTotalTR = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad 
+                   JOIN sales_activities sa ON ad.sales_activity_id = sa.id 
+                   WHERE sa.sales_id = $userId AND ad.tr_number IS NOT NULL AND ad.tr_number != ''";
+} else {
+    $sqlTotalTR = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad 
+                   JOIN sales_activities sa ON ad.sales_activity_id = sa.id 
+                   WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''" . $sqlFilterSA;
+}
+$totalTR = $db->query($sqlTotalTR)->fetchColumn();
 
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
@@ -262,9 +283,6 @@ $sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name,
                   ORDER BY sa.created_at DESC 
                   LIMIT $activityLimit";
 $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
-
-$fullName = $_SESSION['full_name'] ?? 'User';
-$role = $_SESSION['role'] ?? 'user';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -468,7 +486,7 @@ $role = $_SESSION['role'] ?? 'user';
             <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
         <?php endif; ?>
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
         <?php endif; ?>
         <?php if (in_array('data_user', $menuNames)): ?>
             <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
@@ -522,21 +540,21 @@ $role = $_SESSION['role'] ?? 'user';
             </div>
             
             <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-chart-bar"></i></div>
+                <div class="stat-number"><?= number_format($totalActivities) ?></div>
+                <div class="stat-label">Total Aktivitas</div>
+            </div>
+
+            <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
                 <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
                 <div class="stat-label">Open Deals</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="stat-number">Rp <?= number_format($totalRevenue, 0, ',', '.') ?></div>
-                <div class="stat-label">Revenue Forecast</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon blue"><i class="fas fa-users"></i></div>
-                <div class="stat-number" style="font-size:18px;"><?= htmlspecialchars($filteredSalesName) ?></div>
-                <div class="stat-label">Sedang Ditinjau</div>
+                <div class="stat-icon green"><i class="fas fa-file-signature"></i></div>
+                <div class="stat-number"><?= number_format($totalTR) ?></div>
+                <div class="stat-label">Total TR Request</div>
             </div>
         </div>
 
@@ -620,6 +638,7 @@ $role = $_SESSION['role'] ?? 'user';
                 <div class="text-center text-muted py-3">
                     <i class="fas fa-info-circle fa-2x mb-2"></i>
                     <p>Dashboard menampilkan ringkasan data sales activity.</p>
+                    <p>Filter Sales dan Bulan tersedia di pojok kanan atas.</p>
                 </div>
             </div>
         </div>
