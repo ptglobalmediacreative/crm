@@ -73,6 +73,13 @@ $role = $_SESSION['role'] ?? 'user';
 // AMBIL DI NUMBER DARI URL
 // ============================================
 $di_number = isset($_GET['di_number']) ? bersihkan($_GET['di_number']) : '';
+$activeTab = isset($_GET['tab']) ? bersihkan($_GET['tab']) : 'data_penjualan';
+
+// Validasi tab
+$validTabs = ['data_penjualan', 'data_customer', 'data_unit', 'aksesoris', 'logistik', 'product_support'];
+if (!in_array($activeTab, $validTabs)) {
+    $activeTab = 'data_penjualan';
+}
 
 if (empty($di_number)) {
     setFlash('DI Number tidak ditemukan!', 'danger');
@@ -360,7 +367,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan data: ' . $e->getMessage(), 'danger');
         }
-        redirect("detaildi.php?di_number=" . urlencode($di_number));
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=data_penjualan");
     }
     
     // ============================================
@@ -468,7 +475,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan data unit: ' . $e->getMessage(), 'danger');
         }
-        redirect("detaildi.php?di_number=" . urlencode($di_number));
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=data_unit");
     }
     
     // ============================================
@@ -510,7 +517,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan data aksesoris: ' . $e->getMessage(), 'danger');
         }
-        redirect("detaildi.php?di_number=" . urlencode($di_number));
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=aksesoris");
     }
     
     // ============================================
@@ -541,7 +548,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan data logistik: ' . $e->getMessage(), 'danger');
         }
-        redirect("detaildi.php?di_number=" . urlencode($di_number));
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=logistik");
     }
     
     // ============================================
@@ -580,7 +587,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan data product support: ' . $e->getMessage(), 'danger');
         }
-        redirect("detaildi.php?di_number=" . urlencode($di_number));
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=product_support");
     }
 }
 ?>
@@ -818,6 +825,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .mobile-toggle { display: none; }
 
+        .tab-nav {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid #e0e4ea;
+            margin-bottom: 25px;
+            padding: 0;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .tab-nav .nav-tabs {
+            border-bottom: none;
+            padding: 5px;
+            gap: 5px;
+            display: flex;
+        }
+        .tab-nav .nav-tabs .nav-item { margin: 0; }
+        .tab-nav .nav-tabs .nav-link {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #666;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .tab-nav .nav-tabs .nav-link i { font-size: 14px; }
+        .tab-nav .nav-tabs .nav-link:hover { background: #f8f9fa; color: #0e1a2b; }
+        .tab-nav .nav-tabs .nav-link.active { background: #0e1a2b; color: #ffd700; }
+
         .data-row {
             background: #fff;
             border: 1px solid #e0e4ea;
@@ -845,6 +886,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 width: 40px; height: 40px; border-radius: 8px; 
                 color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
             }
+            .tab-nav .nav-tabs .nav-link { padding: 10px 15px; font-size: 12px; }
         }
     </style>
 </head>
@@ -920,9 +962,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?= showFlash() ?>
 
-        <!-- ============================================ -->
-        <!-- SECTION: STATUS BAR -->
-        <!-- ============================================ -->
+        <!-- STATUS BAR -->
         <div class="card-custom">
             <div class="card-body-custom" style="padding: 15px 24px;">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -947,9 +987,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- ============================================ -->
-        <!-- SECTION: NOTIFIKASI HAK AKSES -->
-        <!-- ============================================ -->
+        <!-- NOTIFIKASI HAK AKSES -->
         <?php if (!$canEdit && !$hasBeenApproved): ?>
         <div class="alert alert-info">
             <i class="fas fa-info-circle"></i> 
@@ -957,9 +995,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <?php endif; ?>
 
+        <!-- TAB NAVIGATION -->
+        <div class="tab-nav">
+            <ul class="nav nav-tabs" id="diTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'data_penjualan' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=data_penjualan">
+                        <i class="fas fa-file-invoice"></i> Data Penjualan
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'data_customer' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=data_customer">
+                        <i class="fas fa-building"></i> Data Customer
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'data_unit' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=data_unit">
+                        <i class="fas fa-boxes"></i> Data Unit
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'aksesoris' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=aksesoris">
+                        <i class="fas fa-tools"></i> Aksesoris
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'logistik' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=logistik">
+                        <i class="fas fa-truck"></i> Logistik
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'product_support' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=product_support">
+                        <i class="fas fa-headset"></i> Product Support
+                    </a>
+                </li>
+            </ul>
+        </div>
+
         <!-- ============================================ -->
-        <!-- SECTION: DATA PENJUALAN -->
+        <!-- TAB CONTENT: DATA PENJUALAN -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'data_penjualan'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-file-invoice"></i> Data Penjualan</h6>
@@ -1022,12 +1097,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                 </div>
+                
+                <!-- APPROVAL SECTION DI DALAM TAB DATA PENJUALAN -->
+                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
+                    <?php 
+                    $canApprove = false;
+                    $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
+                    if ($userRole == $requiredRole) {
+                        $canApprove = true;
+                    }
+                    ?>
+                    
+                    <?php if (!$canApprove): ?>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        Anda tidak memiliki hak untuk melakukan approval pada level ini. 
+                        Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($canApprove): ?>
+                    <div class="mt-4 p-3" style="background: #f8f9fa; border-radius: 10px;">
+                        <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
+                        <p>Anda memiliki hak untuk melakukan approval sebagai <strong><?= htmlspecialchars($currentApproverLabel) ?></strong></p>
+                        <form method="POST" id="approvalForm">
+                            <input type="hidden" name="action" id="approvalAction" value="approve">
+                            <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
+                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
+                                <i class="fas fa-check-circle"></i> Approve
+                            </button>
+                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
+                                <i class="fas fa-times-circle"></i> Reject
+                            </button>
+                        </form>
+                    </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: DATA CUSTOMER -->
+        <!-- TAB CONTENT: DATA CUSTOMER -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'data_customer'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-building"></i> Data Customer</h6>
@@ -1051,10 +1164,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: DATA UNIT -->
+        <!-- TAB CONTENT: DATA UNIT -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'data_unit'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-boxes"></i> Data Unit</h6>
@@ -1140,10 +1255,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: AKSESORIS -->
+        <!-- TAB CONTENT: AKSESORIS -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'aksesoris'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-tools"></i> Aksesoris</h6>
@@ -1213,10 +1330,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: LOGISTIK -->
+        <!-- TAB CONTENT: LOGISTIK -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'logistik'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-truck"></i> Logistik</h6>
@@ -1295,10 +1414,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- SECTION: PRODUCT SUPPORT -->
+        <!-- TAB CONTENT: PRODUCT SUPPORT -->
         <!-- ============================================ -->
+        <?php if ($activeTab == 'product_support'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-headset"></i> Product Support</h6>
@@ -1448,47 +1569,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
-
-        <!-- ============================================ -->
-        <!-- SECTION: APPROVAL -->
-        <!-- ============================================ -->
-        <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
-            <?php 
-            $canApprove = false;
-            $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
-            if ($userRole == $requiredRole) {
-                $canApprove = true;
-            }
-            ?>
-            
-            <?php if (!$canApprove): ?>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> 
-                Anda tidak memiliki hak untuk melakukan approval pada level ini. 
-                Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
-            </div>
-            <?php endif; ?>
-            
-            <?php if ($canApprove): ?>
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h6><i class="fas fa-check-double"></i> Approval Action</h6>
-                </div>
-                <div class="card-body-custom">
-                    <p>Anda memiliki hak untuk melakukan approval sebagai <strong><?= htmlspecialchars($currentApproverLabel) ?></strong></p>
-                    <form method="POST" id="approvalForm">
-                        <input type="hidden" name="action" id="approvalAction" value="approve">
-                        <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
-                        <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
-                            <i class="fas fa-check-circle"></i> Approve
-                        </button>
-                        <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
-                            <i class="fas fa-times-circle"></i> Reject
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <?php endif; ?>
         <?php endif; ?>
 
     </div>
