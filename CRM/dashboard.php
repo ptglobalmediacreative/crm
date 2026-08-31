@@ -1,7 +1,4 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-ini_set('log_errors', 1);
 require_once 'config.php';
 
 // Set timezone ke WIB
@@ -36,9 +33,7 @@ function getRoleLabel($role) {
         'direktur_sales' => 'Direktur Sales',
         'business' => 'Business',
         'sales_manager' => 'Sales Manager',
-        'sales' => 'Sales',
-        'service_support' => 'Service Support',
-        'part_support' => 'Part Support'
+        'sales' => 'Sales'
     ];
     return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
 }
@@ -78,7 +73,6 @@ if ($filterSalesId > 0) {
 // ============================================
 // DATA STATISTIK
 // ============================================
-// Total Leads
 if ($isSalesRole) {
     $sqlTotalLeads = "SELECT COUNT(*) FROM accounts WHERE sales_id = $userId";
 } else {
@@ -86,15 +80,6 @@ if ($isSalesRole) {
 }
 $totalLeads = $db->query($sqlTotalLeads)->fetchColumn();
 
-// Total Sales Activities
-if ($isSalesRole) {
-    $sqlTotalActivities = "SELECT COUNT(*) FROM sales_activities WHERE sales_id = $userId";
-} else {
-    $sqlTotalActivities = "SELECT COUNT(*) FROM sales_activities WHERE 1=1" . $sqlFilterSA;
-}
-$totalActivities = $db->query($sqlTotalActivities)->fetchColumn();
-
-// Pipeline Counts
 $pipelineCounts = [
     'New Lead' => 0,
     'Middle Prospek' => 0,
@@ -149,17 +134,8 @@ $sqlDeal = "SELECT COUNT(DISTINCT sa.account_id) FROM sales_activities sa
             WHERE ad.jenis_tugas = 'Kontrak'" . $sqlFilterSA;
 $pipelineCounts['Deal'] = (int)$db->query($sqlDeal)->fetchColumn();
 
-// Total TR Request
-if ($isSalesRole) {
-    $sqlTotalTR = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad 
-                   JOIN sales_activities sa ON ad.sales_activity_id = sa.id 
-                   WHERE sa.sales_id = $userId AND ad.tr_number IS NOT NULL AND ad.tr_number != ''";
-} else {
-    $sqlTotalTR = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad 
-                   JOIN sales_activities sa ON ad.sales_activity_id = sa.id 
-                   WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''" . $sqlFilterSA;
-}
-$totalTR = $db->query($sqlTotalTR)->fetchColumn();
+// Revenue Forecast
+$totalRevenue = 0;
 
 $filteredSalesName = ($filterSalesId > 0) ? ($db->query("SELECT full_name FROM users WHERE id = $filterSalesId")->fetchColumn() ?: 'Sales') : 'Semua Sales';
 
@@ -286,6 +262,9 @@ $sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name,
                   ORDER BY sa.created_at DESC 
                   LIMIT $activityLimit";
 $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
+
+$fullName = $_SESSION['full_name'] ?? 'User';
+$role = $_SESSION['role'] ?? 'user';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -489,7 +468,7 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
             <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
         <?php endif; ?>
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
         <?php endif; ?>
         <?php if (in_array('data_user', $menuNames)): ?>
             <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
@@ -543,21 +522,21 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
             </div>
             
             <div class="stat-card">
-                <div class="stat-icon blue"><i class="fas fa-chart-bar"></i></div>
-                <div class="stat-number"><?= number_format($totalActivities) ?></div>
-                <div class="stat-label">Total Aktivitas</div>
-            </div>
-
-            <div class="stat-card">
                 <div class="stat-icon red"><i class="fas fa-briefcase"></i></div>
                 <div class="stat-number"><?= number_format($pipelineCounts['Deal']) ?></div>
                 <div class="stat-label">Open Deals</div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon green"><i class="fas fa-file-signature"></i></div>
-                <div class="stat-number"><?= number_format($totalTR) ?></div>
-                <div class="stat-label">Total TR Request</div>
+                <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="stat-number">Rp <?= number_format($totalRevenue, 0, ',', '.') ?></div>
+                <div class="stat-label">Revenue Forecast</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                <div class="stat-number" style="font-size:18px;"><?= htmlspecialchars($filteredSalesName) ?></div>
+                <div class="stat-label">Sedang Ditinjau</div>
             </div>
         </div>
 
@@ -597,42 +576,52 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- AKTIVITAS TERBARU -->
-        <div class="activity-card" style="margin-bottom:24px;">
-            <div style="display:flex; justify-content:space-between;">
-                <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
-                <a href="salesactivity.php" style="font-size:12px; color:#2980b9; text-decoration:none;">Lihat Semua</a>
-            </div>
-            
-            <?php if (!empty($recentActivities)): ?>
-                <?php foreach ($recentActivities as $act): 
-                    $salesInitial = '';
-                    if (!empty($act['sales_name'])) {
-                        $names = explode(' ', $act['sales_name']);
-                        if (count($names) >= 2) {
-                            $salesInitial = strtoupper(substr($names[0], 0, 1) . substr($names[1], 0, 1));
-                        } else {
-                            $salesInitial = strtoupper(substr($act['sales_name'], 0, 2));
-                        }
-                    }
-                ?>
-                <div class="activity-item">
-                    <div class="act-icon gold"><i class="fas fa-file-alt"></i></div>
-                    <div class="act-info">
-                        <div class="act-title">
-                            <?php if (!empty($salesInitial)): ?>
-                                <span class="badge bg-primary me-2" style="font-size:11px;"><?= $salesInitial ?></span>
-                            <?php endif; ?>
-                            <?= htmlspecialchars($act['subject'] ?? '-') ?>
-                        </div>
-                        <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas'] ?? '-') ?></div>
-                        <span class="act-time"><?= date('d M H:i', strtotime($act['created_at'])) ?></span>
-                    </div>
+        <!-- GRID: RECENT ACTIVITIES -->
+        <div class="grid-2-col">
+            <div class="activity-card">
+                <div style="display:flex; justify-content:space-between;">
+                    <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
+                    <a href="salesactivity.php" style="font-size:12px; color:#2980b9; text-decoration:none;">Lihat Semua</a>
                 </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="text-center text-muted py-3">Belum ada aktivitas.</div>
-            <?php endif; ?>
+                
+                <?php if (!empty($recentActivities)): ?>
+                    <?php foreach ($recentActivities as $act): 
+                        $salesInitial = '';
+                        if (!empty($act['sales_name'])) {
+                            $names = explode(' ', $act['sales_name']);
+                            if (count($names) >= 2) {
+                                $salesInitial = strtoupper(substr($names[0], 0, 1) . substr($names[1], 0, 1));
+                            } else {
+                                $salesInitial = strtoupper(substr($act['sales_name'], 0, 2));
+                            }
+                        }
+                    ?>
+                    <div class="activity-item">
+                        <div class="act-icon gold"><i class="fas fa-file-alt"></i></div>
+                        <div class="act-info">
+                            <div class="act-title">
+                                <?php if (!empty($salesInitial)): ?>
+                                    <span class="badge bg-primary me-2" style="font-size:11px;"><?= $salesInitial ?></span>
+                                <?php endif; ?>
+                                <?= htmlspecialchars($act['subject'] ?? '-') ?>
+                            </div>
+                            <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas'] ?? '-') ?></div>
+                            <span class="act-time"><?= date('d M H:i', strtotime($act['created_at'])) ?></span>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center text-muted py-3">Belum ada aktivitas.</div>
+                <?php endif; ?>
+            </div>
+
+            <div class="activity-card">
+                <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Informasi</h6>
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                    <p>Dashboard menampilkan ringkasan data sales activity.</p>
+                </div>
+            </div>
         </div>
         
         <div class="text-center mt-4 text-muted" style="font-size:12px;">&copy; <?= date('Y') ?> PT Ganda Elang Tangguh - CRM</div>
