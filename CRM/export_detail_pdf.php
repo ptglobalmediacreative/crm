@@ -341,13 +341,12 @@ $html = '
             font-size: 10px;
             font-weight: 700;
             border-bottom: 1.5px solid #222;
-            padding: 4px 0 2px 0;
+            padding: 4px 5px 2px 5px;
             margin: 10px 0 5px 0;
             color: #222;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             background: #f5f5f5;
-            padding-left: 5px;
             border-radius: 2px;
         }
         
@@ -466,43 +465,23 @@ $html = '
         .approval-status-rejected { color: #dc3545; font-weight: 700; }
         .approval-status-pending { color: #ffc107; font-weight: 700; }
         
-        /* MEDIATOR CARD */
-        .mediator-card {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 6px 8px;
-            margin-bottom: 4px;
-            background: #fafafa;
-        }
-        .mediator-card .mediator-header {
-            font-weight: 700;
-            font-size: 9px;
-            color: #222;
-            margin-bottom: 3px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 2px;
-        }
-        
-        /* FOOTER */
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 6px 20px;
+        /* FOOTER - HANYA DI AKHIR DOKUMEN */
+        .footer-end {
+            margin-top: 20px;
+            padding: 8px 0;
             border-top: 2px solid #222;
             font-size: 7px;
             color: #555;
             text-align: center;
             background: #fff;
         }
-        .footer .footer-alamat {
+        .footer-end .footer-alamat {
             font-size: 7px;
             color: #555;
             margin-top: 2px;
             line-height: 1.4;
         }
-        .footer .footer-note {
+        .footer-end .footer-note {
             margin-top: 2px;
             font-size: 6px;
             color: #aaa;
@@ -517,7 +496,7 @@ $html = '
         .mb-5 { margin-bottom: 5px; }
         
         @page {
-            margin: 10mm 15mm 12mm 15mm;
+            margin: 10mm 15mm 10mm 15mm;
         }
     </style>
 </head>
@@ -790,9 +769,9 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// FOOTER - POSISI ABSOLUTE DI BAWAH
+// FOOTER - HANYA SEKALI DI AKHIR DOKUMEN (BUKAN FIXED)
 $html .= '
-<div class="footer">
+<div class="footer-end">
     <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
     <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
     <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
