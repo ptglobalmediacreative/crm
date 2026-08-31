@@ -519,21 +519,6 @@ $html = '<!DOCTYPE html>
         color: #555;
     }
 
-    .signature td {
-        height: 44px;
-        vertical-align: bottom;
-        text-align: center;
-    }
-
-    .signature-name {
-        font-weight: 700;
-        font-size: 7px;
-    }
-
-    .signature-role {
-        font-size: 6.5px;
-    }
-
     .keep {
         page-break-inside: avoid;
     }
@@ -563,9 +548,17 @@ $html = '<!DOCTYPE html>
                 <tr><td class="label">Phone</td><td>' . h($request['no_hp_pic'] ?? '-') . '</td></tr>
                 <tr><td class="label">e-Mail</td><td>' . h($request['email_pic'] ?? '-') . '</td></tr>
                 <tr><td class="label">Salesman</td><td>' . h($request['sales_name'] ?? '-') . '</td></tr>
-                <tr><td class="label">Status</td><td><span class="status ' . statusClass($request['status'] ?? 'pending') . '">' . h(statusLabel($request['status'] ?? 'pending')) . '</span></td></tr>
+                <tr>
+                    <td class="label">Deskripsi</td>
+                    <td>' . nl2br(h($detailTR['deskripsi'] ?? '-')) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Status</td>
+                    <td><span class="status ' . statusClass($request['status'] ?? 'pending') . '">' . h(statusLabel($request['status'] ?? 'pending')) . '</span></td>
+                </tr>
             </table>
         </td>
+
         <td class="col-right">
             <table class="unit-main">
                 <tr>
@@ -591,26 +584,39 @@ if (count($detailUnits) > 0) {
 }
 
 $html .= '
-                <tr class="summary-total"><td colspan="4" class="right">TOTAL GRAND TOTAL UNIT</td><td class="right money">' . formatRp($totalUnitGrandTotal) . '</td></tr>
+                <tr class="summary-total">
+                    <td colspan="4" class="right">TOTAL GRAND TOTAL UNIT</td>
+                    <td class="right money">' . formatRp($totalUnitGrandTotal) . '</td>
+                </tr>
+            </table>
+
+            <div class="section" style="margin-top:5px;">C. TERM OF PAYMENT</div>
+            <table class="top-table">
+                <tr>
+                    <th style="width:34%">Payment</th>
+                    <th style="width:30%">Amount</th>
+                    <th style="width:36%">Keterangan</th>
+                </tr>';
+
+if (count($termPayments) > 0) {
+    foreach ($termPayments as $top) {
+        $html .= '<tr>
+            <td>' . h($top['payment_label'] ?? '-') . '</td>
+            <td class="right money bold">' . formatRp($top['amount'] ?? 0) . '</td>
+            <td>' . nl2br(h($top['keterangan'] ?? '-')) . '</td>
+        </tr>';
+    }
+} else {
+    $html .= '<tr><td colspan="3" class="center">Belum ada data TOP</td></tr>';
+}
+
+$html .= '<tr class="top-total">
+                <td class="right">TOTAL TOP</td>
+                <td class="right money">' . formatRp($totalTOP) . '</td>
+                <td></td>
+            </tr>
             </table>
         </td>
-    </tr>
-</table>
-
-<!-- A. SUMMARY -->
-<div class="section">A. SUMMARY / TRANSACTION INFORMATION</div>
-<table>
-    <tr>
-        <td class="label" style="width:21%">Deskripsi</td>
-        <td style="width:79%">' . nl2br(h($detailTR['deskripsi'] ?? '-')) . '</td>
-    </tr>
-    <tr>
-        <td class="label">Current Approver</td>
-        <td>' . h($currentApproverLabel) . '</td>
-    </tr>
-    <tr>
-        <td class="label">Next Approver</td>
-        <td>' . h($nextApproverLabel) . '</td>
     </tr>
 </table>
 
@@ -673,51 +679,36 @@ $html .= '
     </tr>
 </table>
 
-<!-- C + D -->
-<table class="two-col" style="margin-top:5px;">
+<!-- D. ADDITIONAL COST -->
+<div class="section">D. ADDITIONAL COST</div>
+<table class="cost-table">
     <tr>
-        <td class="col-left">
-            <div class="section" style="margin-top:0;">C. TERM OF PAYMENT</div>
-            <table class="top-table">
-                <tr>
-                    <th style="width:34%">Payment</th>
-                    <th style="width:30%">Amount</th>
-                    <th style="width:36%">Keterangan</th>
-                </tr>';
-
-if (count($termPayments) > 0) {
-    foreach ($termPayments as $top) {
-        $html .= '<tr>
-            <td>' . h($top['payment_label'] ?? '-') . '</td>
-            <td class="right money bold">' . formatRp($top['amount'] ?? 0) . '</td>
-            <td>' . nl2br(h($top['keterangan'] ?? '-')) . '</td>
-        </tr>';
-    }
-} else {
-    $html .= '<tr><td colspan="3" class="center">Belum ada data TOP</td></tr>';
-}
-
-$html .= '<tr class="top-total">
-                <td class="right">TOTAL TOP</td>
-                <td class="right money">' . formatRp($totalTOP) . '</td>
-                <td></td>
-            </tr>
-            </table>
-        </td>
-
-        <td class="col-right">
-            <div class="section" style="margin-top:0;">D. ADDITIONAL COST</div>
-            <table class="cost-table">
-                <tr><td class="label" style="width:50%">Insurance Ops</td><td class="right money" style="width:50%">' . formatRp($additionalCost['insurance_ops'] ?? 0) . '</td></tr>
-                <tr><td class="label">Insurance Cargo</td><td class="right money">' . formatRp($additionalCost['insurance_cargo'] ?? 0) . '</td></tr>
-                <tr><td class="label">Delivery Cost</td><td class="right money">' . formatRp($additionalCost['delivery_cost'] ?? 0) . '</td></tr>
-                <tr><td class="label">Mediator Fee (Additional Cost)</td><td class="right money">' . formatRp($additionalCost['mediator_fee'] ?? 0) . '</td></tr>
-                <tr><td class="label">Free Part</td><td>' . nl2br(h($additionalCost['free_part'] ?? '-')) . '</td></tr>
-                <tr><td class="label">Free Service</td><td>' . nl2br(h($additionalCost['free_service'] ?? '-')) . '</td></tr>
-                <tr><td class="label">Others</td><td>' . nl2br(h($additionalCost['others'] ?? '-')) . '</td></tr>
-                <tr><td class="label bold">TOTAL BIAYA TAMBAHAN (sesuai perhitungan detailtr.php)</td><td class="right money bold green">' . formatRp($totalAdditionalCost) . '</td></tr>
-            </table>
-        </td>
+        <td class="label" style="width:30%">Insurance Ops</td>
+        <td class="right money" style="width:20%">' . formatRp($additionalCost['insurance_ops'] ?? 0) . '</td>
+        <td class="label" style="width:30%">Insurance Cargo</td>
+        <td class="right money" style="width:20%">' . formatRp($additionalCost['insurance_cargo'] ?? 0) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Delivery Cost</td>
+        <td class="right money">' . formatRp($additionalCost['delivery_cost'] ?? 0) . '</td>
+        <td class="label">Mediator Fee (Additional Cost)</td>
+        <td class="right money">' . formatRp($additionalCost['mediator_fee'] ?? 0) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Free Part</td>
+        <td colspan="3">' . nl2br(h($additionalCost['free_part'] ?? '-')) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Free Service</td>
+        <td colspan="3">' . nl2br(h($additionalCost['free_service'] ?? '-')) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Others</td>
+        <td colspan="3">' . nl2br(h($additionalCost['others'] ?? '-')) . '</td>
+    </tr>
+    <tr>
+        <td class="label bold">TOTAL BIAYA TAMBAHAN</td>
+        <td colspan="3" class="right money bold green">' . formatRp($totalAdditionalCost) . '</td>
     </tr>
 </table>
 
@@ -819,9 +810,6 @@ $html .= '
     </tr>
 </table>
 
-<div class="note" style="margin-top:3px;">
-    Catatan: Isi PDF mengikuti field dan perhitungan yang digunakan pada detailtr.php.
-</div>
 
 </body>
 </html>';;
