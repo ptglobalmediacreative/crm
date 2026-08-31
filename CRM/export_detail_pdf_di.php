@@ -67,6 +67,14 @@ function statusLabel($status) {
     return 'Pending';
 }
 
+function statusClass($status) {
+    $status = strtolower((string)$status);
+    if (in_array($status, ['approved', 'rejected', 'pending'], true)) {
+        return 'status-' . $status;
+    }
+    return 'status-pending';
+}
+
 function getApprovalLabel($approvalLevels, $order) {
     return $approvalLevels[(int)$order]['label'] ?? ('Level ' . (int)$order);
 }
@@ -260,12 +268,12 @@ $html = '<!DOCTYPE html>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Delivery Instruction - ' . h($di_number) . '</title>
 <style>
-    @page { margin: 8mm 10mm 8mm 10mm; }
+    @page { margin: 7mm 7mm 7mm 7mm; }
     * { box-sizing: border-box; }
     body {
         font-family: Helvetica, Arial, sans-serif;
-        font-size: 8px;
-        line-height: 1.22;
+        font-size: 7.2px;
+        line-height: 1.25;
         color: #111;
         margin: 0;
         padding: 0;
@@ -283,26 +291,24 @@ $html = '<!DOCTYPE html>
         display: inline-block;
     }
 
-    .title,
-    .section-title,
-    .sub-title {
-        border: 1px solid #222;
-        text-align: center;
-        font-weight: 700;
-    }
-
     .title {
-        font-size: 12px;
+        border: 1px solid #1f1f1f;
+        background: #16b5ea;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
         padding: 4px 5px;
-        background: #fff;
-        margin-bottom: 0;
-        letter-spacing: .2px;
+        margin-bottom: 4px;
     }
 
-    .section-title {
-        background: #fff;
-        font-size: 9px;
+    .section {
+        background: #dfe8ef;
+        border: 1px solid #222;
+        border-bottom: 0;
+        font-weight: 700;
         padding: 3px 4px;
+        margin-top: 5px;
+        text-transform: uppercase;
     }
 
     table {
@@ -313,53 +319,57 @@ $html = '<!DOCTYPE html>
 
     th, td {
         border: 1px solid #222;
-        padding: 2.7px 3px;
+        padding: 2.2px 3px;
         vertical-align: top;
         word-wrap: break-word;
     }
 
     th {
+        background: #f0f0f0;
         text-align: center;
         font-weight: 700;
-        background: #f6f6f6;
     }
 
-    .label { font-weight: 700; }
+    .label {
+        background: #f3f3f3;
+        font-weight: 700;
+    }
+
     .center { text-align: center; }
     .right { text-align: right; }
     .bold { font-weight: 700; }
-    .small { font-size: 7px; }
-    .tiny { font-size: 6.5px; }
+
     .green { background: #e6f0dc; }
     .yellow { background: #fff200; }
-    .gray { background: #efefef; }
-    .nowrap { white-space: nowrap; }
 
-    .meta-table td { height: 17px; }
+    .meta-table td {
+        height: 15px;
+    }
+
     .meta-label { width: 18%; font-weight: 700; }
     .meta-value { width: 32%; }
 
-    .unit-table td { text-align: center; height: 21px; }
-    .unit-table .unit-body td { height: 62px; vertical-align: middle; }
+    .unit-table td { text-align: center; height: 18px; }
+    .unit-table .unit-body td { height: 50px; vertical-align: middle; }
 
-    .accessory-table td { height: 18px; vertical-align: middle; }
-    .accessory-empty { height: 70px !important; }
+    .accessory-table td { height: 16px; vertical-align: middle; }
+    .accessory-empty { height: 60px !important; }
 
-    .logistics-table td { height: 18px; }
-    .support-table td { height: 18px; vertical-align: middle; }
+    .logistics-table td { height: 16px; }
+    .support-table td { height: 16px; vertical-align: middle; }
 
-    .support-label { width: 31%; font-weight: 700; }
+    .support-label { width: 31%; font-weight: 700; background: #f3f3f3; }
     .support-value { width: 69%; }
 
     .approval-table th { background: #fff200; }
-    .approval-table td { height: 17px; vertical-align: middle; }
+    .approval-table td { height: 16px; vertical-align: middle; }
 
     .status {
         display: inline-block;
-        border: 1px solid #444;
+        border: 1px solid #555;
         padding: 1px 5px;
         font-weight: 700;
-        font-size: 7px;
+        font-size: 6.5px;
     }
     .status-pending { background: #fff1bf; }
     .status-approved { background: #d9efd9; }
@@ -380,52 +390,55 @@ $html = '<!DOCTYPE html>
 
 <div class="title">DELIVERY INSTRUCTION</div>
 
-<div class="section-title">DATA PENJUALAN</div>
+<!-- DATA PENJUALAN -->
+<div class="section">A. DATA PENJUALAN</div>
 <table class="meta-table">
     <tr>
-        <td class="meta-label">No. DI</td>
-        <td class="meta-value">' . h($di_number) . '</td>
-        <td class="meta-label">Sales</td>
+        <td class="label meta-label">No. DI</td>
+        <td class="bold meta-value">' . h($di_number) . '</td>
+        <td class="label meta-label">Sales</td>
         <td class="meta-value">' . h($request['sales_name'] ?? '-') . '</td>
     </tr>
     <tr>
-        <td class="meta-label">Tanggal</td>
+        <td class="label meta-label">Tanggal</td>
         <td class="meta-value">' . formatDateLongId($request['request_date'] ?? null) . '</td>
-        <td class="meta-label">Kode Sales</td>
+        <td class="label meta-label">Kode Sales</td>
         <td class="meta-value">-</td>
     </tr>
     <tr>
-        <td class="meta-label">No. SO</td>
+        <td class="label meta-label">No. SO</td>
         <td class="meta-value">' . h($request['no_so'] ?? '-') . '</td>
-        <td class="meta-label">Status</td>
-        <td class="meta-value"><span class="status status-' . strtolower(h($request['status'] ?? 'pending')) . '">' . h(statusLabel($request['status'] ?? 'pending')) . '</span></td>
+        <td class="label meta-label">Status</td>
+        <td class="meta-value"><span class="status ' . statusClass($request['status'] ?? 'pending') . '">' . h(statusLabel($request['status'] ?? 'pending')) . '</span></td>
     </tr>
 </table>
 
-<div class="section-title">DATA CUSTOMER</div>
+<!-- DATA CUSTOMER -->
+<div class="section">B. DATA CUSTOMER</div>
 <table class="meta-table">
     <tr>
-        <td class="meta-label">Customer</td>
-        <td colspan="3">' . h($request['nama_pt'] ?? '-') . '</td>
+        <td class="label meta-label">Customer</td>
+        <td colspan="3" class="green bold">' . h($request['nama_pt'] ?? '-') . '</td>
     </tr>
     <tr>
-        <td class="meta-label">Alamat</td>
+        <td class="label meta-label">Alamat</td>
         <td colspan="3">' . nl2br(h($request['alamat'] ?? '-')) . '</td>
     </tr>
     <tr>
-        <td class="meta-label">PIC</td>
+        <td class="label meta-label">PIC</td>
         <td style="width:32%">' . h($request['nama_pic'] ?? '-') . '</td>
-        <td class="meta-label">No. Contact</td>
+        <td class="label meta-label">No. Contact</td>
         <td style="width:32%">' . h($request['no_hp_pic'] ?? '-') . '</td>
     </tr>
 </table>
 
-<div class="section-title">DATA UNIT</div>
+<!-- DATA UNIT -->
+<div class="section">C. DATA UNIT</div>
 <table class="meta-table">
     <tr>
-        <td class="meta-label">Lokasi Unit</td>
+        <td class="label meta-label">Lokasi Unit</td>
         <td>' . h($diUnits[0]['lokasi_unit'] ?? '-') . '</td>
-        <td class="meta-label">Cabang</td>
+        <td class="label meta-label">Cabang</td>
         <td>' . h($diUnits[0]['cabang'] ?? '-') . '</td>
     </tr>
 </table>
@@ -451,17 +464,13 @@ if (count($diUnits) > 0) {
         </tr>';
     }
 } else {
-    $html .= '<tr class="unit-body"><td colspan="6">Belum ada data unit</td></tr>';
+    $html .= '<tr class="unit-body"><td colspan="6" class="center">Belum ada data unit</td></tr>';
 }
 
 $html .= '</table>
 
-<table class="meta-table">
-    <tr>
-        <td class="meta-label">Aksesoris</td>
-        <td colspan="3">' . (count($diAccessories) > 0 ? 'Ada data aksesoris di tabel berikut' : '-') . '</td>
-    </tr>
-</table>
+<!-- AKSESORIS -->
+<div class="section">D. AKSESORIS</div>
 <table class="accessory-table">
     <tr>
         <th style="width:10%">No</th>
@@ -482,34 +491,36 @@ if (count($diAccessories) > 0) {
         </tr>';
     }
 } else {
-    $html .= '<tr><td colspan="5" class="accessory-empty">Belum ada data aksesoris</td></tr>';
+    $html .= '<tr><td colspan="5" class="accessory-empty center">Belum ada data aksesoris</td></tr>';
 }
 
 $html .= '</table>
 
-<div class="section-title">LOGISTIK</div>
+<!-- LOGISTIK -->
+<div class="section">E. LOGISTIK</div>
 <table class="logistics-table">
     <tr>
-        <td class="meta-label">Lokasi Pengambilan</td>
+        <td class="label meta-label">Lokasi Pengambilan</td>
         <td colspan="3">' . h($diLogistics['lokasi_pengambilan'] ?? '-') . '</td>
     </tr>
     <tr>
-        <td class="meta-label">Lokasi Pengiriman</td>
+        <td class="label meta-label">Lokasi Pengiriman</td>
         <td colspan="3">' . h($diLogistics['lokasi_pengiriman'] ?? '-') . '</td>
     </tr>
     <tr>
-        <td class="meta-label">Transportir</td>
+        <td class="label meta-label">Transportir</td>
         <td style="width:32%">' . h($diLogistics['transportir'] ?? '-') . '</td>
-        <td class="meta-label">Waktu Pengiriman</td>
+        <td class="label meta-label">Waktu Pengiriman</td>
         <td style="width:32%">' . formatDateLongId($diLogistics['waktu_pengiriman'] ?? null) . '</td>
     </tr>
     <tr>
-        <td class="meta-label">ETA</td>
+        <td class="label meta-label">ETA</td>
         <td colspan="3">' . formatDateLongId($diLogistics['eta'] ?? null) . '</td>
     </tr>
 </table>
 
-<div class="section-title">PRODUCT SUPPORT</div>
+<!-- PRODUCT SUPPORT -->
+<div class="section">F. PRODUCT SUPPORT</div>
 <table class="support-table">
     <tr>
         <td class="support-label">Free Filter (Engine)</td>
@@ -570,7 +581,8 @@ $html .= '</td>
     </tr>
 </table>
 
-<div class="section-title">APPROVAL HISTORY</div>';
+<!-- APPROVAL HISTORY -->
+<div class="section">G. APPROVAL HISTORY</div>';
 
 if (count($approvalHistory) > 0) {
     $html .= '<table class="approval-table">
@@ -602,7 +614,7 @@ if (count($approvalHistory) > 0) {
         }
 
         $html .= '<tr>
-            <td class="center">' . $order . '</td>
+            <td class="center">Level ' . $order . '</td>
             <td>' . h($approval['approval_label'] ?? getApprovalLabel($approvalLevels, $order)) . '</td>
             <td class="center"><span class="status ' . $statusClass . '">' . h(statusLabel($status)) . '</span></td>
             <td>' . h($approvedBy) . '</td>
@@ -615,6 +627,7 @@ if (count($approvalHistory) > 0) {
     $html .= '<table><tr><td class="center">Belum ada approval history</td></tr></table>';
 }
 
+// FOOTER
 $html .= '
 <table style="margin-top:3px;">
     <tr>
