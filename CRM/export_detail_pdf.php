@@ -739,13 +739,20 @@ if (count($approvalHistory) > 0) {
         $approverName = !empty($approval['approver_name'])
             ? $approval['approver_name']
             : (($approval['approved_by'] ?? '') !== '' ? $approval['approved_by'] : '-');
+        
+        // Format tanggal approve dengan benar
+        $approvedAtRaw = $approval['approved_at'] ?? '';
+        $approvedAtDisplay = '-';
+        if (!empty($approvedAtRaw) && strtotime($approvedAtRaw) !== false) {
+            $approvedAtDisplay = date('d/m/Y H:i', strtotime($approvedAtRaw));
+        }
 
         $html .= '<tr>
             <td class="center">Level ' . $levelNum . '</td>
             <td>' . h($levelLabel) . '</td>
             <td class="center"><span class="status ' . statusClass($status) . '">' . h(statusLabel($status)) . '</span></td>
             <td>' . h($approverName) . '</td>
-            <td class="center">' . formatDateTimeId($approval['approved_at'] ?? null) . '</td>
+            <td class="center">' . $approvedAtDisplay . '</td>
         </tr>';
     }
     $html .= '</table>';
