@@ -13,20 +13,13 @@ require_once 'vendor/autoload.php';
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
-// ============================================
-// SET ZONA WAKTU
-// ============================================
 date_default_timezone_set('Asia/Jakarta');
 
-// Cek login
 if (!isLoggedIn()) {
     ob_end_clean();
     die('Silakan login dulu!');
 }
 
-// ============================================
-// AMBIL TR NUMBER DARI URL
-// ============================================
 $tr_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
 
 if (empty($tr_number)) {
@@ -34,16 +27,27 @@ if (empty($tr_number)) {
     die('TR Number tidak ditemukan!');
 }
 
-// ============================================
-// FUNGSI FORMAT RUPIAH
-// ============================================
 function formatRp($number) {
     return 'Rp ' . number_format((float)$number, 0, ',', '.');
 }
 
-// ============================================
-// GET ROLE LABEL
-// ============================================
+function h($value, $default = '-') {
+    $value = ($value === null || $value === '') ? $default : $value;
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function formatDateId($date) {
+    if (empty($date)) return '-';
+    $timestamp = strtotime($date);
+    return $timestamp ? date('d/m/Y', $timestamp) : '-';
+}
+
+function formatDateTimeId($date) {
+    if (empty($date)) return '-';
+    $timestamp = strtotime($date);
+    return $timestamp ? date('d/m/Y H:i', $timestamp) : '-';
+}
+
 function getRoleLabel($role) {
     $roleLabels = [
         'it_support' => 'IT Support',
@@ -62,11 +66,11 @@ function getRoleLabel($role) {
 // ============================================
 // AMBIL DATA TRANSACTION REQUEST
 // ============================================
-$sql = "SELECT ad.tr_number, 
+$sql = "SELECT ad.tr_number,
                ad.due_date,
                MIN(ad.created_at) as request_date,
                a.id as account_id,
-               a.nama_pt, 
+               a.nama_pt,
                a.badan_usaha,
                a.alamat,
                a.npwp,
@@ -78,18 +82,21 @@ $sql = "SELECT ad.tr_number,
                u.id as sales_user_id,
                sa.sales_id,
                sa.id as sales_activity_id,
-               CASE 
+               CASE
                    WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'rejected'
+                       SELECT 1 FROM detail_transaction_requests dtr
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+                         AND dtr.status = 'rejected'
                    ) THEN 'rejected'
                    WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'pending'
+                       SELECT 1 FROM detail_transaction_requests dtr
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+                         AND dtr.status = 'pending'
                    ) THEN 'pending'
                    WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'approved'
+                       SELECT 1 FROM detail_transaction_requests dtr
+                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+                         AND dtr.status = 'approved'
                    ) THEN 'approved'
                    ELSE 'pending'
                END as status
@@ -110,7 +117,7 @@ if (!$request) {
 }
 
 // ============================================
-// AMBIL DATA DETAIL TRANSACTION REQUEST
+// DETAIL TR
 // ============================================
 $detailTR = null;
 try {
@@ -123,7 +130,7 @@ try {
 }
 
 // ============================================
-// AMBIL DATA PRODUK
+// PRODUK
 // ============================================
 $produkList = [];
 try {
@@ -136,7 +143,7 @@ try {
 }
 
 // ============================================
-// AMBIL DATA DETAIL UNIT
+// DETAIL UNIT
 // ============================================
 $detailUnits = [];
 try {
@@ -149,7 +156,7 @@ try {
 }
 
 // ============================================
-// AMBIL DATA TERM OF PAYMENT
+// TERM OF PAYMENT
 // ============================================
 $termPayments = [];
 try {
@@ -162,7 +169,7 @@ try {
 }
 
 // ============================================
-// AMBIL DATA ADDITIONAL COST
+// ADDITIONAL COST
 // ============================================
 $additionalCost = null;
 try {
@@ -175,7 +182,7 @@ try {
 }
 
 // ============================================
-// AMBIL DATA MEDIATOR (MULTIPLE)
+// MEDIATORS
 // ============================================
 $mediators = [];
 try {
@@ -188,14 +195,14 @@ try {
 }
 
 // ============================================
-// AMBIL APPROVAL HISTORY (dengan nama lengkap)
+// APPROVAL HISTORY
 // ============================================
 $approvalHistory = [];
 try {
-    $sqlApproval = "SELECT ah.*, u.full_name as approver_name 
+    $sqlApproval = "SELECT ah.*, u.full_name as approver_name
                     FROM tr_approval_history ah
                     LEFT JOIN users u ON ah.approved_by = u.id
-                    WHERE ah.trf_number = ? 
+                    WHERE ah.trf_number = ?
                     ORDER BY ah.approval_order ASC";
     $stmtApproval = $db->prepare($sqlApproval);
     $stmtApproval->execute([$tr_number]);
@@ -205,7 +212,7 @@ try {
 }
 
 // ============================================
-// HITUNG TOTAL
+// TOTAL
 // ============================================
 $totalUnitGrandTotal = 0;
 foreach ($detailUnits as $unit) {
@@ -219,7 +226,11 @@ foreach ($termPayments as $top) {
 
 $totalAdditionalCost = 0;
 if ($additionalCost) {
-    $totalAdditionalCost = (float)$additionalCost['insurance_ops'] + (float)$additionalCost['insurance_cargo'] + (float)$additionalCost['delivery_cost'] + (float)$additionalCost['mediator_fee'];
+    $totalAdditionalCost =
+        (float)($additionalCost['insurance_ops'] ?? 0) +
+        (float)($additionalCost['insurance_cargo'] ?? 0) +
+        (float)($additionalCost['delivery_cost'] ?? 0) +
+        (float)($additionalCost['mediator_fee'] ?? 0);
 }
 
 $totalMediatorFee = 0;
@@ -230,9 +241,6 @@ $totalAdditionalCost += $totalMediatorFee;
 
 $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 
-// ============================================
-// GET NAMA PRODUK
-// ============================================
 function getNamaProduk($unitId, $produkList) {
     foreach ($produkList as $produk) {
         if ($produk['id'] == $unitId) {
@@ -242,9 +250,6 @@ function getNamaProduk($unitId, $produkList) {
     return '-';
 }
 
-// ============================================
-// APPROVAL LEVELS
-// ============================================
 $approvalLevels = [
     1 => 'Sales Manager',
     2 => 'Direktur Sales',
@@ -254,594 +259,428 @@ $approvalLevels = [
 ];
 
 // ============================================
-// PATH LOGO - KOP SURAT
+// LOGO
 // ============================================
 $logoPath = 'images/kopsurat.png';
-
-if (!file_exists($logoPath)) {
-    $logoHtml = '';
-} else {
+$logoHtml = '';
+if (file_exists($logoPath)) {
     $logoData = base64_encode(file_get_contents($logoPath));
     $logoHtml = '<img src="data:image/png;base64,' . $logoData . '" class="logo-img" alt="Logo">';
 }
 
 $namaPT = $request['nama_pt'] ?? '-';
 $badanUsaha = $request['badan_usaha'] ?? '';
-if (!empty($badanUsaha) && $namaPT != '-') {
-    $namaPTDisplay = $namaPT . ', ' . $badanUsaha;
-} else {
-    $namaPTDisplay = $namaPT;
-}
+$namaPTDisplay = (!empty($badanUsaha) && $namaPT !== '-')
+    ? $namaPT . ', ' . $badanUsaha
+    : $namaPT;
 
-// ============================================
-// CLEAN OUTPUT BUFFER SEBELUM PDF
-// ============================================
 ob_end_clean();
 
 // ============================================
-// BUILD HTML PDF
+// BUILD HTML
 // ============================================
-$html = '
-<!DOCTYPE html>
+$html = '<!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Detail TR - ' . htmlspecialchars($tr_number) . '</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: "Helvetica", Arial, sans-serif; 
-            font-size: 10px;
-            padding: 15px 25px;
-            background: #fff;
-            color: #1a1a2e;
-            line-height: 1.5;
-        }
-        
-        /* KOP SURAT */
-        .kop-surat {
-            text-align: center;
-            border-bottom: 3px double #1a1a2e;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
-        }
-        .kop-surat .logo-img {
-            max-width: 100%;
-            max-height: 65px;
-            width: auto;
-            height: auto;
-        }
-        
-        /* JUDUL */
-        .judul-laporan {
-            text-align: center;
-            font-size: 14px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #1a1a2e;
-            margin: 5px 0 3px 0;
-        }
-        
-        /* INFO HEADER */
-        .info-header {
-            text-align: center;
-            font-size: 10px;
-            color: #555;
-            margin-bottom: 8px;
-            padding: 4px 0;
-            background: #f5f7fa;
-            border-radius: 4px;
-            border: 1px solid #e8edf2;
-        }
-        .info-header .label {
-            font-weight: 600;
-            color: #1a1a2e;
-        }
-        
-        /* SECTION TITLE */
-        .section-title {
-            font-size: 10px;
-            font-weight: 700;
-            border-bottom: 2px solid #1a1a2e;
-            padding: 3px 0 2px 0;
-            margin: 10px 0 5px 0;
-            color: #1a1a2e;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            page-break-after: avoid;
-        }
-        
-        /* INFO ROW */
-        .info-row {
-            padding: 1.5px 0;
-            font-size: 9.5px;
-            page-break-inside: avoid;
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
-        .info-row .label {
-            display: table-cell;
-            font-weight: 600;
-            color: #666;
-            width: 120px;
-            min-width: 120px;
-            vertical-align: top;
-            text-align: left;
-            padding-right: 5px;
-        }
-        .info-row .label::after {
-            content: ":";
-            display: inline;
-        }
-        .info-row .value {
-            display: table-cell;
-            vertical-align: top;
-            text-align: left;
-            word-wrap: break-word;
-            color: #1a1a2e;
-        }
-        
-        .info-row-2col {
-            display: flex;
-            flex-wrap: wrap;
-            page-break-inside: avoid;
-        }
-        .info-row-2col .col {
-            flex: 1;
-            min-width: 45%;
-            padding-right: 15px;
-        }
-        .info-row-2col .col:last-child {
-            padding-right: 0;
-        }
-        .info-row-2col .info-row .label {
-            width: 95px;
-            min-width: 95px;
-        }
-        
-        /* TABLE */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 5px;
-            font-size: 9px;
-        }
-        table thead {
-            display: table-header-group;
-        }
-        table th {
-            background: #1a1a2e;
-            color: #fff;
-            font-weight: 600;
-            font-size: 8px;
-            text-transform: uppercase;
-            padding: 5px 6px;
-            text-align: center;
-            letter-spacing: 0.5px;
-            border: 1px solid #1a1a2e;
-        }
-        table td {
-            padding: 4px 6px;
-            border: 1px solid #e0e4e8;
-            font-size: 9px;
-            vertical-align: middle;
-        }
-        table tbody tr:nth-child(even) td {
-            background: #fafbfc;
-        }
-        table tr {
-            page-break-inside: avoid;
-        }
-        
-        .table-wrapper {
-            page-break-inside: avoid;
-            margin-bottom: 3px;
-        }
-        
-        /* DETAIL UNIT INFO - CLEAN DESIGN */
-        .unit-detail-info {
-            font-size: 8.5px;
-            margin-top: 3px;
-            margin-bottom: 5px;
-            padding: 6px 10px;
-            background: #fafbfc;
-            border: 1px solid #e0e4e8;
-            border-left: 3px solid #1a1a2e;
-            border-radius: 0 3px 3px 0;
-            page-break-inside: avoid;
-        }
-        .unit-detail-info .unit-title {
-            font-weight: 700;
-            color: #1a1a2e;
-            margin-bottom: 3px;
-            font-size: 9px;
-            border-bottom: 1px dashed #e0e4e8;
-            padding-bottom: 2px;
-        }
-        .unit-detail-info .unit-info-row {
-            display: table;
-            width: 100%;
-            padding: 0.5px 0;
-        }
-        .unit-detail-info .unit-info-label {
-            display: table-cell;
-            font-weight: 600;
-            color: #666;
-            width: 115px;
-            min-width: 115px;
-            padding-right: 5px;
-            text-align: left;
-        }
-        .unit-detail-info .unit-info-label::after {
-            content: ":";
-        }
-        .unit-detail-info .unit-info-value {
-            display: table-cell;
-            text-align: left;
-            color: #333;
-        }
-        
-        /* THREE COLUMN BOX */
-        .three-col {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 5px 0;
-            gap: 10px;
-            page-break-inside: avoid;
-        }
-        .three-col .col {
-            flex: 1;
-            min-width: 30%;
-            text-align: center;
-        }
-        .three-col .col .box {
-            border: 1.5px solid #e0e4e8;
-            border-radius: 5px;
-            padding: 6px 8px;
-            background: #fafbfc;
-        }
-        .three-col .col .box.highlight {
-            border: 2px solid #1a1a2e;
-            background: #f5f7fa;
-        }
-        .three-col .col .box .label {
-            font-size: 7.5px;
-            font-weight: 600;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .three-col .col .box .value {
-            font-size: 11px;
-            font-weight: 700;
-            color: #1a1a2e;
-        }
-        .three-col .col .box.highlight .value {
-            font-size: 12px;
-        }
-        
-        /* STATUS BADGE */
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 8px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-approved { background: #d4edda; color: #155724; }
-        .status-rejected { background: #f8d7da; color: #721c24; }
-        
-        /* UTILITY */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .fw-bold { font-weight: 700; }
-        
-        @page {
-            margin: 10mm 15mm 10mm 15mm;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Transaction Request Form - ' . h($tr_number) . '</title>
+<style>
+    @page { margin: 8mm 8mm 8mm 8mm; }
+    * { box-sizing: border-box; }
+    body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 7.5px;
+        color: #111;
+        margin: 0;
+        padding: 0;
+        line-height: 1.22;
+    }
+    .page { width: 100%; }
+    .title-bar {
+        width: 100%;
+        background: #16b5ea;
+        color: #111;
+        border: 1px solid #111;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 6px;
+        margin-bottom: 5px;
+    }
+    .logo-wrap { text-align:center; margin-bottom:3px; }
+    .logo-img { max-width: 260px; max-height: 42px; }
+
+    table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    th, td { border:1px solid #222; padding:2.5px 3px; vertical-align:middle; word-wrap:break-word; }
+    th { font-weight:700; text-align:center; background:#f3f3f3; }
+    .label { background:#f4f4f4; font-weight:700; }
+    .green { background:#e7f1dd; }
+    .blue { background:#dce6f1; }
+    .yellow { background:#fff200; }
+    .gray { background:#eeeeee; }
+    .center { text-align:center; }
+    .right { text-align:right; }
+    .bold { font-weight:700; }
+    .nowrap { white-space:nowrap; }
+    .no-border { border:0 !important; }
+    .section-title {
+        background:#e9eef3;
+        border:1px solid #222;
+        border-bottom:0;
+        font-weight:700;
+        padding:3px 5px;
+        margin-top:5px;
+        text-transform:uppercase;
+        letter-spacing:.2px;
+    }
+    .small { font-size:6.8px; }
+    .tiny { font-size:6.2px; }
+    .value-money { font-weight:700; }
+    .status {
+        display:inline-block;
+        padding:1px 4px;
+        border:1px solid #555;
+        font-weight:700;
+        font-size:6.5px;
+    }
+    .status-pending { background:#fff1bf; }
+    .status-approved { background:#d9f0d9; }
+    .status-rejected { background:#f6d2d2; }
+
+    .top-grid > tbody > tr > td { vertical-align:top; }
+    .top-grid .left-col { width:48%; padding:0; border:0; }
+    .top-grid .right-col { width:52%; padding:0 0 0 5px; border:0; }
+
+    .account-table td { height:16px; }
+    .account-table .field { width:28%; font-weight:700; background:#f4f4f4; }
+    .account-table .field-wide { width:36%; font-weight:700; background:#f4f4f4; }
+
+    .product-summary th { background:#f2f2f2; }
+    .product-summary .subtotal td { font-weight:700; }
+    .product-summary .grand td { font-size:8px; font-weight:700; }
+
+    .machine-table td { height:17px; }
+    .machine-table .row-label { width:28%; font-weight:700; background:#f4f4f4; }
+    .machine-table .content { width:72%; }
+    .spec-table td { vertical-align:top; }
+
+    .section-gap { margin-top:5px; }
+
+    .bottom-grid > tbody > tr > td { vertical-align:top; }
+    .bottom-grid .left { width:49%; padding:0; border:0; }
+    .bottom-grid .right { width:51%; padding:0 0 0 5px; border:0; }
+
+    .mediator-table th { background:#fff200; }
+    .mediator-table td { height:16px; }
+
+    .signature-table td { height:43px; text-align:center; vertical-align:bottom; }
+    .signature-name { font-weight:700; font-size:7px; }
+    .signature-role { font-size:6.5px; }
+
+    .note-box { padding:4px; border:1px solid #222; min-height:35px; }
+    .checkbox { font-size:8px; font-weight:700; }
+
+    .page-break { page-break-before:always; }
+    .keep { page-break-inside:avoid; }
+</style>
 </head>
 <body>
+<div class="page">
+    <div class="logo-wrap">' . $logoHtml . '</div>
+    <div class="title-bar">TRANSACTION REQUEST FORM</div>
 
-<!-- KOP SURAT -->
-<div class="kop-surat">' . $logoHtml . '</div>
-
-<!-- JUDUL -->
-<div class="judul-laporan">Detail Transaction Request</div>
-<div class="info-header">
-    <strong>Nomor TR:</strong> ' . htmlspecialchars($tr_number) . ' 
-    &nbsp;&nbsp;|&nbsp;&nbsp; 
-    <span class="label">Request Date:</span> ' . date('d/m/Y', strtotime($request['request_date'])) . '
-</div>
-
-<!-- A. DATA ACCOUNT -->
-<div class="section-title">A. Data Account</div>
-
-<div class="info-row-2col">
-    <div class="col">
-        <div class="info-row"><span class="label">Nama PT</span><span class="value">' . htmlspecialchars($namaPTDisplay) . '</span></div>
-        <div class="info-row"><span class="label">Alamat</span><span class="value">' . htmlspecialchars($request['alamat'] ?? '-') . '</span></div>
-        <div class="info-row"><span class="label">NPWP</span><span class="value">' . htmlspecialchars($request['npwp'] ?? '-') . '</span></div>
-    </div>
-    <div class="col">
-        <div class="info-row"><span class="label">Nama PIC</span><span class="value">' . htmlspecialchars($request['nama_pic'] ?? '-') . '</span></div>
-        <div class="info-row"><span class="label">Jabatan PIC</span><span class="value">' . htmlspecialchars($request['jabatan_pic'] ?? '-') . '</span></div>
-        <div class="info-row"><span class="label">No HP PIC</span><span class="value">' . htmlspecialchars($request['no_hp_pic'] ?? '-') . '</span></div>
-        <div class="info-row"><span class="label">Email PIC</span><span class="value">' . htmlspecialchars($request['email_pic'] ?? '-') . '</span></div>
-    </div>
-</div>
-
-<div class="info-row"><span class="label">Salesman</span><span class="value">' . htmlspecialchars($request['sales_name'] ?? '-') . '</span></div>
-<div class="info-row"><span class="label">Deskripsi</span><span class="value">' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</span></div>
-
-<!-- B. DETAIL UNIT -->
-<div class="section-title">B. Detail Unit</div>
-';
+    <table class="top-grid">
+        <tr>
+            <td class="left-col">
+                <table class="account-table">
+                    <tr><td class="field">TR Number</td><td>' . h($tr_number) . '</td></tr>
+                    <tr><td class="field">Request Date</td><td>' . formatDateId($request['request_date'] ?? null) . '</td></tr>
+                    <tr><td class="field">Customer</td><td class="green bold">' . h($namaPTDisplay) . '</td></tr>
+                    <tr><td class="field">NPWP</td><td>' . h($request['npwp'] ?? '-') . '</td></tr>
+                    <tr><td class="field">Address</td><td>' . nl2br(h($request['alamat'] ?? '-')) . '</td></tr>
+                    <tr><td class="field">Customer PIC (Signer)</td><td>' . h($request['nama_pic'] ?? '-') . '</td></tr>
+                    <tr><td class="field">Position</td><td>' . h($request['jabatan_pic'] ?? '-') . '</td></tr>
+                    <tr><td class="field">Phone</td><td>' . h($request['no_hp_pic'] ?? '-') . '</td></tr>
+                    <tr><td class="field">e-Mail</td><td>' . h($request['email_pic'] ?? '-') . '</td></tr>
+                    <tr><td class="field">Sales</td><td>' . h($request['sales_name'] ?? '-') . '</td></tr>
+                    <tr><td class="field">TR Status</td><td>' . h(ucfirst($request['status'] ?? 'pending')) . '</td></tr>
+                </table>
+            </td>
+            <td class="right-col">
+                <table class="product-summary">
+                    <tr>
+                        <th style="width:26%">Model Unit</th>
+                        <th style="width:10%">Qty</th>
+                        <th style="width:10%">Curr.</th>
+                        <th style="width:22%">Amount / Unit</th>
+                        <th style="width:30%">Amount</th>
+                    </tr>';
 
 if (count($detailUnits) > 0) {
-    $html .= '<div class="table-wrapper">';
-    $html .= '
-    <table>
-        <thead>
-            <tr>
-                <th style="width:4%;">No</th>
-                <th style="width:18%;">Unit</th>
-                <th style="width:6%;">QTY</th>
-                <th style="width:14%;">Price (Non PPN)</th>
-                <th style="width:10%;">PPN 11%</th>
-                <th style="width:16%;">Grand Total</th>
-                <th style="width:32%;">Specification</th>
-            </tr>
-        </thead>
-        <tbody>';
-    
-    $no = 1;
     foreach ($detailUnits as $unit) {
-        $namaUnit = getNamaProduk($unit['unit_id'], $produkList);
-        $html .= '
-            <tr>
-                <td class="text-center">' . $no++ . '</td>
-                <td>' . htmlspecialchars($namaUnit) . '</td>
-                <td class="text-center">' . $unit['qty'] . '</td>
-                <td class="text-right">' . formatRp($unit['price']) . '</td>
-                <td class="text-right">' . formatRp($unit['ppn']) . '</td>
-                <td class="text-right fw-bold">' . formatRp($unit['grand_total']) . '</td>
-                <td>' . htmlspecialchars($unit['specification']) . '</td>
-            </tr>';
-    }
-    
-    $html .= '
-        </tbody>
-    </table>
-    </div>';
-    
-    foreach ($detailUnits as $index => $unit) {
-        $html .= '
-    <div class="unit-detail-info">
-        <div class="unit-title">Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . '</div>
-        <div class="unit-info-row">
-            <span class="unit-info-label">Additional Attachment</span>
-            <span class="unit-info-value">' . htmlspecialchars($unit['additional_attachment'] ?? '-') . '</span>
-        </div>
-        <div class="unit-info-row">
-            <span class="unit-info-label">Waranty</span>
-            <span class="unit-info-value">' . htmlspecialchars($unit['waranty'] ?? '-') . '</span>
-        </div>
-        <div class="unit-info-row">
-            <span class="unit-info-label">Machine Location</span>
-            <span class="unit-info-value">' . htmlspecialchars($unit['machine_location'] ?? '-') . '</span>
-        </div>
-        <div class="unit-info-row">
-            <span class="unit-info-label">Delivery Terms</span>
-            <span class="unit-info-value">' . htmlspecialchars($unit['delivery_terms'] ?? '-') . '</span>
-        </div>
-        <div class="unit-info-row">
-            <span class="unit-info-label">Delivery Schedule</span>
-            <span class="unit-info-value">' . (isset($unit['delivery_schedule']) && !empty($unit['delivery_schedule']) ? date('d/m/Y', strtotime($unit['delivery_schedule'])) : '-') . '</span>
-        </div>
-        <div class="unit-info-row">
-            <span class="unit-info-label">Transaction Type</span>
-            <span class="unit-info-value">' . htmlspecialchars($unit['transaction_type'] ?? '-') . '</span>
-        </div>
-    </div>';
+        $qty = (float)($unit['qty'] ?? 0);
+        $price = (float)($unit['price'] ?? 0);
+        $grand = (float)($unit['grand_total'] ?? 0);
+        $html .= '<tr>
+            <td>' . h(getNamaProduk($unit['unit_id'], $produkList)) . '</td>
+            <td class="center">' . rtrim(rtrim(number_format($qty, 2, ',', '.'), '0'), ',') . '</td>
+            <td class="center">IDR</td>
+            <td class="right">' . number_format($price, 0, ',', '.') . '</td>
+            <td class="right bold">' . number_format($grand, 0, ',', '.') . '</td>
+        </tr>';
     }
 } else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Detail Unit</p>';
+    $html .= '<tr><td colspan="5" class="center">Belum ada detail unit</td></tr>';
 }
 
-// C. TERM OF PAYMENT & D. ADDITIONAL COST
-$html .= '
-<div style="display:flex; flex-wrap:wrap; margin-top:5px; gap:10px;">
-    <div style="flex:1; min-width:48%;">
-        <div class="section-title" style="margin-top:0;">C. Term Of Payment</div>
-        ';
+$html .= '<tr class="subtotal"><td colspan="4" class="right">TOTAL</td><td class="right">' . formatRp($totalUnitGrandTotal) . '</td></tr>
+                    <tr class="subtotal"><td colspan="4" class="right">PPN</td><td class="right">-</td></tr>
+                    <tr class="grand"><td colspan="4" class="right">GRAND TOTAL</td><td class="right">' . formatRp($totalUnitGrandTotal) . '</td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-title">A. MACHINE / UNIT INFORMATION</div>
+    <table class="machine-table">
+        <tr>
+            <td class="row-label">Machine</td>
+            <td class="content">
+                <table class="no-border">
+                    <tr>
+                        <th style="width:14%">Qty</th>
+                        <th style="width:40%">Model</th>
+                        <th style="width:46%">Specification</th>
+                    </tr>';
+
+if (count($detailUnits) > 0) {
+    $specJoined = [];
+    foreach ($detailUnits as $unit) {
+        $specJoined[] = trim((string)($unit['specification'] ?? ''));
+    }
+    $specText = implode("\n", array_filter($specJoined));
+    $firstUnit = $detailUnits[0];
+    $html .= '<tr>
+        <td class="center">' . h($firstUnit['qty'] ?? '-') . '</td>
+        <td>' . h(getNamaProduk($firstUnit['unit_id'], $produkList)) . '</td>
+        <td>' . nl2br(h($specText ?: '-')) . '</td>
+    </tr>';
+} else {
+    $html .= '<tr><td colspan="3" class="center">Belum ada data</td></tr>';
+}
+
+$html .= '</table>
+            </td>
+        </tr>
+        <tr>
+            <td class="row-label">Additional Equipment</td>
+            <td class="content">';
+
+if (count($detailUnits) > 0) {
+    $equip = [];
+    foreach ($detailUnits as $unit) {
+        if (!empty($unit['additional_attachment'])) $equip[] = $unit['additional_attachment'];
+    }
+    $html .= nl2br(h(implode(', ', array_unique($equip)) ?: '-'));
+} else {
+    $html .= '-';
+}
+
+$html .= '</td></tr>
+        <tr><td class="row-label">Warranty</td><td class="content">' . h($detailUnits[0]['waranty'] ?? '-') . '</td></tr>
+        <tr><td class="row-label">Machine Location / Works</td><td class="content">' . h($detailUnits[0]['machine_location'] ?? '-') . '</td></tr>
+        <tr><td class="row-label">Delivery Terms</td><td class="content">' . h($detailUnits[0]['delivery_terms'] ?? '-') . '</td></tr>
+        <tr><td class="row-label">Delivery Schedule</td><td class="content green bold">' . formatDateId($detailUnits[0]['delivery_schedule'] ?? null) . '</td></tr>
+        <tr><td class="row-label">Transaction Type</td><td class="content">' . h($detailUnits[0]['transaction_type'] ?? '-') . '</td></tr>
+        <tr><td class="row-label">Description</td><td class="content">' . nl2br(h($detailTR['deskripsi'] ?? '-')) . '</td></tr>
+    </table>
+
+    <table class="section-gap bottom-grid">
+        <tr>
+            <td class="left">
+                <div class="section-title">B. TERM OF PAYMENT</div>
+                <table>
+                    <tr>
+                        <th style="width:34%">Schedule</th>
+                        <th style="width:13%">Percent</th>
+                        <th style="width:29%">Amount</th>
+                        <th style="width:24%">Remarks</th>
+                    </tr>';
 
 if (count($termPayments) > 0) {
-    $html .= '<div class="table-wrapper">';
-    $html .= '
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:5%;">No</th>
-                    <th style="width:35%;">Payment</th>
-                    <th style="width:30%;" class="text-right">Amount</th>
-                    <th style="width:30%;">Keterangan</th>
-                </tr>
-            </thead>
-            <tbody>';
-    
-    $no = 1;
     foreach ($termPayments as $top) {
-        $html .= '
-            <tr>
-                <td class="text-center">' . $no++ . '</td>
-                <td>' . htmlspecialchars($top['payment_label']) . '</td>
-                <td class="text-right fw-bold">' . formatRp($top['amount']) . '</td>
-                <td>' . htmlspecialchars($top['keterangan'] ?? '-') . '</td>
-            </tr>';
+        $html .= '<tr>
+            <td>' . h($top['payment_label'] ?? '-') . '</td>
+            <td class="center">' . rtrim(rtrim(number_format((float)($top['percentage'] ?? 0), 2, ',', '.'), '0'), ',') . '%</td>
+            <td class="right bold">' . formatRp($top['amount'] ?? 0) . '</td>
+            <td>' . nl2br(h($top['keterangan'] ?? '-')) . '</td>
+        </tr>';
     }
-    
-    $html .= '
-            </tbody>
-        </table>
-        </div>
-        <div style="font-size:8.5px; text-align:right; margin-top:2px; page-break-inside: avoid; font-weight:700; color:#1a1a2e;">
-            Total TOP: ' . formatRp($totalTOP) . '
-        </div>
-        ';
 } else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data TOP</p>';
+    $html .= '<tr><td colspan="4" class="center">Belum ada data TOP</td></tr>';
 }
 
-$html .= '
-    </div>
-    <div style="flex:1; min-width:45%;">
-        <div class="section-title" style="margin-top:0;">D. Additional Cost</div>
-        ';
+$html .= '<tr><td colspan="2" class="right bold">TOTAL TOP</td><td class="right bold">' . formatRp($totalTOP) . '</td><td></td></tr>
+                </table>
 
-if ($additionalCost) {
-    $html .= '
-        <div class="info-row"><span class="label">Insurance Ops</span><span class="value">' . formatRp($additionalCost['insurance_ops']) . '</span></div>
-        <div class="info-row"><span class="label">Insurance Cargo</span><span class="value">' . formatRp($additionalCost['insurance_cargo']) . '</span></div>
-        <div class="info-row"><span class="label">Delivery Cost</span><span class="value">' . formatRp($additionalCost['delivery_cost']) . '</span></div>
-        <div class="info-row"><span class="label">Mediator Fee (Add)</span><span class="value">' . formatRp($additionalCost['mediator_fee']) . '</span></div>
-        <div class="info-row"><span class="label">Free Part</span><span class="value">' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</span></div>
-        <div class="info-row"><span class="label">Free Service</span><span class="value">' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</span></div>
-        <div class="info-row"><span class="label">Others</span><span class="value">' . htmlspecialchars($additionalCost['others'] ?? '-') . '</span></div>
-        ';
+                <div class="section-title">C. DELIVERY / AVAILABILITY</div>
+                <table>
+                    <tr><td class="label" style="width:55%">Is the machine available?</td><td class="center" style="width:45%">☐ Yes &nbsp;&nbsp; ☐ No</td></tr>
+                    <tr><td class="label">If yes put S/N ; if no put days</td><td>';
+
+if (count($detailUnits) > 0) {
+    $sn = 1;
+    foreach ($detailUnits as $unit) {
+        $html .= 'S/N ' . sprintf('%02d', $sn++) . ' : ' . h($unit['serial_number'] ?? '-') . '<br>';
+    }
 } else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
+    $html .= '-';
 }
 
-$html .= '
-    </div>
-</div>
-';
+$html .= '</td></tr>
+                    <tr><td class="label">Lead Time Propose (days)</td><td>' . h($detailTR['lead_time'] ?? $detailTR['lead_time_propose'] ?? '-') . '</td></tr>
+                </table>
+            </td>
 
-// E. DATA MEDIATOR
-$html .= '
-<div class="section-title">E. Data Mediator</div>
-';
+            <td class="right">
+                <div class="section-title">D. ADDITIONAL COST / MACHINES</div>
+                <table>
+                    <tr><th style="width:48%">Item</th><th style="width:14%">Percent</th><th style="width:38%">Amount</th></tr>
+                    <tr><td>Insurance Ops / Cargo</td><td class="center">' . h($additionalCost['insurance_percent'] ?? '-') . '</td><td class="right">' . formatRp(($additionalCost['insurance_ops'] ?? 0) + ($additionalCost['insurance_cargo'] ?? 0)) . '</td></tr>
+                    <tr><td>Modification</td><td class="center">IDR</td><td class="right">-</td></tr>
+                    <tr><td>Part Vouchers</td><td class="center">IDR</td><td class="right">' . formatRp($additionalCost['part_vouchers'] ?? 0) . '</td></tr>
+                    <tr><td>Free Service</td><td class="center">IDR</td><td class="right">' . formatRp($additionalCost['free_service_amount'] ?? 0) . '</td></tr>
+                    <tr><td>Transport</td><td class="center">IDR</td><td class="right">' . formatRp($additionalCost['delivery_cost'] ?? 0) . '</td></tr>
+                    <tr><td>Third Party Commission / Mediator</td><td class="center">IDR</td><td class="right">' . formatRp($totalMediatorFee + (float)($additionalCost['mediator_fee'] ?? 0)) . '</td></tr>
+                    <tr><td class="bold">TOTAL ADDITIONAL COST</td><td class="center">IDR</td><td class="right bold">' . formatRp($totalAdditionalCost) . '</td></tr>
+                </table>
 
-if (count($mediators) > 0) {
-    $html .= '<div class="table-wrapper">';
-    $html .= '
-    <table>
-        <thead>
-            <tr>
-                <th style="width:4%;">No</th>
-                <th style="width:16%;">Name</th>
-                <th style="width:14%;">ID Card</th>
-                <th style="width:14%;">NPWP</th>
-                <th style="width:14%;">Bank Name</th>
-                <th style="width:16%;">Bank Account</th>
-                <th style="width:22%;" class="text-right">Amount</th>
-            </tr>
-        </thead>
-        <tbody>';
-    
-    $no = 1;
-    foreach ($mediators as $med) {
-        $html .= '
-            <tr>
-                <td class="text-center">' . $no++ . '</td>
-                <td>' . htmlspecialchars($med['name']) . '</td>
-                <td>' . htmlspecialchars($med['id_card_no'] ?? '-') . '</td>
-                <td>' . htmlspecialchars($med['npwp_no'] ?? '-') . '</td>
-                <td>' . htmlspecialchars($med['bank_name'] ?? '-') . '</td>
-                <td>' . htmlspecialchars($med['bank_account'] ?? '-') . '</td>
-                <td class="text-right fw-bold">' . formatRp($med['amount']) . '</td>
-            </tr>';
-    }
-    
-    $html .= '
-        </tbody>
+                <table class="section-gap">
+                    <tr><td class="label" style="width:48%">Interest / Price-Payment Difference</td><td>' . h($additionalCost['interest'] ?? '-') . '</td></tr>
+                    <tr><td class="label">Free Part</td><td>' . nl2br(h($additionalCost['free_part'] ?? '-')) . '</td></tr>
+                    <tr><td class="label">Other Notes</td><td>' . nl2br(h($additionalCost['others'] ?? '-')) . '</td></tr>
+                </table>
+            </td>
+        </tr>
     </table>
-    </div>
-    <div style="font-size:8.5px; text-align:right; margin-top:2px; page-break-inside: avoid; font-weight:700; color:#1a1a2e;">
-        Total Mediator Fee: ' . formatRp($totalMediatorFee) . '
-    </div>
-    ';
-} else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
+
+    <div class="section-title">E. THIRD PARTY COMMISSION / MEDIATOR LIST</div>
+    <table class="mediator-table">
+        <tr>
+            <th style="width:13%">Field</th>';
+
+$mediatorCount = max(count($mediators), 2);
+for ($i = 0; $i < $mediatorCount; $i++) {
+    $html .= '<th style="width:' . (87 / $mediatorCount) . '%">' . h($mediators[$i]['name'] ?? ('Mediator ' . ($i + 1))) . '</th>';
 }
 
-// F. REKAPITULASI TOTAL
-$html .= '
-<div class="section-title">F. Rekapitulasi Total</div>
-<div class="three-col">
-    <div class="col">
-        <div class="box">
-            <div class="label">Total Grand Total Unit</div>
-            <div class="value">' . formatRp($totalUnitGrandTotal) . '</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="box">
-            <div class="label">Total Additional Cost</div>
-            <div class="value">' . formatRp($totalAdditionalCost) . '</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="box highlight">
-            <div class="label">Total Masukan</div>
-            <div class="value">' . formatRp($totalMasukan) . '</div>
-        </div>
-    </div>
-</div>
-';
+$html .= '</tr>';
+$mediatorRows = [
+    'id_card_no' => 'ID Card No',
+    'npwp_no' => 'NPWP No',
+    'bank_name' => 'Bank Name',
+    'bank_account' => 'Bank Account',
+    'amount' => 'Amount'
+];
+foreach ($mediatorRows as $field => $label) {
+    $html .= '<tr><td class="bold">' . $label . '</td>';
+    for ($i = 0; $i < $mediatorCount; $i++) {
+        $med = $mediators[$i] ?? null;
+        $value = $med[$field] ?? '-';
+        $display = ($field === 'amount') ? formatRp($value) : h($value);
+        $align = ($field === 'amount') ? 'right' : '';
+        $html .= '<td class="' . $align . '">' . $display . '</td>';
+    }
+    $html .= '</tr>';
+}
 
-// G. APPROVAL HISTORY
+$html .= '</table>
+
+    <table class="section-gap">
+        <tr>
+            <td class="label" style="width:18%">Transaction Type</td>
+            <td style="width:82%">1. Cash before delivery &nbsp;&nbsp; 2. Leasing &nbsp;&nbsp; 3. Direct Credit &nbsp;&nbsp; 4. Others: ' . h($detailTR['transaction_type_note'] ?? '-') . '</td>
+        </tr>
+        <tr>
+            <td class="label">Payment Note</td>
+            <td>' . nl2br(h($detailTR['payment_note'] ?? '-')) . '</td>
+        </tr>
+    </table>
+
+    <div class="section-title">F. RECAPITULATION</div>
+    <table>
+        <tr>
+            <td class="label" style="width:30%">Total Grand Total Unit</td>
+            <td class="right" style="width:20%">' . formatRp($totalUnitGrandTotal) . '</td>
+            <td class="label" style="width:30%">Total Additional Cost</td>
+            <td class="right bold" style="width:20%">' . formatRp($totalAdditionalCost) . '</td>
+        </tr>
+        <tr>
+            <td class="label">Total Masukan</td>
+            <td class="right bold green">' . formatRp($totalMasukan) . '</td>
+            <td class="label">Request Number</td>
+            <td class="bold center">' . h($tr_number) . '</td>
+        </tr>
+    </table>
+
+    <div class="section-title">G. APPROVAL HISTORY</div>';
+
 if (count($approvalHistory) > 0) {
-    $html .= '
-    <div class="section-title">G. Approval History</div>
-    <div class="table-wrapper">
-    <table>
-        <thead>
-            <tr>
-                <th style="width:8%;">Level</th>
-                <th style="width:22%;">Role</th>
-                <th style="width:14%;">Status</th>
-                <th style="width:28%;">Approved By</th>
-                <th style="width:28%;">Approved At</th>
-            </tr>
-        </thead>
-        <tbody>';
-    
+    $html .= '<table>
+        <tr>
+            <th style="width:10%">Level</th>
+            <th style="width:26%">Role</th>
+            <th style="width:16%">Status</th>
+            <th style="width:24%">Approved By</th>
+            <th style="width:24%">Approved At</th>
+        </tr>';
     foreach ($approvalHistory as $approval) {
-        $levelNum = $approval['approval_order'];
+        $levelNum = (int)$approval['approval_order'];
         $levelLabel = $approvalLevels[$levelNum] ?? 'Level ' . $levelNum;
-        $statusLabel = ucfirst($approval['status']);
-        $statusClass = 'status-' . $approval['status'];
+        $status = strtolower((string)($approval['status'] ?? 'pending'));
+        $statusClass = in_array($status, ['pending', 'approved', 'rejected'], true) ? 'status-' . $status : 'status-pending';
         $approverName = !empty($approval['approver_name']) ? $approval['approver_name'] : ($approval['approved_by'] ?? '-');
-        $approvedAt = !empty($approval['approved_at']) ? date('d/m/Y H:i', strtotime($approval['approved_at'])) : '-';
-        
-        $html .= '
-            <tr>
-                <td class="text-center">Level ' . $levelNum . '</td>
-                <td>' . htmlspecialchars($levelLabel) . '</td>
-                <td class="text-center"><span class="status-badge ' . $statusClass . '">' . $statusLabel . '</span></td>
-                <td>' . htmlspecialchars($approverName) . '</td>
-                <td class="text-center">' . $approvedAt . '</td>
-            </tr>';
+        $html .= '<tr>
+            <td class="center">Level ' . $levelNum . '</td>
+            <td>' . h($levelLabel) . '</td>
+            <td class="center"><span class="status ' . $statusClass . '">' . h(ucfirst($status)) . '</span></td>
+            <td>' . h($approverName) . '</td>
+            <td class="center">' . formatDateTimeId($approval['approved_at'] ?? null) . '</td>
+        </tr>';
     }
-    
-    $html .= '
-        </tbody>
-    </table>
-    </div>
-    ';
+    $html .= '</table>';
+} else {
+    $html .= '<table><tr><td class="center">Belum ada approval history.</td></tr></table>';
 }
 
 $html .= '
+    <div class="section-title">H. APPROVAL / SIGNATURE</div>
+    <table class="signature-table">
+        <tr>
+            <td style="width:25%"></td>
+            <td style="width:25%"></td>
+            <td style="width:25%"></td>
+            <td style="width:25%"></td>
+        </tr>
+        <tr>
+            <td class="signature-name">-</td>
+            <td class="signature-name">-</td>
+            <td class="signature-name">-</td>
+            <td class="signature-name">-</td>
+        </tr>
+        <tr>
+            <td class="signature-role">Sales Manager</td>
+            <td class="signature-role">Sales Director</td>
+            <td class="signature-role">Operational Director</td>
+            <td class="signature-role">President Director</td>
+        </tr>
+    </table>
+
+    <div class="small" style="margin-top:4px; text-align:right;">Generated: ' . date('d/m/Y H:i') . ' WIB</div>
+</div>
 </body>
-</html>
-';
+</html>';
 
 // ============================================
 // GENERATE PDF
@@ -859,7 +698,7 @@ $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
-$filename = 'TR_' . $tr_number . '_' . date('Ymd_His') . '.pdf';
+$filename = 'TR_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $tr_number) . '_' . date('Ymd_His') . '.pdf';
 
 header('Content-Type: application/pdf');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
