@@ -109,6 +109,13 @@ if (!$activity) {
 }
 
 // ============================================
+// AMBIL DATA USER
+// ============================================
+$fullName = $_SESSION['full_name'] ?? 'User';
+$role = $_SESSION['role'] ?? 'user';
+$userId = $_SESSION['user_id'] ?? 0;
+
+// ============================================
 // UPDATE STATUS OVERDUE OTOMATIS (WIB)
 // ============================================
 $stmt = $db->prepare("UPDATE activity_details SET status = 'overdue' 
@@ -125,7 +132,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
-        if (!canAdd('sales_activity')) {
+        // Sales hanya bisa menambah aktivitas untuk leads miliknya
+        if ($role === 'sales') {
+            if ($activity['sales_id'] != $userId) {
+                setFlash('Anda tidak memiliki akses untuk leads ini!', 'danger');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            }
+        } elseif (!canAdd('sales_activity')) {
             setFlash('Anda tidak memiliki akses!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
@@ -172,12 +185,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'complete') {
-        if (!canEdit('sales_activity')) {
+        $detail_id = (int)$_POST['detail_id'];
+        
+        // Sales hanya bisa complete miliknya sendiri
+        if ($role === 'sales') {
+            $checkOwner = $db->prepare("SELECT sa.sales_id FROM activity_details ad 
+                                        JOIN sales_activities sa ON ad.sales_activity_id = sa.id 
+                                        WHERE ad.id = ?");
+            $checkOwner->execute([$detail_id]);
+            $ownerData = $checkOwner->fetch();
+            
+            if (!$ownerData || $ownerData['sales_id'] != $userId) {
+                setFlash('Anda tidak memiliki akses!', 'danger');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            }
+        } elseif (!canEdit('sales_activity')) {
             setFlash('Anda tidak memiliki akses!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
         
-        $detail_id = (int)$_POST['detail_id'];
         $result = trim($_POST['result']);
         $customer_deal = isset($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : '';
         $di_number = NULL;
@@ -265,7 +291,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        if (!canDelete('sales_activity')) {
+        // Sales tidak bisa delete
+        if ($role === 'sales' || !canDelete('sales_activity')) {
             setFlash('Anda tidak memiliki akses!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
@@ -291,10 +318,6 @@ foreach ($detailsList as $d) {
         $negosiasiCompleted[] = $d;
     }
 }
-
-$fullName = $_SESSION['full_name'] ?? 'User';
-$role = $_SESSION['role'] ?? 'user';
-$userId = $_SESSION['user_id'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -790,21 +813,27 @@ $userId = $_SESSION['user_id'] ?? 0;
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <?php if ($detail['status'] === 'in_progress' || $detail['status'] === 'overdue'): ?>
-                                                    <?php if (canEdit('sales_activity')): ?>
-                                                        <button class="btn-action edit" onclick="editDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
+                                                    <?php if ($role === 'sales'): ?>
+                                                        <?php if ($activity['sales_id'] == $userId): ?>
+                                                            <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                        <?php endif; ?>
+                                                    <?php else: ?>
+                                                        <?php if (canEdit('sales_activity')): ?>
+                                                            <button class="btn-action edit" onclick="editDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                        <?php endif; ?>
+                                                        <?php if (canDelete('sales_activity')): ?>
+                                                            <button class="btn-action delete" onclick="deleteDetail(<?= $detail['id'] ?>)">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        <?php endif; ?>
                                                     <?php endif; ?>
-                                                    <?php if (canEdit('sales_activity')): ?>
-                                                        <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                    <?php endif; ?>
-                                                <?php endif; ?>
-                                                <?php if (canDelete('sales_activity')): ?>
-                                                    <button class="btn-action delete" onclick="deleteDetail(<?= $detail['id'] ?>)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -866,7 +895,6 @@ $userId = $_SESSION['user_id'] ?? 0;
                             <small class="text-muted" id="wordCountAdd">0 karakter</small>
                         </div>
                         
-                        <!-- TR Number (muncul jika jenis_tugas = Negosiasi) -->
                         <div class="mb-3" id="trNumberFieldAdd" style="display: none;">
                             <label class="form-label">Transaction Request Form</label>
                             <div class="tr-number-display">
@@ -874,7 +902,6 @@ $userId = $_SESSION['user_id'] ?? 0;
                             </div>
                         </div>
                         
-                        <!-- Info TR & DI dari Negosiasi (muncul jika jenis_tugas = Kontrak/After Sales) -->
                         <div id="negosiasiInfoAdd" style="display: none;"></div>
                         
                         <div class="mb-3">
@@ -916,7 +943,6 @@ $userId = $_SESSION['user_id'] ?? 0;
                             <small class="text-muted">Tahan tombol Ctrl untuk memilih banyak file (JPG, PNG, PDF, DOC, XLS)</small>
                         </div>
                         
-                        <!-- Customer Deal & DI Number (muncul jika jenis_tugas = Negosiasi) -->
                         <div id="customerDealFieldComplete" style="display: none;">
                             <div class="mb-3">
                                 <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
@@ -986,10 +1012,8 @@ $userId = $_SESSION['user_id'] ?? 0;
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Data Negosiasi completed untuk referensi
         var negosiasiCompletedList = <?= json_encode(array_values($negosiasiCompleted)) ?>;
         
-        // Character count untuk deskripsi
         document.getElementById('deskripsi_add').addEventListener('input', function() {
             var chars = this.value.length;
             document.getElementById('wordCountAdd').textContent = chars + ' karakter';
@@ -1000,7 +1024,6 @@ $userId = $_SESSION['user_id'] ?? 0;
             }
         });
         
-        // Character count untuk result
         document.getElementById('result_complete').addEventListener('input', function() {
             var chars = this.value.length;
             document.getElementById('wordCountComplete').textContent = chars + ' karakter';
@@ -1011,7 +1034,6 @@ $userId = $_SESSION['user_id'] ?? 0;
             }
         });
         
-        // Show/hide TR Number & Info Negosiasi saat tambah
         document.getElementById('jenis_tugas_add').addEventListener('change', function() {
             var trNumberField = document.getElementById('trNumberFieldAdd');
             var negosiasiInfoAdd = document.getElementById('negosiasiInfoAdd');
@@ -1065,7 +1087,6 @@ $userId = $_SESSION['user_id'] ?? 0;
             }
         });
         
-        // Show/hide DI Number saat Customer Deal berubah
         document.getElementById('customer_deal_complete').addEventListener('change', function() {
             if (this.value === 'Yes') {
                 document.getElementById('diNumberFieldComplete').style.display = 'block';
@@ -1074,7 +1095,6 @@ $userId = $_SESSION['user_id'] ?? 0;
             }
         });
         
-        // View Detail
         function viewDetail(data) {
             var html = `
                 <div class="info-card" style="margin-bottom: 0;">
@@ -1136,7 +1156,6 @@ $userId = $_SESSION['user_id'] ?? 0;
             modal.show();
         }
         
-        // Complete Detail
         function completeDetail(data) {
             document.getElementById('completeDetailId').value = data.id;
             
