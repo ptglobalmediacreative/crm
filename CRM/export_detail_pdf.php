@@ -364,13 +364,15 @@ $html = '<!DOCTYPE html>
     }
 
     .logo-wrap {
-        text-align: center;
-        margin-bottom: 2px;
+        text-align: right;
+        margin-bottom: 10px;
+        padding-right: 3px;
     }
 
     .logo-img {
         max-width: 270px;
         max-height: 38px;
+        display: inline-block;
     }
 
     .title {
