@@ -71,14 +71,8 @@ function getApprovalLabel($approvalLevels, $order) {
     return $approvalLevels[(int)$order]['label'] ?? ('Level ' . (int)$order);
 }
 
-function isCheckedValue($value) {
-    $v = strtolower(trim((string)$value));
-    return in_array($v, ['yes', 'ya', 'true', '1', 'checked', 'x'], true);
-}
-
 // ============================================
 // AMBIL DATA DELIVERY INSTRUCTION
-// Sama dengan detaildi.php terbaru
 // ============================================
 $sql = "SELECT ad.di_number,
                ad.due_date,
@@ -165,7 +159,7 @@ $approvalLevels = [
 ];
 
 // ============================================
-// CURRENT / NEXT APPROVER - sama dengan detaildi.php
+// CURRENT / NEXT APPROVER
 // ============================================
 $currentApprovalOrder = 1;
 $currentApproverLabel = '';
@@ -327,15 +321,15 @@ $html = '<!DOCTYPE html>
     }
 
     .logo-wrap {
-        text-align: left;
-        height: 24mm;
-        padding-left: 3mm;
-        padding-top: 1mm;
+        text-align: right;
+        margin-bottom: 10px;
+        padding-right: 3px;
     }
 
     .logo-img {
-        max-width: 72mm;
-        max-height: 26mm;
+        max-width: 270px;
+        max-height: 38px;
+        display: inline-block;
     }
 
     .title,
@@ -394,28 +388,6 @@ $html = '<!DOCTYPE html>
     .meta-label { width: 18%; font-weight: 700; }
     .meta-value { width: 32%; }
 
-    .two-col {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0 0;
-    }
-
-    .two-col > tbody > tr > td {
-        border: 0;
-        padding: 0;
-        vertical-align: top;
-    }
-
-    .two-col .left {
-        width: 50%;
-        padding-right: 2px;
-    }
-
-    .two-col .right-col {
-        width: 50%;
-        padding-left: 2px;
-    }
-
     .unit-table td { text-align: center; height: 21px; }
     .unit-table .unit-body td { height: 62px; vertical-align: middle; }
 
@@ -448,7 +420,6 @@ $html = '<!DOCTYPE html>
         margin-right: 4mm;
     }
 
-    .spacer-2 { height: 2mm; }
     .keep { page-break-inside: avoid; }
 </style>
 </head>
