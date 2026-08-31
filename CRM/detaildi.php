@@ -1082,7 +1082,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <hr>
                 
                 <!-- ============================================ -->
-                <!-- APPROVAL SECTION (Di dalam Data Penjualan) -->
+                <!-- APPROVAL INFO (Di dalam Data Penjualan) -->
                 <!-- ============================================ -->
                 <div class="row mt-3">
                     <div class="col-md-3">
@@ -1108,65 +1108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="info-value"><?= htmlspecialchars($nextApproverLabel) ?></div>
                     </div>
                 </div>
-                
-                <!-- APPROVAL HISTORY -->
-                <h6 class="mt-3 mb-3"><i class="fas fa-history"></i> Riwayat Approval</h6>
-                
-                <?php if (count($approvalHistory) > 0): ?>
-                    <div class="table-responsive">
-                        <table class="table table-bordered" style="font-size: 13px;">
-                            <thead>
-                                <tr style="background: #f8f9fa;">
-                                    <th>Level</th>
-                                    <th>Approver</th>
-                                    <th>Status</th>
-                                    <th>Tanggal Approve</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($approvalHistory as $history): ?>
-                                    <?php 
-                                    $approverName = '';
-                                    if (!empty($history['approved_by'])) {
-                                        $stmtUser = $db->prepare("SELECT full_name FROM users WHERE id = ?");
-                                        $stmtUser->execute([$history['approved_by']]);
-                                        $approverName = $stmtUser->fetchColumn();
-                                    }
-                                    ?>
-                                    <tr>
-                                        <td><?= $history['approval_order'] ?></td>
-                                        <td>
-                                            <?= htmlspecialchars($history['approval_label']) ?>
-                                            <?php if ($history['status'] != 'pending' && !empty($approverName)): ?>
-                                                <br><small class="text-muted">by: <?= htmlspecialchars($approverName) ?></small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($history['status'] == 'approved'): ?>
-                                                <span class="badge-status-di approved"><i class="fas fa-check-circle"></i> Approved</span>
-                                            <?php elseif ($history['status'] == 'rejected'): ?>
-                                                <span class="badge-status-di rejected"><i class="fas fa-times-circle"></i> Rejected</span>
-                                            <?php else: ?>
-                                                <span class="badge-status-di pending"><i class="fas fa-clock"></i> Pending</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($history['approved_at']): ?>
-                                                <?= date('d/m/Y H:i', strtotime($history['approved_at'])) ?>
-                                            <?php else: ?>
-                                                -
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php else: ?>
-                    <div class="text-center py-4 text-muted">
-                        <i class="fas fa-inbox me-2"></i> Belum ada riwayat approval
-                    </div>
-                <?php endif; ?>
                 
                 <!-- APPROVAL ACTION -->
                 <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
