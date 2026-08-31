@@ -183,15 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         redirect('data_user.php');
     }
 }
-
-// Ambil data untuk edit
-$editData = null;
-if (isset($_GET['edit'])) {
-    $id = (int)$_GET['edit'];
-    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$id]);
-    $editData = $stmt->fetch();
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -482,11 +473,6 @@ if (isset($_GET['edit'])) {
 
         .mobile-toggle { display: none; }
 
-        .breadcrumb { background: transparent; padding: 0; margin: 0; font-size: 13px; }
-        .breadcrumb-item a { color: #2980b9; text-decoration: none; }
-        .breadcrumb-item a:hover { color: #ffd700; }
-        .breadcrumb-item.active { color: #0e1a2b; font-weight: 600; }
-
         .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
         .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
         .footer-text a:hover { color: #ffd700; }
@@ -648,6 +634,12 @@ if (isset($_GET['edit'])) {
                                                     </button>
                                                 <?php endif; ?>
                                                 
+                                                <?php if (canManageUser()): ?>
+                                                    <button class="btn-action permission" onclick="showPermission(<?= htmlspecialchars(json_encode($user)) ?>)">
+                                                        <i class="fas fa-lock"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                
                                                 <?php if (canDelete('data_user') && $user['id'] != 1): ?>
                                                     <button class="btn-action delete" onclick="deleteUser(<?= $user['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -775,6 +767,30 @@ if (isset($_GET['edit'])) {
     </div>
 
     <!-- ============================================
+    MODAL PERMISSION - HANYA MENU UTAMA
+    ============================================ -->
+    <div class="modal fade" id="modalPermission" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-lock" style="color:#ffd700;"></i> Atur Akses Menu Utama</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="permissionBody">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2">Memuat data...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary-custom" onclick="savePermission()"><i class="fas fa-save"></i> Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
     MODAL DELETE
     ============================================ -->
     <div class="modal fade" id="modalDelete" tabindex="-1">
@@ -803,6 +819,9 @@ if (isset($_GET['edit'])) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let currentUserId = null;
+        let currentUserRole = null;
+        
         // Edit User
         function editUser(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit User';
@@ -837,6 +856,83 @@ if (isset($_GET['edit'])) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
+        }
+        
+        function showPermission(data) {
+            currentUserId = data.id;
+            currentUserRole = data.role;
+            
+            var modal = new bootstrap.Modal(document.getElementById('modalPermission'));
+            modal.show();
+            
+            document.getElementById('permissionBody').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Memuat data...</p>
+                </div>
+            `;
+            
+            fetch('api/get_permission.php?user_id=' + data.id)
+                .then(response => response.json())
+                .then(data => {
+                    var html = '';
+                    if (data.modules && data.modules.length > 0) {
+                        html = '<p class="text-muted mb-3">Atur akses menu utama untuk divisi <strong>' + data.role + '</strong></p>';
+                        html += '<p class="text-warning small"><i class="fas fa-info-circle"></i> Centang menu yang ingin ditampilkan di dashboard</p>';
+                        html += '<div class="table-responsive">';
+                        html += '<table class="table table-bordered table-sm">';
+                        html += '<thead><tr><th>Menu Utama</th><th>Tampil di Dashboard</th></tr></thead>';
+                        html += '<tbody>';
+                        data.modules.forEach(function(module) {
+                            var checked = module.can_view == 1 ? 'checked' : '';
+                            html += '<tr>';
+                            html += '<td><strong>' + module.module_label + '</strong></td>';
+                            html += '<td>';
+                            html += '<input type="checkbox" class="perm-check form-check-input" data-module="' + module.module_name + '" ' + checked + '>';
+                            html += '</td>';
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table></div>';
+                    } else {
+                        html = '<div class="text-center py-4"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><p>Belum ada data menu utama</p></div>';
+                    }
+                    document.getElementById('permissionBody').innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('permissionBody').innerHTML = '<div class="text-center py-4 text-danger">Gagal memuat data!</div>';
+                });
+        }
+        
+        function savePermission() {
+            var permissions = [];
+            document.querySelectorAll('.perm-check').forEach(function(checkbox) {
+                var module = checkbox.dataset.module;
+                var checked = checkbox.checked ? 1 : 0;
+                permissions.push({module: module, value: checked});
+            });
+            
+            fetch('api/save_permission.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    role_name: currentUserRole,
+                    permissions: permissions
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Permission berhasil disimpan!');
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('modalPermission'));
+                    modal.hide();
+                    location.reload();
+                } else {
+                    alert('Gagal menyimpan permission: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Terjadi kesalahan!');
+            });
         }
     </script>
 </body>
