@@ -763,7 +763,7 @@ $role = $_SESSION['role'] ?? 'user';
         <?php endif; ?>
         
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
         <?php endif; ?>
         
         <?php if (in_array('data_user', $menuNames)): ?>
