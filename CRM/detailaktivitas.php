@@ -256,17 +256,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
+            $max_file_size = 5 * 1024 * 1024; // 5MB
             
             foreach ($_FILES['attachment_file']['name'] as $key => $filename) {
                 if ($_FILES['attachment_file']['error'][$key] === UPLOAD_ERR_OK) {
                     $file_extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                    $file_size = $_FILES['attachment_file']['size'][$key];
                     
-                    if (in_array($file_extension, $allowed_extensions)) {
-                        $new_filename = $target_dir . time() . '_' . uniqid() . '_' . $key . '.' . $file_extension;
-                        move_uploaded_file($_FILES['attachment_file']['tmp_name'][$key], $new_filename);
-                        $attachment_files[] = $new_filename;
-                    } else {
+                    if (!in_array($file_extension, $allowed_extensions)) {
                         $errors[] = 'Format file ' . $filename . ' tidak didukung!';
+                    } elseif ($file_size > $max_file_size) {
+                        $errors[] = 'File ' . $filename . ' melebihi ukuran maksimal 5MB!';
+                    } else {
+                        $new_filename = $target_dir . time() . '_' . uniqid() . '_' . $key . '.' . $file_extension;
+                        if (move_uploaded_file($_FILES['attachment_file']['tmp_name'][$key], $new_filename)) {
+                            $attachment_files[] = $new_filename;
+                        } else {
+                            $errors[] = 'Gagal mengupload file ' . $filename . '!';
+                        }
                     }
                 }
             }
@@ -670,7 +677,7 @@ foreach ($detailsList as $d) {
         <?php endif; ?>
         
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
         <?php endif; ?>
         
         <?php if (in_array('data_user', $menuNames)): ?>
@@ -784,14 +791,26 @@ foreach ($detailsList as $d) {
                                         </td>
                                         <td>
                                             <?php if (!empty($detail['tr_number'])): ?>
-                                                <a href="detailtr.php?tr_number=<?= urlencode($detail['tr_number']) ?>" style="color: #2980b9; text-decoration: none; font-weight: 600;">
+                                                <a href="detailtr.php?tr_number=<?= urlencode($detail['tr_number']) ?>" 
+                                                   style="color: #2980b9; text-decoration: none; font-weight: 600;"
+                                                   target="_blank">
                                                     <?= htmlspecialchars($detail['tr_number']) ?>
                                                 </a>
                                             <?php else: ?>
-                                                -
+                                                <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= !empty($detail['di_number']) ? htmlspecialchars($detail['di_number']) : '-' ?></td>
+                                        <td>
+                                            <?php if (!empty($detail['di_number'])): ?>
+                                                <a href="detaildi.php?di_number=<?= urlencode($detail['di_number']) ?>" 
+                                                   style="color: #27ae60; text-decoration: none; font-weight: 600;"
+                                                   target="_blank">
+                                                    <?= htmlspecialchars($detail['di_number']) ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= $detail['due_date'] ? date('d-m-Y', strtotime($detail['due_date'])) : '-' ?></td>
                                         <td>
                                             <span class="badge-status <?= $detail['status'] ?>">
@@ -821,9 +840,6 @@ foreach ($detailsList as $d) {
                                                         <?php endif; ?>
                                                     <?php else: ?>
                                                         <?php if (canEdit('sales_activity')): ?>
-                                                            <button class="btn-action edit" onclick="editDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
-                                                                <i class="fas fa-edit"></i>
-                                                            </button>
                                                             <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
                                                                 <i class="fas fa-check"></i>
                                                             </button>
@@ -940,7 +956,7 @@ foreach ($detailsList as $d) {
                         <div class="mb-3">
                             <label class="form-label">Attachment File <span class="text-danger">*</span> <small class="text-muted">(Bisa pilih banyak file)</small></label>
                             <input type="file" name="attachment_file[]" id="attachment_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" multiple required>
-                            <small class="text-muted">Tahan tombol Ctrl untuk memilih banyak file (JPG, PNG, PDF, DOC, XLS)</small>
+                            <small class="text-muted">Tahan tombol Ctrl untuk memilih banyak file (JPG, PNG, PDF, DOC, XLS) - Maksimal 5MB per file</small>
                         </div>
                         
                         <div id="customerDealFieldComplete" style="display: none;">
@@ -1054,13 +1070,13 @@ foreach ($detailsList as $d) {
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;">' + lastNegosiasi.tr_number + '</a></div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
                     
                     if (lastNegosiasi.di_number) {
-                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> ' + lastNegosiasi.di_number + '</div>';
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastNegosiasi.di_number) + '" style="color: #27ae60;" target="_blank">' + lastNegosiasi.di_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
                     }
@@ -1117,12 +1133,12 @@ foreach ($detailsList as $d) {
                     ${data.tr_number ? `
                     <div class="info-item">
                         <div class="info-label">TR Number</div>
-                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2980b9; font-weight: 600;">${data.tr_number}</a></div>
+                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2980b9; font-weight: 600;" target="_blank">${data.tr_number}</a></div>
                     </div>` : ''}
                     ${data.di_number ? `
                     <div class="info-item">
                         <div class="info-label">DI Number</div>
-                        <div class="info-value"><strong>${data.di_number}</strong></div>
+                        <div class="info-value"><a href="detaildi.php?di_number=${encodeURIComponent(data.di_number)}" style="color: #27ae60; font-weight: 600;" target="_blank">${data.di_number}</a></div>
                     </div>` : ''}
                     ${data.customer_deal ? `
                     <div class="info-item">
@@ -1164,6 +1180,12 @@ foreach ($detailsList as $d) {
             document.getElementById('diNumberFieldComplete').style.display = 'none';
             document.getElementById('customer_deal_complete').value = '';
             
+            // Hapus info negosiasi jika ada
+            var existingContainer = document.getElementById('negosiasiInfoContainer');
+            if (existingContainer) {
+                existingContainer.remove();
+            }
+            
             if (data.jenis_tugas === 'Negosiasi') {
                 document.getElementById('customerDealFieldComplete').style.display = 'block';
                 document.getElementById('customer_deal_complete').required = true;
@@ -1179,13 +1201,13 @@ foreach ($detailsList as $d) {
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;">' + lastNegosiasi.tr_number + '</a></div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
                     
                     if (lastNegosiasi.di_number) {
-                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> ' + lastNegosiasi.di_number + '</div>';
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastNegosiasi.di_number) + '" style="color: #27ae60;" target="_blank">' + lastNegosiasi.di_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
                     }
@@ -1205,15 +1227,13 @@ foreach ($detailsList as $d) {
                 }
                 
                 var modalBody = document.querySelector('#modalComplete .modal-body');
-                var existingContainer = document.getElementById('negosiasiInfoContainer');
-                if (existingContainer) {
-                    existingContainer.remove();
-                }
-                
                 var infoContainer = document.createElement('div');
                 infoContainer.id = 'negosiasiInfoContainer';
                 infoContainer.innerHTML = infoHtml;
-                modalBody.appendChild(infoContainer);
+                
+                // Insert setelah attachment file
+                var attachmentField = document.getElementById('attachment_file').closest('.mb-3');
+                attachmentField.after(infoContainer);
             }
             
             var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
@@ -1231,10 +1251,6 @@ foreach ($detailsList as $d) {
             document.getElementById('deleteDetailId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDeleteDetail'));
             modal.show();
-        }
-        
-        function editDetail(data) {
-            alert('Fitur edit akan segera hadir!');
         }
     </script>
 </body>
