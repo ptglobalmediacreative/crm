@@ -33,6 +33,10 @@ function getRoleLabel($role) {
     $roleLabels = [
         'it_support' => 'IT Support',
         'admin' => 'Admin',
+        'admin_sales' => 'Admin Sales',
+        'logistik' => 'Logistik',
+        'service_support' => 'Service Support',
+        'part_support' => 'Part Support',
         'finance' => 'Finance',
         'direktur_utama' => 'Direktur Utama',
         'direktur_operasional' => 'Direktur Operasional',
@@ -133,15 +137,14 @@ $request['status'] = $statusDI;
 $request['no_so'] = $detailDI['no_so'] ?? '';
 
 // ============================================
-// CEK HAK EDIT
+// CEK HAK EDIT - HANYA ADMIN SALES YANG BISA EDIT
 // ============================================
 $canEdit = false;
-if ($userRole === 'sales' && isset($request['sales_user_id']) && $request['sales_user_id'] == $userId) {
+$adminSalesRoles = ['admin', 'admin_sales']; // Role yang bisa edit DI
+
+if (in_array($userRole, $adminSalesRoles)) {
     $canEdit = true;
 }
-
-$reviewOnlyRoles = ['admin', 'sales_manager', 'direktur_sales', 'business', 'direktur_operasional', 'direktur_utama', 'finance', 'it_support'];
-$isReviewOnly = in_array($userRole, $reviewOnlyRoles);
 
 // ============================================
 // CEK APAKAH DI SUDAH PERNAH DI-APPROVE
@@ -179,10 +182,10 @@ try {
 // DAFTAR APPROVAL LEVELS
 // ============================================
 $approvalLevels = [
-    1 => ['role' => 'admin', 'label' => 'Admin Sales'],
-    2 => ['role' => 'admin', 'label' => 'Logistik'],
-    3 => ['role' => 'admin', 'label' => 'Service Support'],
-    4 => ['role' => 'admin', 'label' => 'Part Support'],
+    1 => ['role' => 'admin_sales', 'label' => 'Admin Sales'],
+    2 => ['role' => 'logistik', 'label' => 'Logistik'],
+    3 => ['role' => 'service_support', 'label' => 'Service Support'],
+    4 => ['role' => 'part_support', 'label' => 'Part Support'],
     5 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
     6 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
@@ -311,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($hasBeenApproved) {
             setFlash('DI ini sudah di-approve, data tidak bisa diedit lagi!', 'danger');
         } else {
-            setFlash('Anda tidak memiliki hak untuk mengedit data ini!', 'danger');
+            setFlash('Anda tidak memiliki hak untuk mengedit data ini! Hanya Admin Sales yang bisa.', 'danger');
         }
         redirect("detaildi.php?di_number=" . urlencode($di_number));
     }
@@ -352,7 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $canApprove = false;
             if ($currentOrder > 0 && $currentOrder <= 6) {
                 $requiredRole = $approvalLevels[$currentOrder]['role'];
-                if ($userRole == $requiredRole) {
+                if ($userRole == $requiredRole || ($userRole == 'admin' && in_array($requiredRole, ['admin_sales', 'logistik', 'service_support', 'part_support']))) {
                     $canApprove = true;
                 }
             }
@@ -428,7 +431,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            // Update or create detail_delivery_instructions
             if (!$detailDI) {
                 $insertDetail = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, 'pending', 1, NOW(), NOW())");
                 $insertDetail->execute([$di_number, $request['sales_activity_id'], $request['activity_detail_id']]);
@@ -525,53 +527,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$di_number]);
             
-            // Free Filter Engine
-            $ffe_values = $_POST['free_filter_engine'] ?? [];
-            foreach ($ffe_values as $value) {
-                if (!empty($value)) {
-                    $insertSql = "INSERT INTO di_product_supports (di_number, support_type, value, created_at, updated_at) VALUES (?, 'free_filter_engine', ?, NOW(), NOW())";
-                    $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$di_number, $value]);
-                }
-            }
+            $supportTypes = [
+                'free_filter_engine' => $_POST['free_filter_engine'] ?? [],
+                'jarak_service' => $_POST['jarak_service'] ?? [],
+                'catatan' => $_POST['catatan'] ?? [],
+                'free_service' => $_POST['free_service'] ?? [],
+                'warranty' => $_POST['warranty'] ?? []
+            ];
             
-            // Jarak Service
-            $js_values = $_POST['jarak_service'] ?? [];
-            foreach ($js_values as $value) {
-                if (!empty($value)) {
-                    $insertSql = "INSERT INTO di_product_supports (di_number, support_type, value, created_at, updated_at) VALUES (?, 'jarak_service', ?, NOW(), NOW())";
-                    $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$di_number, $value]);
-                }
-            }
-            
-            // Catatan
-            $catatan_values = $_POST['catatan'] ?? [];
-            foreach ($catatan_values as $value) {
-                if (!empty($value)) {
-                    $insertSql = "INSERT INTO di_product_supports (di_number, support_type, value, created_at, updated_at) VALUES (?, 'catatan', ?, NOW(), NOW())";
-                    $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$di_number, $value]);
-                }
-            }
-            
-            // Free Service
-            $fs_values = $_POST['free_service'] ?? [];
-            foreach ($fs_values as $value) {
-                if (!empty($value)) {
-                    $insertSql = "INSERT INTO di_product_supports (di_number, support_type, value, created_at, updated_at) VALUES (?, 'free_service', ?, NOW(), NOW())";
-                    $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$di_number, $value]);
-                }
-            }
-            
-            // Warranty
-            $warranty_values = $_POST['warranty'] ?? [];
-            foreach ($warranty_values as $value) {
-                if (!empty($value)) {
-                    $insertSql = "INSERT INTO di_product_supports (di_number, support_type, value, created_at, updated_at) VALUES (?, 'warranty', ?, NOW(), NOW())";
-                    $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$di_number, $value]);
+            foreach ($supportTypes as $type => $values) {
+                foreach ($values as $value) {
+                    if (!empty($value)) {
+                        $insertSql = "INSERT INTO di_product_supports (di_number, support_type, value, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
+                        $insertStmt = $db->prepare($insertSql);
+                        $insertStmt->execute([$di_number, $type, $value]);
+                    }
                 }
             }
             
@@ -731,13 +701,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #555;
             margin-bottom: 4px;
         }
-        .form-control, .form-select {
+        .form-control {
             font-size: 13px;
             border-radius: 8px;
             border: 1px solid #e0e4ea;
             padding: 8px 12px;
         }
-        .form-control:focus, .form-select:focus {
+        .form-control:focus {
             border-color: #ffd700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
         }
@@ -777,12 +747,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #fff;
         }
         .btn-success-custom i { margin-right: 6px; }
-        .btn-success-custom:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
 
         .btn-danger-custom {
             background: #e74c3c;
@@ -801,12 +765,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #fff;
         }
         .btn-danger-custom i { margin-right: 6px; }
-        .btn-danger-custom:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
 
         .btn-secondary-custom {
             background: #f0f2f5;
@@ -849,6 +807,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .data-row .data-header strong { color: #0e1a2b; font-size: 14px; }
         .data-row .data-header strong i { color: #ffd700; }
+
+        .alert-info-custom {
+            background: #e8f4fd;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #004085;
+            font-size: 13px;
+        }
 
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
@@ -959,525 +926,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- DATA PENJUALAN -->
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-file-invoice"></i> Data Penjualan</h6>
-                <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editDataPenjualan', 'viewDataPenjualan')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <?php endif; ?>
-            </div>
-            <div class="card-body-custom">
-                <div id="editDataPenjualan" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="save_data_penjualan">
-                        
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">No. DI</label>
-                                <input type="text" class="form-control" value="<?= htmlspecialchars($di_number) ?>" readonly>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Tanggal</label>
-                                <input type="text" class="form-control" value="<?= date('d/m/Y', strtotime($request['request_date'])) ?>" readonly>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">No. SO *</label>
-                                <input type="text" name="no_so" class="form-control" value="<?= htmlspecialchars($request['no_so']) ?>" required>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Sales</label>
-                                <input type="text" class="form-control" value="<?= htmlspecialchars($request['sales_name'] ?? '-') ?>" readonly>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan
-                        </button>
-                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editDataPenjualan', 'viewDataPenjualan')">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                    </form>
-                </div>
-                
-                <div id="viewDataPenjualan">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="info-label">No. DI</div>
-                            <div class="info-value"><strong><?= htmlspecialchars($di_number) ?></strong></div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-label">Tanggal</div>
-                            <div class="info-value"><?= date('d/m/Y', strtotime($request['request_date'])) ?></div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-label">No. SO</div>
-                            <div class="info-value"><?= htmlspecialchars($request['no_so'] ?: '-') ?></div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-label">Sales</div>
-                            <div class="info-value"><?= htmlspecialchars($request['sales_name'] ?? '-') ?></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- NOTIFIKASI HAK AKSES -->
+        <?php if (!$canEdit && !$hasBeenApproved): ?>
+        <div class="alert-info-custom mb-3">
+            <i class="fas fa-info-circle"></i> 
+            Hanya <strong>Admin Sales</strong> yang dapat mengedit data DI ini.
         </div>
-
-        <!-- DATA CUSTOMER -->
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-building"></i> Data Customer</h6>
-            </div>
-            <div class="card-body-custom">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="info-label">Nama PT</div>
-                        <div class="info-value"><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></div>
-                        
-                        <div class="info-label">Alamat</div>
-                        <div class="info-value"><?= htmlspecialchars($request['alamat'] ?? '-') ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Nama PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['nama_pic'] ?? '-') ?></div>
-                        
-                        <div class="info-label">No Telepon PIC</div>
-                        <div class="info-value"><?= htmlspecialchars($request['no_hp_pic'] ?? '-') ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- DATA UNIT -->
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-boxes"></i> Data Unit</h6>
-                <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editUnits', 'viewUnits')">
-                    <i class="fas fa-edit"></i> <?= count($diUnits) > 0 ? 'Edit Unit' : 'Tambah Unit' ?>
-                </button>
-                <?php endif; ?>
-            </div>
-            <div class="card-body-custom">
-                <div id="editUnits" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="save_units">
-                        
-                        <div id="unitRows">
-                            <!-- Unit rows akan ditambahkan di sini oleh JavaScript -->
-                        </div>
-                        
-                        <div class="mt-3">
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addUnitRow()">
-                                <i class="fas fa-plus"></i> Tambah Unit
-                            </button>
-                        </div>
-                        
-                        <hr>
-                        
-                        <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan Semua Unit
-                        </button>
-                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editUnits', 'viewUnits')">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                    </form>
-                </div>
-                
-                <div id="viewUnits">
-                    <?php if (count($diUnits) > 0): ?>
-                        <?php foreach ($diUnits as $index => $unit): ?>
-                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
-                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
-                                    <strong style="color: #0e1a2b;">
-                                        <i class="fas fa-box" style="color: #ffd700;"></i> 
-                                        Unit <?= $index + 1 ?>
-                                    </strong>
-                                </div>
-                                <div class="card-body" style="padding: 15px;">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="info-label">Lokasi Unit</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['lokasi_unit'] ?: '-') ?></div>
-                                            
-                                            <div class="info-label">Cabang</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['cabang'] ?: '-') ?></div>
-                                            
-                                            <div class="info-label">Kode Unit</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['kode_unit'] ?: '-') ?></div>
-                                            
-                                            <div class="info-label">Brand</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['brand'] ?: '-') ?></div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="info-label">Tipe</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['tipe'] ?: '-') ?></div>
-                                            
-                                            <div class="info-label">Serial Number</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['serial_number'] ?: '-') ?></div>
-                                            
-                                            <div class="info-label">Engine Number</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['engine_number'] ?: '-') ?></div>
-                                            
-                                            <div class="info-label">Keterangan</div>
-                                            <div class="info-value"><?= htmlspecialchars($unit['keterangan'] ?: '-') ?></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-box-open me-2"></i> Belum ada data unit
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- AKSESORIS -->
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-tools"></i> Aksesoris</h6>
-                <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editAccessories', 'viewAccessories')">
-                    <i class="fas fa-edit"></i> <?= count($diAccessories) > 0 ? 'Edit Aksesoris' : 'Tambah Aksesoris' ?>
-                </button>
-                <?php endif; ?>
-            </div>
-            <div class="card-body-custom">
-                <div id="editAccessories" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="save_accessories">
-                        
-                        <div id="accessoryRows">
-                            <!-- Accessory rows akan ditambahkan di sini oleh JavaScript -->
-                        </div>
-                        
-                        <div class="mt-3">
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addAccessoryRow()">
-                                <i class="fas fa-plus"></i> Tambah Aksesoris
-                            </button>
-                        </div>
-                        
-                        <hr>
-                        
-                        <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan Semua Aksesoris
-                        </button>
-                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editAccessories', 'viewAccessories')">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                    </form>
-                </div>
-                
-                <div id="viewAccessories">
-                    <?php if (count($diAccessories) > 0): ?>
-                        <div class="table-responsive">
-                            <table class="table table-bordered" style="font-size: 13px;">
-                                <thead>
-                                    <tr style="background: #f8f9fa;">
-                                        <th style="width: 50px;">No</th>
-                                        <th>Uraian</th>
-                                        <th style="width: 100px;">Satuan</th>
-                                        <th style="width: 80px;">Jumlah</th>
-                                        <th>Keterangan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($diAccessories as $acc): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($acc['no'] ?: '-') ?></td>
-                                            <td><?= htmlspecialchars($acc['uraian'] ?: '-') ?></td>
-                                            <td><?= htmlspecialchars($acc['satuan'] ?: '-') ?></td>
-                                            <td><?= (int)$acc['jumlah'] ?></td>
-                                            <td><?= htmlspecialchars($acc['keterangan'] ?: '-') ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-tools me-2"></i> Belum ada data aksesoris
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- LOGISTIK -->
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-truck"></i> Logistik</h6>
-                <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editLogistics', 'viewLogistics')">
-                    <i class="fas fa-edit"></i> <?= $diLogistics ? 'Edit Logistik' : 'Tambah Logistik' ?>
-                </button>
-                <?php endif; ?>
-            </div>
-            <div class="card-body-custom">
-                <div id="editLogistics" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="save_logistics">
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Lokasi Pengambilan</label>
-                                <input type="text" name="lokasi_pengambilan" class="form-control" value="<?= htmlspecialchars($diLogistics['lokasi_pengambilan'] ?? '') ?>">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Lokasi Pengiriman</label>
-                                <input type="text" name="lokasi_pengiriman" class="form-control" value="<?= htmlspecialchars($diLogistics['lokasi_pengiriman'] ?? '') ?>">
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Transportir</label>
-                                <input type="text" name="transportir" class="form-control" value="<?= htmlspecialchars($diLogistics['transportir'] ?? '') ?>">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Waktu Pengiriman</label>
-                                <input type="datetime-local" name="waktu_pengiriman" class="form-control" value="<?= $diLogistics['waktu_pengiriman'] ? date('Y-m-d\TH:i', strtotime($diLogistics['waktu_pengiriman'])) : '' ?>">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">ETA</label>
-                                <input type="datetime-local" name="eta" class="form-control" value="<?= $diLogistics['eta'] ? date('Y-m-d\TH:i', strtotime($diLogistics['eta'])) : '' ?>">
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan Logistik
-                        </button>
-                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editLogistics', 'viewLogistics')">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                    </form>
-                </div>
-                
-                <div id="viewLogistics">
-                    <?php if ($diLogistics): ?>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-label">Lokasi Pengambilan</div>
-                                <div class="info-value"><?= htmlspecialchars($diLogistics['lokasi_pengambilan'] ?: '-') ?></div>
-                                
-                                <div class="info-label">Lokasi Pengiriman</div>
-                                <div class="info-value"><?= htmlspecialchars($diLogistics['lokasi_pengiriman'] ?: '-') ?></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-label">Transportir</div>
-                                <div class="info-value"><?= htmlspecialchars($diLogistics['transportir'] ?: '-') ?></div>
-                                
-                                <div class="info-label">Waktu Pengiriman</div>
-                                <div class="info-value"><?= $diLogistics['waktu_pengiriman'] ? date('d/m/Y H:i', strtotime($diLogistics['waktu_pengiriman'])) : '-' ?></div>
-                                
-                                <div class="info-label">ETA</div>
-                                <div class="info-value"><?= $diLogistics['eta'] ? date('d/m/Y H:i', strtotime($diLogistics['eta'])) : '-' ?></div>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-truck me-2"></i> Belum ada data logistik
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- PRODUCT SUPPORT -->
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-headset"></i> Product Support</h6>
-                <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editSupport', 'viewSupport')">
-                    <i class="fas fa-edit"></i> <?= count($diSupports) > 0 ? 'Edit Support' : 'Tambah Support' ?>
-                </button>
-                <?php endif; ?>
-            </div>
-            <div class="card-body-custom">
-                <div id="editSupport" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="save_product_support">
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Free Filter Engine</label>
-                            <div id="ffeContainer">
-                                <?php foreach ($supportsGrouped['free_filter_engine'] as $item): ?>
-                                    <input type="text" name="free_filter_engine[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Free Filter Engine">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['free_filter_engine']) == 0): ?>
-                                    <input type="text" name="free_filter_engine[]" class="form-control mb-2" placeholder="Free Filter Engine">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('ffeContainer', 'free_filter_engine[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Jarak Service</label>
-                            <div id="jsContainer">
-                                <?php foreach ($supportsGrouped['jarak_service'] as $item): ?>
-                                    <input type="text" name="jarak_service[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Jarak Service">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['jarak_service']) == 0): ?>
-                                    <input type="text" name="jarak_service[]" class="form-control mb-2" placeholder="Jarak Service">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('jsContainer', 'jarak_service[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Catatan</label>
-                            <div id="catatanContainer">
-                                <?php foreach ($supportsGrouped['catatan'] as $item): ?>
-                                    <input type="text" name="catatan[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Catatan">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['catatan']) == 0): ?>
-                                    <input type="text" name="catatan[]" class="form-control mb-2" placeholder="Catatan">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('catatanContainer', 'catatan[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Free Service</label>
-                            <div id="fsContainer">
-                                <?php foreach ($supportsGrouped['free_service'] as $item): ?>
-                                    <input type="text" name="free_service[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Free Service">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['free_service']) == 0): ?>
-                                    <input type="text" name="free_service[]" class="form-control mb-2" placeholder="Free Service">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('fsContainer', 'free_service[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Warranty</label>
-                            <div id="warrantyContainer">
-                                <?php foreach ($supportsGrouped['warranty'] as $item): ?>
-                                    <input type="text" name="warranty[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Warranty">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['warranty']) == 0): ?>
-                                    <input type="text" name="warranty[]" class="form-control mb-2" placeholder="Warranty">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('warrantyContainer', 'warranty[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <hr>
-                        
-                        <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan Product Support
-                        </button>
-                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editSupport', 'viewSupport')">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                    </form>
-                </div>
-                
-                <div id="viewSupport">
-                    <?php if (count($diSupports) > 0): ?>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <?php if (count($supportsGrouped['free_filter_engine']) > 0): ?>
-                                    <div class="info-label">Free Filter Engine</div>
-                                    <?php foreach ($supportsGrouped['free_filter_engine'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                
-                                <?php if (count($supportsGrouped['jarak_service']) > 0): ?>
-                                    <div class="info-label">Jarak Service</div>
-                                    <?php foreach ($supportsGrouped['jarak_service'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                
-                                <?php if (count($supportsGrouped['catatan']) > 0): ?>
-                                    <div class="info-label">Catatan</div>
-                                    <?php foreach ($supportsGrouped['catatan'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                            <div class="col-md-6">
-                                <?php if (count($supportsGrouped['free_service']) > 0): ?>
-                                    <div class="info-label">Free Service</div>
-                                    <?php foreach ($supportsGrouped['free_service'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                
-                                <?php if (count($supportsGrouped['warranty']) > 0): ?>
-                                    <div class="info-label">Warranty</div>
-                                    <?php foreach ($supportsGrouped['warranty'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-headset me-2"></i> Belum ada data product support
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- APPROVAL SECTION -->
-        <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
-            <?php 
-            $canApprove = false;
-            $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
-            if ($userRole == $requiredRole) {
-                $canApprove = true;
-            }
-            ?>
-            
-            <?php if (!$canApprove): ?>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> 
-                Anda tidak memiliki hak untuk melakukan approval pada level ini. 
-                Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
-            </div>
-            <?php endif; ?>
-            
-            <?php if ($canApprove): ?>
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h6><i class="fas fa-check-double"></i> Approval Action</h6>
-                </div>
-                <div class="card-body-custom">
-                    <p>Anda memiliki hak untuk melakukan approval sebagai <strong><?= htmlspecialchars($currentApproverLabel) ?></strong></p>
-                    <form method="POST" id="approvalForm">
-                        <input type="hidden" name="action" id="approvalAction" value="approve">
-                        <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
-                        <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
-                            <i class="fas fa-check-circle"></i> Approve
-                        </button>
-                        <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
-                            <i class="fas fa-times-circle"></i> Reject
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <?php endif; ?>
         <?php endif; ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: DATA PENJUALAN -->
+        <!-- ============================================ -->
+        <?php include 'sections/di_data_penjualan.php'; ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: DATA CUSTOMER -->
+        <!-- ============================================ -->
+        <?php include 'sections/di_data_customer.php'; ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: DATA UNIT -->
+        <!-- ============================================ -->
+        <?php include 'sections/di_data_unit.php'; ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: AKSESORIS -->
+        <!-- ============================================ -->
+        <?php include 'sections/di_aksesoris.php'; ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: LOGISTIK -->
+        <!-- ============================================ -->
+        <?php include 'sections/di_logistik.php'; ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: PRODUCT SUPPORT -->
+        <!-- ============================================ -->
+        <?php include 'sections/di_product_support.php'; ?>
+
+        <!-- ============================================ -->
+        <!-- SECTION: APPROVAL -->
+        <!-- ============================================ -->
+        <?php include 'sections/di_approval.php'; ?>
 
     </div>
 
@@ -1642,7 +1132,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const row = document.getElementById(rowId);
             if (row) {
                 row.remove();
-                // Renumber rows
                 const rows = document.querySelectorAll('.data-row');
                 rows.forEach((row, index) => {
                     const title = row.querySelector('strong');
@@ -1659,7 +1148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // LOAD DATA SAAT HALAMAN DIMUAT
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Load units
             <?php if (count($diUnits) > 0): ?>
                 <?php foreach ($diUnits as $unit): ?>
                     addUnitRow({
@@ -1677,7 +1165,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 addUnitRow();
             <?php endif; ?>
             
-            // Load accessories
             <?php if (count($diAccessories) > 0): ?>
                 <?php foreach ($diAccessories as $acc): ?>
                     addAccessoryRow({
