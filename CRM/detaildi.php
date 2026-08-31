@@ -398,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $updateApproval = $db->prepare("UPDATE di_approval_history SET status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
                     $updateApproval->execute([$approvalStatus, $userId, $existingApproval['id']]);
                 } else {
-                    $insertApproval = $db->prepare("INSERT INTO di_approval_history (di_number, approval_order, approval_role, approval_label, status, catatan, approved_by, created_at) VALUES (?, ?, ?, ?, ?, '', ?, NOW())");
+                    $insertApproval = $db->prepare("INSERT INTO di_approval_history (di_number, approval_order, approval_role, approval_label, status, catatan, approved_by, approved_at, created_at) VALUES (?, ?, ?, ?, ?, '', ?, NOW(), NOW())");
                     $insertApproval->execute([$di_number, $currentOrder, $approvalLevels[$currentOrder]['role'], $approvalLevels[$currentOrder]['label'], $approvalStatus, $userId]);
                 }
                 
@@ -1603,14 +1603,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <th>Level</th>
                                     <th>Approver</th>
                                     <th>Status</th>
-                                    <th>Tanggal</th>
+                                    <th>Tanggal Approve</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($approvalHistory as $history): ?>
+                                    <?php 
+                                    $approverName = '';
+                                    if (!empty($history['approved_by'])) {
+                                        $stmtUser = $db->prepare("SELECT full_name FROM users WHERE id = ?");
+                                        $stmtUser->execute([$history['approved_by']]);
+                                        $approverName = $stmtUser->fetchColumn();
+                                    }
+                                    ?>
                                     <tr>
                                         <td><?= $history['approval_order'] ?></td>
-                                        <td><?= htmlspecialchars($history['approval_label']) ?></td>
+                                        <td>
+                                            <?= htmlspecialchars($history['approval_label']) ?>
+                                            <?php if ($history['status'] != 'pending' && !empty($approverName)): ?>
+                                                <br><small class="text-muted">by: <?= htmlspecialchars($approverName) ?></small>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php if ($history['status'] == 'approved'): ?>
                                                 <span class="badge-status-di approved"><i class="fas fa-check-circle"></i> Approved</span>
@@ -1620,7 +1633,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 <span class="badge-status-di pending"><i class="fas fa-clock"></i> Pending</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= $history['approved_at'] ? date('d/m/Y H:i', strtotime($history['approved_at'])) : '-' ?></td>
+                                        <td>
+                                            <?php if ($history['approved_at']): ?>
+                                                <?= date('d/m/Y H:i', strtotime($history['approved_at'])) ?>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
