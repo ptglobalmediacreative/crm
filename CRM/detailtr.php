@@ -565,17 +565,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
             
-            // Hapus semua item additional cost yang ada untuk TR ini
             $deleteSql = "DELETE FROM tr_additional_cost_items WHERE trf_number = ?";
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
             
-            // Ambil data dari form (array)
             $item_names = $_POST['item_name'] ?? [];
             $item_amounts = $_POST['item_amount'] ?? [];
             $item_keterangans = $_POST['item_keterangan'] ?? [];
             
-            // Loop untuk menyimpan setiap item
             foreach ($item_names as $index => $name) {
                 if (!empty($name)) {
                     $amount = (float)($item_amounts[$index] ?? 0);
@@ -587,7 +584,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            // Update status detail TR
             $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
             $updateDetail->execute([$tr_number]);
             
@@ -660,18 +656,20 @@ foreach ($termPayments as $top) {
     $totalTOP += (float)$top['amount'];
 }
 
+// Total Additional Cost HANYA dari Additional Cost Items
 $totalAdditionalCost = 0;
 foreach ($additionalCostItems as $item) {
     $totalAdditionalCost += (float)$item['amount'];
 }
 
+// Total Mediator Fee dihitung terpisah
 $totalMediatorFee = 0;
 foreach ($mediators as $med) {
     $totalMediatorFee += (float)$med['amount'];
 }
-$totalAdditionalCost += $totalMediatorFee;
 
-$totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
+// Total Masukan = Total Unit - Total Additional Cost - Total Mediator Fee
+$totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost - $totalMediatorFee;
 
 // ============================================
 // CEK KELENGKAPAN DATA
@@ -1286,15 +1284,19 @@ if (count($additionalCostItems) == 0) {
                     <hr>
                     
                     <div class="row">
-                        <div class="col-md-4">
-                            <div class="info-label">Grand Total Include PPN (Detail Unit)</div>
+                        <div class="col-md-3">
+                            <div class="info-label">Grand Total Unit (Include PPN)</div>
                             <div class="info-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="info-label">Total Additional Cost</div>
                             <div class="info-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="info-label">Total Mediator Fee</div>
+                            <div class="info-value">Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?></div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="info-label">Total Masukan</div>
                             <div class="info-value"><strong>Rp <?= number_format($totalMasukan, 0, ',', '.') ?></strong></div>
                         </div>
@@ -1819,7 +1821,7 @@ if (count($additionalCostItems) == 0) {
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="total-box">
-                                    <span class="total-label">Total Additional Cost (Termasuk Total Mediator Fee)</span>
+                                    <span class="total-label">Total Additional Cost</span>
                                     <span class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
                                 </div>
                             </div>
@@ -1922,7 +1924,7 @@ if (count($additionalCostItems) == 0) {
                             <div class="col-md-12">
                                 <div class="total-box">
                                     <span class="total-label">Total Mediator Fee</span>
-                                    <span class="total-value">Rp <?= number_format($totalMediatorAmount, 0, ',', '.') ?></span>
+                                    <span class="total-value">Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?></span>
                                 </div>
                             </div>
                         </div>
