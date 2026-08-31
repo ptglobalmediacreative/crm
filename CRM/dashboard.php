@@ -426,7 +426,7 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
         .activity-card { 
             background: #fff; border-radius: 16px; padding: 24px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
-            height: 100%; transition: all 0.3s ease;
+            margin-bottom: 24px; transition: all 0.3s ease;
         }
         .activity-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
         .activity-card h6 { font-weight: 600; margin-bottom: 20px; color: #0e1a2b; }
@@ -515,10 +515,10 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
                 </button>
                 <h4>Dashboard</h4>
             </div>
-            <div class="filter-area">
+            <form method="GET" class="filter-area">
                 <span style="font-weight:600; color:#555; font-size:14px;">Filter:</span>
                 <?php if (!$isSalesRole): ?>
-                <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()" style="background:#f8f9fa;">
+                <select class="form-select form-select-sm" id="filterSales" name="sales_id" style="background:#f8f9fa;">
                     <option value="0">Semua Sales</option>
                     <?php foreach ($allSalesList as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
@@ -527,8 +527,11 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
                     <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
-                <input type="month" id="filterMonth" class="form-control form-control-sm" style="width:160px; background:#f8f9fa;" value="<?= $filterMonth ?>" onchange="applyFilter()">
-            </div>
+                <input type="month" id="filterMonth" name="month" class="form-control form-control-sm" style="width:160px; background:#f8f9fa;" value="<?= $filterMonth ?>">
+                <button type="submit" class="btn btn-sm" style="background:#0e1a2b; color:#fff; border:none; border-radius:8px; padding:6px 16px; font-weight:600;">
+                    <i class="fas fa-filter"></i> Terapkan
+                </button>
+            </form>
         </div>
 
         <!-- STAT CARDS -->
@@ -594,53 +597,42 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- GRID: RECENT ACTIVITIES -->
-        <div class="grid-2-col">
-            <div class="activity-card">
-                <div style="display:flex; justify-content:space-between;">
-                    <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
-                    <a href="salesactivity.php" style="font-size:12px; color:#2980b9; text-decoration:none;">Lihat Semua</a>
-                </div>
-                
-                <?php if (!empty($recentActivities)): ?>
-                    <?php foreach ($recentActivities as $act): 
-                        $salesInitial = '';
-                        if (!empty($act['sales_name'])) {
-                            $names = explode(' ', $act['sales_name']);
-                            if (count($names) >= 2) {
-                                $salesInitial = strtoupper(substr($names[0], 0, 1) . substr($names[1], 0, 1));
-                            } else {
-                                $salesInitial = strtoupper(substr($act['sales_name'], 0, 2));
-                            }
+        <!-- AKTIVITAS TERBARU (FULL WIDTH) -->
+        <div class="activity-card">
+            <div style="display:flex; justify-content:space-between;">
+                <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
+                <a href="salesactivity.php" style="font-size:12px; color:#2980b9; text-decoration:none;">Lihat Semua</a>
+            </div>
+            
+            <?php if (!empty($recentActivities)): ?>
+                <?php foreach ($recentActivities as $act): 
+                    $salesInitial = '';
+                    if (!empty($act['sales_name'])) {
+                        $names = explode(' ', $act['sales_name']);
+                        if (count($names) >= 2) {
+                            $salesInitial = strtoupper(substr($names[0], 0, 1) . substr($names[1], 0, 1));
+                        } else {
+                            $salesInitial = strtoupper(substr($act['sales_name'], 0, 2));
                         }
-                    ?>
-                    <div class="activity-item">
-                        <div class="act-icon gold"><i class="fas fa-file-alt"></i></div>
-                        <div class="act-info">
-                            <div class="act-title">
-                                <?php if (!empty($salesInitial)): ?>
-                                    <span class="badge bg-primary me-2" style="font-size:11px;"><?= $salesInitial ?></span>
-                                <?php endif; ?>
-                                <?= htmlspecialchars($act['subject'] ?? '-') ?>
-                            </div>
-                            <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas'] ?? '-') ?></div>
-                            <span class="act-time"><?= date('d M H:i', strtotime($act['created_at'])) ?></span>
+                    }
+                ?>
+                <div class="activity-item">
+                    <div class="act-icon gold"><i class="fas fa-file-alt"></i></div>
+                    <div class="act-info">
+                        <div class="act-title">
+                            <?php if (!empty($salesInitial)): ?>
+                                <span class="badge bg-primary me-2" style="font-size:11px;"><?= $salesInitial ?></span>
+                            <?php endif; ?>
+                            <?= htmlspecialchars($act['subject'] ?? '-') ?>
                         </div>
+                        <div class="act-desc"><?= htmlspecialchars($act['nama_pt'] ?? '-') ?> - <?= htmlspecialchars($act['jenis_tugas'] ?? '-') ?></div>
+                        <span class="act-time"><?= date('d M H:i', strtotime($act['created_at'])) ?></span>
                     </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="text-center text-muted py-3">Belum ada aktivitas.</div>
-                <?php endif; ?>
-            </div>
-
-            <div class="activity-card">
-                <h6><i class="fas fa-chart-simple" style="color:#27ae60;"></i> Informasi</h6>
-                <div class="text-center text-muted py-3">
-                    <i class="fas fa-info-circle fa-2x mb-2"></i>
-                    <p>Dashboard menampilkan ringkasan data sales activity.</p>
-                    <p>Filter Sales dan Bulan tersedia di pojok kanan atas.</p>
                 </div>
-            </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="text-center text-muted py-3">Belum ada aktivitas.</div>
+            <?php endif; ?>
         </div>
         
         <div class="text-center mt-4 text-muted" style="font-size:12px;">&copy; <?= date('Y') ?> PT Ganda Elang Tangguh - CRM</div>
@@ -694,12 +686,6 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
                 }
             }
         });
-
-        function applyFilter() {
-            const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
-            const month = document.getElementById('filterMonth').value;
-            window.location.href = '?sales_id=' + salesId + '&month=' + month;
-        }
     </script>
 </body>
 </html>
