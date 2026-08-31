@@ -351,17 +351,32 @@ $html = '
             page-break-after: avoid;
         }
         
-        /* INFO ROW */
+        /* INFO ROW - DENGAN LABEL SEJAJAR */
         .info-row {
-            padding: 1px 0;
+            padding: 2px 0;
             font-size: 9px;
             page-break-inside: avoid;
+            display: flex;
+            align-items: flex-start;
         }
         .info-row .label {
             display: inline-block;
             font-weight: 600;
             color: #555;
-            width: 110px;
+            width: 130px;
+            min-width: 130px;
+            flex-shrink: 0;
+            text-align: left;
+        }
+        .info-row .label::after {
+            content: ":";
+            display: inline-block;
+            margin-left: 2px;
+        }
+        .info-row .value {
+            flex: 1;
+            padding-left: 5px;
+            text-align: left;
         }
         
         .info-row-2col {
@@ -378,19 +393,35 @@ $html = '
             padding-right: 0;
         }
         .info-row-2col .info-row .label {
-            width: 90px;
+            width: 110px;
+            min-width: 110px;
         }
         
         .info-row-left {
-            padding: 1px 0;
+            padding: 2px 0;
             font-size: 9px;
             page-break-inside: avoid;
+            display: flex;
+            align-items: flex-start;
         }
         .info-row-left .label {
             display: inline-block;
             font-weight: 600;
             color: #555;
-            width: 110px;
+            width: 130px;
+            min-width: 130px;
+            flex-shrink: 0;
+            text-align: left;
+        }
+        .info-row-left .label::after {
+            content: ":";
+            display: inline-block;
+            margin-left: 2px;
+        }
+        .info-row-left .value {
+            flex: 1;
+            padding-left: 5px;
+            text-align: left;
         }
         
         /* TABLE */
@@ -496,26 +527,24 @@ $html = '
         .approval-status-rejected { color: #dc3545; font-weight: 700; }
         .approval-status-pending { color: #ffc107; font-weight: 700; }
         
-        /* FOOTER - FIXED DI BAWAH SETIAP HALAMAN */
-        .footer {
-            position: fixed;
-            bottom: -10px;
-            left: 0;
-            right: 0;
-            padding: 6px 20px;
+        /* FOOTER - HANYA DI AKHIR DOKUMEN */
+        .footer-end {
+            margin-top: 20px;
+            padding: 8px 0;
             border-top: 2px solid #222;
             font-size: 7px;
             color: #555;
             text-align: center;
             background: #fff;
+            page-break-inside: avoid;
         }
-        .footer .footer-alamat {
+        .footer-end .footer-alamat {
             font-size: 7px;
             color: #555;
             margin-top: 2px;
             line-height: 1.4;
         }
-        .footer .footer-note {
+        .footer-end .footer-note {
             margin-top: 2px;
             font-size: 6px;
             color: #aaa;
@@ -530,7 +559,7 @@ $html = '
         .mb-5 { margin-bottom: 5px; }
         
         @page {
-            margin: 10mm 15mm 15mm 15mm;
+            margin: 10mm 15mm 10mm 15mm;
         }
     </style>
 </head>
@@ -554,20 +583,20 @@ $html = '
 
 <div class="info-row-2col">
     <div class="col">
-        <div class="info-row"><span class="label">Nama PT</span>: ' . htmlspecialchars($namaPTDisplay) . '</div>
-        <div class="info-row"><span class="label">Alamat</span>: ' . htmlspecialchars($request['alamat'] ?? '-') . '</div>
-        <div class="info-row"><span class="label">NPWP</span>: ' . htmlspecialchars($request['npwp'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Nama PT</span><span class="value">' . htmlspecialchars($namaPTDisplay) . '</span></div>
+        <div class="info-row"><span class="label">Alamat</span><span class="value">' . htmlspecialchars($request['alamat'] ?? '-') . '</span></div>
+        <div class="info-row"><span class="label">NPWP</span><span class="value">' . htmlspecialchars($request['npwp'] ?? '-') . '</span></div>
     </div>
     <div class="col">
-        <div class="info-row"><span class="label">Nama PIC</span>: ' . htmlspecialchars($request['nama_pic'] ?? '-') . '</div>
-        <div class="info-row"><span class="label">Jabatan PIC</span>: ' . htmlspecialchars($request['jabatan_pic'] ?? '-') . '</div>
-        <div class="info-row"><span class="label">No HP PIC</span>: ' . htmlspecialchars($request['no_hp_pic'] ?? '-') . '</div>
-        <div class="info-row"><span class="label">Email PIC</span>: ' . htmlspecialchars($request['email_pic'] ?? '-') . '</div>
+        <div class="info-row"><span class="label">Nama PIC</span><span class="value">' . htmlspecialchars($request['nama_pic'] ?? '-') . '</span></div>
+        <div class="info-row"><span class="label">Jabatan PIC</span><span class="value">' . htmlspecialchars($request['jabatan_pic'] ?? '-') . '</span></div>
+        <div class="info-row"><span class="label">No HP PIC</span><span class="value">' . htmlspecialchars($request['no_hp_pic'] ?? '-') . '</span></div>
+        <div class="info-row"><span class="label">Email PIC</span><span class="value">' . htmlspecialchars($request['email_pic'] ?? '-') . '</span></div>
     </div>
 </div>
 
-<div class="info-row"><span class="label">Salesman</span>: ' . htmlspecialchars($request['sales_name'] ?? '-') . '</div>
-<div class="info-row"><span class="label">Deskripsi</span>: ' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</div>
+<div class="info-row"><span class="label">Salesman</span><span class="value">' . htmlspecialchars($request['sales_name'] ?? '-') . '</span></div>
+<div class="info-row"><span class="label">Deskripsi</span><span class="value">' . nl2br(htmlspecialchars($detailTR['deskripsi'] ?? '-')) . '</span></div>
 
 <!-- B. DETAIL UNIT -->
 <div class="section-title">B. Detail Unit</div>
@@ -615,13 +644,13 @@ if (count($detailUnits) > 0) {
     foreach ($detailUnits as $index => $unit) {
         $html .= '
     <div class="unit-detail-info">
-        <strong>Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong> 
-        Additional Attachment: ' . htmlspecialchars($unit['additional_attachment'] ?? '-') . ' | 
-        Waranty: ' . htmlspecialchars($unit['waranty'] ?? '-') . ' | 
-        Machine Location: ' . htmlspecialchars($unit['machine_location'] ?? '-') . ' | 
-        Delivery Terms: ' . htmlspecialchars($unit['delivery_terms'] ?? '-') . ' | 
-        Delivery Schedule: ' . (isset($unit['delivery_schedule']) && !empty($unit['delivery_schedule']) ? date('d/m/Y', strtotime($unit['delivery_schedule'])) : '-') . ' | 
-        Transaction Type: ' . htmlspecialchars($unit['transaction_type'] ?? '-') . '
+        <strong>Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong><br>
+        <span class="label">Additional Attachment</span>: ' . htmlspecialchars($unit['additional_attachment'] ?? '-') . ' | 
+        <span class="label">Waranty</span>: ' . htmlspecialchars($unit['waranty'] ?? '-') . ' | 
+        <span class="label">Machine Location</span>: ' . htmlspecialchars($unit['machine_location'] ?? '-') . ' | 
+        <span class="label">Delivery Terms</span>: ' . htmlspecialchars($unit['delivery_terms'] ?? '-') . ' | 
+        <span class="label">Delivery Schedule</span>: ' . (isset($unit['delivery_schedule']) && !empty($unit['delivery_schedule']) ? date('d/m/Y', strtotime($unit['delivery_schedule'])) : '-') . ' | 
+        <span class="label">Transaction Type</span>: ' . htmlspecialchars($unit['transaction_type'] ?? '-') . '
     </div>';
     }
 } else {
@@ -680,13 +709,13 @@ $html .= '
 
 if ($additionalCost) {
     $html .= '
-        <div class="info-row-left"><span class="label">Insurance Ops</span>: ' . formatRp($additionalCost['insurance_ops']) . '</div>
-        <div class="info-row-left"><span class="label">Insurance Cargo</span>: ' . formatRp($additionalCost['insurance_cargo']) . '</div>
-        <div class="info-row-left"><span class="label">Delivery Cost</span>: ' . formatRp($additionalCost['delivery_cost']) . '</div>
-        <div class="info-row-left"><span class="label">Mediator Fee (Additional)</span>: ' . formatRp($additionalCost['mediator_fee']) . '</div>
-        <div class="info-row-left"><span class="label">Free Part</span>: ' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</div>
-        <div class="info-row-left"><span class="label">Free Service</span>: ' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</div>
-        <div class="info-row-left"><span class="label">Others</span>: ' . htmlspecialchars($additionalCost['others'] ?? '-') . '</div>
+        <div class="info-row-left"><span class="label">Insurance Ops</span><span class="value">' . formatRp($additionalCost['insurance_ops']) . '</span></div>
+        <div class="info-row-left"><span class="label">Insurance Cargo</span><span class="value">' . formatRp($additionalCost['insurance_cargo']) . '</span></div>
+        <div class="info-row-left"><span class="label">Delivery Cost</span><span class="value">' . formatRp($additionalCost['delivery_cost']) . '</span></div>
+        <div class="info-row-left"><span class="label">Mediator Fee (Additional)</span><span class="value">' . formatRp($additionalCost['mediator_fee']) . '</span></div>
+        <div class="info-row-left"><span class="label">Free Part</span><span class="value">' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</span></div>
+        <div class="info-row-left"><span class="label">Free Service</span><span class="value">' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</span></div>
+        <div class="info-row-left"><span class="label">Others</span><span class="value">' . htmlspecialchars($additionalCost['others'] ?? '-') . '</span></div>
         ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
@@ -812,9 +841,9 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// FOOTER - FIXED DI BAWAH SETIAP HALAMAN
+// FOOTER - HANYA SEKALI DI AKHIR DOKUMEN (BUKAN FIXED)
 $html .= '
-<div class="footer">
+<div class="footer-end">
     <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
     <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
     <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
