@@ -662,14 +662,14 @@ foreach ($additionalCostItems as $item) {
     $totalAdditionalCost += (float)$item['amount'];
 }
 
-// Total Mediator Fee dihitung terpisah
+// Total Mediator Fee dihitung terpisah (hanya untuk tampilan di tab Mediator)
 $totalMediatorFee = 0;
 foreach ($mediators as $med) {
     $totalMediatorFee += (float)$med['amount'];
 }
 
-// Total Masukan = Total Unit - Total Additional Cost - Total Mediator Fee
-$totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost - $totalMediatorFee;
+// Total Masukan = Total Unit - Total Additional Cost
+$totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 
 // ============================================
 // CEK KELENGKAPAN DATA
@@ -1284,19 +1284,15 @@ if (count($additionalCostItems) == 0) {
                     <hr>
                     
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="info-label">Grand Total Unit (Include PPN)</div>
                             <div class="info-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="info-label">Total Additional Cost</div>
                             <div class="info-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="info-label">Total Mediator Fee</div>
-                            <div class="info-value">Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?></div>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="info-label">Total Masukan</div>
                             <div class="info-value"><strong>Rp <?= number_format($totalMasukan, 0, ',', '.') ?></strong></div>
                         </div>
@@ -1756,7 +1752,6 @@ if (count($additionalCostItems) == 0) {
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <!-- FORM EDIT ADDITIONAL COST (MULTIPLE ITEMS) -->
                 <div id="costFormContainer" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <form method="POST" id="costForm">
                         <input type="hidden" name="action" value="save_cost">
@@ -1782,7 +1777,6 @@ if (count($additionalCostItems) == 0) {
                     </form>
                 </div>
                 
-                <!-- VIEW DATA ADDITIONAL COST -->
                 <div id="viewCost">
                     <?php if (count($additionalCostItems) > 0): ?>
                         <?php foreach ($additionalCostItems as $index => $item): ?>
@@ -1979,8 +1973,37 @@ if (count($additionalCostItems) == 0) {
             document.getElementById('unitForm').reset();
             document.getElementById('unit_id_hidden').value = '0';
             document.getElementById('deleteUnitBtn').style.display = 'none';
-            calculateTotal();
-            toggleOtherTransaction();
+            
+            <?php if (count($detailUnits) > 0): ?>
+                <?php $firstUnit = $detailUnits[0]; ?>
+                document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
+                document.getElementById('unit_id').value = '<?= $firstUnit['unit_id'] ?>';
+                document.getElementById('qty').value = '<?= $firstUnit['qty'] ?>';
+                document.getElementById('price').value = '<?= $firstUnit['price'] ?>';
+                
+                const specInput = document.querySelector('input[name="specification"]');
+                const attachmentInput = document.querySelector('input[name="additional_attachment"]');
+                const warantyInput = document.querySelector('input[name="waranty"]');
+                const locationInput = document.querySelector('input[name="machine_location"]');
+                const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
+                const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
+                const transTypeInput = document.querySelector('select[name="transaction_type"]');
+                
+                specInput.value = '<?= addslashes($firstUnit['specification']) ?>';
+                attachmentInput.value = '<?= addslashes($firstUnit['additional_attachment']) ?>';
+                warantyInput.value = '<?= addslashes($firstUnit['waranty']) ?>';
+                locationInput.value = '<?= addslashes($firstUnit['machine_location']) ?>';
+                deliveryTermsInput.value = '<?= addslashes($firstUnit['delivery_terms']) ?>';
+                deliveryScheduleInput.value = '<?= $firstUnit['delivery_schedule'] ?>';
+                transTypeInput.value = '<?= addslashes($firstUnit['transaction_type']) ?>';
+                
+                calculateTotal();
+                toggleOtherTransaction();
+                document.getElementById('deleteUnitBtn').style.display = 'inline-block';
+            <?php else: ?>
+                calculateTotal();
+                toggleOtherTransaction();
+            <?php endif; ?>
         }
         
         function showNewUnitForm() {
