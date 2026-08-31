@@ -56,12 +56,6 @@ function formatDateId($date) {
     return $ts ? date('d/m/Y', $ts) : '-';
 }
 
-function formatDateTimeId($date) {
-    if (empty($date)) return '-';
-    $ts = strtotime($date);
-    return $ts ? date('d/m/Y H:i', $ts) : '-';
-}
-
 function getNamaProduk($unitId, $produkList) {
     foreach ($produkList as $produk) {
         if ((string)$produk['id'] === (string)$unitId) {
@@ -371,14 +365,6 @@ $html = '<!DOCTYPE html>
         background: #fff200;
     }
 
-    .blue {
-        background: #dce6f1;
-    }
-
-    .gray {
-        background: #eeeeee;
-    }
-
     .center { text-align: center; }
     .right { text-align: right; }
     .bold { font-weight: 700; }
@@ -415,11 +401,6 @@ $html = '<!DOCTYPE html>
 
     .unit-detail td {
         min-height: 15px;
-    }
-
-    .unit-heading {
-        background: #f8f8f8;
-        font-weight: 700;
     }
 
     .money {
@@ -499,31 +480,34 @@ $html = '<!DOCTYPE html>
         <td class="col-right">
             <table class="unit-main">
                 <tr>
-                    <th style="width:31%">Model Unit</th>
-                    <th style="width:10%">Qty</th>
-                    <th style="width:11%">Curr.</th>
-                    <th style="width:22%">Price / Unit (Include PPN)</th>
-                    <th style="width:26%">Grand Total</th>
+                    <th style="width:28%">Model Unit</th>
+                    <th style="width:8%">Qty</th>
+                    <th style="width:8%">Curr.</th>
+                    <th style="width:18%">Price / Unit (Non PPN)</th>
+                    <th style="width:14%">PPN 11%</th>
+                    <th style="width:24%">Grand Total</th>
                 </tr>';
 
 if (count($detailUnits) > 0) {
     foreach ($detailUnits as $unit) {
-        $priceIncludePPN = (float)($unit['price'] ?? 0) * 1.11;
+        $priceNonPPN = (float)($unit['price'] ?? 0);
+        $ppn = $priceNonPPN * 0.11;
         $html .= '<tr>
             <td>' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
             <td class="center">' . h($unit['qty'] ?? '-') . '</td>
             <td class="center">IDR</td>
-            <td class="right money">' . formatNumber($priceIncludePPN) . '</td>
+            <td class="right money">' . formatNumber($priceNonPPN) . '</td>
+            <td class="right money">' . formatNumber($ppn) . '</td>
             <td class="right money bold">' . formatNumber($unit['grand_total'] ?? 0) . '</td>
         </tr>';
     }
 } else {
-    $html .= '<tr><td colspan="5" class="center">Belum ada detail unit</td></tr>';
+    $html .= '<tr><td colspan="6" class="center">Belum ada detail unit</td></tr>';
 }
 
 $html .= '
                 <tr class="summary-total">
-                    <td colspan="4" class="right">TOTAL GRAND TOTAL UNIT</td>
+                    <td colspan="5" class="right">TOTAL GRAND TOTAL UNIT</td>
                     <td class="right money">' . formatRp($totalUnitGrandTotal) . '</td>
                 </tr>
             </table>
@@ -565,10 +549,7 @@ if (count($detailUnits) > 0) {
     foreach ($detailUnits as $index => $unit) {
         $html .= '<table class="unit-detail keep">
             <tr>
-                <td colspan="4" class="unit-heading">Unit ' . ($index + 1) . ' - ' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
-            </tr>
-            <tr>
-                <td class="label" style="width:18%">Unit</td>
+                <td class="label" style="width:18%">Model Unit</td>
                 <td style="width:32%">' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
                 <td class="label" style="width:18%">QTY</td>
                 <td style="width:32%">' . h($unit['qty'] ?? '-') . '</td>
