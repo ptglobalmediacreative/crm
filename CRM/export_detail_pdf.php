@@ -295,7 +295,7 @@ $html = '
             font-size: 10px;
             padding: 15px 25px;
             background: #fff;
-            color: #222;
+            color: #1a1a2e;
             line-height: 1.5;
         }
         
@@ -323,16 +323,19 @@ $html = '
             color: #1a1a2e;
             margin: 5px 0 3px 0;
         }
-        .info-tr {
+        
+        /* INFO HEADER */
+        .info-header {
             text-align: center;
             font-size: 10px;
             color: #555;
             margin-bottom: 8px;
-            padding: 3px 0;
-            background: #f8f9fa;
-            border-radius: 3px;
+            padding: 4px 0;
+            background: #f5f7fa;
+            border-radius: 4px;
+            border: 1px solid #e8edf2;
         }
-        .info-tr .label {
+        .info-header .label {
             font-weight: 600;
             color: #1a1a2e;
         }
@@ -341,14 +344,12 @@ $html = '
         .section-title {
             font-size: 10px;
             font-weight: 700;
-            border-left: 4px solid #c9a84c;
-            border-bottom: 1px solid #ddd;
-            padding: 3px 8px;
-            margin: 8px 0 4px 0;
+            border-bottom: 2px solid #1a1a2e;
+            padding: 3px 0 2px 0;
+            margin: 10px 0 5px 0;
             color: #1a1a2e;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            background: #f8f9fa;
             page-break-after: avoid;
         }
         
@@ -364,9 +365,9 @@ $html = '
         .info-row .label {
             display: table-cell;
             font-weight: 600;
-            color: #555;
-            width: 130px;
-            min-width: 130px;
+            color: #666;
+            width: 120px;
+            min-width: 120px;
             vertical-align: top;
             text-align: left;
             padding-right: 5px;
@@ -381,7 +382,6 @@ $html = '
             text-align: left;
             word-wrap: break-word;
             color: #1a1a2e;
-            font-weight: 500;
         }
         
         .info-row-2col {
@@ -398,39 +398,8 @@ $html = '
             padding-right: 0;
         }
         .info-row-2col .info-row .label {
-            width: 100px;
-            min-width: 100px;
-        }
-        
-        .info-row-left {
-            padding: 1.5px 0;
-            font-size: 9.5px;
-            page-break-inside: avoid;
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
-        .info-row-left .label {
-            display: table-cell;
-            font-weight: 600;
-            color: #555;
-            width: 130px;
-            min-width: 130px;
-            vertical-align: top;
-            text-align: left;
-            padding-right: 5px;
-        }
-        .info-row-left .label::after {
-            content: ":";
-            display: inline;
-        }
-        .info-row-left .value {
-            display: table-cell;
-            vertical-align: top;
-            text-align: left;
-            word-wrap: break-word;
-            color: #1a1a2e;
-            font-weight: 500;
+            width: 95px;
+            min-width: 95px;
         }
         
         /* TABLE */
@@ -452,18 +421,16 @@ $html = '
             padding: 5px 6px;
             text-align: center;
             letter-spacing: 0.5px;
+            border: 1px solid #1a1a2e;
         }
         table td {
             padding: 4px 6px;
-            border-bottom: 1px solid #e0e0e0;
+            border: 1px solid #e0e4e8;
             font-size: 9px;
             vertical-align: middle;
         }
         table tbody tr:nth-child(even) td {
-            background: #fafafa;
-        }
-        table tbody tr:last-child td {
-            border-bottom: 1.5px solid #1a1a2e;
+            background: #fafbfc;
         }
         table tr {
             page-break-inside: avoid;
@@ -474,14 +441,15 @@ $html = '
             margin-bottom: 3px;
         }
         
-        /* DETAIL UNIT INFO */
+        /* DETAIL UNIT INFO - CLEAN DESIGN */
         .unit-detail-info {
             font-size: 8.5px;
-            margin-top: 2px;
-            margin-bottom: 4px;
-            padding: 5px 8px;
-            background: #fafafa;
-            border-left: 3px solid #c9a84c;
+            margin-top: 3px;
+            margin-bottom: 5px;
+            padding: 6px 10px;
+            background: #fafbfc;
+            border: 1px solid #e0e4e8;
+            border-left: 3px solid #1a1a2e;
             border-radius: 0 3px 3px 0;
             page-break-inside: avoid;
         }
@@ -490,17 +458,20 @@ $html = '
             color: #1a1a2e;
             margin-bottom: 3px;
             font-size: 9px;
+            border-bottom: 1px dashed #e0e4e8;
+            padding-bottom: 2px;
         }
         .unit-detail-info .unit-info-row {
             display: table;
             width: 100%;
+            padding: 0.5px 0;
         }
         .unit-detail-info .unit-info-label {
             display: table-cell;
             font-weight: 600;
-            color: #555;
-            width: 120px;
-            min-width: 120px;
+            color: #666;
+            width: 115px;
+            min-width: 115px;
             padding-right: 5px;
             text-align: left;
         }
@@ -527,33 +498,32 @@ $html = '
             text-align: center;
         }
         .three-col .col .box {
-            border: 1.5px solid #ddd;
+            border: 1.5px solid #e0e4e8;
             border-radius: 5px;
             padding: 6px 8px;
-            background: #fafafa;
+            background: #fafbfc;
         }
-        .three-col .col .box.gold {
-            border: 2px solid #c9a84c;
-            background: #fefcf5;
+        .three-col .col .box.highlight {
+            border: 2px solid #1a1a2e;
+            background: #f5f7fa;
         }
         .three-col .col .box .label {
             font-size: 7.5px;
             font-weight: 600;
-            color: #555;
+            color: #666;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .three-col .col .box .value {
             font-size: 11px;
             font-weight: 700;
-            color: #c9a84c;
-        }
-        .three-col .col .box.gold .value {
-            font-size: 12px;
             color: #1a1a2e;
         }
+        .three-col .col .box.highlight .value {
+            font-size: 12px;
+        }
         
-        /* STATUS */
+        /* STATUS BADGE */
         .status-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -583,13 +553,10 @@ $html = '
 
 <!-- JUDUL -->
 <div class="judul-laporan">Detail Transaction Request</div>
-<div class="info-tr">
+<div class="info-header">
     <strong>Nomor TR:</strong> ' . htmlspecialchars($tr_number) . ' 
     &nbsp;&nbsp;|&nbsp;&nbsp; 
     <span class="label">Request Date:</span> ' . date('d/m/Y', strtotime($request['request_date'])) . '
-    &nbsp;&nbsp;|&nbsp;&nbsp; 
-    <span class="label">Status:</span> 
-    <span class="status-badge status-' . $request['status'] . '">' . ucfirst($request['status']) . '</span>
 </div>
 
 <!-- A. DATA ACCOUNT -->
@@ -739,13 +706,13 @@ $html .= '
 
 if ($additionalCost) {
     $html .= '
-        <div class="info-row-left"><span class="label">Insurance Ops</span><span class="value">' . formatRp($additionalCost['insurance_ops']) . '</span></div>
-        <div class="info-row-left"><span class="label">Insurance Cargo</span><span class="value">' . formatRp($additionalCost['insurance_cargo']) . '</span></div>
-        <div class="info-row-left"><span class="label">Delivery Cost</span><span class="value">' . formatRp($additionalCost['delivery_cost']) . '</span></div>
-        <div class="info-row-left"><span class="label">Mediator Fee (Add)</span><span class="value">' . formatRp($additionalCost['mediator_fee']) . '</span></div>
-        <div class="info-row-left"><span class="label">Free Part</span><span class="value">' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</span></div>
-        <div class="info-row-left"><span class="label">Free Service</span><span class="value">' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</span></div>
-        <div class="info-row-left"><span class="label">Others</span><span class="value">' . htmlspecialchars($additionalCost['others'] ?? '-') . '</span></div>
+        <div class="info-row"><span class="label">Insurance Ops</span><span class="value">' . formatRp($additionalCost['insurance_ops']) . '</span></div>
+        <div class="info-row"><span class="label">Insurance Cargo</span><span class="value">' . formatRp($additionalCost['insurance_cargo']) . '</span></div>
+        <div class="info-row"><span class="label">Delivery Cost</span><span class="value">' . formatRp($additionalCost['delivery_cost']) . '</span></div>
+        <div class="info-row"><span class="label">Mediator Fee (Add)</span><span class="value">' . formatRp($additionalCost['mediator_fee']) . '</span></div>
+        <div class="info-row"><span class="label">Free Part</span><span class="value">' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</span></div>
+        <div class="info-row"><span class="label">Free Service</span><span class="value">' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</span></div>
+        <div class="info-row"><span class="label">Others</span><span class="value">' . htmlspecialchars($additionalCost['others'] ?? '-') . '</span></div>
         ';
 } else {
     $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
@@ -821,7 +788,7 @@ $html .= '
         </div>
     </div>
     <div class="col">
-        <div class="box gold">
+        <div class="box highlight">
             <div class="label">Total Masukan</div>
             <div class="value">' . formatRp($totalMasukan) . '</div>
         </div>
