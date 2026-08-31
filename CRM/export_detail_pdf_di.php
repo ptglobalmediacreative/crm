@@ -147,7 +147,7 @@ try {
 }
 
 // ============================================
-// APPROVAL LEVELS - sama dengan detaildi.php
+// APPROVAL LEVELS
 // ============================================
 $approvalLevels = [
     1 => ['role' => 'admin', 'label' => 'Admin Sales'],
@@ -157,55 +157,6 @@ $approvalLevels = [
     5 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
     6 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
-
-// ============================================
-// CURRENT / NEXT APPROVER
-// ============================================
-$currentApprovalOrder = 1;
-$currentApproverLabel = '';
-$nextApproverLabel = '';
-
-if ($detailDI) {
-    $lastApprovedOrder = 0;
-    foreach ($approvalHistory as $approval) {
-        if (($approval['status'] ?? '') === 'approved') {
-            $lastApprovedOrder = max($lastApprovedOrder, (int)$approval['approval_order']);
-        }
-    }
-
-    $isRejected = false;
-    foreach ($approvalHistory as $approval) {
-        if (($approval['status'] ?? '') === 'rejected') {
-            $isRejected = true;
-            break;
-        }
-    }
-
-    if ($isRejected || ($detailDI['status'] ?? '') === 'rejected') {
-        $currentApprovalOrder = 0;
-        $currentApproverLabel = 'No More Approval';
-        $nextApproverLabel = 'No More Approval';
-    } elseif (($detailDI['status'] ?? '') === 'approved') {
-        $currentApprovalOrder = 0;
-        $currentApproverLabel = 'No More Approval';
-        $nextApproverLabel = 'No More Approval';
-    } else {
-        $currentApprovalOrder = $lastApprovedOrder + 1;
-        if ($currentApprovalOrder <= 6) {
-            $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
-            $nextOrder = $currentApprovalOrder + 1;
-            $nextApproverLabel = $nextOrder <= 6
-                ? $approvalLevels[$nextOrder]['label']
-                : 'No More Approval';
-        } else {
-            $currentApproverLabel = 'No More Approval';
-            $nextApproverLabel = 'No More Approval';
-        }
-    }
-} else {
-    $currentApproverLabel = $approvalLevels[1]['label'];
-    $nextApproverLabel = $approvalLevels[2]['label'];
-}
 
 // ============================================
 // DATA UNITS
@@ -616,15 +567,6 @@ $noteValues = $supportsGrouped['catatan'];
 $html .= count($noteValues) > 0 ? nl2br(h(implode("\n", $noteValues))) : '-';
 
 $html .= '</td>
-    </tr>
-</table>
-
-<table class="meta-table">
-    <tr>
-        <td class="meta-label">Current Approver</td>
-        <td style="width:32%">' . h($currentApproverLabel) . '</td>
-        <td class="meta-label">Next Approver</td>
-        <td style="width:32%">' . h($nextApproverLabel) . '</td>
     </tr>
 </table>
 
