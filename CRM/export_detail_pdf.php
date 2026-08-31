@@ -222,7 +222,6 @@ if ($additionalCost) {
     $totalAdditionalCost = (float)$additionalCost['insurance_ops'] + (float)$additionalCost['insurance_cargo'] + (float)$additionalCost['delivery_cost'] + (float)$additionalCost['mediator_fee'];
 }
 
-// Tambahkan total mediator fee dari tabel tr_mediators
 $totalMediatorFee = 0;
 foreach ($mediators as $med) {
     $totalMediatorFee += (float)$med['amount'];
@@ -266,7 +265,6 @@ if (!file_exists($logoPath)) {
     $logoHtml = '<img src="data:image/png;base64,' . $logoData . '" class="logo-img" alt="Logo">';
 }
 
-// Gabungkan Nama PT dengan Badan Usaha
 $namaPT = $request['nama_pt'] ?? '-';
 $badanUsaha = $request['badan_usaha'] ?? '';
 if (!empty($badanUsaha) && $namaPT != '-') {
@@ -295,22 +293,22 @@ $html = '
         body { 
             font-family: "Helvetica", Arial, sans-serif; 
             font-size: 10px;
-            padding: 10px 20px;
+            padding: 15px 25px;
             background: #fff;
             color: #222;
-            line-height: 1.4;
+            line-height: 1.5;
         }
         
         /* KOP SURAT */
         .kop-surat {
             text-align: center;
-            border-bottom: 3px double #222;
-            padding-bottom: 5px;
-            margin-bottom: 8px;
+            border-bottom: 3px double #1a1a2e;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
         }
         .kop-surat .logo-img {
             max-width: 100%;
-            max-height: 60px;
+            max-height: 65px;
             width: auto;
             height: auto;
         }
@@ -318,43 +316,46 @@ $html = '
         /* JUDUL */
         .judul-laporan {
             text-align: center;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #222;
-            margin: 3px 0 2px 0;
+            letter-spacing: 2px;
+            color: #1a1a2e;
+            margin: 5px 0 3px 0;
         }
         .info-tr {
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
             color: #555;
-            margin-bottom: 3px;
+            margin-bottom: 8px;
+            padding: 3px 0;
+            background: #f8f9fa;
+            border-radius: 3px;
         }
         .info-tr .label {
             font-weight: 600;
-            color: #222;
+            color: #1a1a2e;
         }
         
         /* SECTION TITLE */
         .section-title {
             font-size: 10px;
             font-weight: 700;
-            border-bottom: 1.5px solid #222;
-            padding: 2px 5px;
-            margin: 6px 0 3px 0;
-            color: #222;
+            border-left: 4px solid #c9a84c;
+            border-bottom: 1px solid #ddd;
+            padding: 3px 8px;
+            margin: 8px 0 4px 0;
+            color: #1a1a2e;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            background: #f5f5f5;
-            border-radius: 2px;
+            letter-spacing: 0.8px;
+            background: #f8f9fa;
             page-break-after: avoid;
         }
         
-        /* INFO ROW - DENGAN LABEL SEJAJAR RATA */
+        /* INFO ROW */
         .info-row {
-            padding: 1px 0;
-            font-size: 9px;
+            padding: 1.5px 0;
+            font-size: 9.5px;
             page-break-inside: avoid;
             display: table;
             width: 100%;
@@ -364,11 +365,11 @@ $html = '
             display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 120px;
-            min-width: 120px;
+            width: 130px;
+            min-width: 130px;
             vertical-align: top;
             text-align: left;
-            padding-right: 3px;
+            padding-right: 5px;
         }
         .info-row .label::after {
             content: ":";
@@ -379,6 +380,8 @@ $html = '
             vertical-align: top;
             text-align: left;
             word-wrap: break-word;
+            color: #1a1a2e;
+            font-weight: 500;
         }
         
         .info-row-2col {
@@ -389,19 +392,19 @@ $html = '
         .info-row-2col .col {
             flex: 1;
             min-width: 45%;
-            padding-right: 10px;
+            padding-right: 15px;
         }
         .info-row-2col .col:last-child {
             padding-right: 0;
         }
         .info-row-2col .info-row .label {
-            width: 90px;
-            min-width: 90px;
+            width: 100px;
+            min-width: 100px;
         }
         
         .info-row-left {
-            padding: 1px 0;
-            font-size: 9px;
+            padding: 1.5px 0;
+            font-size: 9.5px;
             page-break-inside: avoid;
             display: table;
             width: 100%;
@@ -411,11 +414,11 @@ $html = '
             display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 120px;
-            min-width: 120px;
+            width: 130px;
+            min-width: 130px;
             vertical-align: top;
             text-align: left;
-            padding-right: 3px;
+            padding-right: 5px;
         }
         .info-row-left .label::after {
             content: ":";
@@ -426,75 +429,79 @@ $html = '
             vertical-align: top;
             text-align: left;
             word-wrap: break-word;
+            color: #1a1a2e;
+            font-weight: 500;
         }
         
         /* TABLE */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 3px;
+            margin-bottom: 5px;
             font-size: 9px;
-            page-break-inside: auto;
         }
         table thead {
             display: table-header-group;
         }
-        table tbody {
-            page-break-inside: avoid;
-        }
-        table tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
-        }
         table th {
-            background: #222;
+            background: #1a1a2e;
             color: #fff;
             font-weight: 600;
             font-size: 8px;
             text-transform: uppercase;
-            padding: 3px 4px;
+            padding: 5px 6px;
             text-align: center;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
         }
         table td {
-            padding: 3px 4px;
+            padding: 4px 6px;
             border-bottom: 1px solid #e0e0e0;
             font-size: 9px;
             vertical-align: middle;
         }
-        table tr:nth-child(even) td {
+        table tbody tr:nth-child(even) td {
             background: #fafafa;
         }
-        table tr:last-child td {
-            border-bottom: none;
+        table tbody tr:last-child td {
+            border-bottom: 1.5px solid #1a1a2e;
+        }
+        table tr {
+            page-break-inside: avoid;
         }
         
-        /* WRAPPER UNTUK MENCEGAH TABEL TERPOTONG */
         .table-wrapper {
             page-break-inside: avoid;
+            margin-bottom: 3px;
         }
         
         /* DETAIL UNIT INFO */
         .unit-detail-info {
-            font-size: 8px;
+            font-size: 8.5px;
             margin-top: 2px;
-            padding: 3px 5px;
-            background: #f9f9f9;
-            border-left: 2px solid #c9a84c;
+            margin-bottom: 4px;
+            padding: 5px 8px;
+            background: #fafafa;
+            border-left: 3px solid #c9a84c;
+            border-radius: 0 3px 3px 0;
             page-break-inside: avoid;
-            display: table;
-            width: 100%;
+        }
+        .unit-detail-info .unit-title {
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 3px;
+            font-size: 9px;
         }
         .unit-detail-info .unit-info-row {
-            display: table-row;
+            display: table;
+            width: 100%;
         }
         .unit-detail-info .unit-info-label {
             display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 110px;
-            min-width: 110px;
-            padding-right: 3px;
+            width: 120px;
+            min-width: 120px;
+            padding-right: 5px;
             text-align: left;
         }
         .unit-detail-info .unit-info-label::after {
@@ -503,14 +510,15 @@ $html = '
         .unit-detail-info .unit-info-value {
             display: table-cell;
             text-align: left;
+            color: #333;
         }
         
         /* THREE COLUMN BOX */
         .three-col {
             display: flex;
             flex-wrap: wrap;
-            margin: 3px 0;
-            gap: 6px;
+            margin: 5px 0;
+            gap: 10px;
             page-break-inside: avoid;
         }
         .three-col .col {
@@ -519,49 +527,52 @@ $html = '
             text-align: center;
         }
         .three-col .col .box {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 4px 6px;
-            background: #f9f9f9;
+            border: 1.5px solid #ddd;
+            border-radius: 5px;
+            padding: 6px 8px;
+            background: #fafafa;
         }
         .three-col .col .box.gold {
             border: 2px solid #c9a84c;
-            background: #faf8f0;
+            background: #fefcf5;
         }
         .three-col .col .box .label {
-            font-size: 7px;
+            font-size: 7.5px;
             font-weight: 600;
             color: #555;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .three-col .col .box .value {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
             color: #c9a84c;
         }
         .three-col .col .box.gold .value {
-            font-size: 11px;
-        }
-        .three-col .col .box.gold .label {
-            color: #222;
-            font-weight: 700;
+            font-size: 12px;
+            color: #1a1a2e;
         }
         
         /* STATUS */
-        .approval-status-approved { color: #28a745; font-weight: 700; }
-        .approval-status-rejected { color: #dc3545; font-weight: 700; }
-        .approval-status-pending { color: #ffc107; font-weight: 700; }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-approved { background: #d4edda; color: #155724; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
         
         /* UTILITY */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
-        .mt-3 { margin-top: 3px; }
-        .mb-3 { margin-bottom: 3px; }
         
         @page {
-            margin: 8mm 15mm 8mm 15mm;
+            margin: 10mm 15mm 10mm 15mm;
         }
     </style>
 </head>
@@ -571,13 +582,14 @@ $html = '
 <div class="kop-surat">' . $logoHtml . '</div>
 
 <!-- JUDUL -->
-<div class="judul-laporan">DETAIL TRANSACTION REQUEST</div>
+<div class="judul-laporan">Detail Transaction Request</div>
 <div class="info-tr">
-    Nomor TR: <strong>' . htmlspecialchars($tr_number) . '</strong> 
-    &nbsp;|&nbsp; 
-    <span class="label">Request Date</span>: ' . date('d/m/Y', strtotime($request['request_date'])) . '
-    &nbsp;|&nbsp; 
-    <span class="label">Status</span>: ' . ucfirst($request['status']) . '
+    <strong>Nomor TR:</strong> ' . htmlspecialchars($tr_number) . ' 
+    &nbsp;&nbsp;|&nbsp;&nbsp; 
+    <span class="label">Request Date:</span> ' . date('d/m/Y', strtotime($request['request_date'])) . '
+    &nbsp;&nbsp;|&nbsp;&nbsp; 
+    <span class="label">Status:</span> 
+    <span class="status-badge status-' . $request['status'] . '">' . ucfirst($request['status']) . '</span>
 </div>
 
 <!-- A. DATA ACCOUNT -->
@@ -605,19 +617,18 @@ $html = '
 ';
 
 if (count($detailUnits) > 0) {
-    // Bungkus tabel dalam wrapper agar tidak terpotong
     $html .= '<div class="table-wrapper">';
     $html .= '
     <table>
         <thead>
             <tr>
-                <th style="width:5%;">No</th>
+                <th style="width:4%;">No</th>
                 <th style="width:18%;">Unit</th>
                 <th style="width:6%;">QTY</th>
-                <th style="width:15%;">Price (Non PPN)</th>
+                <th style="width:14%;">Price (Non PPN)</th>
                 <th style="width:10%;">PPN 11%</th>
                 <th style="width:16%;">Grand Total</th>
-                <th style="width:30%;">Specification</th>
+                <th style="width:32%;">Specification</th>
             </tr>
         </thead>
         <tbody>';
@@ -633,7 +644,7 @@ if (count($detailUnits) > 0) {
                 <td class="text-right">' . formatRp($unit['price']) . '</td>
                 <td class="text-right">' . formatRp($unit['ppn']) . '</td>
                 <td class="text-right fw-bold">' . formatRp($unit['grand_total']) . '</td>
-                <td style="font-size:8px;">' . htmlspecialchars($unit['specification']) . '</td>
+                <td>' . htmlspecialchars($unit['specification']) . '</td>
             </tr>';
     }
     
@@ -642,13 +653,10 @@ if (count($detailUnits) > 0) {
     </table>
     </div>';
     
-    // Detail tambahan untuk setiap unit
     foreach ($detailUnits as $index => $unit) {
         $html .= '
     <div class="unit-detail-info">
-        <div class="unit-info-row">
-            <strong style="display:block; margin-bottom:2px;">Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong>
-        </div>
+        <div class="unit-title">Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . '</div>
         <div class="unit-info-row">
             <span class="unit-info-label">Additional Attachment</span>
             <span class="unit-info-value">' . htmlspecialchars($unit['additional_attachment'] ?? '-') . '</span>
@@ -676,13 +684,13 @@ if (count($detailUnits) > 0) {
     </div>';
     }
 } else {
-    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data Detail Unit</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Detail Unit</p>';
 }
 
 // C. TERM OF PAYMENT & D. ADDITIONAL COST
 $html .= '
-<div style="display:flex; flex-wrap:wrap; margin-top:3px;">
-    <div style="flex:1; min-width:50%; padding-right:8px;">
+<div style="display:flex; flex-wrap:wrap; margin-top:5px; gap:10px;">
+    <div style="flex:1; min-width:48%;">
         <div class="section-title" style="margin-top:0;">C. Term Of Payment</div>
         ';
 
@@ -692,10 +700,10 @@ if (count($termPayments) > 0) {
         <table>
             <thead>
                 <tr>
-                    <th style="width:6%;">No</th>
-                    <th style="width:34%;">Payment</th>
-                    <th style="width:28%;" class="text-right">Amount</th>
-                    <th style="width:32%;">Keterangan</th>
+                    <th style="width:5%;">No</th>
+                    <th style="width:35%;">Payment</th>
+                    <th style="width:30%;" class="text-right">Amount</th>
+                    <th style="width:30%;">Keterangan</th>
                 </tr>
             </thead>
             <tbody>';
@@ -707,7 +715,7 @@ if (count($termPayments) > 0) {
                 <td class="text-center">' . $no++ . '</td>
                 <td>' . htmlspecialchars($top['payment_label']) . '</td>
                 <td class="text-right fw-bold">' . formatRp($top['amount']) . '</td>
-                <td style="font-size:8px;">' . htmlspecialchars($top['keterangan'] ?? '-') . '</td>
+                <td>' . htmlspecialchars($top['keterangan'] ?? '-') . '</td>
             </tr>';
     }
     
@@ -715,17 +723,17 @@ if (count($termPayments) > 0) {
             </tbody>
         </table>
         </div>
-        <div style="font-size:8px; text-align:right; margin-top:2px; page-break-inside: avoid;">
-            <strong>Total TOP: ' . formatRp($totalTOP) . '</strong>
+        <div style="font-size:8.5px; text-align:right; margin-top:2px; page-break-inside: avoid; font-weight:700; color:#1a1a2e;">
+            Total TOP: ' . formatRp($totalTOP) . '
         </div>
         ';
 } else {
-    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data TOP</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data TOP</p>';
 }
 
 $html .= '
     </div>
-    <div style="flex:1; min-width:40%; padding-left:8px;">
+    <div style="flex:1; min-width:45%;">
         <div class="section-title" style="margin-top:0;">D. Additional Cost</div>
         ';
 
@@ -734,13 +742,13 @@ if ($additionalCost) {
         <div class="info-row-left"><span class="label">Insurance Ops</span><span class="value">' . formatRp($additionalCost['insurance_ops']) . '</span></div>
         <div class="info-row-left"><span class="label">Insurance Cargo</span><span class="value">' . formatRp($additionalCost['insurance_cargo']) . '</span></div>
         <div class="info-row-left"><span class="label">Delivery Cost</span><span class="value">' . formatRp($additionalCost['delivery_cost']) . '</span></div>
-        <div class="info-row-left"><span class="label">Mediator Fee (Additional)</span><span class="value">' . formatRp($additionalCost['mediator_fee']) . '</span></div>
+        <div class="info-row-left"><span class="label">Mediator Fee (Add)</span><span class="value">' . formatRp($additionalCost['mediator_fee']) . '</span></div>
         <div class="info-row-left"><span class="label">Free Part</span><span class="value">' . htmlspecialchars($additionalCost['free_part'] ?? '-') . '</span></div>
         <div class="info-row-left"><span class="label">Free Service</span><span class="value">' . htmlspecialchars($additionalCost['free_service'] ?? '-') . '</span></div>
         <div class="info-row-left"><span class="label">Others</span><span class="value">' . htmlspecialchars($additionalCost['others'] ?? '-') . '</span></div>
         ';
 } else {
-    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
 }
 
 $html .= '
@@ -748,9 +756,9 @@ $html .= '
 </div>
 ';
 
-// E. DATA MEDIATOR (MULTIPLE)
+// E. DATA MEDIATOR
 $html .= '
-<div class="section-title" style="margin-top:3px;">E. Data Mediator</div>
+<div class="section-title">E. Data Mediator</div>
 ';
 
 if (count($mediators) > 0) {
@@ -759,13 +767,13 @@ if (count($mediators) > 0) {
     <table>
         <thead>
             <tr>
-                <th style="width:5%;">No</th>
-                <th style="width:18%;">Name</th>
-                <th style="width:15%;">ID Card</th>
-                <th style="width:15%;">NPWP</th>
-                <th style="width:15%;">Bank Name</th>
-                <th style="width:15%;">Bank Account</th>
-                <th style="width:17%;" class="text-right">Amount</th>
+                <th style="width:4%;">No</th>
+                <th style="width:16%;">Name</th>
+                <th style="width:14%;">ID Card</th>
+                <th style="width:14%;">NPWP</th>
+                <th style="width:14%;">Bank Name</th>
+                <th style="width:16%;">Bank Account</th>
+                <th style="width:22%;" class="text-right">Amount</th>
             </tr>
         </thead>
         <tbody>';
@@ -788,12 +796,12 @@ if (count($mediators) > 0) {
         </tbody>
     </table>
     </div>
-    <div style="font-size:8px; text-align:right; margin-top:2px; page-break-inside: avoid;">
-        <strong>Total Mediator Fee: ' . formatRp($totalMediatorFee) . '</strong>
+    <div style="font-size:8.5px; text-align:right; margin-top:2px; page-break-inside: avoid; font-weight:700; color:#1a1a2e;">
+        Total Mediator Fee: ' . formatRp($totalMediatorFee) . '
     </div>
     ';
 } else {
-    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data Mediator</p>';
+    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
 }
 
 // F. REKAPITULASI TOTAL
@@ -829,11 +837,11 @@ if (count($approvalHistory) > 0) {
     <table>
         <thead>
             <tr>
-                <th style="width:10%;">Level</th>
+                <th style="width:8%;">Level</th>
                 <th style="width:22%;">Role</th>
-                <th style="width:18%;">Status</th>
+                <th style="width:14%;">Status</th>
                 <th style="width:28%;">Approved By</th>
-                <th style="width:22%;">Approved At</th>
+                <th style="width:28%;">Approved At</th>
             </tr>
         </thead>
         <tbody>';
@@ -842,7 +850,7 @@ if (count($approvalHistory) > 0) {
         $levelNum = $approval['approval_order'];
         $levelLabel = $approvalLevels[$levelNum] ?? 'Level ' . $levelNum;
         $statusLabel = ucfirst($approval['status']);
-        $statusClass = $approval['status'] == 'approved' ? 'approval-status-approved' : ($approval['status'] == 'rejected' ? 'approval-status-rejected' : 'approval-status-pending');
+        $statusClass = 'status-' . $approval['status'];
         $approverName = !empty($approval['approver_name']) ? $approval['approver_name'] : ($approval['approved_by'] ?? '-');
         $approvedAt = !empty($approval['approved_at']) ? date('d/m/Y H:i', strtotime($approval['approved_at'])) : '-';
         
@@ -850,7 +858,7 @@ if (count($approvalHistory) > 0) {
             <tr>
                 <td class="text-center">Level ' . $levelNum . '</td>
                 <td>' . htmlspecialchars($levelLabel) . '</td>
-                <td class="text-center"><span class="' . $statusClass . '">' . $statusLabel . '</span></td>
+                <td class="text-center"><span class="status-badge ' . $statusClass . '">' . $statusLabel . '</span></td>
                 <td>' . htmlspecialchars($approverName) . '</td>
                 <td class="text-center">' . $approvedAt . '</td>
             </tr>';
