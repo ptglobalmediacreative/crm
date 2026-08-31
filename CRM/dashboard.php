@@ -426,7 +426,7 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
         .activity-card { 
             background: #fff; border-radius: 16px; padding: 24px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
-            margin-bottom: 24px; transition: all 0.3s ease;
+            height: 100%; transition: all 0.3s ease;
         }
         .activity-card:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
         .activity-card h6 { font-weight: 600; margin-bottom: 20px; color: #0e1a2b; }
@@ -515,10 +515,10 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
                 </button>
                 <h4>Dashboard</h4>
             </div>
-            <form method="GET" class="filter-area">
+            <div class="filter-area">
                 <span style="font-weight:600; color:#555; font-size:14px;">Filter:</span>
                 <?php if (!$isSalesRole): ?>
-                <select class="form-select form-select-sm" id="filterSales" name="sales_id" style="background:#f8f9fa;">
+                <select class="form-select form-select-sm" id="filterSales" onchange="applyFilter()" style="background:#f8f9fa;">
                     <option value="0">Semua Sales</option>
                     <?php foreach ($allSalesList as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= ($filterSalesId == $s['id']) ? 'selected' : '' ?>>
@@ -527,11 +527,8 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
                     <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
-                <input type="month" id="filterMonth" name="month" class="form-control form-control-sm" style="width:160px; background:#f8f9fa;" value="<?= $filterMonth ?>">
-                <button type="submit" class="btn btn-sm" style="background:#0e1a2b; color:#fff; border:none; border-radius:8px; padding:6px 16px; font-weight:600;">
-                    <i class="fas fa-filter"></i> Terapkan
-                </button>
-            </form>
+                <input type="month" id="filterMonth" class="form-control form-control-sm" style="width:160px; background:#f8f9fa;" value="<?= $filterMonth ?>" onchange="applyFilter()">
+            </div>
         </div>
 
         <!-- STAT CARDS -->
@@ -597,8 +594,8 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- AKTIVITAS TERBARU (FULL WIDTH) -->
-        <div class="activity-card">
+        <!-- AKTIVITAS TERBARU -->
+        <div class="activity-card" style="margin-bottom:24px;">
             <div style="display:flex; justify-content:space-between;">
                 <h6><i class="fas fa-clock" style="color:#d4a017;"></i> Aktivitas Terbaru</h6>
                 <a href="salesactivity.php" style="font-size:12px; color:#2980b9; text-decoration:none;">Lihat Semua</a>
@@ -686,6 +683,12 @@ $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
                 }
             }
         });
+
+        function applyFilter() {
+            const salesId = document.getElementById('filterSales') ? document.getElementById('filterSales').value : 0;
+            const month = document.getElementById('filterMonth').value;
+            window.location.href = '?sales_id=' + salesId + '&month=' + month;
+        }
     </script>
 </body>
 </html>
