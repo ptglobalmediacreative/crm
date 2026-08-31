@@ -31,7 +31,9 @@ function getRoleLabel($role) {
         'direktur_sales' => 'Direktur Sales',
         'business' => 'Business',
         'sales_manager' => 'Sales Manager',
-        'sales' => 'Sales'
+        'sales' => 'Sales',
+        'service_support' => 'Service Support',
+        'part_support' => 'Part Support'
     ];
     return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
 }
@@ -392,6 +394,8 @@ if (isset($_GET['edit'])) {
         .badge-role.business { background: rgba(52, 73, 94, 0.12); color: #2c3e50; }
         .badge-role.sales_manager { background: rgba(52, 73, 94, 0.12); color: #2c3e50; }
         .badge-role.sales { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .badge-role.service_support { background: rgba(26, 188, 156, 0.12); color: #16a085; }
+        .badge-role.part_support { background: rgba(230, 126, 34, 0.12); color: #e67e22; }
         
         .badge-status {
             padding: 3px 10px;
@@ -420,8 +424,6 @@ if (isset($_GET['edit'])) {
         .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
         .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
-        .btn-action.permission { background: rgba(155, 89, 182, 0.1); color: #8e44ad; }
-        .btn-action.permission:hover { background: rgba(155, 89, 182, 0.2); }
 
         .modal-content { border: none; border-radius: 12px; }
         .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
@@ -540,7 +542,7 @@ if (isset($_GET['edit'])) {
         <?php endif; ?>
         
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
         <?php endif; ?>
         
         <?php if (in_array('data_user', $menuNames)): ?>
@@ -628,20 +630,7 @@ if (isset($_GET['edit'])) {
                                         <td><?= htmlspecialchars($user['phone'] ?? '-') ?></td>
                                         <td>
                                             <span class="badge-role <?= htmlspecialchars($user['role']) ?>">
-                                                <?php 
-                                                    $roleLabels = [
-                                                        'it_support' => 'IT Support',
-                                                        'admin' => 'Admin',
-                                                        'finance' => 'Finance',
-                                                        'direktur_utama' => 'Dir. Utama',
-                                                        'direktur_operasional' => 'Dir. Operasional',
-                                                        'direktur_sales' => 'Dir. Sales',
-                                                        'business' => 'Business',
-                                                        'sales_manager' => 'Sales Manager',
-                                                        'sales' => 'Sales'
-                                                    ];
-                                                    echo $roleLabels[$user['role']] ?? ucfirst($user['role']);
-                                                ?>
+                                                <?= getRoleLabel($user['role']) ?>
                                             </span>
                                         </td>
                                         <td>
@@ -654,12 +643,6 @@ if (isset($_GET['edit'])) {
                                                 <?php if (canEdit('data_user')): ?>
                                                     <button class="btn-action edit" onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)">
                                                         <i class="fas fa-edit"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                                
-                                                <?php if (canManageUser()): ?>
-                                                    <button class="btn-action permission" onclick="showPermission(<?= htmlspecialchars(json_encode($user)) ?>)">
-                                                        <i class="fas fa-lock"></i>
                                                     </button>
                                                 <?php endif; ?>
                                                 
@@ -767,6 +750,8 @@ if (isset($_GET['edit'])) {
                                     <option value="direktur_operasional">Direktur Operasional</option>
                                     <option value="sales_manager">Sales Manager</option>
                                     <option value="sales">Sales</option>
+                                    <option value="service_support">Service Support</option>
+                                    <option value="part_support">Part Support</option>
                                 </select>
                             </div>
                         </div>
@@ -783,30 +768,6 @@ if (isset($_GET['edit'])) {
                         <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan</button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================
-    MODAL PERMISSION - HANYA MENU UTAMA
-    ============================================ -->
-    <div class="modal fade" id="modalPermission" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-lock" style="color:#ffd700;"></i> Atur Akses Menu Utama</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="permissionBody">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status"></div>
-                        <p class="mt-2">Memuat data...</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
-                    <button type="button" class="btn btn-primary-custom" onclick="savePermission()"><i class="fas fa-save"></i> Simpan</button>
-                </div>
             </div>
         </div>
     </div>
@@ -840,9 +801,6 @@ if (isset($_GET['edit'])) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentUserId = null;
-        let currentUserRole = null;
-        
         // Edit User
         function editUser(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit User';
@@ -877,83 +835,6 @@ if (isset($_GET['edit'])) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
-        }
-        
-        function showPermission(data) {
-            currentUserId = data.id;
-            currentUserRole = data.role;
-            
-            var modal = new bootstrap.Modal(document.getElementById('modalPermission'));
-            modal.show();
-            
-            document.getElementById('permissionBody').innerHTML = `
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2">Memuat data...</p>
-                </div>
-            `;
-            
-            fetch('api/get_permission.php?user_id=' + data.id)
-                .then(response => response.json())
-                .then(data => {
-                    var html = '';
-                    if (data.modules && data.modules.length > 0) {
-                        html = '<p class="text-muted mb-3">Atur akses menu utama untuk divisi <strong>' + data.role + '</strong></p>';
-                        html += '<p class="text-warning small"><i class="fas fa-info-circle"></i> Centang menu yang ingin ditampilkan di dashboard</p>';
-                        html += '<div class="table-responsive">';
-                        html += '<table class="table table-bordered table-sm">';
-                        html += '<thead><tr><th>Menu Utama</th><th>Tampil di Dashboard</th></tr></thead>';
-                        html += '<tbody>';
-                        data.modules.forEach(function(module) {
-                            var checked = module.can_view == 1 ? 'checked' : '';
-                            html += '<tr>';
-                            html += '<td><strong>' + module.module_label + '</strong></td>';
-                            html += '<td>';
-                            html += '<input type="checkbox" class="perm-check form-check-input" data-module="' + module.module_name + '" ' + checked + '>';
-                            html += '</td>';
-                            html += '</tr>';
-                        });
-                        html += '</tbody></table></div>';
-                    } else {
-                        html = '<div class="text-center py-4"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><p>Belum ada data menu utama</p></div>';
-                    }
-                    document.getElementById('permissionBody').innerHTML = html;
-                })
-                .catch(error => {
-                    document.getElementById('permissionBody').innerHTML = '<div class="text-center py-4 text-danger">Gagal memuat data!</div>';
-                });
-        }
-        
-        function savePermission() {
-            var permissions = [];
-            document.querySelectorAll('.perm-check').forEach(function(checkbox) {
-                var module = checkbox.dataset.module;
-                var checked = checkbox.checked ? 1 : 0;
-                permissions.push({module: module, value: checked});
-            });
-            
-            fetch('api/save_permission.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    role_name: currentUserRole,
-                    permissions: permissions
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Permission berhasil disimpan!');
-                    var modal = bootstrap.Modal.getInstance(document.getElementById('modalPermission'));
-                    modal.hide();
-                    location.reload();
-                } else {
-                    alert('Gagal menyimpan permission: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                alert('Terjadi kesalahan!');
-            });
         }
     </script>
 </body>
