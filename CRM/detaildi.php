@@ -530,8 +530,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lokasi_pengambilan = bersihkan($_POST['lokasi_pengambilan'] ?? '');
             $lokasi_pengiriman = bersihkan($_POST['lokasi_pengiriman'] ?? '');
             $transportir = bersihkan($_POST['transportir'] ?? '');
-            $waktu_pengiriman = $_POST['waktu_pengiriman'] ?? null;
-            $eta = $_POST['eta'] ?? null;
+            $waktu_pengiriman = !empty($_POST['waktu_pengiriman']) ? $_POST['waktu_pengiriman'] : null;
+            $eta = !empty($_POST['eta']) ? $_POST['eta'] : null;
             
             $deleteSql = "DELETE FROM di_logistics WHERE di_number = ?";
             $deleteStmt = $db->prepare($deleteSql);
@@ -1368,11 +1368,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Waktu Pengiriman</label>
-                                <input type="datetime-local" name="waktu_pengiriman" class="form-control" value="<?= $diLogistics['waktu_pengiriman'] ? date('Y-m-d\TH:i', strtotime($diLogistics['waktu_pengiriman'])) : '' ?>">
+                                <input type="date" name="waktu_pengiriman" class="form-control" value="<?= $diLogistics['waktu_pengiriman'] ? date('Y-m-d', strtotime($diLogistics['waktu_pengiriman'])) : '' ?>">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">ETA</label>
-                                <input type="datetime-local" name="eta" class="form-control" value="<?= $diLogistics['eta'] ? date('Y-m-d\TH:i', strtotime($diLogistics['eta'])) : '' ?>">
+                                <input type="date" name="eta" class="form-control" value="<?= $diLogistics['eta'] ? date('Y-m-d', strtotime($diLogistics['eta'])) : '' ?>">
                             </div>
                         </div>
                         
@@ -1400,10 +1400,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="info-value"><?= htmlspecialchars($diLogistics['transportir'] ?: '-') ?></div>
                                 
                                 <div class="info-label">Waktu Pengiriman</div>
-                                <div class="info-value"><?= $diLogistics['waktu_pengiriman'] ? date('d/m/Y H:i', strtotime($diLogistics['waktu_pengiriman'])) : '-' ?></div>
+                                <div class="info-value"><?= $diLogistics['waktu_pengiriman'] ? date('d/m/Y', strtotime($diLogistics['waktu_pengiriman'])) : '-' ?></div>
                                 
                                 <div class="info-label">ETA</div>
-                                <div class="info-value"><?= $diLogistics['eta'] ? date('d/m/Y H:i', strtotime($diLogistics['eta'])) : '-' ?></div>
+                                <div class="info-value"><?= $diLogistics['eta'] ? date('d/m/Y', strtotime($diLogistics['eta'])) : '-' ?></div>
                             </div>
                         </div>
                     <?php else: ?>
