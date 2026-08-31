@@ -87,11 +87,12 @@ function statusClass($status) {
 }
 
 // ============================================
-// AMBIL DATA TRANSACTION REQUEST - SAMA DENGAN detailtr.php
+// AMBIL DATA TRANSACTION REQUEST
 // ============================================
 $sql = "SELECT ad.tr_number,
                ad.due_date,
-               MIN(ad.created_at) as request_date,
+               ad.created_at as request_date,
+               ad.id as latest_activity_id,
                a.id as account_id,
                a.nama_pt,
                a.badan_usaha,
@@ -104,31 +105,13 @@ $sql = "SELECT ad.tr_number,
                u.full_name as sales_name,
                u.id as sales_user_id,
                sa.sales_id,
-               sa.id as sales_activity_id,
-               CASE
-                   WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
-                         AND dtr.status = 'rejected'
-                   ) THEN 'rejected'
-                   WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
-                         AND dtr.status = 'pending'
-                   ) THEN 'pending'
-                   WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
-                         AND dtr.status = 'approved'
-                   ) THEN 'approved'
-                   ELSE 'pending'
-               END as status
+               sa.id as sales_activity_id
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
         LEFT JOIN accounts a ON sa.account_id = a.id
         LEFT JOIN users u ON sa.sales_id = u.id
         WHERE ad.tr_number = ?
-        GROUP BY ad.tr_number, sa.sales_id, sa.id
+        ORDER BY ad.id DESC
         LIMIT 1";
 
 $stmt = $db->prepare($sql);
@@ -141,11 +124,27 @@ if (!$request) {
 }
 
 // ============================================
-// DETAIL TRANSACTION REQUEST - field yang dipakai detailtr.php
+// DAPATKAN STATUS
+// ============================================
+$statusTR = 'pending';
+try {
+    $checkStatus = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
+    $checkStatus->execute([$tr_number]);
+    $statusData = $checkStatus->fetch();
+    if ($statusData && !empty($statusData['status'])) {
+        $statusTR = $statusData['status'];
+    }
+} catch (Exception $e) {
+    $statusTR = 'pending';
+}
+$request['status'] = $statusTR;
+
+// ============================================
+// DETAIL TRANSACTION REQUEST
 // ============================================
 $detailTR = null;
 try {
-    $stmtDetail = $db->prepare("SELECT * FROM detail_transaction_requests WHERE trf_number = ?");
+    $stmtDetail = $db->prepare("SELECT * FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
     $stmtDetail->execute([$tr_number]);
     $detailTR = $stmtDetail->fetch();
 } catch (Exception $e) {
@@ -165,7 +164,7 @@ try {
 }
 
 // ============================================
-// DETAIL UNIT - exact field dari detailtr.php
+// DETAIL UNIT
 // ============================================
 $detailUnits = [];
 try {
@@ -177,7 +176,7 @@ try {
 }
 
 // ============================================
-// TERM OF PAYMENT - exact field dari detailtr.php
+// TERM OF PAYMENT
 // ============================================
 $termPayments = [];
 try {
@@ -189,19 +188,19 @@ try {
 }
 
 // ============================================
-// ADDITIONAL COST - exact field dari detailtr.php
+// ADDITIONAL COST ITEMS (TABEL BARU)
 // ============================================
-$additionalCost = null;
+$additionalCostItems = [];
 try {
-    $stmtCost = $db->prepare("SELECT * FROM tr_additional_costs WHERE trf_number = ?");
-    $stmtCost->execute([$tr_number]);
-    $additionalCost = $stmtCost->fetch();
+    $stmtCostItems = $db->prepare("SELECT * FROM tr_additional_cost_items WHERE trf_number = ? ORDER BY id ASC");
+    $stmtCostItems->execute([$tr_number]);
+    $additionalCostItems = $stmtCostItems->fetchAll();
 } catch (Exception $e) {
-    $additionalCost = null;
+    $additionalCostItems = [];
 }
 
 // ============================================
-// MEDIATOR - exact field dari detailtr.php
+// MEDIATOR
 // ============================================
 $mediators = [];
 try {
@@ -213,7 +212,7 @@ try {
 }
 
 // ============================================
-// APPROVAL HISTORY - exact logic/detailtr.php + nama user
+// APPROVAL HISTORY
 // ============================================
 $approvalHistory = [];
 try {
@@ -231,7 +230,7 @@ try {
 }
 
 // ============================================
-// APPROVAL LEVELS - sama dengan detailtr.php
+// APPROVAL LEVELS
 // ============================================
 $approvalLevels = [
     1 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
@@ -242,54 +241,7 @@ $approvalLevels = [
 ];
 
 // ============================================
-// CURRENT / NEXT APPROVER - sama dengan detailtr.php
-// ============================================
-$currentApprovalOrder = 1;
-$currentApproverLabel = '';
-$nextApproverLabel = '';
-
-if ($detailTR) {
-    $lastApprovedOrder = 0;
-    foreach ($approvalHistory as $approval) {
-        if (($approval['status'] ?? '') === 'approved') {
-            $lastApprovedOrder = max($lastApprovedOrder, (int)$approval['approval_order']);
-        }
-    }
-
-    $isRejected = false;
-    foreach ($approvalHistory as $approval) {
-        if (($approval['status'] ?? '') === 'rejected') {
-            $isRejected = true;
-            break;
-        }
-    }
-
-    if ($isRejected || ($detailTR['status'] ?? '') === 'rejected') {
-        $currentApprovalOrder = 0;
-        $currentApproverLabel = 'No More Approval';
-        $nextApproverLabel = 'No More Approval';
-    } elseif (($detailTR['status'] ?? '') === 'approved') {
-        $currentApprovalOrder = 0;
-        $currentApproverLabel = 'No More Approval';
-        $nextApproverLabel = 'No More Approval';
-    } else {
-        $currentApprovalOrder = $lastApprovedOrder + 1;
-        if ($currentApprovalOrder <= 5) {
-            $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
-            $nextOrder = $currentApprovalOrder + 1;
-            $nextApproverLabel = $nextOrder <= 5 ? $approvalLevels[$nextOrder]['label'] : 'No More Approval';
-        } else {
-            $currentApproverLabel = 'No More Approval';
-            $nextApproverLabel = 'No More Approval';
-        }
-    }
-} else {
-    $currentApproverLabel = $approvalLevels[1]['label'];
-    $nextApproverLabel = $approvalLevels[2]['label'];
-}
-
-// ============================================
-// HITUNG TOTAL - SAMA DENGAN detailtr.php
+// HITUNG TOTAL - SAMA DENGAN detailtr.php TERBARU
 // ============================================
 $totalUnitGrandTotal = 0;
 foreach ($detailUnits as $unit) {
@@ -301,24 +253,19 @@ foreach ($termPayments as $top) {
     $totalTOP += (float)($top['amount'] ?? 0);
 }
 
+// Total Additional Cost HANYA dari Additional Cost Items
 $totalAdditionalCost = 0;
-if ($additionalCost) {
-    // SAMA DENGAN detailtr.php:
-    // hanya insurance_ops + insurance_cargo + delivery_cost
-    $totalAdditionalCost =
-        (float)($additionalCost['insurance_ops'] ?? 0) +
-        (float)($additionalCost['insurance_cargo'] ?? 0) +
-        (float)($additionalCost['delivery_cost'] ?? 0);
+foreach ($additionalCostItems as $item) {
+    $totalAdditionalCost += (float)($item['amount'] ?? 0);
 }
 
+// Total Mediator Fee dihitung terpisah
 $totalMediatorFee = 0;
 foreach ($mediators as $med) {
     $totalMediatorFee += (float)($med['amount'] ?? 0);
 }
 
-// SAMA DENGAN detailtr.php: mediator dari tabel tr_mediators ditambahkan
-$totalAdditionalCost += $totalMediatorFee;
-
+// Total Masukan = Total Unit - Total Additional Cost
 $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 
 // ============================================
@@ -498,6 +445,10 @@ $html = '<!DOCTYPE html>
 
     .cost-table td {
         vertical-align: middle;
+    }
+
+    .cost-item-table th {
+        background: #fff200;
     }
 
     .mediator-table th {
@@ -681,39 +632,39 @@ $html .= '
     </tr>
 </table>
 
-<!-- D. ADDITIONAL COST -->
-<div class="section">D. ADDITIONAL COST</div>
-<table class="cost-table">
-    <tr>
-        <td class="label" style="width:30%">Insurance Ops</td>
-        <td class="right money" style="width:20%">' . formatRp($additionalCost['insurance_ops'] ?? 0) . '</td>
-        <td class="label" style="width:30%">Insurance Cargo</td>
-        <td class="right money" style="width:20%">' . formatRp($additionalCost['insurance_cargo'] ?? 0) . '</td>
-    </tr>
-    <tr>
-        <td class="label">Delivery Cost</td>
-        <td class="right money">' . formatRp($additionalCost['delivery_cost'] ?? 0) . '</td>
-        <td class="label">Mediator Fee (Additional Cost)</td>
-        <td class="right money">' . formatRp($additionalCost['mediator_fee'] ?? 0) . '</td>
-    </tr>
-    <tr>
-        <td class="label">Free Part</td>
-        <td colspan="3">' . nl2br(h($additionalCost['free_part'] ?? '-')) . '</td>
-    </tr>
-    <tr>
-        <td class="label">Free Service</td>
-        <td colspan="3">' . nl2br(h($additionalCost['free_service'] ?? '-')) . '</td>
-    </tr>
-    <tr>
-        <td class="label">Others</td>
-        <td colspan="3">' . nl2br(h($additionalCost['others'] ?? '-')) . '</td>
-    </tr>
-    <tr>
-        <td class="label bold">TOTAL BIAYA TAMBAHAN</td>
-        <td colspan="3" class="right money bold green">' . formatRp($totalAdditionalCost) . '</td>
-    </tr>
-</table>
+<!-- D. ADDITIONAL COST (MULTIPLE ITEMS) -->
+<div class="section">D. ADDITIONAL COST</div>';
 
+if (count($additionalCostItems) > 0) {
+    $html .= '<table class="cost-item-table">
+        <tr>
+            <th style="width:5%">No</th>
+            <th style="width:25%">Nama Item</th>
+            <th style="width:25%">Nominal</th>
+            <th style="width:45%">Keterangan</th>
+        </tr>';
+    foreach ($additionalCostItems as $i => $item) {
+        $html .= '<tr>
+            <td class="center">' . ($i + 1) . '</td>
+            <td>' . h($item['item_name'] ?? '-') . '</td>
+            <td class="right money bold">' . formatRp($item['amount'] ?? 0) . '</td>
+            <td>' . nl2br(h($item['keterangan'] ?? '-')) . '</td>
+        </tr>';
+    }
+    $html .= '<tr class="top-total">
+        <td colspan="2" class="right bold">TOTAL ADDITIONAL COST</td>
+        <td class="right money bold green">' . formatRp($totalAdditionalCost) . '</td>
+        <td></td>
+    </tr>
+    </table>';
+} else {
+    $html .= '<table><tr><td class="center">Belum ada data Additional Cost</td></tr></table>';
+}
+
+// ============================================
+// E. MEDIATOR
+// ============================================
+$html .= '
 <!-- E. MEDIATOR -->
 <div class="section">E. DATA MEDIATOR</div>';
 
@@ -739,7 +690,7 @@ if (count($mediators) > 0) {
             <td class="right money bold">' . formatRp($med['amount'] ?? 0) . '</td>
         </tr>';
     }
-    $html .= '<tr>
+    $html .= '<tr class="top-total">
         <td colspan="6" class="right bold">TOTAL MEDIATOR FEE</td>
         <td class="right money bold">' . formatRp($totalMediatorFee) . '</td>
     </tr>
@@ -748,6 +699,9 @@ if (count($mediators) > 0) {
     $html .= '<table><tr><td class="center">Belum ada data mediator</td></tr></table>';
 }
 
+// ============================================
+// F. RECAP
+// ============================================
 $html .= '
 <!-- F. RECAP -->
 <div class="section">F. REKAPITULASI</div>
@@ -814,7 +768,7 @@ $html .= '
 
 
 </body>
-</html>';;
+</html>';
 
 // ============================================
 // GENERATE PDF
