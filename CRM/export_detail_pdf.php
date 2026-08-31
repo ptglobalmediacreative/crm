@@ -295,22 +295,22 @@ $html = '
         body { 
             font-family: "Helvetica", Arial, sans-serif; 
             font-size: 10px;
-            padding: 15px 20px;
+            padding: 10px 20px;
             background: #fff;
             color: #222;
-            line-height: 1.6;
+            line-height: 1.4;
         }
         
         /* KOP SURAT */
         .kop-surat {
             text-align: center;
             border-bottom: 3px double #222;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
         }
         .kop-surat .logo-img {
             max-width: 100%;
-            max-height: 70px;
+            max-height: 60px;
             width: auto;
             height: auto;
         }
@@ -318,18 +318,18 @@ $html = '
         /* JUDUL */
         .judul-laporan {
             text-align: center;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             color: #222;
-            margin: 5px 0 3px 0;
+            margin: 3px 0 2px 0;
         }
         .info-tr {
             text-align: center;
             font-size: 9px;
             color: #555;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         .info-tr .label {
             font-weight: 600;
@@ -341,8 +341,8 @@ $html = '
             font-size: 10px;
             font-weight: 700;
             border-bottom: 1.5px solid #222;
-            padding: 4px 5px 2px 5px;
-            margin: 10px 0 5px 0;
+            padding: 2px 5px;
+            margin: 6px 0 3px 0;
             color: #222;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -353,7 +353,7 @@ $html = '
         
         /* INFO ROW - DENGAN LABEL SEJAJAR RATA */
         .info-row {
-            padding: 3px 0;
+            padding: 1px 0;
             font-size: 9px;
             page-break-inside: avoid;
             display: table;
@@ -364,11 +364,11 @@ $html = '
             display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 140px;
-            min-width: 140px;
+            width: 120px;
+            min-width: 120px;
             vertical-align: top;
             text-align: left;
-            padding-right: 5px;
+            padding-right: 3px;
         }
         .info-row .label::after {
             content: ":";
@@ -389,18 +389,18 @@ $html = '
         .info-row-2col .col {
             flex: 1;
             min-width: 45%;
-            padding-right: 15px;
+            padding-right: 10px;
         }
         .info-row-2col .col:last-child {
             padding-right: 0;
         }
         .info-row-2col .info-row .label {
-            width: 110px;
-            min-width: 110px;
+            width: 90px;
+            min-width: 90px;
         }
         
         .info-row-left {
-            padding: 3px 0;
+            padding: 1px 0;
             font-size: 9px;
             page-break-inside: avoid;
             display: table;
@@ -411,11 +411,11 @@ $html = '
             display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 140px;
-            min-width: 140px;
+            width: 120px;
+            min-width: 120px;
             vertical-align: top;
             text-align: left;
-            padding-right: 5px;
+            padding-right: 3px;
         }
         .info-row-left .label::after {
             content: ":";
@@ -432,7 +432,7 @@ $html = '
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             font-size: 9px;
             page-break-inside: auto;
         }
@@ -452,12 +452,12 @@ $html = '
             font-weight: 600;
             font-size: 8px;
             text-transform: uppercase;
-            padding: 4px 5px;
+            padding: 3px 4px;
             text-align: center;
             letter-spacing: 0.3px;
         }
         table td {
-            padding: 4px 5px;
+            padding: 3px 4px;
             border-bottom: 1px solid #e0e0e0;
             font-size: 9px;
             vertical-align: middle;
@@ -478,7 +478,7 @@ $html = '
         .unit-detail-info {
             font-size: 8px;
             margin-top: 2px;
-            padding: 5px 8px;
+            padding: 3px 5px;
             background: #f9f9f9;
             border-left: 2px solid #c9a84c;
             page-break-inside: avoid;
@@ -492,9 +492,9 @@ $html = '
             display: table-cell;
             font-weight: 600;
             color: #555;
-            width: 130px;
-            min-width: 130px;
-            padding-right: 5px;
+            width: 110px;
+            min-width: 110px;
+            padding-right: 3px;
             text-align: left;
         }
         .unit-detail-info .unit-info-label::after {
@@ -509,8 +509,8 @@ $html = '
         .three-col {
             display: flex;
             flex-wrap: wrap;
-            margin: 5px 0;
-            gap: 8px;
+            margin: 3px 0;
+            gap: 6px;
             page-break-inside: avoid;
         }
         .three-col .col {
@@ -521,7 +521,7 @@ $html = '
         .three-col .col .box {
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 6px 8px;
+            padding: 4px 6px;
             background: #f9f9f9;
         }
         .three-col .col .box.gold {
@@ -552,27 +552,25 @@ $html = '
         .approval-status-rejected { color: #dc3545; font-weight: 700; }
         .approval-status-pending { color: #ffc107; font-weight: 700; }
         
-        /* FOOTER - FIXED DI BAWAH SETIAP HALAMAN */
-        .footer {
-            position: fixed;
-            bottom: -15px;
-            left: 0;
-            right: 0;
-            padding: 5px 20px;
+        /* FOOTER - HANYA DI AKHIR DOKUMEN */
+        .footer-end {
+            margin-top: 15px;
+            padding: 5px 0;
             border-top: 2px solid #222;
             font-size: 7px;
             color: #555;
             text-align: center;
             background: #fff;
+            page-break-inside: avoid;
         }
-        .footer .footer-alamat {
+        .footer-end .footer-alamat {
             font-size: 7px;
             color: #555;
-            margin-top: 2px;
-            line-height: 1.4;
+            margin-top: 1px;
+            line-height: 1.3;
         }
-        .footer .footer-note {
-            margin-top: 2px;
+        .footer-end .footer-note {
+            margin-top: 1px;
             font-size: 6px;
             color: #aaa;
         }
@@ -582,11 +580,11 @@ $html = '
         .text-right { text-align: right; }
         .text-left { text-align: left; }
         .fw-bold { font-weight: 700; }
-        .mt-5 { margin-top: 5px; }
-        .mb-5 { margin-bottom: 5px; }
+        .mt-3 { margin-top: 3px; }
+        .mb-3 { margin-bottom: 3px; }
         
         @page {
-            margin: 10mm 15mm 18mm 15mm;
+            margin: 8mm 15mm 8mm 15mm;
         }
     </style>
 </head>
@@ -672,7 +670,7 @@ if (count($detailUnits) > 0) {
         $html .= '
     <div class="unit-detail-info">
         <div class="unit-info-row">
-            <strong style="display:block; margin-bottom:3px;">Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong>
+            <strong style="display:block; margin-bottom:2px;">Unit ' . ($index + 1) . ' - ' . htmlspecialchars(getNamaProduk($unit['unit_id'], $produkList)) . ':</strong>
         </div>
         <div class="unit-info-row">
             <span class="unit-info-label">Additional Attachment</span>
@@ -701,13 +699,13 @@ if (count($detailUnits) > 0) {
     </div>';
     }
 } else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Detail Unit</p>';
+    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data Detail Unit</p>';
 }
 
 // C. TERM OF PAYMENT & D. ADDITIONAL COST
 $html .= '
-<div style="display:flex; flex-wrap:wrap; margin-top:5px;">
-    <div style="flex:1; min-width:50%; padding-right:10px;">
+<div style="display:flex; flex-wrap:wrap; margin-top:3px;">
+    <div style="flex:1; min-width:50%; padding-right:8px;">
         <div class="section-title" style="margin-top:0;">C. Term Of Payment</div>
         ';
 
@@ -745,12 +743,12 @@ if (count($termPayments) > 0) {
         </div>
         ';
 } else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data TOP</p>';
+    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data TOP</p>';
 }
 
 $html .= '
     </div>
-    <div style="flex:1; min-width:40%; padding-left:10px;">
+    <div style="flex:1; min-width:40%; padding-left:8px;">
         <div class="section-title" style="margin-top:0;">D. Additional Cost</div>
         ';
 
@@ -765,7 +763,7 @@ if ($additionalCost) {
         <div class="info-row-left"><span class="label">Others</span><span class="value">' . htmlspecialchars($additionalCost['others'] ?? '-') . '</span></div>
         ';
 } else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data</p>';
+    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data</p>';
 }
 
 $html .= '
@@ -775,7 +773,7 @@ $html .= '
 
 // E. DATA MEDIATOR (MULTIPLE)
 $html .= '
-<div class="section-title" style="margin-top:5px;">E. Data Mediator</div>
+<div class="section-title" style="margin-top:3px;">E. Data Mediator</div>
 ';
 
 if (count($mediators) > 0) {
@@ -818,7 +816,7 @@ if (count($mediators) > 0) {
     </div>
     ';
 } else {
-    $html .= '<p style="color:#999; padding:5px 0;">Belum ada data Mediator</p>';
+    $html .= '<p style="color:#999; padding:3px 0;">Belum ada data Mediator</p>';
 }
 
 // F. REKAPITULASI TOTAL
@@ -888,9 +886,9 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// FOOTER - FIXED DI BAWAH SETIAP HALAMAN
+// FOOTER - HANYA SEKALI DI AKHIR DOKUMEN
 $html .= '
-<div class="footer">
+<div class="footer-end">
     <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
     <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
     <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
