@@ -61,33 +61,6 @@ function resetApprovalHistory($db, $tr_number) {
 }
 
 // ============================================
-// FUNGSI UNTUK MEMBERSIHKAN SEMUA DATA TR LAMA
-// ============================================
-function cleanAllTRData($db, $tr_number) {
-    try {
-        // Hapus semua data terkait TR
-        $tables = [
-            'tr_approval_history',
-            'tr_mediators',
-            'tr_additional_costs',
-            'tr_term_of_payments',
-            'tr_detail_units',
-            'detail_transaction_requests'
-        ];
-        
-        foreach ($tables as $table) {
-            $deleteSql = "DELETE FROM {$table} WHERE trf_number = ?";
-            $deleteStmt = $db->prepare($deleteSql);
-            $deleteStmt->execute([$tr_number]);
-        }
-        
-        return true;
-    } catch (Exception $e) {
-        return false;
-    }
-}
-
-// ============================================
 // CEK USER UNTUK AKSES
 // ============================================
 $userId = $_SESSION['user_id'] ?? 0;
@@ -113,12 +86,12 @@ if (empty($tr_number)) {
 }
 
 // ============================================
-// AMBIL DATA TRANSACTION REQUEST (AMBIL YANG TERBARU)
+// AMBIL DATA TRANSACTION REQUEST (QUERY SEDERHANA)
 // ============================================
 $sql = "SELECT ad.tr_number, 
                ad.due_date,
-               MAX(ad.created_at) as request_date,
-               MAX(ad.id) as latest_activity_id,
+               ad.created_at as request_date,
+               ad.id as latest_activity_id,
                a.id as account_id,
                a.nama_pt, 
                a.badan_usaha,
@@ -131,29 +104,13 @@ $sql = "SELECT ad.tr_number,
                u.full_name as sales_name,
                u.id as sales_user_id,
                sa.sales_id,
-               sa.id as sales_activity_id,
-               CASE 
-                   WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'rejected'
-                   ) THEN 'rejected'
-                   WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'pending'
-                   ) THEN 'pending'
-                   WHEN EXISTS (
-                       SELECT 1 FROM detail_transaction_requests dtr 
-                       WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'approved'
-                   ) THEN 'approved'
-                   ELSE 'pending'
-               END as status
+               sa.id as sales_activity_id
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
         LEFT JOIN accounts a ON sa.account_id = a.id
         LEFT JOIN users u ON sa.sales_id = u.id
         WHERE ad.tr_number = ?
-        GROUP BY ad.tr_number, sa.sales_id, sa.id, a.id, u.id
-        ORDER BY latest_activity_id DESC
+        ORDER BY ad.id DESC
         LIMIT 1";
 $stmt = $db->prepare($sql);
 $stmt->execute([$tr_number]);
@@ -165,36 +122,31 @@ if (!$request) {
 }
 
 // ============================================
-// CEK APAKAH ADA ACTIVITY DETAILS BARU (TR BARU)
-// Jika ada activity_details baru, bersihkan data lama
+// DAPATKAN STATUS DARI DETAIL TRANSACTION REQUEST
 // ============================================
-$latestActivityId = $request['latest_activity_id'] ?? 0;
-
-// Cek apakah data detail TR yang ada di database sesuai dengan activity terbaru
-if ($latestActivityId > 0) {
-    // Cek apakah detail_transaction_requests ada dan sudah sesuai
-    $checkExistingDetail = $db->prepare("SELECT id, created_at FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-    $checkExistingDetail->execute([$tr_number]);
-    $existingDetail = $checkExistingDetail->fetch();
-    
-    // Cek detail units
-    $checkExistingUnits = $db->prepare("SELECT COUNT(*) as total FROM tr_detail_units WHERE trf_number = ?");
-    $checkExistingUnits->execute([$tr_number]);
-    $existingUnitsCount = $checkExistingUnits->fetch()['total'];
-    
-    // Jika tidak ada data sama sekali, tidak perlu dibersihkan
-    // Data lama akan dibersihkan saat user menyimpan data baru
+$statusTR = 'pending';
+try {
+    $checkStatus = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
+    $checkStatus->execute([$tr_number]);
+    $statusData = $checkStatus->fetch();
+    if ($statusData && !empty($statusData['status'])) {
+        $statusTR = $statusData['status'];
+    }
+} catch (Exception $e) {
+    $statusTR = 'pending';
 }
 
+// Tambahkan status ke array request
+$request['status'] = $statusTR;
+
 // ============================================
-// CEK HAK EDIT (HANYA SALES YANG BISA EDIT TR MILIKNYA)
+// CEK HAK EDIT
 // ============================================
 $canEdit = false;
 if ($userRole === 'sales' && isset($request['sales_user_id']) && $request['sales_user_id'] == $userId) {
     $canEdit = true;
 }
 
-// Role yang hanya bisa review/approve (tidak bisa edit)
 $reviewOnlyRoles = ['sales_manager', 'direktur_sales', 'business', 'direktur_operasional', 'direktur_utama', 'finance', 'it_support', 'admin'];
 $isReviewOnly = in_array($userRole, $reviewOnlyRoles);
 
@@ -213,13 +165,12 @@ try {
     $hasBeenApproved = false;
 }
 
-// Jika sudah pernah di-approve, maka tidak bisa edit
 if ($hasBeenApproved) {
     $canEdit = false;
 }
 
 // ============================================
-// AMBIL DATA DETAIL TRANSACTION REQUEST (AMBIL YANG TERBARU)
+// AMBIL DATA DETAIL TRANSACTION REQUEST
 // ============================================
 $detailTR = null;
 try {
@@ -342,7 +293,7 @@ try {
 }
 
 // ============================================
-// AMBIL DATA ADDITIONAL COST (AMBIL YANG TERBARU)
+// AMBIL DATA ADDITIONAL COST
 // ============================================
 $additionalCost = null;
 try {
@@ -373,7 +324,6 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    // Cek hak edit untuk action selain approve/reject
     $editActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_cost', 'save_mediator'];
     if (in_array($action, $editActions) && !$canEdit) {
         if ($hasBeenApproved) {
@@ -384,13 +334,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
     }
     
-    // ============================================
-    // SAVE SUMMARY / DESKRIPSI
-    // ============================================
+    // SAVE SUMMARY
     if ($action === 'save_summary') {
         try {
             $db->beginTransaction();
-            
             $deskripsi = $_POST['deskripsi'] ?? '';
             
             if ($detailTR) {
@@ -404,9 +351,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             resetApprovalHistory($db, $tr_number);
-            
             $db->commit();
-            setFlash('Summary berhasil disimpan! Approval history di-reset.', 'success');
+            setFlash('Summary berhasil disimpan!', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan summary: ' . $e->getMessage(), 'danger');
@@ -414,13 +360,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
     }
     
-    // ============================================
     // APPROVE / REJECT
-    // ============================================
     if ($action === 'approve' || $action === 'reject') {
         try {
             $db->beginTransaction();
-            
             $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
             $currentOrder = (int)($_POST['approval_order'] ?? 0);
             
@@ -433,25 +376,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             $checkDataComplete = true;
-            $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-            $checkDetailTR->execute([$tr_number]);
-            $detailData = $checkDetailTR->fetch();
-            
-            $checkUnits = $db->prepare("SELECT COUNT(*) as total FROM tr_detail_units WHERE trf_number = ?");
-            $checkUnits->execute([$tr_number]);
-            $unitCount = $checkUnits->fetch()['total'];
-            
-            $checkTOP = $db->prepare("SELECT COUNT(*) as total FROM tr_term_of_payments WHERE trf_number = ?");
-            $checkTOP->execute([$tr_number]);
-            $topCount = $checkTOP->fetch()['total'];
-            
-            $checkCost = $db->prepare("SELECT insurance_cargo FROM tr_additional_costs WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-            $checkCost->execute([$tr_number]);
-            $costData = $checkCost->fetch();
-            
-            if (empty($detailData['deskripsi']) || $unitCount == 0 || $topCount == 0 || !$costData || empty($costData['insurance_cargo'])) {
-                $checkDataComplete = false;
-            }
+            if (empty($detailTR['deskripsi'])) $checkDataComplete = false;
+            if (count($detailUnits) == 0) $checkDataComplete = false;
+            if (count($termPayments) == 0) $checkDataComplete = false;
+            if (!$additionalCost || empty($additionalCost['insurance_cargo'])) $checkDataComplete = false;
             
             if ($canApprove && $checkDataComplete) {
                 $checkApproval = $db->prepare("SELECT id FROM tr_approval_history WHERE trf_number = ? AND approval_order = ?");
@@ -466,18 +394,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $insertApproval->execute([$tr_number, $currentOrder, $approvalLevels[$currentOrder]['role'], $approvalStatus, $userId]);
                 }
                 
+                $newStatus = 'pending';
                 if ($approvalStatus == 'rejected') {
-                    $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'rejected', updated_at = NOW() WHERE trf_number = ?");
-                    $updateDetail->execute([$tr_number]);
-                } else {
-                    if ($currentOrder >= 5) {
-                        $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'approved', updated_at = NOW() WHERE trf_number = ?");
-                        $updateDetail->execute([$tr_number]);
-                    } else {
-                        $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
-                        $updateDetail->execute([$tr_number]);
-                    }
+                    $newStatus = 'rejected';
+                } elseif ($currentOrder >= 5) {
+                    $newStatus = 'approved';
                 }
+                
+                $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = ?, updated_at = NOW() WHERE trf_number = ?");
+                $updateDetail->execute([$newStatus, $tr_number]);
                 
                 $db->commit();
                 setFlash($approvalStatus == 'approved' ? 'TR berhasil di-approve!' : 'TR berhasil di-reject!', 'success');
@@ -485,7 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$canApprove) {
                     setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
                 } elseif (!$checkDataComplete) {
-                    setFlash('Data belum lengkap! Semua section harus diisi sebelum approval atau reject.', 'danger');
+                    setFlash('Data belum lengkap!', 'danger');
                 }
             }
         } catch (Exception $e) {
@@ -495,9 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
     }
     
-    // ============================================
     // SAVE DETAIL UNIT
-    // ============================================
     if ($action === 'save_unit') {
         try {
             $db->beginTransaction();
@@ -533,20 +456,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type]);
             }
             
-            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-            $checkDetail->execute([$tr_number]);
-            if ($checkDetail->fetch()) {
-                $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
-                $updateDetail->execute([$tr_number]);
-            } else {
+            // Update status detail TR
+            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+            $updateDetail->execute([$tr_number]);
+            
+            if ($updateDetail->rowCount() == 0) {
                 $insertDetail = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
                 $insertDetail->execute([$tr_number]);
             }
             
             resetApprovalHistory($db, $tr_number);
-            
             $db->commit();
-            setFlash('Detail unit berhasil disimpan! Approval history di-reset.', 'success');
+            setFlash('Detail unit berhasil disimpan!', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan detail unit: ' . $e->getMessage(), 'danger');
@@ -554,9 +475,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=detail_unit");
     }
     
-    // ============================================
     // DELETE DETAIL UNIT
-    // ============================================
     if ($action === 'delete_unit') {
         $unitId = (int)($_POST['unit_id'] ?? 0);
         if ($unitId > 0) {
@@ -567,7 +486,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $deleteStmt->execute([$unitId, $tr_number]);
                 resetApprovalHistory($db, $tr_number);
                 $db->commit();
-                setFlash('Detail unit berhasil dihapus! Approval history di-reset.', 'success');
+                setFlash('Detail unit berhasil dihapus!', 'success');
             } catch (Exception $e) {
                 $db->rollBack();
                 setFlash('Gagal menghapus detail unit!', 'danger');
@@ -576,9 +495,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=detail_unit");
     }
     
-    // ============================================
     // SAVE TERM OF PAYMENT
-    // ============================================
     if ($action === 'save_top') {
         try {
             $db->beginTransaction();
@@ -627,20 +544,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $nominal_po, $nominal_po_keterangan]);
             }
             
-            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-            $checkDetail->execute([$tr_number]);
-            if ($checkDetail->fetch()) {
-                $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
-                $updateDetail->execute([$tr_number]);
-            } else {
+            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+            $updateDetail->execute([$tr_number]);
+            
+            if ($updateDetail->rowCount() == 0) {
                 $insertDetail = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
                 $insertDetail->execute([$tr_number]);
             }
             
             resetApprovalHistory($db, $tr_number);
-            
             $db->commit();
-            setFlash('Term of Payment berhasil disimpan! Approval history di-reset.', 'success');
+            setFlash('Term of Payment berhasil disimpan!', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan Term of Payment: ' . $e->getMessage(), 'danger');
@@ -648,9 +562,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=term_of_payment");
     }
     
-    // ============================================
     // SAVE ADDITIONAL COST
-    // ============================================
     if ($action === 'save_cost') {
         try {
             $db->beginTransaction();
@@ -675,20 +587,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $insurance_ops, $insurance_cargo, $delivery_cost, $free_part, $free_service, $mediator_fee, $others]);
             }
             
-            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-            $checkDetail->execute([$tr_number]);
-            if ($checkDetail->fetch()) {
-                $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
-                $updateDetail->execute([$tr_number]);
-            } else {
+            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+            $updateDetail->execute([$tr_number]);
+            
+            if ($updateDetail->rowCount() == 0) {
                 $insertDetail = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
                 $insertDetail->execute([$tr_number]);
             }
             
             resetApprovalHistory($db, $tr_number);
-            
             $db->commit();
-            setFlash('Additional Cost berhasil disimpan! Approval history di-reset.', 'success');
+            setFlash('Additional Cost berhasil disimpan!', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan Additional Cost: ' . $e->getMessage(), 'danger');
@@ -696,19 +605,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=additional_cost");
     }
     
-    // ============================================
     // SAVE MEDIATOR (MULTIPLE)
-    // ============================================
     if ($action === 'save_mediator') {
         try {
             $db->beginTransaction();
             
-            // Hapus semua data mediator yang ada untuk TR ini
             $deleteSql = "DELETE FROM tr_mediators WHERE trf_number = ?";
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
             
-            // Ambil data mediator dari form (array)
             $mediator_names = $_POST['mediator_name'] ?? [];
             $mediator_id_cards = $_POST['mediator_id_card'] ?? [];
             $mediator_npwps = $_POST['mediator_npwp'] ?? [];
@@ -716,7 +621,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mediator_bank_accounts = $_POST['mediator_bank_account'] ?? [];
             $mediator_amounts = $_POST['mediator_amount'] ?? [];
             
-            // Loop untuk menyimpan setiap mediator
             foreach ($mediator_names as $index => $name) {
                 if (!empty($name)) {
                     $id_card = $mediator_id_cards[$index] ?? '';
@@ -732,9 +636,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             resetApprovalHistory($db, $tr_number);
-            
             $db->commit();
-            setFlash('Data Mediator berhasil disimpan! Approval history di-reset.', 'success');
+            setFlash('Data Mediator berhasil disimpan!', 'success');
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('Gagal menyimpan data Mediator: ' . $e->getMessage(), 'danger');
@@ -744,43 +647,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ============================================
-// HITUNG TOTAL GRAND TOTAL UNIT
+// HITUNG TOTAL
 // ============================================
 $totalUnitGrandTotal = 0;
 foreach ($detailUnits as $unit) {
-    $totalUnitGrandTotal += $unit['grand_total'];
+    $totalUnitGrandTotal += (float)$unit['grand_total'];
 }
 
-// ============================================
-// HITUNG TOTAL TERM OF PAYMENT
-// ============================================
 $totalTOP = 0;
 foreach ($termPayments as $top) {
-    $totalTOP += $top['amount'];
+    $totalTOP += (float)$top['amount'];
 }
 
-// ============================================
-// HITUNG TOTAL ADDITIONAL COST
-// ============================================
 $totalAdditionalCost = 0;
 if ($additionalCost) {
-    $totalAdditionalCost = $additionalCost['insurance_ops'] + $additionalCost['insurance_cargo'] + $additionalCost['delivery_cost'];
+    $totalAdditionalCost = (float)$additionalCost['insurance_ops'] + (float)$additionalCost['insurance_cargo'] + (float)$additionalCost['delivery_cost'];
 }
 
-// Tambahkan total mediator fee dari tabel tr_mediators
 $totalMediatorFee = 0;
 foreach ($mediators as $med) {
-    $totalMediatorFee += $med['amount'];
+    $totalMediatorFee += (float)$med['amount'];
 }
 $totalAdditionalCost += $totalMediatorFee;
 
-// ============================================
-// HITUNG TOTAL MASUKAN
-// ============================================
 $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 
 // ============================================
-// CEK KELENGKAPAN DATA UNTUK APPROVAL
+// CEK KELENGKAPAN DATA
 // ============================================
 $isDataComplete = true;
 $missingSections = [];
@@ -1091,7 +984,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
 
         .mobile-toggle { display: none; }
 
-        /* Tab Navigation Styles */
         .tab-nav {
             background: #fff;
             border-radius: 16px;
@@ -1108,9 +1000,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             gap: 5px;
             display: flex;
         }
-        .tab-nav .nav-tabs .nav-item {
-            margin: 0;
-        }
+        .tab-nav .nav-tabs .nav-item { margin: 0; }
         .tab-nav .nav-tabs .nav-link {
             border: none;
             border-radius: 10px;
@@ -1124,19 +1014,10 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             gap: 8px;
             white-space: nowrap;
         }
-        .tab-nav .nav-tabs .nav-link i {
-            font-size: 14px;
-        }
-        .tab-nav .nav-tabs .nav-link:hover {
-            background: #f8f9fa;
-            color: #0e1a2b;
-        }
-        .tab-nav .nav-tabs .nav-link.active {
-            background: #0e1a2b;
-            color: #ffd700;
-        }
+        .tab-nav .nav-tabs .nav-link i { font-size: 14px; }
+        .tab-nav .nav-tabs .nav-link:hover { background: #f8f9fa; color: #0e1a2b; }
+        .tab-nav .nav-tabs .nav-link.active { background: #0e1a2b; color: #ffd700; }
 
-        /* Mediator Card Styles */
         .mediator-row {
             background: #fff;
             border: 1px solid #e0e4ea;
@@ -1152,13 +1033,8 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             padding-bottom: 10px;
             border-bottom: 1px solid #f0f2f5;
         }
-        .mediator-row .mediator-header strong {
-            color: #0e1a2b;
-            font-size: 14px;
-        }
-        .mediator-row .mediator-header strong i {
-            color: #ffd700;
-        }
+        .mediator-row .mediator-header strong { color: #0e1a2b; font-size: 14px; }
+        .mediator-row .mediator-header strong i { color: #ffd700; }
 
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
@@ -1169,10 +1045,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 width: 40px; height: 40px; border-radius: 8px; 
                 color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
             }
-            .tab-nav .nav-tabs .nav-link {
-                padding: 10px 15px;
-                font-size: 12px;
-            }
+            .tab-nav .nav-tabs .nav-link { padding: 10px 15px; font-size: 12px; }
         }
     </style>
 </head>
@@ -1433,7 +1306,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 <li><?= htmlspecialchars($section) ?></li>
                             <?php endforeach; ?>
                         </ul>
-                        <small class="text-muted">Silakan lengkapi semua data terlebih dahulu sebelum melakukan approval atau reject.</small>
                     </div>
                     <?php endif; ?>
                     
@@ -1450,11 +1322,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                                 <i class="fas fa-times-circle"></i> Reject
                             </button>
                         </form>
-                        <?php if (!$isDataComplete): ?>
-                        <small class="text-muted d-block mt-2">
-                            <i class="fas fa-info-circle"></i> Tombol Approve dan Reject dinonaktifkan karena data belum lengkap.
-                        </small>
-                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
                 <?php endif; ?>
@@ -1979,7 +1846,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <!-- FORM EDIT MEDIATOR (MULTIPLE) -->
                 <div id="mediatorFormContainer" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <form method="POST" id="mediatorForm">
                         <input type="hidden" name="action" value="save_mediator">
@@ -2005,7 +1871,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                     </form>
                 </div>
                 
-                <!-- VIEW DATA MEDIATOR -->
                 <div id="viewMediator">
                     <?php if (count($mediators) > 0): ?>
                         <?php $totalMediatorAmount = 0; ?>
