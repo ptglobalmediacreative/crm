@@ -552,29 +552,6 @@ $html = '
         .approval-status-rejected { color: #dc3545; font-weight: 700; }
         .approval-status-pending { color: #ffc107; font-weight: 700; }
         
-        /* FOOTER - HANYA DI AKHIR DOKUMEN */
-        .footer-end {
-            margin-top: 15px;
-            padding: 5px 0;
-            border-top: 2px solid #222;
-            font-size: 7px;
-            color: #555;
-            text-align: center;
-            background: #fff;
-            page-break-inside: avoid;
-        }
-        .footer-end .footer-alamat {
-            font-size: 7px;
-            color: #555;
-            margin-top: 1px;
-            line-height: 1.3;
-        }
-        .footer-end .footer-note {
-            margin-top: 1px;
-            font-size: 6px;
-            color: #aaa;
-        }
-        
         /* UTILITY */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -886,14 +863,7 @@ if (count($approvalHistory) > 0) {
     ';
 }
 
-// FOOTER - HANYA SEKALI DI AKHIR DOKUMEN
 $html .= '
-<div class="footer-end">
-    <div><strong>PT GANDA ELANG TANGGUH</strong> - CRM</div>
-    <div class="footer-alamat">Jelambar Barat III Ruko 45R No. 16 RT 014, Jelambar Baru, Grogol Petamburan<br>Kota Adm. Jakarta Barat - DKI Jakarta | Phone : +62 812 8058 8567 | Email : info@gandaelang.com</div>
-    <div class="footer-note">Dokumen ini dicetak dari sistem CRM. Mohon periksa keaslian dokumen.</div>
-</div>
-
 </body>
 </html>
 ';
