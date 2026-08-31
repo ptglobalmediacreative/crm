@@ -61,6 +61,33 @@ function resetApprovalHistory($db, $tr_number) {
 }
 
 // ============================================
+// FUNGSI UNTUK MEMBERSIHKAN SEMUA DATA TR LAMA
+// ============================================
+function cleanAllTRData($db, $tr_number) {
+    try {
+        // Hapus semua data terkait TR
+        $tables = [
+            'tr_approval_history',
+            'tr_mediators',
+            'tr_additional_costs',
+            'tr_term_of_payments',
+            'tr_detail_units',
+            'detail_transaction_requests'
+        ];
+        
+        foreach ($tables as $table) {
+            $deleteSql = "DELETE FROM {$table} WHERE trf_number = ?";
+            $deleteStmt = $db->prepare($deleteSql);
+            $deleteStmt->execute([$tr_number]);
+        }
+        
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+// ============================================
 // CEK USER UNTUK AKSES
 // ============================================
 $userId = $_SESSION['user_id'] ?? 0;
@@ -91,6 +118,7 @@ if (empty($tr_number)) {
 $sql = "SELECT ad.tr_number, 
                ad.due_date,
                MAX(ad.created_at) as request_date,
+               MAX(ad.id) as latest_activity_id,
                a.id as account_id,
                a.nama_pt, 
                a.badan_usaha,
@@ -124,8 +152,8 @@ $sql = "SELECT ad.tr_number,
         LEFT JOIN accounts a ON sa.account_id = a.id
         LEFT JOIN users u ON sa.sales_id = u.id
         WHERE ad.tr_number = ?
-        GROUP BY ad.tr_number, sa.sales_id, sa.id
-        ORDER BY request_date DESC
+        GROUP BY ad.tr_number, sa.sales_id, sa.id, a.id, u.id
+        ORDER BY latest_activity_id DESC
         LIMIT 1";
 $stmt = $db->prepare($sql);
 $stmt->execute([$tr_number]);
@@ -134,6 +162,28 @@ $request = $stmt->fetch();
 if (!$request) {
     setFlash('Data transaction request tidak ditemukan!', 'danger');
     redirect('transactionrequest.php');
+}
+
+// ============================================
+// CEK APAKAH ADA ACTIVITY DETAILS BARU (TR BARU)
+// Jika ada activity_details baru, bersihkan data lama
+// ============================================
+$latestActivityId = $request['latest_activity_id'] ?? 0;
+
+// Cek apakah data detail TR yang ada di database sesuai dengan activity terbaru
+if ($latestActivityId > 0) {
+    // Cek apakah detail_transaction_requests ada dan sudah sesuai
+    $checkExistingDetail = $db->prepare("SELECT id, created_at FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
+    $checkExistingDetail->execute([$tr_number]);
+    $existingDetail = $checkExistingDetail->fetch();
+    
+    // Cek detail units
+    $checkExistingUnits = $db->prepare("SELECT COUNT(*) as total FROM tr_detail_units WHERE trf_number = ?");
+    $checkExistingUnits->execute([$tr_number]);
+    $existingUnitsCount = $checkExistingUnits->fetch()['total'];
+    
+    // Jika tidak ada data sama sekali, tidak perlu dibersihkan
+    // Data lama akan dibersihkan saat user menyimpan data baru
 }
 
 // ============================================
@@ -2060,34 +2110,8 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('unitForm').reset();
             document.getElementById('unit_id_hidden').value = '0';
             document.getElementById('deleteUnitBtn').style.display = 'none';
-            
-            <?php if (count($detailUnits) > 0): ?>
-                <?php $firstUnit = $detailUnits[0]; ?>
-                document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
-                document.getElementById('unit_id').value = '<?= $firstUnit['unit_id'] ?>';
-                document.getElementById('qty').value = '<?= $firstUnit['qty'] ?>';
-                document.getElementById('price').value = '<?= $firstUnit['price'] ?>';
-                
-                const specInput = document.querySelector('input[name="specification"]');
-                const attachmentInput = document.querySelector('input[name="additional_attachment"]');
-                const warantyInput = document.querySelector('input[name="waranty"]');
-                const locationInput = document.querySelector('input[name="machine_location"]');
-                const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
-                const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
-                const transTypeInput = document.querySelector('select[name="transaction_type"]');
-                
-                specInput.value = '<?= addslashes($firstUnit['specification']) ?>';
-                attachmentInput.value = '<?= addslashes($firstUnit['additional_attachment']) ?>';
-                warantyInput.value = '<?= addslashes($firstUnit['waranty']) ?>';
-                locationInput.value = '<?= addslashes($firstUnit['machine_location']) ?>';
-                deliveryTermsInput.value = '<?= addslashes($firstUnit['delivery_terms']) ?>';
-                deliveryScheduleInput.value = '<?= $firstUnit['delivery_schedule'] ?>';
-                transTypeInput.value = '<?= addslashes($firstUnit['transaction_type']) ?>';
-                
-                calculateTotal();
-                toggleOtherTransaction();
-                document.getElementById('deleteUnitBtn').style.display = 'inline-block';
-            <?php endif; ?>
+            calculateTotal();
+            toggleOtherTransaction();
         }
         
         function showNewUnitForm() {
@@ -2121,34 +2145,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             } else {
                 otherInput.style.display = 'none';
             }
-        }
-        
-        function editUnit(id, unitId, qty, price, spec, attachment, waranty, location, deliveryTerms, deliverySchedule, transType) {
-            showAddUnitForm();
-            document.getElementById('unit_id_hidden').value = id;
-            document.getElementById('unit_id').value = unitId;
-            document.getElementById('qty').value = qty;
-            document.getElementById('price').value = price;
-            
-            const specInput = document.querySelector('input[name="specification"]');
-            const attachmentInput = document.querySelector('input[name="additional_attachment"]');
-            const warantyInput = document.querySelector('input[name="waranty"]');
-            const locationInput = document.querySelector('input[name="machine_location"]');
-            const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
-            const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
-            const transTypeInput = document.querySelector('select[name="transaction_type"]');
-            
-            specInput.value = spec;
-            attachmentInput.value = attachment;
-            warantyInput.value = waranty;
-            locationInput.value = location;
-            deliveryTermsInput.value = deliveryTerms;
-            deliveryScheduleInput.value = deliverySchedule;
-            transTypeInput.value = transType;
-            
-            calculateTotal();
-            toggleOtherTransaction();
-            document.getElementById('deleteUnitBtn').style.display = 'inline-block';
         }
         
         function deleteUnit() {
