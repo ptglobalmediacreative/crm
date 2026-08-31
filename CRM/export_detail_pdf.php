@@ -241,7 +241,7 @@ $approvalLevels = [
 ];
 
 // ============================================
-// HITUNG TOTAL - SAMA DENGAN detailtr.php TERBARU
+// HITUNG TOTAL
 // ============================================
 $totalUnitGrandTotal = 0;
 foreach ($detailUnits as $unit) {
@@ -253,19 +253,16 @@ foreach ($termPayments as $top) {
     $totalTOP += (float)($top['amount'] ?? 0);
 }
 
-// Total Additional Cost HANYA dari Additional Cost Items
 $totalAdditionalCost = 0;
 foreach ($additionalCostItems as $item) {
     $totalAdditionalCost += (float)($item['amount'] ?? 0);
 }
 
-// Total Mediator Fee dihitung terpisah
 $totalMediatorFee = 0;
 foreach ($mediators as $med) {
     $totalMediatorFee += (float)($med['amount'] ?? 0);
 }
 
-// Total Masukan = Total Unit - Total Additional Cost
 $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 
 // ============================================
@@ -443,10 +440,6 @@ $html = '<!DOCTYPE html>
         background: #f3f3f3;
     }
 
-    .cost-table td {
-        vertical-align: middle;
-    }
-
     .cost-item-table th {
         background: #fff200;
     }
@@ -467,17 +460,8 @@ $html = '<!DOCTYPE html>
     .status-approved { background: #d9efd9; }
     .status-rejected { background: #f5d2d2; }
 
-    .note {
-        font-size: 6.6px;
-        color: #555;
-    }
-
     .keep {
         page-break-inside: avoid;
-    }
-
-    .break-before {
-        page-break-before: always;
     }
 </style>
 </head>
@@ -518,17 +502,18 @@ $html = '<!DOCTYPE html>
                     <th style="width:31%">Model Unit</th>
                     <th style="width:10%">Qty</th>
                     <th style="width:11%">Curr.</th>
-                    <th style="width:22%">Price / Unit</th>
+                    <th style="width:22%">Price / Unit (Include PPN)</th>
                     <th style="width:26%">Grand Total</th>
                 </tr>';
 
 if (count($detailUnits) > 0) {
     foreach ($detailUnits as $unit) {
+        $priceIncludePPN = (float)($unit['price'] ?? 0) * 1.11;
         $html .= '<tr>
             <td>' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
             <td class="center">' . h($unit['qty'] ?? '-') . '</td>
             <td class="center">IDR</td>
-            <td class="right money">' . formatNumber($unit['price'] ?? 0) . '</td>
+            <td class="right money">' . formatNumber($priceIncludePPN) . '</td>
             <td class="right money bold">' . formatNumber($unit['grand_total'] ?? 0) . '</td>
         </tr>';
     }
@@ -589,34 +574,28 @@ if (count($detailUnits) > 0) {
                 <td style="width:32%">' . h($unit['qty'] ?? '-') . '</td>
             </tr>
             <tr>
-                <td class="label">Price (Non PPN)</td>
-                <td class="right money">' . formatRp($unit['price'] ?? 0) . '</td>
-                <td class="label">PPN (11%)</td>
-                <td class="right money">' . formatRp($unit['ppn'] ?? 0) . '</td>
-            </tr>
-            <tr>
-                <td class="label">Grand Total Include PPN</td>
-                <td class="right money bold green">' . formatRp($unit['grand_total'] ?? 0) . '</td>
                 <td class="label">Specification</td>
-                <td>' . nl2br(h($unit['specification'] ?? '-')) . '</td>
+                <td colspan="3">' . nl2br(h($unit['specification'] ?? '-')) . '</td>
             </tr>
             <tr>
                 <td class="label">Additional Attachment / Safety Devices</td>
-                <td>' . nl2br(h($unit['additional_attachment'] ?? '-')) . '</td>
+                <td colspan="3">' . nl2br(h($unit['additional_attachment'] ?? '-')) . '</td>
+            </tr>
+            <tr>
                 <td class="label">Waranty</td>
                 <td>' . h($unit['waranty'] ?? '-') . '</td>
-            </tr>
-            <tr>
                 <td class="label">Machine Location Works</td>
                 <td>' . h($unit['machine_location'] ?? '-') . '</td>
-                <td class="label">Delivery Terms</td>
-                <td>' . h($unit['delivery_terms'] ?? '-') . '</td>
             </tr>
             <tr>
+                <td class="label">Delivery Terms</td>
+                <td>' . h($unit['delivery_terms'] ?? '-') . '</td>
                 <td class="label">Delivery Schedule Plan</td>
                 <td class="green bold">' . formatDateId($unit['delivery_schedule'] ?? null) . '</td>
+            </tr>
+            <tr>
                 <td class="label">Transaction Type</td>
-                <td>' . h($unit['transaction_type'] ?? '-') . '</td>
+                <td colspan="3">' . h($unit['transaction_type'] ?? '-') . '</td>
             </tr>
         </table>';
     }
@@ -661,11 +640,8 @@ if (count($additionalCostItems) > 0) {
     $html .= '<table><tr><td class="center">Belum ada data Additional Cost</td></tr></table>';
 }
 
-// ============================================
 // E. MEDIATOR
-// ============================================
 $html .= '
-<!-- E. MEDIATOR -->
 <div class="section">E. DATA MEDIATOR</div>';
 
 if (count($mediators) > 0) {
@@ -699,11 +675,8 @@ if (count($mediators) > 0) {
     $html .= '<table><tr><td class="center">Belum ada data mediator</td></tr></table>';
 }
 
-// ============================================
 // F. RECAP
-// ============================================
 $html .= '
-<!-- F. RECAP -->
 <div class="section">F. REKAPITULASI</div>
 <table class="summary-total">
     <tr>
@@ -740,7 +713,6 @@ if (count($approvalHistory) > 0) {
             ? $approval['approver_name']
             : (($approval['approved_by'] ?? '') !== '' ? $approval['approved_by'] : '-');
         
-        // Format tanggal approve dengan benar
         $approvedAtRaw = $approval['approved_at'] ?? '';
         $approvedAtDisplay = '-';
         if (!empty($approvedAtRaw) && strtotime($approvedAtRaw) !== false) {
@@ -760,9 +732,7 @@ if (count($approvalHistory) > 0) {
     $html .= '<table><tr><td class="center">Belum ada approval history.</td></tr></table>';
 }
 
-// ============================================
 // FOOTER
-// ============================================
 $html .= '
 <table style="margin-top:3px;">
     <tr>
