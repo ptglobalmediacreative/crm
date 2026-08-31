@@ -157,9 +157,9 @@ try {
 // ============================================
 $approvalLevels = [
     1 => ['role' => 'admin', 'label' => 'Admin Sales'],
-    2 => ['role' => 'admin', 'label' => 'Logistik'],
-    3 => ['role' => 'admin', 'label' => 'Service Support'],
-    4 => ['role' => 'admin', 'label' => 'Part Support'],
+    2 => ['role' => 'business', 'label' => 'Business'],
+    3 => ['role' => 'service_support', 'label' => 'Service Support'],
+    4 => ['role' => 'part_support', 'label' => 'Part Support'],
     5 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
     6 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
@@ -664,8 +664,8 @@ if (count($approvalHistory) > 0) {
         <tr>
             <th style="width:9%">Level</th>
             <th style="width:28%">Approval</th>
-            <th style="width:18%">Status</th>
-            <th style="width:25%">Approved By</th>
+            <th style="width:15%">Status</th>
+            <th style="width:28%">Approved By</th>
             <th style="width:20%">Approved At</th>
         </tr>';
 
@@ -676,9 +676,17 @@ if (count($approvalHistory) > 0) {
             ? 'status-' . $status
             : 'status-pending';
 
-        $approvedBy = (($approval['approved_by'] ?? '') !== '')
-            ? $approval['approved_by']
-            : '-';
+        $approvedBy = '-';
+        if (!empty($approval['approved_by'])) {
+            try {
+                $stmtUser = $db->prepare("SELECT full_name FROM users WHERE id = ?");
+                $stmtUser->execute([$approval['approved_by']]);
+                $userName = $stmtUser->fetchColumn();
+                $approvedBy = $userName ?: ($approval['approval_label'] ?? '-');
+            } catch (Exception $e) {
+                $approvedBy = $approval['approval_label'] ?? '-';
+            }
+        }
 
         $html .= '<tr>
             <td class="center">' . $order . '</td>
