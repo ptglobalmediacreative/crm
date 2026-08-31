@@ -136,7 +136,6 @@ try {
     $statusTR = 'pending';
 }
 
-// Tambahkan status ke array request
 $request['status'] = $statusTR;
 
 // ============================================
@@ -567,23 +566,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             
             $insurance_ops = (float)($_POST['insurance_ops'] ?? 0);
+            $insurance_ops_desc = $_POST['insurance_ops_desc'] ?? '';
             $insurance_cargo = (float)($_POST['insurance_cargo'] ?? 0);
+            $insurance_cargo_desc = $_POST['insurance_cargo_desc'] ?? '';
             $delivery_cost = (float)($_POST['delivery_cost'] ?? 0);
+            $delivery_cost_desc = $_POST['delivery_cost_desc'] ?? '';
             $free_part = (float)($_POST['free_part'] ?? 0);
+            $free_part_desc = $_POST['free_part_desc'] ?? '';
             $free_service = (float)($_POST['free_service'] ?? 0);
+            $free_service_desc = $_POST['free_service_desc'] ?? '';
             $mediator_fee = (float)($_POST['mediator_fee'] ?? 0);
-            $others = $_POST['others'] ?? '';
+            $mediator_fee_desc = $_POST['mediator_fee_desc'] ?? '';
+            $others = (float)($_POST['others'] ?? 0);
+            $others_desc = $_POST['others_desc'] ?? '';
             
             $costId = $_POST['cost_id'] ?? 0;
             
             if ($costId > 0) {
-                $updateSql = "UPDATE tr_additional_costs SET insurance_ops = ?, insurance_cargo = ?, delivery_cost = ?, free_part = ?, free_service = ?, mediator_fee = ?, others = ?, updated_at = NOW() WHERE id = ? AND trf_number = ?";
+                $updateSql = "UPDATE tr_additional_costs SET 
+                    insurance_ops = ?, insurance_ops_desc = ?,
+                    insurance_cargo = ?, insurance_cargo_desc = ?,
+                    delivery_cost = ?, delivery_cost_desc = ?,
+                    free_part = ?, free_part_desc = ?,
+                    free_service = ?, free_service_desc = ?,
+                    mediator_fee = ?, mediator_fee_desc = ?,
+                    others = ?, others_desc = ?,
+                    updated_at = NOW() 
+                    WHERE id = ? AND trf_number = ?";
                 $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([$insurance_ops, $insurance_cargo, $delivery_cost, $free_part, $free_service, $mediator_fee, $others, $costId, $tr_number]);
+                $updateStmt->execute([$insurance_ops, $insurance_ops_desc, $insurance_cargo, $insurance_cargo_desc, $delivery_cost, $delivery_cost_desc, $free_part, $free_part_desc, $free_service, $free_service_desc, $mediator_fee, $mediator_fee_desc, $others, $others_desc, $costId, $tr_number]);
             } else {
-                $insertSql = "INSERT INTO tr_additional_costs (trf_number, insurance_ops, insurance_cargo, delivery_cost, free_part, free_service, mediator_fee, others, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertSql = "INSERT INTO tr_additional_costs (
+                    trf_number, 
+                    insurance_ops, insurance_ops_desc,
+                    insurance_cargo, insurance_cargo_desc,
+                    delivery_cost, delivery_cost_desc,
+                    free_part, free_part_desc,
+                    free_service, free_service_desc,
+                    mediator_fee, mediator_fee_desc,
+                    others, others_desc,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                 $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([$tr_number, $insurance_ops, $insurance_cargo, $delivery_cost, $free_part, $free_service, $mediator_fee, $others]);
+                $insertStmt->execute([$tr_number, $insurance_ops, $insurance_ops_desc, $insurance_cargo, $insurance_cargo_desc, $delivery_cost, $delivery_cost_desc, $free_part, $free_part_desc, $free_service, $free_service_desc, $mediator_fee, $mediator_fee_desc, $others, $others_desc]);
             }
             
             $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
@@ -660,7 +685,7 @@ foreach ($termPayments as $top) {
 
 $totalAdditionalCost = 0;
 if ($additionalCost) {
-    $totalAdditionalCost = (float)$additionalCost['insurance_ops'] + (float)$additionalCost['insurance_cargo'] + (float)$additionalCost['delivery_cost'] + (float)$additionalCost['free_part'] + (float)$additionalCost['free_service'];
+    $totalAdditionalCost = (float)$additionalCost['insurance_ops'] + (float)$additionalCost['insurance_cargo'] + (float)$additionalCost['delivery_cost'] + (float)$additionalCost['free_part'] + (float)$additionalCost['free_service'] + (float)$additionalCost['mediator_fee'] + (float)$additionalCost['others'];
 }
 
 $totalMediatorFee = 0;
@@ -833,7 +858,13 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             font-size: 14px;
             font-weight: 600;
             color: #0e1a2b;
+            margin-bottom: 5px;
+        }
+        .info-desc {
+            font-size: 11px;
+            color: #999;
             margin-bottom: 15px;
+            font-style: italic;
         }
 
         .form-label {
@@ -967,9 +998,11 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         .total-box .total-label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: rgba(255,255,255,0.6);
@@ -1719,7 +1752,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- TAB CONTENT: ADDITIONAL COST -->
+        <!-- TAB CONTENT: ADDITIONAL COST (DENGAN KETERANGAN) -->
         <!-- ============================================ -->
         <?php if ($activeTab == 'additional_cost'): ?>
         <div class="card-custom">
@@ -1738,39 +1771,49 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <input type="hidden" name="cost_id" value="<?= $additionalCost['id'] ?? 0 ?>">
                         
                         <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Insurance Ops</label>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Insurance Ops (Rp)</label>
                                 <input type="number" name="insurance_ops" class="form-control" min="0" step="0.01" value="<?= $additionalCost['insurance_ops'] ?? 0 ?>">
+                                <input type="text" name="insurance_ops_desc" class="form-control mt-1" placeholder="Keterangan (contoh: Asuransi operasional)" value="<?= htmlspecialchars($additionalCost['insurance_ops_desc'] ?? '') ?>">
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Insurance Cargo *</label>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Insurance Cargo (Rp) *</label>
                                 <input type="number" name="insurance_cargo" class="form-control" min="0" step="0.01" required value="<?= $additionalCost['insurance_cargo'] ?? 0 ?>">
+                                <input type="text" name="insurance_cargo_desc" class="form-control mt-1" placeholder="Keterangan (contoh: Asuransi kargo)" value="<?= htmlspecialchars($additionalCost['insurance_cargo_desc'] ?? '') ?>">
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Delivery Cost</label>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Delivery Cost (Rp)</label>
                                 <input type="number" name="delivery_cost" class="form-control" min="0" step="0.01" value="<?= $additionalCost['delivery_cost'] ?? 0 ?>">
+                                <input type="text" name="delivery_cost_desc" class="form-control mt-1" placeholder="Keterangan (contoh: Biaya pengiriman)" value="<?= htmlspecialchars($additionalCost['delivery_cost_desc'] ?? '') ?>">
                             </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Part Voucher</label>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Part Voucher (Rp)</label>
                                 <input type="number" name="free_part" class="form-control" min="0" step="0.01" value="<?= $additionalCost['free_part'] ?? 0 ?>">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Free Service</label>
-                                <input type="number" name="free_service" class="form-control" min="0" step="0.01" value="<?= $additionalCost['free_service'] ?? 0 ?>">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Mediator Fee</label>
-                                <input type="number" name="mediator_fee" class="form-control" min="0" step="0.01" value="<?= $additionalCost['mediator_fee'] ?? 0 ?>">
+                                <input type="text" name="free_part_desc" class="form-control mt-1" placeholder="Keterangan (contoh: Voucher part)" value="<?= htmlspecialchars($additionalCost['free_part_desc'] ?? '') ?>">
                             </div>
                         </div>
                         
                         <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Others</label>
-                                <input type="text" name="others" class="form-control" value="<?= htmlspecialchars($additionalCost['others'] ?? '') ?>">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Free Service (Rp)</label>
+                                <input type="number" name="free_service" class="form-control" min="0" step="0.01" value="<?= $additionalCost['free_service'] ?? 0 ?>">
+                                <input type="text" name="free_service_desc" class="form-control mt-1" placeholder="Keterangan (contoh: Free jasa service)" value="<?= htmlspecialchars($additionalCost['free_service_desc'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mediator Fee (Rp)</label>
+                                <input type="number" name="mediator_fee" class="form-control" min="0" step="0.01" value="<?= $additionalCost['mediator_fee'] ?? 0 ?>">
+                                <input type="text" name="mediator_fee_desc" class="form-control mt-1" placeholder="Keterangan (contoh: Biaya mediator)" value="<?= htmlspecialchars($additionalCost['mediator_fee_desc'] ?? '') ?>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Others (Rp)</label>
+                                <input type="number" name="others" class="form-control" min="0" step="0.01" value="<?= $additionalCost['others'] ?? 0 ?>">
+                                <input type="text" name="others_desc" class="form-control mt-1" placeholder="Keterangan (contoh: Biaya lainnya)" value="<?= htmlspecialchars($additionalCost['others_desc'] ?? '') ?>">
                             </div>
                         </div>
                         
@@ -1789,25 +1832,46 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                             <div class="col-md-6">
                                 <div class="info-label">Insurance Ops</div>
                                 <div class="info-value">Rp <?= number_format($additionalCost['insurance_ops'], 0, ',', '.') ?></div>
+                                <?php if (!empty($additionalCost['insurance_ops_desc'])): ?>
+                                <div class="info-desc"><?= htmlspecialchars($additionalCost['insurance_ops_desc']) ?></div>
+                                <?php endif; ?>
                                 
                                 <div class="info-label">Insurance Cargo</div>
                                 <div class="info-value">Rp <?= number_format($additionalCost['insurance_cargo'], 0, ',', '.') ?></div>
+                                <?php if (!empty($additionalCost['insurance_cargo_desc'])): ?>
+                                <div class="info-desc"><?= htmlspecialchars($additionalCost['insurance_cargo_desc']) ?></div>
+                                <?php endif; ?>
                                 
                                 <div class="info-label">Delivery Cost</div>
                                 <div class="info-value">Rp <?= number_format($additionalCost['delivery_cost'], 0, ',', '.') ?></div>
-                                
-                                <div class="info-label">Part Voucher</div>
-                                <div class="info-value">Rp <?= number_format($additionalCost['free_part'], 0, ',', '.') ?></div>
+                                <?php if (!empty($additionalCost['delivery_cost_desc'])): ?>
+                                <div class="info-desc"><?= htmlspecialchars($additionalCost['delivery_cost_desc']) ?></div>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-6">
+                                <div class="info-label">Part Voucher</div>
+                                <div class="info-value">Rp <?= number_format($additionalCost['free_part'], 0, ',', '.') ?></div>
+                                <?php if (!empty($additionalCost['free_part_desc'])): ?>
+                                <div class="info-desc"><?= htmlspecialchars($additionalCost['free_part_desc']) ?></div>
+                                <?php endif; ?>
+                                
                                 <div class="info-label">Free Service</div>
                                 <div class="info-value">Rp <?= number_format($additionalCost['free_service'], 0, ',', '.') ?></div>
+                                <?php if (!empty($additionalCost['free_service_desc'])): ?>
+                                <div class="info-desc"><?= htmlspecialchars($additionalCost['free_service_desc']) ?></div>
+                                <?php endif; ?>
                                 
                                 <div class="info-label">Mediator Fee</div>
                                 <div class="info-value">Rp <?= number_format($additionalCost['mediator_fee'], 0, ',', '.') ?></div>
+                                <?php if (!empty($additionalCost['mediator_fee_desc'])): ?>
+                                <div class="info-desc"><?= htmlspecialchars($additionalCost['mediator_fee_desc']) ?></div>
+                                <?php endif; ?>
                                 
                                 <div class="info-label">Others</div>
-                                <div class="info-value"><?= htmlspecialchars($additionalCost['others']) ?: '-' ?></div>
+                                <div class="info-value">Rp <?= number_format($additionalCost['others'], 0, ',', '.') ?></div>
+                                <?php if (!empty($additionalCost['others_desc'])): ?>
+                                <div class="info-desc"><?= htmlspecialchars($additionalCost['others_desc']) ?></div>
+                                <?php endif; ?>
                             </div>
                         </div>
                         
@@ -1816,7 +1880,7 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="total-box">
-                                    <span class="total-label">Total Additional Cost</span>
+                                    <span class="total-label">Total = Insurance Ops + Insurance Cargo + Delivery Cost + Part Voucher + Free Service + Mediator Fee + Others + Total Mediator Fee</span>
                                     <span class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
                                 </div>
                             </div>
