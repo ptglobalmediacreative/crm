@@ -62,7 +62,7 @@ $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Get data - TANPA access_level
+// Get data
 $sql = "SELECT id, username, email, full_name, phone, role, is_active, created_at FROM users $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
@@ -424,6 +424,8 @@ if (isset($_GET['edit'])) {
         .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
         .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
+        .btn-action.permission { background: rgba(155, 89, 182, 0.1); color: #8e44ad; }
+        .btn-action.permission:hover { background: rgba(155, 89, 182, 0.2); }
 
         .modal-content { border: none; border-radius: 12px; }
         .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
