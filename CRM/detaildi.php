@@ -78,7 +78,7 @@ $di_number = isset($_GET['di_number']) ? bersihkan($_GET['di_number']) : '';
 $activeTab = isset($_GET['tab']) ? bersihkan($_GET['tab']) : 'data_penjualan';
 
 // Validasi tab
-$validTabs = ['data_penjualan', 'data_customer', 'data_unit', 'aksesoris', 'logistik', 'product_support', 'approval'];
+$validTabs = ['data_penjualan', 'data_customer', 'data_unit', 'aksesoris', 'logistik', 'product_support'];
 if (!in_array($activeTab, $validTabs)) {
     $activeTab = 'data_penjualan';
 }
@@ -421,7 +421,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal melakukan approval: ' . $e->getMessage(), 'danger');
         }
-        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=approval");
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=data_penjualan");
     }
     
     // ============================================
@@ -976,39 +976,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?= showFlash() ?>
 
-        <!-- STATUS BAR -->
-        <div class="card-custom">
-            <div class="card-body-custom" style="padding: 15px 24px;">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <span class="badge-status-di <?= $request['status'] ?> me-2">
-                            <?php if ($request['status'] == 'pending'): ?>
-                                <i class="fas fa-clock"></i> Pending
-                            <?php elseif ($request['status'] == 'approved'): ?>
-                                <i class="fas fa-check-circle"></i> Approved
-                            <?php elseif ($request['status'] == 'rejected'): ?>
-                                <i class="fas fa-times-circle"></i> Rejected
-                            <?php endif; ?>
-                        </span>
-                        <strong style="color:#0e1a2b;">Current Approver:</strong> 
-                        <span style="color:#d4a017;"><?= htmlspecialchars($currentApproverLabel) ?></span>
-                    </div>
-                    <div>
-                        <strong style="color:#0e1a2b;">Next Approver:</strong> 
-                        <span style="color:#2980b9;"><?= htmlspecialchars($nextApproverLabel) ?></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- NOTIFIKASI HAK AKSES -->
-        <?php if (!$canEdit && !$hasBeenApproved): ?>
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i> 
-            Hanya <strong>Admin</strong> yang dapat mengedit data DI ini.
-        </div>
-        <?php endif; ?>
-
         <!-- TAB NAVIGATION -->
         <div class="tab-nav">
             <ul class="nav nav-tabs" id="diTabs" role="tablist">
@@ -1040,11 +1007,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <li class="nav-item" role="presentation">
                     <a class="nav-link <?= $activeTab == 'product_support' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=product_support">
                         <i class="fas fa-headset"></i> Product Support
-                    </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link <?= $activeTab == 'approval' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=approval">
-                        <i class="fas fa-check-double"></i> Approval
                     </a>
                 </li>
             </ul>
@@ -1116,6 +1078,131 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                 </div>
+                
+                <hr>
+                
+                <!-- ============================================ -->
+                <!-- APPROVAL SECTION (Di dalam Data Penjualan) -->
+                <!-- ============================================ -->
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">
+                            <span class="badge-status-di <?= $request['status'] ?>">
+                                <?php if ($request['status'] == 'pending'): ?>
+                                    <i class="fas fa-clock"></i> Pending
+                                <?php elseif ($request['status'] == 'approved'): ?>
+                                    <i class="fas fa-check-circle"></i> Approved
+                                <?php elseif ($request['status'] == 'rejected'): ?>
+                                    <i class="fas fa-times-circle"></i> Rejected
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">Current Approver</div>
+                        <div class="info-value"><?= htmlspecialchars($currentApproverLabel) ?></div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="info-label">Next Approver</div>
+                        <div class="info-value"><?= htmlspecialchars($nextApproverLabel) ?></div>
+                    </div>
+                </div>
+                
+                <!-- APPROVAL HISTORY -->
+                <h6 class="mt-3 mb-3"><i class="fas fa-history"></i> Riwayat Approval</h6>
+                
+                <?php if (count($approvalHistory) > 0): ?>
+                    <div class="table-responsive">
+                        <table class="table table-bordered" style="font-size: 13px;">
+                            <thead>
+                                <tr style="background: #f8f9fa;">
+                                    <th>Level</th>
+                                    <th>Approver</th>
+                                    <th>Status</th>
+                                    <th>Tanggal Approve</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($approvalHistory as $history): ?>
+                                    <?php 
+                                    $approverName = '';
+                                    if (!empty($history['approved_by'])) {
+                                        $stmtUser = $db->prepare("SELECT full_name FROM users WHERE id = ?");
+                                        $stmtUser->execute([$history['approved_by']]);
+                                        $approverName = $stmtUser->fetchColumn();
+                                    }
+                                    ?>
+                                    <tr>
+                                        <td><?= $history['approval_order'] ?></td>
+                                        <td>
+                                            <?= htmlspecialchars($history['approval_label']) ?>
+                                            <?php if ($history['status'] != 'pending' && !empty($approverName)): ?>
+                                                <br><small class="text-muted">by: <?= htmlspecialchars($approverName) ?></small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($history['status'] == 'approved'): ?>
+                                                <span class="badge-status-di approved"><i class="fas fa-check-circle"></i> Approved</span>
+                                            <?php elseif ($history['status'] == 'rejected'): ?>
+                                                <span class="badge-status-di rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                                            <?php else: ?>
+                                                <span class="badge-status-di pending"><i class="fas fa-clock"></i> Pending</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($history['approved_at']): ?>
+                                                <?= date('d/m/Y H:i', strtotime($history['approved_at'])) ?>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox me-2"></i> Belum ada riwayat approval
+                    </div>
+                <?php endif; ?>
+                
+                <!-- APPROVAL ACTION -->
+                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
+                    <?php 
+                    $canApprove = false;
+                    $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
+                    if ($userRole == $requiredRole) {
+                        $canApprove = true;
+                    }
+                    ?>
+                    
+                    <?php if (!$canApprove): ?>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        Anda tidak memiliki hak untuk melakukan approval pada level ini. 
+                        Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($canApprove): ?>
+                    <div class="mt-3 p-3" style="background: #f8f9fa; border-radius: 10px;">
+                        <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
+                        <p>Anda memiliki hak untuk melakukan approval sebagai <strong><?= htmlspecialchars($currentApproverLabel) ?></strong></p>
+                        <form method="POST" id="approvalForm">
+                            <input type="hidden" name="action" id="approvalAction" value="approve">
+                            <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
+                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
+                                <i class="fas fa-check-circle"></i> Approve
+                            </button>
+                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
+                                <i class="fas fa-times-circle"></i> Reject
+                            </button>
+                        </form>
+                    </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
@@ -1550,144 +1637,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     <?php endif; ?>
                 </div>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- ============================================ -->
-        <!-- TAB CONTENT: APPROVAL -->
-        <!-- ============================================ -->
-        <?php if ($activeTab == 'approval'): ?>
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-check-double"></i> Approval</h6>
-                <span class="badge-status-di <?= $request['status'] ?>">
-                    <?php if ($request['status'] == 'pending'): ?>
-                        <i class="fas fa-clock"></i> Pending
-                    <?php elseif ($request['status'] == 'approved'): ?>
-                        <i class="fas fa-check-circle"></i> Approved
-                    <?php elseif ($request['status'] == 'rejected'): ?>
-                        <i class="fas fa-times-circle"></i> Rejected
-                    <?php endif; ?>
-                </span>
-            </div>
-            <div class="card-body-custom">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="info-label">Status</div>
-                        <div class="info-value">
-                            <span class="badge-status-di <?= $request['status'] ?>">
-                                <?= ucfirst($request['status']) ?>
-                            </span>
-                        </div>
-                        
-                        <div class="info-label">Current Approver</div>
-                        <div class="info-value"><?= htmlspecialchars($currentApproverLabel) ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Next Approver</div>
-                        <div class="info-value"><?= htmlspecialchars($nextApproverLabel) ?></div>
-                    </div>
-                </div>
-                
-                <hr>
-                
-                <!-- APPROVAL HISTORY -->
-                <h6 class="mb-3"><i class="fas fa-history"></i> Riwayat Approval</h6>
-                
-                <?php if (count($approvalHistory) > 0): ?>
-                    <div class="table-responsive">
-                        <table class="table table-bordered" style="font-size: 13px;">
-                            <thead>
-                                <tr style="background: #f8f9fa;">
-                                    <th>Level</th>
-                                    <th>Approver</th>
-                                    <th>Status</th>
-                                    <th>Tanggal Approve</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($approvalHistory as $history): ?>
-                                    <?php 
-                                    $approverName = '';
-                                    if (!empty($history['approved_by'])) {
-                                        $stmtUser = $db->prepare("SELECT full_name FROM users WHERE id = ?");
-                                        $stmtUser->execute([$history['approved_by']]);
-                                        $approverName = $stmtUser->fetchColumn();
-                                    }
-                                    ?>
-                                    <tr>
-                                        <td><?= $history['approval_order'] ?></td>
-                                        <td>
-                                            <?= htmlspecialchars($history['approval_label']) ?>
-                                            <?php if ($history['status'] != 'pending' && !empty($approverName)): ?>
-                                                <br><small class="text-muted">by: <?= htmlspecialchars($approverName) ?></small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($history['status'] == 'approved'): ?>
-                                                <span class="badge-status-di approved"><i class="fas fa-check-circle"></i> Approved</span>
-                                            <?php elseif ($history['status'] == 'rejected'): ?>
-                                                <span class="badge-status-di rejected"><i class="fas fa-times-circle"></i> Rejected</span>
-                                            <?php else: ?>
-                                                <span class="badge-status-di pending"><i class="fas fa-clock"></i> Pending</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($history['approved_at']): ?>
-                                                <?= date('d/m/Y H:i', strtotime($history['approved_at'])) ?>
-                                            <?php else: ?>
-                                                -
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php else: ?>
-                    <div class="text-center py-4 text-muted">
-                        <i class="fas fa-inbox me-2"></i> Belum ada riwayat approval
-                    </div>
-                <?php endif; ?>
-                
-                <!-- APPROVAL ACTION -->
-                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
-                    <?php 
-                    $canApprove = false;
-                    $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
-                    if ($userRole == $requiredRole) {
-                        $canApprove = true;
-                    }
-                    ?>
-                    
-                    <hr>
-                    
-                    <?php if (!$canApprove): ?>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        Anda tidak memiliki hak untuk melakukan approval pada level ini. 
-                        Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <?php if ($canApprove): ?>
-                    <div class="mt-3 p-3" style="background: #f8f9fa; border-radius: 10px;">
-                        <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
-                        <p>Anda memiliki hak untuk melakukan approval sebagai <strong><?= htmlspecialchars($currentApproverLabel) ?></strong></p>
-                        <form method="POST" id="approvalForm">
-                            <input type="hidden" name="action" id="approvalAction" value="approve">
-                            <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
-                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
-                                <i class="fas fa-check-circle"></i> Approve
-                            </button>
-                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
-                                <i class="fas fa-times-circle"></i> Reject
-                            </button>
-                        </form>
-                    </div>
-                    <?php endif; ?>
-                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
