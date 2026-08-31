@@ -86,11 +86,11 @@ if (empty($tr_number)) {
 }
 
 // ============================================
-// AMBIL DATA TRANSACTION REQUEST
+// AMBIL DATA TRANSACTION REQUEST (AMBIL YANG TERBARU)
 // ============================================
 $sql = "SELECT ad.tr_number, 
                ad.due_date,
-               MIN(ad.created_at) as request_date,
+               MAX(ad.created_at) as request_date,
                a.id as account_id,
                a.nama_pt, 
                a.badan_usaha,
@@ -125,6 +125,7 @@ $sql = "SELECT ad.tr_number,
         LEFT JOIN users u ON sa.sales_id = u.id
         WHERE ad.tr_number = ?
         GROUP BY ad.tr_number, sa.sales_id, sa.id
+        ORDER BY request_date DESC
         LIMIT 1";
 $stmt = $db->prepare($sql);
 $stmt->execute([$tr_number]);
@@ -168,11 +169,11 @@ if ($hasBeenApproved) {
 }
 
 // ============================================
-// AMBIL DATA DETAIL TRANSACTION REQUEST (JIKA ADA)
+// AMBIL DATA DETAIL TRANSACTION REQUEST (AMBIL YANG TERBARU)
 // ============================================
 $detailTR = null;
 try {
-    $sqlDetail = "SELECT * FROM detail_transaction_requests WHERE trf_number = ?";
+    $sqlDetail = "SELECT * FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1";
     $stmtDetail = $db->prepare($sqlDetail);
     $stmtDetail->execute([$tr_number]);
     $detailTR = $stmtDetail->fetch();
@@ -291,11 +292,11 @@ try {
 }
 
 // ============================================
-// AMBIL DATA ADDITIONAL COST
+// AMBIL DATA ADDITIONAL COST (AMBIL YANG TERBARU)
 // ============================================
 $additionalCost = null;
 try {
-    $sqlCost = "SELECT * FROM tr_additional_costs WHERE trf_number = ?";
+    $sqlCost = "SELECT * FROM tr_additional_costs WHERE trf_number = ? ORDER BY id DESC LIMIT 1";
     $stmtCost = $db->prepare($sqlCost);
     $stmtCost->execute([$tr_number]);
     $additionalCost = $stmtCost->fetch();
@@ -343,9 +344,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deskripsi = $_POST['deskripsi'] ?? '';
             
             if ($detailTR) {
-                $updateSql = "UPDATE detail_transaction_requests SET deskripsi = ?, updated_at = NOW() WHERE trf_number = ?";
+                $updateSql = "UPDATE detail_transaction_requests SET deskripsi = ?, updated_at = NOW() WHERE id = ?";
                 $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([$deskripsi, $tr_number]);
+                $updateStmt->execute([$deskripsi, $detailTR['id']]);
             } else {
                 $insertSql = "INSERT INTO detail_transaction_requests (trf_number, deskripsi, status, created_at, updated_at) VALUES (?, ?, 'pending', NOW(), NOW())";
                 $insertStmt = $db->prepare($insertSql);
@@ -382,7 +383,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             $checkDataComplete = true;
-            $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetailTR = $db->prepare("SELECT deskripsi FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
             $checkDetailTR->execute([$tr_number]);
             $detailData = $checkDetailTR->fetch();
             
@@ -394,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $checkTOP->execute([$tr_number]);
             $topCount = $checkTOP->fetch()['total'];
             
-            $checkCost = $db->prepare("SELECT insurance_cargo FROM tr_additional_costs WHERE trf_number = ?");
+            $checkCost = $db->prepare("SELECT insurance_cargo FROM tr_additional_costs WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
             $checkCost->execute([$tr_number]);
             $costData = $checkCost->fetch();
             
@@ -482,7 +483,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type]);
             }
             
-            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
             $checkDetail->execute([$tr_number]);
             if ($checkDetail->fetch()) {
                 $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
@@ -576,7 +577,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $nominal_po, $nominal_po_keterangan]);
             }
             
-            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
             $checkDetail->execute([$tr_number]);
             if ($checkDetail->fetch()) {
                 $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
@@ -624,7 +625,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $insurance_ops, $insurance_cargo, $delivery_cost, $free_part, $free_service, $mediator_fee, $others]);
             }
             
-            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+            $checkDetail = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
             $checkDetail->execute([$tr_number]);
             if ($checkDetail->fetch()) {
                 $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
@@ -2308,7 +2309,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             const row = document.getElementById('mediatorRow_' + rowId);
             if (row) {
                 row.remove();
-                // Renumber mediator rows
                 const rows = document.querySelectorAll('.mediator-row');
                 rows.forEach((row, index) => {
                     const title = row.querySelector('strong');
@@ -2320,7 +2320,6 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         }
         
         function loadMediatorData() {
-            // Clear existing rows
             const container = document.getElementById('mediatorRows');
             container.innerHTML = '';
             mediatorRowCount = 0;
