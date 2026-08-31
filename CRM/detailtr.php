@@ -304,16 +304,16 @@ try {
 }
 
 // ============================================
-// AMBIL DATA MEDIATOR
+// AMBIL DATA MEDIATOR (MULTIPLE)
 // ============================================
-$mediator = null;
+$mediators = [];
 try {
-    $sqlMediator = "SELECT * FROM tr_mediators WHERE trf_number = ?";
+    $sqlMediator = "SELECT * FROM tr_mediators WHERE trf_number = ? ORDER BY id ASC";
     $stmtMediator = $db->prepare($sqlMediator);
     $stmtMediator->execute([$tr_number]);
-    $mediator = $stmtMediator->fetch();
+    $mediators = $stmtMediator->fetchAll();
 } catch (Exception $e) {
-    $mediator = null;
+    $mediators = [];
 }
 
 // ============================================
@@ -646,29 +646,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // ============================================
-    // SAVE MEDIATOR
+    // SAVE MEDIATOR (MULTIPLE)
     // ============================================
     if ($action === 'save_mediator') {
         try {
             $db->beginTransaction();
             
-            $name = $_POST['mediator_name'] ?? '';
-            $id_card = $_POST['mediator_id_card'] ?? '';
-            $npwp = $_POST['mediator_npwp'] ?? '';
-            $bank_name = $_POST['mediator_bank_name'] ?? '';
-            $bank_account = $_POST['mediator_bank_account'] ?? '';
-            $amount = (float)($_POST['mediator_amount'] ?? 0);
+            // Hapus semua data mediator yang ada untuk TR ini
+            $deleteSql = "DELETE FROM tr_mediators WHERE trf_number = ?";
+            $deleteStmt = $db->prepare($deleteSql);
+            $deleteStmt->execute([$tr_number]);
             
-            $mediatorId = $_POST['mediator_id'] ?? 0;
+            // Ambil data mediator dari form (array)
+            $mediator_names = $_POST['mediator_name'] ?? [];
+            $mediator_id_cards = $_POST['mediator_id_card'] ?? [];
+            $mediator_npwps = $_POST['mediator_npwp'] ?? [];
+            $mediator_bank_names = $_POST['mediator_bank_name'] ?? [];
+            $mediator_bank_accounts = $_POST['mediator_bank_account'] ?? [];
+            $mediator_amounts = $_POST['mediator_amount'] ?? [];
             
-            if ($mediatorId > 0) {
-                $updateSql = "UPDATE tr_mediators SET name = ?, id_card_no = ?, npwp_no = ?, bank_name = ?, bank_account = ?, amount = ?, updated_at = NOW() WHERE id = ? AND trf_number = ?";
-                $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([$name, $id_card, $npwp, $bank_name, $bank_account, $amount, $mediatorId, $tr_number]);
-            } else {
-                $insertSql = "INSERT INTO tr_mediators (trf_number, name, id_card_no, npwp_no, bank_name, bank_account, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
-                $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([$tr_number, $name, $id_card, $npwp, $bank_name, $bank_account, $amount]);
+            // Loop untuk menyimpan setiap mediator
+            foreach ($mediator_names as $index => $name) {
+                if (!empty($name)) {
+                    $id_card = $mediator_id_cards[$index] ?? '';
+                    $npwp = $mediator_npwps[$index] ?? '';
+                    $bank_name = $mediator_bank_names[$index] ?? '';
+                    $bank_account = $mediator_bank_accounts[$index] ?? '';
+                    $amount = (float)($mediator_amounts[$index] ?? 0);
+                    
+                    $insertSql = "INSERT INTO tr_mediators (trf_number, name, id_card_no, npwp_no, bank_name, bank_account, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                    $insertStmt = $db->prepare($insertSql);
+                    $insertStmt->execute([$tr_number, $name, $id_card, $npwp, $bank_name, $bank_account, $amount]);
+                }
             }
             
             resetApprovalHistory($db, $tr_number);
@@ -704,8 +713,15 @@ foreach ($termPayments as $top) {
 // ============================================
 $totalAdditionalCost = 0;
 if ($additionalCost) {
-    $totalAdditionalCost = $additionalCost['insurance_ops'] + $additionalCost['insurance_cargo'] + $additionalCost['delivery_cost'] + $additionalCost['mediator_fee'];
+    $totalAdditionalCost = $additionalCost['insurance_ops'] + $additionalCost['insurance_cargo'] + $additionalCost['delivery_cost'];
 }
+
+// Tambahkan total mediator fee dari tabel tr_mediators
+$totalMediatorFee = 0;
+foreach ($mediators as $med) {
+    $totalMediatorFee += $med['amount'];
+}
+$totalAdditionalCost += $totalMediatorFee;
 
 // ============================================
 // HITUNG TOTAL MASUKAN
@@ -1066,6 +1082,30 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         }
         .tab-nav .nav-tabs .nav-link.active {
             background: #0e1a2b;
+            color: #ffd700;
+        }
+
+        /* Mediator Card Styles */
+        .mediator-row {
+            background: #fff;
+            border: 1px solid #e0e4ea;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .mediator-row .mediator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .mediator-row .mediator-header strong {
+            color: #0e1a2b;
+            font-size: 14px;
+        }
+        .mediator-row .mediator-header strong i {
             color: #ffd700;
         }
 
@@ -1875,88 +1915,97 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
         <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- TAB CONTENT: DATA MEDIATOR -->
+        <!-- TAB CONTENT: DATA MEDIATOR (MULTIPLE) -->
         <!-- ============================================ -->
         <?php if ($activeTab == 'mediator'): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
                 <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="showMediatorForm()">
-                    <i class="fas fa-edit"></i> Edit Mediator
+                <button class="btn btn-primary-custom btn-sm" onclick="toggleMediatorForm()">
+                    <i class="fas fa-edit"></i> <?= count($mediators) > 0 ? 'Edit Mediator' : 'Tambah Mediator' ?>
                 </button>
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="mediatorForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <form method="POST">
+                <!-- FORM EDIT MEDIATOR (MULTIPLE) -->
+                <div id="mediatorFormContainer" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST" id="mediatorForm">
                         <input type="hidden" name="action" value="save_mediator">
-                        <input type="hidden" name="mediator_id" value="<?= $mediator['id'] ?? 0 ?>">
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Name</label>
-                                <input type="text" name="mediator_name" class="form-control" value="<?= htmlspecialchars($mediator['name'] ?? '') ?>">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">ID Card No</label>
-                                <input type="text" name="mediator_id_card" class="form-control" value="<?= htmlspecialchars($mediator['id_card_no'] ?? '') ?>">
-                            </div>
+                        <div id="mediatorRows">
+                            <!-- Mediator rows akan ditambahkan di sini oleh JavaScript -->
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">NPWP No</label>
-                                <input type="text" name="mediator_npwp" class="form-control" value="<?= htmlspecialchars($mediator['npwp_no'] ?? '') ?>">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Bank Name</label>
-                                <input type="text" name="mediator_bank_name" class="form-control" value="<?= htmlspecialchars($mediator['bank_name'] ?? '') ?>">
-                            </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addMediatorRow()">
+                                <i class="fas fa-plus"></i> Tambah Mediator
+                            </button>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Bank Account</label>
-                                <input type="text" name="mediator_bank_account" class="form-control" value="<?= htmlspecialchars($mediator['bank_account'] ?? '') ?>">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Amount</label>
-                                <input type="number" name="mediator_amount" class="form-control" min="0" step="0.01" value="<?= $mediator['amount'] ?? ($additionalCost['mediator_fee'] ?? 0) ?>">
-                            </div>
-                        </div>
+                        <hr>
                         
                         <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan Mediator
+                            <i class="fas fa-save"></i> Simpan Semua Mediator
                         </button>
-                        <button type="button" class="btn btn-secondary-custom" onclick="hideMediatorForm()">
+                        <button type="button" class="btn btn-secondary-custom" onclick="toggleMediatorForm()">
                             <i class="fas fa-times"></i> Batal
                         </button>
                     </form>
                 </div>
                 
+                <!-- VIEW DATA MEDIATOR -->
                 <div id="viewMediator">
-                    <?php if ($mediator): ?>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-label">Name</div>
-                                <div class="info-value"><?= htmlspecialchars($mediator['name']) ?></div>
-                                
-                                <div class="info-label">ID Card No</div>
-                                <div class="info-value"><?= htmlspecialchars($mediator['id_card_no']) ?></div>
-                                
-                                <div class="info-label">NPWP No</div>
-                                <div class="info-value"><?= htmlspecialchars($mediator['npwp_no']) ?></div>
+                    <?php if (count($mediators) > 0): ?>
+                        <?php $totalMediatorAmount = 0; ?>
+                        <?php foreach ($mediators as $index => $med): ?>
+                            <?php $totalMediatorAmount += $med['amount']; ?>
+                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
+                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
+                                    <strong style="color: #0e1a2b;">
+                                        <i class="fas fa-user-tie" style="color: #ffd700;"></i> 
+                                        Mediator <?= $index + 1 ?>
+                                    </strong>
+                                </div>
+                                <div class="card-body" style="padding: 15px;">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-label">Name</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['name']) ?></div>
+                                            
+                                            <div class="info-label">ID Card No</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['id_card_no']) ?: '-' ?></div>
+                                            
+                                            <div class="info-label">NPWP No</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['npwp_no']) ?: '-' ?></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-label">Bank Name</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['bank_name']) ?: '-' ?></div>
+                                            
+                                            <div class="info-label">Bank Account</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['bank_account']) ?: '-' ?></div>
+                                            
+                                            <div class="info-label">Amount</div>
+                                            <div class="info-value">
+                                                <strong style="color: #27ae60;">
+                                                    Rp <?= number_format($med['amount'], 0, ',', '.') ?>
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="info-label">Bank Name</div>
-                                <div class="info-value"><?= htmlspecialchars($mediator['bank_name']) ?></div>
-                                
-                                <div class="info-label">Bank Account</div>
-                                <div class="info-value"><?= htmlspecialchars($mediator['bank_account']) ?></div>
-                                
-                                <div class="info-label">Amount</div>
-                                <div class="info-value"><strong>Rp <?= number_format($mediator['amount'], 0, ',', '.') ?></strong></div>
+                        <?php endforeach; ?>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="total-box">
+                                    <span class="total-label">Total Mediator Fee</span>
+                                    <span class="total-value">Rp <?= number_format($totalMediatorAmount, 0, ',', '.') ?></span>
+                                </div>
                             </div>
                         </div>
                     <?php else: ?>
@@ -1974,6 +2023,9 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ============================================
+        // FUNGSI UNTUK SUMMARY
+        // ============================================
         function showEditSummary() {
             document.getElementById('editSummaryForm').style.display = 'block';
             document.getElementById('viewSummary').style.display = 'none';
@@ -1999,6 +2051,9 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('approvalForm').submit();
         }
         
+        // ============================================
+        // FUNGSI UNTUK DETAIL UNIT
+        // ============================================
         function showAddUnitForm() {
             document.getElementById('addUnitForm').style.display = 'block';
             document.getElementById('unitForm').reset();
@@ -2111,6 +2166,9 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             }
         }
         
+        // ============================================
+        // FUNGSI UNTUK TERM OF PAYMENT
+        // ============================================
         function showTOPSection() {
             document.getElementById('topForm').style.display = 'block';
         }
@@ -2165,6 +2223,9 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             button.closest('.row').remove();
         }
         
+        // ============================================
+        // FUNGSI UNTUK ADDITIONAL COST
+        // ============================================
         function showCostForm() {
             document.getElementById('costForm').style.display = 'block';
         }
@@ -2173,12 +2234,111 @@ if (!$additionalCost || empty($additionalCost['insurance_cargo'])) {
             document.getElementById('costForm').style.display = 'none';
         }
         
-        function showMediatorForm() {
-            document.getElementById('mediatorForm').style.display = 'block';
+        // ============================================
+        // FUNGSI UNTUK MULTIPLE MEDIATOR
+        // ============================================
+        let mediatorRowCount = 0;
+        
+        function toggleMediatorForm() {
+            const formContainer = document.getElementById('mediatorFormContainer');
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                loadMediatorData();
+            } else {
+                formContainer.style.display = 'none';
+            }
         }
         
-        function hideMediatorForm() {
-            document.getElementById('mediatorForm').style.display = 'none';
+        function addMediatorRow(data = null) {
+            mediatorRowCount++;
+            const container = document.getElementById('mediatorRows');
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'mediator-row';
+            rowDiv.id = 'mediatorRow_' + mediatorRowCount;
+            
+            rowDiv.innerHTML = `
+                <div class="mediator-header">
+                    <strong>
+                        <i class="fas fa-user-tie"></i> 
+                        Mediator ${mediatorRowCount}
+                    </strong>
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeMediatorRow(${mediatorRowCount})">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="mediator_name[]" class="form-control" value="${data ? data.name : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">ID Card No</label>
+                        <input type="text" name="mediator_id_card[]" class="form-control" value="${data ? data.id_card_no : ''}">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">NPWP No</label>
+                        <input type="text" name="mediator_npwp[]" class="form-control" value="${data ? data.npwp_no : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <input type="text" name="mediator_bank_name[]" class="form-control" value="${data ? data.bank_name : ''}">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Bank Account</label>
+                        <input type="text" name="mediator_bank_account[]" class="form-control" value="${data ? data.bank_account : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number" name="mediator_amount[]" class="form-control" min="0" step="0.01" value="${data ? data.amount : 0}">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(rowDiv);
+        }
+        
+        function removeMediatorRow(rowId) {
+            const row = document.getElementById('mediatorRow_' + rowId);
+            if (row) {
+                row.remove();
+                // Renumber mediator rows
+                const rows = document.querySelectorAll('.mediator-row');
+                rows.forEach((row, index) => {
+                    const title = row.querySelector('strong');
+                    if (title) {
+                        title.innerHTML = `<i class="fas fa-user-tie"></i> Mediator ${index + 1}`;
+                    }
+                });
+            }
+        }
+        
+        function loadMediatorData() {
+            // Clear existing rows
+            const container = document.getElementById('mediatorRows');
+            container.innerHTML = '';
+            mediatorRowCount = 0;
+            
+            <?php if (count($mediators) > 0): ?>
+                <?php foreach ($mediators as $med): ?>
+                    addMediatorRow({
+                        name: '<?= addslashes($med['name']) ?>',
+                        id_card_no: '<?= addslashes($med['id_card_no']) ?>',
+                        npwp_no: '<?= addslashes($med['npwp_no']) ?>',
+                        bank_name: '<?= addslashes($med['bank_name']) ?>',
+                        bank_account: '<?= addslashes($med['bank_account']) ?>',
+                        amount: '<?= $med['amount'] ?>'
+                    });
+                <?php endforeach; ?>
+            <?php else: ?>
+                addMediatorRow();
+            <?php endif; ?>
         }
     </script>
 </body>
