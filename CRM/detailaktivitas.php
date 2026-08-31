@@ -173,11 +173,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')");
-            $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number]);
+            // Mulai transaksi
+            $db->beginTransaction();
             
-            setFlash('Aktivitas berhasil ditambahkan!', 'success');
-            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            try {
+                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')");
+                $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number]);
+                
+                // ============================================
+                // AUTO CREATE DETAIL TRANSACTION REQUEST
+                // Jika tr_number tidak kosong (Negosiasi)
+                // ============================================
+                if (!empty($tr_number)) {
+                    // Cek apakah sudah ada di detail_transaction_requests
+                    $checkTR = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+                    $checkTR->execute([$tr_number]);
+                    $existingTR = $checkTR->fetch();
+                    
+                    if (!$existingTR) {
+                        // Insert ke detail_transaction_requests
+                        $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                        $insertTR->execute([$tr_number]);
+                    }
+                }
+                
+                $db->commit();
+                
+                setFlash('Aktivitas berhasil ditambahkan!', 'success');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            } catch (Exception $e) {
+                $db->rollBack();
+                setFlash('Gagal menyimpan data: ' . $e->getMessage(), 'danger');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            }
         } else {
             setFlash(implode('<br>', $errors), 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
@@ -286,11 +314,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $attachment_file = !empty($attachment_files) ? implode(',', $attachment_files) : NULL;
         
         if (empty($errors)) {
-            $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
-            $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
+            // Mulai transaksi
+            $db->beginTransaction();
             
-            setFlash('Aktivitas berhasil diselesaikan!', 'success');
-            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            try {
+                // Update activity_details
+                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
+                $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
+                
+                // ============================================
+                // AUTO CREATE DETAIL DELIVERY INSTRUCTION
+                // Jika di_number tidak kosong
+                // ============================================
+                if (!empty($di_number)) {
+                    // Ambil sales_activity_id dari detail
+                    $salesActivityId = $detail['sales_activity_id'];
+                    
+                    // Cek apakah sudah ada di detail_delivery_instructions
+                    $checkDI = $db->prepare("SELECT id FROM detail_delivery_instructions WHERE di_number = ?");
+                    $checkDI->execute([$di_number]);
+                    $existingDI = $checkDI->fetch();
+                    
+                    if (!$existingDI) {
+                        // Insert ke detail_delivery_instructions
+                        $insertDI = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, no_so, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, NULL, 'pending', 1, NOW(), NOW())");
+                        $insertDI->execute([$di_number, $salesActivityId, $detail_id]);
+                    } else {
+                        // Update activity_detail_id jika sudah ada
+                        $updateDI = $db->prepare("UPDATE detail_delivery_instructions SET activity_detail_id = ?, sales_activity_id = ?, updated_at = NOW() WHERE di_number = ?");
+                        $updateDI->execute([$detail_id, $salesActivityId, $di_number]);
+                    }
+                }
+                
+                // ============================================
+                // AUTO CREATE DETAIL TRANSACTION REQUEST
+                // Jika tr_number tidak kosong
+                // ============================================
+                if (!empty($tr_number)) {
+                    // Ambil sales_activity_id dari detail
+                    $salesActivityId = $detail['sales_activity_id'];
+                    
+                    // Cek apakah sudah ada di detail_transaction_requests
+                    $checkTR = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+                    $checkTR->execute([$tr_number]);
+                    $existingTR = $checkTR->fetch();
+                    
+                    if (!$existingTR) {
+                        // Insert ke detail_transaction_requests
+                        $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                        $insertTR->execute([$tr_number]);
+                    }
+                }
+                
+                $db->commit();
+                
+                setFlash('Aktivitas berhasil diselesaikan!', 'success');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            } catch (Exception $e) {
+                $db->rollBack();
+                setFlash('Gagal menyimpan data: ' . $e->getMessage(), 'danger');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            }
         } else {
             setFlash(implode('<br>', $errors), 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
@@ -305,10 +389,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         $detail_id = (int)$_POST['detail_id'];
-        $stmt = $db->prepare("DELETE FROM activity_details WHERE id = ?");
-        $stmt->execute([$detail_id]);
-        setFlash('Aktivitas berhasil dihapus!', 'success');
-        redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        
+        // Mulai transaksi
+        $db->beginTransaction();
+        
+        try {
+            // Ambil data detail sebelum dihapus
+            $stmt = $db->prepare("SELECT * FROM activity_details WHERE id = ?");
+            $stmt->execute([$detail_id]);
+            $detailToDelete = $stmt->fetch();
+            
+            // Hapus activity_details
+            $stmt = $db->prepare("DELETE FROM activity_details WHERE id = ?");
+            $stmt->execute([$detail_id]);
+            
+            // Jika detail yang dihapus memiliki di_number, hapus juga data terkait
+            if ($detailToDelete && !empty($detailToDelete['di_number'])) {
+                $diNumber = $detailToDelete['di_number'];
+                
+                // Cek apakah masih ada activity_details lain dengan di_number yang sama
+                $checkOtherDI = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE di_number = ? AND id != ?");
+                $checkOtherDI->execute([$diNumber, $detail_id]);
+                $otherDICount = $checkOtherDI->fetchColumn();
+                
+                if ($otherDICount == 0) {
+                    // Hapus data terkait DI
+                    $db->prepare("DELETE FROM di_approval_history WHERE di_number = ?")->execute([$diNumber]);
+                    $db->prepare("DELETE FROM di_units WHERE di_number = ?")->execute([$diNumber]);
+                    $db->prepare("DELETE FROM di_accessories WHERE di_number = ?")->execute([$diNumber]);
+                    $db->prepare("DELETE FROM di_logistics WHERE di_number = ?")->execute([$diNumber]);
+                    $db->prepare("DELETE FROM di_product_supports WHERE di_number = ?")->execute([$diNumber]);
+                    $db->prepare("DELETE FROM detail_delivery_instructions WHERE di_number = ?")->execute([$diNumber]);
+                }
+            }
+            
+            // Jika detail yang dihapus memiliki tr_number, cek apakah masih ada yang lain
+            if ($detailToDelete && !empty($detailToDelete['tr_number'])) {
+                $trNumber = $detailToDelete['tr_number'];
+                
+                // Cek apakah masih ada activity_details lain dengan tr_number yang sama
+                $checkOtherTR = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE tr_number = ? AND id != ?");
+                $checkOtherTR->execute([$trNumber, $detail_id]);
+                $otherTRCount = $checkOtherTR->fetchColumn();
+                
+                if ($otherTRCount == 0) {
+                    // Hapus data terkait TR
+                    $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?")->execute([$trNumber]);
+                    $db->prepare("DELETE FROM detail_transaction_requests WHERE trf_number = ?")->execute([$trNumber]);
+                }
+            }
+            
+            $db->commit();
+            
+            setFlash('Aktivitas berhasil dihapus!', 'success');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menghapus data: ' . $e->getMessage(), 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        }
     }
 }
 
