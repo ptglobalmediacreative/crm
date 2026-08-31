@@ -39,7 +39,9 @@ function getRoleLabel($role) {
         'direktur_sales' => 'Direktur Sales',
         'business' => 'Business',
         'sales_manager' => 'Sales Manager',
-        'sales' => 'Sales'
+        'sales' => 'Sales',
+        'service_support' => 'Service Support',
+        'part_support' => 'Part Support'
     ];
     return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
 }
@@ -76,7 +78,7 @@ $di_number = isset($_GET['di_number']) ? bersihkan($_GET['di_number']) : '';
 $activeTab = isset($_GET['tab']) ? bersihkan($_GET['tab']) : 'data_penjualan';
 
 // Validasi tab
-$validTabs = ['data_penjualan', 'data_customer', 'data_unit', 'aksesoris', 'logistik', 'product_support'];
+$validTabs = ['data_penjualan', 'data_customer', 'data_unit', 'aksesoris', 'logistik', 'product_support', 'approval'];
 if (!in_array($activeTab, $validTabs)) {
     $activeTab = 'data_penjualan';
 }
@@ -206,9 +208,9 @@ try {
 // ============================================
 $approvalLevels = [
     1 => ['role' => 'admin', 'label' => 'Admin Sales'],
-    2 => ['role' => 'admin', 'label' => 'Logistik'],
-    3 => ['role' => 'admin', 'label' => 'Service Support'],
-    4 => ['role' => 'admin', 'label' => 'Part Support'],
+    2 => ['role' => 'business', 'label' => 'Business'],
+    3 => ['role' => 'service_support', 'label' => 'Service Support'],
+    4 => ['role' => 'part_support', 'label' => 'Part Support'],
     5 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
     6 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
@@ -419,7 +421,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal melakukan approval: ' . $e->getMessage(), 'danger');
         }
-        redirect("detaildi.php?di_number=" . urlencode($di_number));
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=approval");
     }
     
     // ============================================
@@ -782,6 +784,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #fff;
         }
         .btn-success-custom i { margin-right: 6px; }
+        .btn-success-custom:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         .btn-danger-custom {
             background: #e74c3c;
@@ -800,6 +808,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #fff;
         }
         .btn-danger-custom i { margin-right: 6px; }
+        .btn-danger-custom:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
         .btn-secondary-custom {
             background: #f0f2f5;
@@ -1028,6 +1042,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-headset"></i> Product Support
                     </a>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'approval' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=approval">
+                        <i class="fas fa-check-double"></i> Approval
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -1097,42 +1116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                 </div>
-                
-                <!-- APPROVAL SECTION DI DALAM TAB DATA PENJUALAN -->
-                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
-                    <?php 
-                    $canApprove = false;
-                    $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
-                    if ($userRole == $requiredRole) {
-                        $canApprove = true;
-                    }
-                    ?>
-                    
-                    <?php if (!$canApprove): ?>
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle"></i> 
-                        Anda tidak memiliki hak untuk melakukan approval pada level ini. 
-                        Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <?php if ($canApprove): ?>
-                    <div class="mt-4 p-3" style="background: #f8f9fa; border-radius: 10px;">
-                        <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
-                        <p>Anda memiliki hak untuk melakukan approval sebagai <strong><?= htmlspecialchars($currentApproverLabel) ?></strong></p>
-                        <form method="POST" id="approvalForm">
-                            <input type="hidden" name="action" id="approvalAction" value="approve">
-                            <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
-                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
-                                <i class="fas fa-check-circle"></i> Approve
-                            </button>
-                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
-                                <i class="fas fa-times-circle"></i> Reject
-                            </button>
-                        </form>
-                    </div>
-                    <?php endif; ?>
-                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
@@ -1567,6 +1550,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     <?php endif; ?>
                 </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ============================================ -->
+        <!-- TAB CONTENT: APPROVAL -->
+        <!-- ============================================ -->
+        <?php if ($activeTab == 'approval'): ?>
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-check-double"></i> Approval</h6>
+                <span class="badge-status-di <?= $request['status'] ?>">
+                    <?php if ($request['status'] == 'pending'): ?>
+                        <i class="fas fa-clock"></i> Pending
+                    <?php elseif ($request['status'] == 'approved'): ?>
+                        <i class="fas fa-check-circle"></i> Approved
+                    <?php elseif ($request['status'] == 'rejected'): ?>
+                        <i class="fas fa-times-circle"></i> Rejected
+                    <?php endif; ?>
+                </span>
+            </div>
+            <div class="card-body-custom">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">
+                            <span class="badge-status-di <?= $request['status'] ?>">
+                                <?= ucfirst($request['status']) ?>
+                            </span>
+                        </div>
+                        
+                        <div class="info-label">Current Approver</div>
+                        <div class="info-value"><?= htmlspecialchars($currentApproverLabel) ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label">Next Approver</div>
+                        <div class="info-value"><?= htmlspecialchars($nextApproverLabel) ?></div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- APPROVAL HISTORY -->
+                <h6 class="mb-3"><i class="fas fa-history"></i> Riwayat Approval</h6>
+                
+                <?php if (count($approvalHistory) > 0): ?>
+                    <div class="table-responsive">
+                        <table class="table table-bordered" style="font-size: 13px;">
+                            <thead>
+                                <tr style="background: #f8f9fa;">
+                                    <th>Level</th>
+                                    <th>Approver</th>
+                                    <th>Status</th>
+                                    <th>Tanggal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($approvalHistory as $history): ?>
+                                    <tr>
+                                        <td><?= $history['approval_order'] ?></td>
+                                        <td><?= htmlspecialchars($history['approval_label']) ?></td>
+                                        <td>
+                                            <?php if ($history['status'] == 'approved'): ?>
+                                                <span class="badge-status-di approved"><i class="fas fa-check-circle"></i> Approved</span>
+                                            <?php elseif ($history['status'] == 'rejected'): ?>
+                                                <span class="badge-status-di rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                                            <?php else: ?>
+                                                <span class="badge-status-di pending"><i class="fas fa-clock"></i> Pending</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= $history['approved_at'] ? date('d/m/Y H:i', strtotime($history['approved_at'])) : '-' ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox me-2"></i> Belum ada riwayat approval
+                    </div>
+                <?php endif; ?>
+                
+                <!-- APPROVAL ACTION -->
+                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
+                    <?php 
+                    $canApprove = false;
+                    $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
+                    if ($userRole == $requiredRole) {
+                        $canApprove = true;
+                    }
+                    ?>
+                    
+                    <hr>
+                    
+                    <?php if (!$canApprove): ?>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Anda tidak memiliki hak untuk melakukan approval pada level ini. 
+                        Menunggu approval dari: <strong><?= htmlspecialchars($currentApproverLabel) ?></strong>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($canApprove): ?>
+                    <div class="mt-3 p-3" style="background: #f8f9fa; border-radius: 10px;">
+                        <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
+                        <p>Anda memiliki hak untuk melakukan approval sebagai <strong><?= htmlspecialchars($currentApproverLabel) ?></strong></p>
+                        <form method="POST" id="approvalForm">
+                            <input type="hidden" name="action" id="approvalAction" value="approve">
+                            <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
+                            <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
+                                <i class="fas fa-check-circle"></i> Approve
+                            </button>
+                            <button type="button" class="btn btn-danger-custom" onclick="submitApproval('reject')">
+                                <i class="fas fa-times-circle"></i> Reject
+                            </button>
+                        </form>
+                    </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
