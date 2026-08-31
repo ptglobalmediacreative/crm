@@ -80,6 +80,30 @@ if (empty($di_number)) {
 }
 
 // ============================================
+// AUTO CREATE DETAIL DI JIKA BELUM ADA
+// ============================================
+try {
+    $checkExisting = $db->prepare("SELECT id FROM detail_delivery_instructions WHERE di_number = ?");
+    $checkExisting->execute([$di_number]);
+    $existingRecord = $checkExisting->fetch();
+    
+    if (!$existingRecord) {
+        // Ambil data dari activity_details
+        $getActivityData = $db->prepare("SELECT id, sales_activity_id FROM activity_details WHERE di_number = ? ORDER BY id DESC LIMIT 1");
+        $getActivityData->execute([$di_number]);
+        $activityData = $getActivityData->fetch();
+        
+        if ($activityData) {
+            // Insert ke detail_delivery_instructions
+            $insertDI = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, no_so, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, NULL, 'pending', 1, NOW(), NOW())");
+            $insertDI->execute([$di_number, $activityData['sales_activity_id'], $activityData['id']]);
+        }
+    }
+} catch (Exception $e) {
+    // Jika tabel belum ada, abaikan
+}
+
+// ============================================
 // AMBIL DATA DELIVERY INSTRUCTION
 // ============================================
 $sql = "SELECT ad.di_number, 
