@@ -2014,18 +2014,373 @@ if (count($additionalCostItems) == 0) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function toggleSection(editId, viewId) {
-            const editEl = document.getElementById(editId);
-            const viewEl = document.getElementById(viewId);
-            if (editEl.style.display === 'none') {
-                editEl.style.display = 'block';
-                viewEl.style.display = 'none';
+        // ============================================
+        // FUNGSI UNTUK SUMMARY
+        // ============================================
+        function showEditSummary() {
+            document.getElementById('editSummaryForm').style.display = 'block';
+            document.getElementById('viewSummary').style.display = 'none';
+        }
+        
+        function hideEditSummary() {
+            document.getElementById('editSummaryForm').style.display = 'none';
+            document.getElementById('viewSummary').style.display = 'block';
+        }
+        
+        function submitApproval(action) {
+            if (action === 'reject') {
+                if (!confirm('Yakin ingin me-reject TR ini?')) {
+                    return;
+                }
+            }
+            if (action === 'approve') {
+                if (!confirm('Yakin ingin meng-approve TR ini?')) {
+                    return;
+                }
+            }
+            document.getElementById('approvalAction').value = action;
+            document.getElementById('approvalForm').submit();
+        }
+        
+        // ============================================
+        // FUNGSI UNTUK DETAIL UNIT
+        // ============================================
+        function showAddUnitForm() {
+            document.getElementById('addUnitForm').style.display = 'block';
+            document.getElementById('unitForm').reset();
+            document.getElementById('unit_id_hidden').value = '0';
+            document.getElementById('deleteUnitBtn').style.display = 'none';
+            
+            <?php if (count($detailUnits) > 0): ?>
+                <?php $firstUnit = $detailUnits[0]; ?>
+                document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
+                document.getElementById('unit_id').value = '<?= $firstUnit['unit_id'] ?>';
+                document.getElementById('qty').value = '<?= $firstUnit['qty'] ?>';
+                document.getElementById('price').value = '<?= $firstUnit['price'] ?>';
+                
+                const specInput = document.querySelector('input[name="specification"]');
+                const attachmentInput = document.querySelector('input[name="additional_attachment"]');
+                const warantyInput = document.querySelector('input[name="waranty"]');
+                const locationInput = document.querySelector('input[name="machine_location"]');
+                const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
+                const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
+                const transTypeInput = document.querySelector('select[name="transaction_type"]');
+                
+                specInput.value = '<?= addslashes($firstUnit['specification']) ?>';
+                attachmentInput.value = '<?= addslashes($firstUnit['additional_attachment']) ?>';
+                warantyInput.value = '<?= addslashes($firstUnit['waranty']) ?>';
+                locationInput.value = '<?= addslashes($firstUnit['machine_location']) ?>';
+                deliveryTermsInput.value = '<?= addslashes($firstUnit['delivery_terms']) ?>';
+                deliveryScheduleInput.value = '<?= $firstUnit['delivery_schedule'] ?>';
+                transTypeInput.value = '<?= addslashes($firstUnit['transaction_type']) ?>';
+                
+                calculateTotal();
+                toggleOtherTransaction();
+                document.getElementById('deleteUnitBtn').style.display = 'inline-block';
+            <?php else: ?>
+                calculateTotal();
+                toggleOtherTransaction();
+            <?php endif; ?>
+        }
+        
+        function showNewUnitForm() {
+            document.getElementById('addUnitForm').style.display = 'block';
+            document.getElementById('unitForm').reset();
+            document.getElementById('unit_id_hidden').value = '0';
+            document.getElementById('deleteUnitBtn').style.display = 'none';
+            calculateTotal();
+            toggleOtherTransaction();
+        }
+        
+        function hideAddUnitForm() {
+            document.getElementById('addUnitForm').style.display = 'none';
+        }
+        
+        function calculateTotal() {
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const qty = parseInt(document.getElementById('qty').value) || 0;
+            const ppn = price * 0.11;
+            const grandTotal = (price + ppn) * qty;
+            
+            document.getElementById('ppn_display').value = 'Rp ' + ppn.toLocaleString('id-ID');
+            document.getElementById('grand_total_display').value = 'Rp ' + grandTotal.toLocaleString('id-ID');
+        }
+        
+        function toggleOtherTransaction() {
+            const type = document.getElementById('transaction_type').value;
+            const otherInput = document.getElementById('transaction_type_other');
+            if (type === 'Other') {
+                otherInput.style.display = 'block';
             } else {
-                editEl.style.display = 'none';
-                viewEl.style.display = 'block';
+                otherInput.style.display = 'none';
             }
         }
         
+        function deleteUnit() {
+            const unitId = document.getElementById('unit_id_hidden').value;
+            if (unitId > 0) {
+                if (confirm('Yakin ingin menghapus unit ini?')) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.innerHTML = `
+                        <input type="hidden" name="action" value="delete_unit">
+                        <input type="hidden" name="unit_id" value="${unitId}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+        }
+        
+        // ============================================
+        // FUNGSI UNTUK TERM OF PAYMENT
+        // ============================================
+        function showTOPSection() {
+            document.getElementById('topForm').style.display = 'block';
+        }
+        
+        function hideTOPSection() {
+            document.getElementById('topForm').style.display = 'none';
+        }
+        
+        function addDPRow() {
+            const container = document.getElementById('dpContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'row mb-2 dp-row';
+            newRow.innerHTML = `
+                <div class="col-md-4">
+                    <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="dp_keterangan[]" class="form-control" placeholder="Keterangan">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
+        
+        function addAngsuranRow() {
+            const container = document.getElementById('angsuranContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'row mb-2 angsuran-row';
+            newRow.innerHTML = `
+                <div class="col-md-4">
+                    <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="angsuran_keterangan[]" class="form-control" placeholder="Keterangan">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
+        
+        function removeRow(button) {
+            button.closest('.row').remove();
+        }
+        
+        // ============================================
+        // FUNGSI UNTUK ADDITIONAL COST ITEMS (MULTIPLE)
+        // ============================================
+        let costItemRowCount = 0;
+        
+        function toggleCostForm() {
+            const formContainer = document.getElementById('costFormContainer');
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                loadCostItemData();
+            } else {
+                formContainer.style.display = 'none';
+            }
+        }
+        
+        function addCostItemRow(data = null) {
+            costItemRowCount++;
+            const container = document.getElementById('costItemRows');
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'cost-item-row';
+            rowDiv.id = 'costItemRow_' + costItemRowCount;
+            
+            rowDiv.innerHTML = `
+                <div class="cost-item-header">
+                    <strong>
+                        <i class="fas fa-coins"></i> 
+                        Item ${costItemRowCount}
+                    </strong>
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeCostItemRow(${costItemRowCount})">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Nama Item *</label>
+                        <input type="text" name="item_name[]" class="form-control" placeholder="Contoh: Insurance, Delivery Cost, dll" value="${data ? data.item_name : ''}" required>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nominal (Rp) *</label>
+                        <input type="number" name="item_amount[]" class="form-control" min="0" step="0.01" placeholder="0" value="${data ? data.amount : 0}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Keterangan</label>
+                        <input type="text" name="item_keterangan[]" class="form-control" placeholder="Keterangan (opsional)" value="${data ? data.keterangan : ''}">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(rowDiv);
+        }
+        
+        function removeCostItemRow(rowId) {
+            const row = document.getElementById('costItemRow_' + rowId);
+            if (row) {
+                row.remove();
+                const rows = document.querySelectorAll('.cost-item-row');
+                rows.forEach((row, index) => {
+                    const title = row.querySelector('strong');
+                    if (title) {
+                        title.innerHTML = `<i class="fas fa-coins"></i> Item ${index + 1}`;
+                    }
+                });
+            }
+        }
+        
+        function loadCostItemData() {
+            const container = document.getElementById('costItemRows');
+            container.innerHTML = '';
+            costItemRowCount = 0;
+            
+            <?php if (count($additionalCostItems) > 0): ?>
+                <?php foreach ($additionalCostItems as $item): ?>
+                    addCostItemRow({
+                        item_name: '<?= addslashes($item['item_name']) ?>',
+                        amount: '<?= $item['amount'] ?>',
+                        keterangan: '<?= addslashes($item['keterangan'] ?? '') ?>'
+                    });
+                <?php endforeach; ?>
+            <?php else: ?>
+                addCostItemRow();
+            <?php endif; ?>
+        }
+        
+        // ============================================
+        // FUNGSI UNTUK MULTIPLE MEDIATOR
+        // ============================================
+        let mediatorRowCount = 0;
+        
+        function toggleMediatorForm() {
+            const formContainer = document.getElementById('mediatorFormContainer');
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                loadMediatorData();
+            } else {
+                formContainer.style.display = 'none';
+            }
+        }
+        
+        function addMediatorRow(data = null) {
+            mediatorRowCount++;
+            const container = document.getElementById('mediatorRows');
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'mediator-row';
+            rowDiv.id = 'mediatorRow_' + mediatorRowCount;
+            
+            rowDiv.innerHTML = `
+                <div class="mediator-header">
+                    <strong>
+                        <i class="fas fa-user-tie"></i> 
+                        Mediator ${mediatorRowCount}
+                    </strong>
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeMediatorRow(${mediatorRowCount})">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="mediator_name[]" class="form-control" value="${data ? data.name : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">ID Card No</label>
+                        <input type="text" name="mediator_id_card[]" class="form-control" value="${data ? data.id_card_no : ''}">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">NPWP No</label>
+                        <input type="text" name="mediator_npwp[]" class="form-control" value="${data ? data.npwp_no : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <input type="text" name="mediator_bank_name[]" class="form-control" value="${data ? data.bank_name : ''}">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Bank Account</label>
+                        <input type="text" name="mediator_bank_account[]" class="form-control" value="${data ? data.bank_account : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number" name="mediator_amount[]" class="form-control" min="0" step="0.01" value="${data ? data.amount : 0}">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(rowDiv);
+        }
+        
+        function removeMediatorRow(rowId) {
+            const row = document.getElementById('mediatorRow_' + rowId);
+            if (row) {
+                row.remove();
+                const rows = document.querySelectorAll('.mediator-row');
+                rows.forEach((row, index) => {
+                    const title = row.querySelector('strong');
+                    if (title) {
+                        title.innerHTML = `<i class="fas fa-user-tie"></i> Mediator ${index + 1}`;
+                    }
+                });
+            }
+        }
+        
+        function loadMediatorData() {
+            const container = document.getElementById('mediatorRows');
+            container.innerHTML = '';
+            mediatorRowCount = 0;
+            
+            <?php if (count($mediators) > 0): ?>
+                <?php foreach ($mediators as $med): ?>
+                    addMediatorRow({
+                        name: '<?= addslashes($med['name']) ?>',
+                        id_card_no: '<?= addslashes($med['id_card_no']) ?>',
+                        npwp_no: '<?= addslashes($med['npwp_no']) ?>',
+                        bank_name: '<?= addslashes($med['bank_name']) ?>',
+                        bank_account: '<?= addslashes($med['bank_account']) ?>',
+                        amount: '<?= $med['amount'] ?>'
+                    });
+                <?php endforeach; ?>
+            <?php else: ?>
+                addMediatorRow();
+            <?php endif; ?>
+        }
+
         // ============================================
         // FUNGSI UNTUK PRODUCT SUPPORT (NAMA & KETERANGAN)
         // ============================================
@@ -2092,30 +2447,6 @@ if (count($additionalCostItems) == 0) {
             <?php endif; ?>
         }
         
-        function removeRow(button) {
-            button.closest('.row').remove();
-        }
-        
-        function showEditSummary() {
-            document.getElementById('editSummaryForm').style.display = 'block';
-            document.getElementById('viewSummary').style.display = 'none';
-        }
-        
-        function hideEditSummary() {
-            document.getElementById('editSummaryForm').style.display = 'none';
-            document.getElementById('viewSummary').style.display = 'block';
-        }
-        
-        function submitApproval(action) {
-            if (action === 'reject') {
-                if (!confirm('Yakin ingin me-reject TR ini?')) return;
-            }
-            if (action === 'approve') {
-                if (!confirm('Yakin ingin meng-approve TR ini?')) return;
-            }
-            document.getElementById('approvalAction').value = action;
-            document.getElementById('approvalForm').submit();
-        }
         
         // Load data support saat edit diklik
         document.addEventListener('DOMContentLoaded', function() {
@@ -2126,6 +2457,7 @@ if (count($additionalCostItems) == 0) {
                 });
             }
         });
+        
     </script>
 </body>
 </html>
