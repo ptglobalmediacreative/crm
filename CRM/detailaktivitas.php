@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
-        if (strlen($deskripsi) < 80) $errors[] = 'Deskripsi minimal 80 karakter!';
+        if (strlen($deskripsi) < 50) $errors[] = 'Deskripsi minimal 50 karakter!';
         
         // Generate TR Number jika jenis_tugas = Negosiasi
         $tr_number = NULL;
@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $tr_number = NULL;
         
         $errors = [];
-        if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter!';
+        if (strlen($result) < 50) $errors[] = 'Result minimal 50 karakter!';
         
         // Ambil data detail untuk cek jenis_tugas
         $stmt = $db->prepare("SELECT * FROM activity_details WHERE id = ?");
@@ -477,7 +477,7 @@ foreach ($detailsList as $d) {
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;500;900&display=swap" rel="stylesheet">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -507,7 +507,7 @@ foreach ($detailsList as $d) {
         }
         .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
         .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
+        .sidebar .brand .brand-text h5 { font-weight: 500; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
         .sidebar .brand .brand-text h5 span { color: #ffd700; }
         .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
 
@@ -553,7 +553,7 @@ foreach ($detailsList as $d) {
             margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
         }
         .page-header h4 { 
-            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
+            font-weight: 500; color: #0e1a2b; font-size: 24px; margin:0; 
             letter-spacing: -0.5px;
         }
         .page-header h4 span { color: #ffd700; }
@@ -572,7 +572,7 @@ foreach ($detailsList as $d) {
             border-bottom: 1px solid #f0f2f5;
         }
         .info-card .info-item:last-child { border-bottom: none; }
-        .info-card .info-label { font-weight: 600; color: #555; width: 180px; flex-shrink: 0; font-size: 13px; }
+        .info-card .info-label { font-weight: 600; color: #555; width: 150px; flex-shrink: 0; font-size: 13px; }
         .info-card .info-value { color: #0e1a2b; font-size: 13px; }
 
         .card-custom {
@@ -632,7 +632,7 @@ foreach ($detailsList as $d) {
             font-weight: 600;
             white-space: nowrap;
         }
-        .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2950b9; }
         .badge-tugas.Visit\/Meeting { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
         .badge-tugas.Prospecting { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
         .badge-tugas.Negosiasi { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
@@ -647,7 +647,7 @@ foreach ($detailsList as $d) {
             font-weight: 600;
             white-space: nowrap;
         }
-        .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2950b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-status.overdue { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
 
@@ -666,7 +666,7 @@ foreach ($detailsList as $d) {
         .btn-action:hover { transform: scale(1.1); }
         .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
         .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
-        .btn-action.edit { background: rgba(52, 152, 219, 0.1); color: #2980b9; }
+        .btn-action.edit { background: rgba(52, 152, 219, 0.1); color: #2950b9; }
         .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
         .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
@@ -774,7 +774,7 @@ foreach ($detailsList as $d) {
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 450px) {
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
             .table-custom { font-size: 11px; }
@@ -932,7 +932,7 @@ foreach ($detailsList as $d) {
                                         <td>
                                             <?php if (!empty($detail['tr_number'])): ?>
                                                 <a href="detailtr.php?tr_number=<?= urlencode($detail['tr_number']) ?>" 
-                                                   style="color: #2980b9; text-decoration: none; font-weight: 600;"
+                                                   style="color: #2950b9; text-decoration: none; font-weight: 600;"
                                                    target="_blank">
                                                     <?= htmlspecialchars($detail['tr_number']) ?>
                                                 </a>
@@ -1047,8 +1047,8 @@ foreach ($detailsList as $d) {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Deskripsi <span class="text-danger">*</span> <small class="text-muted">(Minimal 80 karakter)</small></label>
-                            <textarea name="deskripsi" id="deskripsi_add" class="form-control" rows="5" placeholder="Masukkan deskripsi minimal 80 karakter..." minlength="80" required></textarea>
+                            <label class="form-label">Deskripsi <span class="text-danger">*</span> <small class="text-muted">(Minimal 50 karakter)</small></label>
+                            <textarea name="deskripsi" id="deskripsi_add" class="form-control" rows="5" placeholder="Masukkan deskripsi minimal 50 karakter..." minlength="50" required></textarea>
                             <small class="text-muted" id="wordCountAdd">0 karakter</small>
                         </div>
                         
@@ -1089,8 +1089,8 @@ foreach ($detailsList as $d) {
                         <input type="hidden" name="detail_id" id="completeDetailId" value="">
                         
                         <div class="mb-3">
-                            <label class="form-label">Result <span class="text-danger">*</span> <small class="text-muted">(Minimal 80 karakter)</small></label>
-                            <textarea name="result" id="result_complete" class="form-control" rows="5" placeholder="Masukkan result minimal 80 karakter..." minlength="80" required></textarea>
+                            <label class="form-label">Result <span class="text-danger">*</span> <small class="text-muted">(Minimal 50 karakter)</small></label>
+                            <textarea name="result" id="result_complete" class="form-control" rows="5" placeholder="Masukkan result minimal 50 karakter..." minlength="50" required></textarea>
                             <small class="text-muted" id="wordCountComplete">0 karakter</small>
                         </div>
                         
@@ -1174,7 +1174,7 @@ foreach ($detailsList as $d) {
         document.getElementById('deskripsi_add').addEventListener('input', function() {
             var chars = this.value.length;
             document.getElementById('wordCountAdd').textContent = chars + ' karakter';
-            if (chars < 80) {
+            if (chars < 50) {
                 document.getElementById('wordCountAdd').style.color = '#e74c3c';
             } else {
                 document.getElementById('wordCountAdd').style.color = '#27ae60';
@@ -1184,7 +1184,7 @@ foreach ($detailsList as $d) {
         document.getElementById('result_complete').addEventListener('input', function() {
             var chars = this.value.length;
             document.getElementById('wordCountComplete').textContent = chars + ' karakter';
-            if (chars < 80) {
+            if (chars < 50) {
                 document.getElementById('wordCountComplete').style.color = '#e74c3c';
             } else {
                 document.getElementById('wordCountComplete').style.color = '#27ae60';
@@ -1211,7 +1211,7 @@ foreach ($detailsList as $d) {
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2950b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
@@ -1274,7 +1274,7 @@ foreach ($detailsList as $d) {
                     ${data.tr_number ? `
                     <div class="info-item">
                         <div class="info-label">TR Number</div>
-                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2980b9; font-weight: 600;" target="_blank">${data.tr_number}</a></div>
+                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2950b9; font-weight: 600;" target="_blank">${data.tr_number}</a></div>
                     </div>` : ''}
                     ${data.di_number ? `
                     <div class="info-item">
@@ -1342,7 +1342,7 @@ foreach ($detailsList as $d) {
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2950b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
