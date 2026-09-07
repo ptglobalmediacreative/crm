@@ -454,6 +454,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $specification = $_POST['specification'] ?? '';
             $additional_attachment = $_POST['additional_attachment'] ?? '';
             $waranty = $_POST['waranty'] ?? '';
+            $free_part_service = $_POST['free_part_service'] ?? '';
             $machine_location = $_POST['machine_location'] ?? '';
             $delivery_terms = $_POST['delivery_terms'] ?? '';
             $delivery_schedule = $_POST['delivery_schedule'] ?? '';
@@ -470,13 +471,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $unitId = $_POST['unit_id_hidden'] ?? 0;
             
             if ($unitId > 0) {
-                $updateSql = "UPDATE tr_detail_units SET unit_id = ?, qty = ?, price = ?, ppn = ?, grand_total = ?, specification = ?, additional_attachment = ?, waranty = ?, machine_location = ?, delivery_terms = ?, delivery_schedule = ?, transaction_type = ?, updated_at = NOW() WHERE id = ? AND trf_number = ?";
+                $updateSql = "UPDATE tr_detail_units SET unit_id = ?, qty = ?, price = ?, ppn = ?, grand_total = ?, specification = ?, additional_attachment = ?, waranty = ?, free_part_service = ?, machine_location = ?, delivery_terms = ?, delivery_schedule = ?, transaction_type = ?, updated_at = NOW() WHERE id = ? AND trf_number = ?";
                 $updateStmt = $db->prepare($updateSql);
-                $updateStmt->execute([$unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type, $unitId, $tr_number]);
+                $updateStmt->execute([$unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $free_part_service, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type, $unitId, $tr_number]);
             } else {
-                $insertSql = "INSERT INTO tr_detail_units (trf_number, unit_id, qty, price, ppn, grand_total, specification, additional_attachment, waranty, machine_location, delivery_terms, delivery_schedule, transaction_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                $insertSql = "INSERT INTO tr_detail_units (trf_number, unit_id, qty, price, ppn, grand_total, specification, additional_attachment, waranty, free_part_service, machine_location, delivery_terms, delivery_schedule, transaction_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                 $insertStmt = $db->prepare($insertSql);
-                $insertStmt->execute([$tr_number, $unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type]);
+                $insertStmt->execute([$tr_number, $unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $free_part_service, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type]);
             }
             
             $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
@@ -1520,6 +1521,10 @@ if (count($additionalCostItems) == 0) {
                                 <input type="text" name="waranty" class="form-control">
                             </div>
                             <div class="col-md-4 mb-3">
+                                <label class="form-label">Free Part/Service</label>
+                                <input type="text" name="free_part_service" class="form-control" placeholder="Contoh: Free Filter 500 Jam, Free Service 1x">
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Machine Location Works *</label>
                                 <input type="text" name="machine_location" class="form-control" required>
                             </div>
@@ -1604,7 +1609,10 @@ if (count($additionalCostItems) == 0) {
                                     
                                     <div class="info-label">Waranty</div>
                                     <div class="info-value"><?= htmlspecialchars($unit['waranty']) ?: '-' ?></div>
-                                    
+
+                                    <div class="info-label">Free Part/Service</div>
+                                    <div class="info-value"><?= htmlspecialchars($unit['free_part_service']) ?: '-' ?></div>
+
                                     <div class="info-label">Machine Location Works</div>
                                     <div class="info-value"><?= htmlspecialchars($unit['machine_location']) ?></div>
                                     
@@ -2254,6 +2262,7 @@ if (count($additionalCostItems) == 0) {
                 const specInput = document.querySelector('input[name="specification"]');
                 const attachmentInput = document.querySelector('input[name="additional_attachment"]');
                 const warantyInput = document.querySelector('input[name="waranty"]');
+                const freePartServiceInput = document.querySelector('input[name="free_part_service"]');
                 const locationInput = document.querySelector('input[name="machine_location"]');
                 const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
                 const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
@@ -2262,6 +2271,7 @@ if (count($additionalCostItems) == 0) {
                 specInput.value = '<?= addslashes($firstUnit['specification']) ?>';
                 attachmentInput.value = '<?= addslashes($firstUnit['additional_attachment']) ?>';
                 warantyInput.value = '<?= addslashes($firstUnit['waranty']) ?>';
+                freePartServiceInput.value = '<?= addslashes($firstUnit['free_part_service']) ?>';
                 locationInput.value = '<?= addslashes($firstUnit['machine_location']) ?>';
                 deliveryTermsInput.value = '<?= addslashes($firstUnit['delivery_terms']) ?>';
                 deliveryScheduleInput.value = '<?= $firstUnit['delivery_schedule'] ?>';
