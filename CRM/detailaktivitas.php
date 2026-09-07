@@ -173,25 +173,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         if (empty($errors)) {
-            // Mulai transaksi
             $db->beginTransaction();
             
             try {
                 $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')");
                 $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number]);
                 
-                // ============================================
                 // AUTO CREATE DETAIL TRANSACTION REQUEST
-                // Jika tr_number tidak kosong (Negosiasi)
-                // ============================================
                 if (!empty($tr_number)) {
-                    // Cek apakah sudah ada di detail_transaction_requests
                     $checkTR = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
                     $checkTR->execute([$tr_number]);
                     $existingTR = $checkTR->fetch();
                     
                     if (!$existingTR) {
-                        // Insert ke detail_transaction_requests
                         $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
                         $insertTR->execute([$tr_number]);
                     }
@@ -249,31 +243,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $errors[] = 'Data detail tidak ditemukan!';
         }
         
-        // ============================================
-        // JIKA JENIS TUGAS = DELIVERY ORDER
-        // Wajib isi customer_deal
-        // Yes = Deal, No = Lost Deal
-        // ============================================
+        // HANYA Delivery Order yang wajib isi customer_deal
         if ($detail && $detail['jenis_tugas'] === 'Delivery Order') {
             if (empty($customer_deal)) $errors[] = 'Customer Deal wajib dipilih!';
             
-            // Generate DI Number hanya jika Customer Deal = Yes
             if ($customer_deal === 'Yes') {
                 $di_number = generateDINumber($db);
             }
         }
         
-        // Untuk Negosiasi, Kontrak, dan After Sales ambil TR & DI Number dari data sebelumnya
+        // Untuk Kontrak dan After Sales ambil TR & DI Number dari Delivery Order sebelumnya
         if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales')) {
             $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details 
-                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Delivery Order' 
                                   ORDER BY id DESC LIMIT 1");
             $stmt->execute([$detail['sales_activity_id']]);
-            $negosiasiData = $stmt->fetch();
+            $doData = $stmt->fetch();
             
-            if ($negosiasiData) {
-                $tr_number = $negosiasiData['tr_number'];
-                $di_number = $negosiasiData['di_number'];
+            if ($doData) {
+                $tr_number = $doData['tr_number'];
+                $di_number = $doData['di_number'];
+            } else {
+                // Fallback: cari dari Negosiasi
+                $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details 
+                                      WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+                                      ORDER BY id DESC LIMIT 1");
+                $stmt->execute([$detail['sales_activity_id']]);
+                $negosiasiData = $stmt->fetch();
+                
+                if ($negosiasiData) {
+                    $tr_number = $negosiasiData['tr_number'];
+                    $di_number = $negosiasiData['di_number'];
+                }
             }
         }
         
@@ -316,7 +317,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $attachment_file = !empty($attachment_files) ? implode(',', $attachment_files) : NULL;
         
         if (empty($errors)) {
-            // Mulai transaksi
             $db->beginTransaction();
             
             try {
@@ -324,45 +324,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
                 $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
                 
-                // ============================================
                 // AUTO CREATE DETAIL DELIVERY INSTRUCTION
-                // Jika di_number tidak kosong
-                // ============================================
                 if (!empty($di_number)) {
-                    // Ambil sales_activity_id dari detail
                     $salesActivityId = $detail['sales_activity_id'];
                     
-                    // Cek apakah sudah ada di detail_delivery_instructions
                     $checkDI = $db->prepare("SELECT id FROM detail_delivery_instructions WHERE di_number = ?");
                     $checkDI->execute([$di_number]);
                     $existingDI = $checkDI->fetch();
                     
                     if (!$existingDI) {
-                        // Insert ke detail_delivery_instructions
                         $insertDI = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, no_so, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, NULL, 'pending', 1, NOW(), NOW())");
                         $insertDI->execute([$di_number, $salesActivityId, $detail_id]);
                     } else {
-                        // Update activity_detail_id jika sudah ada
                         $updateDI = $db->prepare("UPDATE detail_delivery_instructions SET activity_detail_id = ?, sales_activity_id = ?, updated_at = NOW() WHERE di_number = ?");
                         $updateDI->execute([$detail_id, $salesActivityId, $di_number]);
                     }
                 }
                 
-                // ============================================
                 // AUTO CREATE DETAIL TRANSACTION REQUEST
-                // Jika tr_number tidak kosong
-                // ============================================
                 if (!empty($tr_number)) {
-                    // Ambil sales_activity_id dari detail
                     $salesActivityId = $detail['sales_activity_id'];
                     
-                    // Cek apakah sudah ada di detail_transaction_requests
                     $checkTR = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
                     $checkTR->execute([$tr_number]);
                     $existingTR = $checkTR->fetch();
                     
                     if (!$existingTR) {
-                        // Insert ke detail_transaction_requests
                         $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
                         $insertTR->execute([$tr_number]);
                     }
@@ -384,7 +371,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        // Sales tidak bisa delete
         if ($role === 'sales' || !canDelete('sales_activity')) {
             setFlash('Anda tidak memiliki akses!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
@@ -392,30 +378,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $detail_id = (int)$_POST['detail_id'];
         
-        // Mulai transaksi
         $db->beginTransaction();
         
         try {
-            // Ambil data detail sebelum dihapus
             $stmt = $db->prepare("SELECT * FROM activity_details WHERE id = ?");
             $stmt->execute([$detail_id]);
             $detailToDelete = $stmt->fetch();
             
-            // Hapus activity_details
             $stmt = $db->prepare("DELETE FROM activity_details WHERE id = ?");
             $stmt->execute([$detail_id]);
             
-            // Jika detail yang dihapus memiliki di_number, hapus juga data terkait
             if ($detailToDelete && !empty($detailToDelete['di_number'])) {
                 $diNumber = $detailToDelete['di_number'];
                 
-                // Cek apakah masih ada activity_details lain dengan di_number yang sama
                 $checkOtherDI = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE di_number = ? AND id != ?");
                 $checkOtherDI->execute([$diNumber, $detail_id]);
                 $otherDICount = $checkOtherDI->fetchColumn();
                 
                 if ($otherDICount == 0) {
-                    // Hapus data terkait DI
                     $db->prepare("DELETE FROM di_approval_history WHERE di_number = ?")->execute([$diNumber]);
                     $db->prepare("DELETE FROM di_units WHERE di_number = ?")->execute([$diNumber]);
                     $db->prepare("DELETE FROM di_accessories WHERE di_number = ?")->execute([$diNumber]);
@@ -425,17 +405,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             
-            // Jika detail yang dihapus memiliki tr_number, cek apakah masih ada yang lain
             if ($detailToDelete && !empty($detailToDelete['tr_number'])) {
                 $trNumber = $detailToDelete['tr_number'];
                 
-                // Cek apakah masih ada activity_details lain dengan tr_number yang sama
                 $checkOtherTR = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE tr_number = ? AND id != ?");
                 $checkOtherTR->execute([$trNumber, $detail_id]);
                 $otherTRCount = $checkOtherTR->fetchColumn();
                 
                 if ($otherTRCount == 0) {
-                    // Hapus data terkait TR
                     $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?")->execute([$trNumber]);
                     $db->prepare("DELETE FROM detail_transaction_requests WHERE trf_number = ?")->execute([$trNumber]);
                 }
@@ -459,6 +436,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id = ? ORDER BY created_at DESC");
 $details->execute([$leadsId]);
 $detailsList = $details->fetchAll();
+
+$deliveryOrderCompleted = [];
+foreach ($detailsList as $d) {
+    if ($d['jenis_tugas'] === 'Delivery Order' && $d['status'] === 'completed') {
+        $deliveryOrderCompleted[] = $d;
+    }
+}
 
 $negosiasiCompleted = [];
 foreach ($detailsList as $d) {
@@ -1037,7 +1021,7 @@ foreach ($detailsList as $d) {
                     <h5 class="modal-title"><i class="fas fa-plus"></i> Tambah Aktivitas</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST">
+                <form method="POST" action="detailaktivitas.php?leads_id=<?= $leadsId ?>">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="add">
                         
@@ -1097,7 +1081,7 @@ foreach ($detailsList as $d) {
                     <h5 class="modal-title"><i class="fas fa-check-circle" style="color:#27ae60;"></i> Complete Aktivitas</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" action="detailaktivitas.php?leads_id=<?= $leadsId ?>" id="formComplete">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="complete">
                         <input type="hidden" name="detail_id" id="completeDetailId" value="">
@@ -1169,7 +1153,7 @@ foreach ($detailsList as $d) {
                     <p>Apakah Anda yakin ingin menghapus aktivitas ini?</p>
                 </div>
                 <div class="modal-footer">
-                    <form method="POST">
+                    <form method="POST" action="detailaktivitas.php?leads_id=<?= $leadsId ?>">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="detail_id" id="deleteDetailId" value="">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
@@ -1183,6 +1167,7 @@ foreach ($detailsList as $d) {
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        var deliveryOrderCompletedList = <?= json_encode(array_values($deliveryOrderCompleted)) ?>;
         var negosiasiCompletedList = <?= json_encode(array_values($negosiasiCompleted)) ?>;
         
         document.getElementById('deskripsi_add').addEventListener('input', function() {
@@ -1228,12 +1213,6 @@ foreach ($detailsList as $d) {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
-                    }
-                    
-                    if (lastNegosiasi.di_number) {
-                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastNegosiasi.di_number) + '" style="color: #27ae60;" target="_blank">' + lastNegosiasi.di_number + '</a></div>';
-                    } else {
-                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
                     }
                     
                     infoHtml += '</div>';
@@ -1344,29 +1323,35 @@ foreach ($detailsList as $d) {
             if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
                 var infoHtml = '';
                 
-                if (negosiasiCompletedList.length > 0) {
-                    var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1];
+                if (deliveryOrderCompletedList.length > 0) {
+                    var lastDO = deliveryOrderCompletedList[deliveryOrderCompletedList.length - 1];
                     
                     infoHtml += '<div class="info-negosiasi-container">';
-                    infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    infoHtml += '<h6><i class="fas fa-link"></i>Data dari Delivery Order Sebelumnya</h6>';
                     
-                    if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
+                    if (lastDO.tr_number) {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastDO.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastDO.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
                     
-                    if (lastNegosiasi.di_number) {
-                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastNegosiasi.di_number) + '" style="color: #27ae60;" target="_blank">' + lastNegosiasi.di_number + '</a></div>';
+                    if (lastDO.di_number) {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastDO.di_number) + '" style="color: #27ae60;" target="_blank">' + lastDO.di_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
+                    }
+                    
+                    if (lastDO.customer_deal) {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> ' + lastDO.customer_deal + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> -</div>';
                     }
                     
                     infoHtml += '</div>';
                 } else {
                     infoHtml += '<div class="info-negosiasi-container">';
-                    infoHtml += '<h6><i class="fas fa-info-circle"></i>Data dari Negosiasi Sebelumnya</h6>';
-                    infoHtml += '<div class="text-muted">Tidak ada data Negosiasi yang completed.</div>';
+                    infoHtml += '<h6><i class="fas fa-info-circle"></i>Data dari Delivery Order Sebelumnya</h6>';
+                    infoHtml += '<div class="text-muted">Tidak ada data Delivery Order yang completed.</div>';
                     infoHtml += '</div>';
                 }
                 
