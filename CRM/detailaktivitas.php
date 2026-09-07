@@ -85,6 +85,25 @@ function generateDINumber($db) {
     return "{$sequence}/GET-DI/JKT/{$bulanRomawi}/{$tahun}";
 }
 
+function generateDONumber($db) {
+    $tahun = date('Y');
+    $bulanRomawi = getBulanRomawi(date('n'));
+    $pattern = "%/GET-DO/JKT/{$bulanRomawi}/{$tahun}%";
+    $stmt = $db->prepare("SELECT do_number FROM activity_details WHERE do_number LIKE ? ORDER BY id DESC LIMIT 1");
+    $stmt->execute([$pattern]);
+    $lastNumber = $stmt->fetchColumn();
+    
+    if ($lastNumber) {
+        $parts = explode('/', $lastNumber);
+        $nextSequence = (int)$parts[0] + 1;
+        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+    } else {
+        $sequence = '0001';
+    }
+    
+    return "{$sequence}/GET-DO/JKT/{$bulanRomawi}/{$tahun}";
+}
+
 // ============================================
 // AMBIL DATA SALES ACTIVITY
 // ============================================
@@ -160,8 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $tr_number = generateTRNumber($db);
         }
         
-        // Untuk Kontrak & After Sales, ambil TR Number dari Negosiasi sebelumnya
-        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'After Sales') {
+        // Untuk Kontrak, After Sales, dan Delivery Order ambil TR Number dari Negosiasi sebelumnya
+        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'After Sales' || $jenis_tugas === 'Delivery Order') {
             $stmt = $db->prepare("SELECT tr_number FROM activity_details 
                                   WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
                                   ORDER BY id DESC LIMIT 1");
@@ -172,13 +191,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
+        // Generate DO Number jika jenis_tugas = Delivery Order
+        $do_number = NULL;
+        if ($jenis_tugas === 'Delivery Order') {
+            $do_number = generateDONumber($db);
+        }
+        
         if (empty($errors)) {
             // Mulai transaksi
             $db->beginTransaction();
             
             try {
-                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')");
-                $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number]);
+                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, do_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'in_progress')");
+                $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number, $do_number]);
                 
                 // ============================================
                 // AUTO CREATE DETAIL TRANSACTION REQUEST
@@ -194,6 +219,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         // Insert ke detail_transaction_requests
                         $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
                         $insertTR->execute([$tr_number]);
+                    }
+                }
+                
+                // ============================================
+                // AUTO CREATE DETAIL DELIVERY ORDER
+                // Jika do_number tidak kosong (Delivery Order)
+                // ============================================
+                if (!empty($do_number)) {
+                    // Cek apakah sudah ada di detail_delivery_orders
+                    $checkDO = $db->prepare("SELECT id FROM detail_delivery_orders WHERE do_number = ?");
+                    $checkDO->execute([$do_number]);
+                    $existingDO = $checkDO->fetch();
+                    
+                    if (!$existingDO) {
+                        // Insert ke detail_delivery_orders
+                        $insertDO = $db->prepare("INSERT INTO detail_delivery_orders (do_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                        $insertDO->execute([$do_number]);
                     }
                 }
                 
@@ -236,6 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $customer_deal = isset($_POST['customer_deal']) ? bersihkan($_POST['customer_deal']) : '';
         $di_number = NULL;
         $tr_number = NULL;
+        $do_number = NULL;
         
         $errors = [];
         if (strlen($result) < 80) $errors[] = 'Result minimal 80 karakter!';
@@ -258,8 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Jika jenis_tugas = Kontrak atau After Sales, ambil TR & DI Number dari Negosiasi sebelumnya
-        if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales')) {
+        // Jika jenis_tugas = Kontrak, After Sales, atau Delivery Order, ambil TR & DI Number dari Negosiasi sebelumnya
+        if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales' || $detail['jenis_tugas'] === 'Delivery Order')) {
             $stmt = $db->prepare("SELECT tr_number, di_number, customer_deal FROM activity_details 
                                   WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
                                   ORDER BY id DESC LIMIT 1");
@@ -272,6 +315,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if ($negosiasiData['customer_deal'] === 'Yes' && !empty($negosiasiData['di_number'])) {
                     $di_number = $negosiasiData['di_number'];
                 }
+            }
+            
+            // Untuk Delivery Order, ambil DO Number
+            if ($detail['jenis_tugas'] === 'Delivery Order') {
+                $do_number = $detail['do_number'] ?? generateDONumber($db);
             }
         }
         
@@ -319,8 +367,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             try {
                 // Update activity_details
-                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
-                $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
+                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), do_number = COALESCE(?, do_number), status = 'completed', completed_at = NOW() WHERE id = ?");
+                $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $do_number, $detail_id]);
                 
                 // ============================================
                 // AUTO CREATE DETAIL DELIVERY INSTRUCTION
@@ -363,6 +411,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         // Insert ke detail_transaction_requests
                         $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
                         $insertTR->execute([$tr_number]);
+                    }
+                }
+                
+                // ============================================
+                // AUTO CREATE DETAIL DELIVERY ORDER
+                // Jika do_number tidak kosong
+                // ============================================
+                if (!empty($do_number)) {
+                    // Ambil sales_activity_id dari detail
+                    $salesActivityId = $detail['sales_activity_id'];
+                    
+                    // Cek apakah sudah ada di detail_delivery_orders
+                    $checkDO = $db->prepare("SELECT id FROM detail_delivery_orders WHERE do_number = ?");
+                    $checkDO->execute([$do_number]);
+                    $existingDO = $checkDO->fetch();
+                    
+                    if (!$existingDO) {
+                        // Insert ke detail_delivery_orders
+                        $insertDO = $db->prepare("INSERT INTO detail_delivery_orders (do_number, sales_activity_id, activity_detail_id, status, created_at, updated_at) VALUES (?, ?, ?, 'pending', NOW(), NOW())");
+                        $insertDO->execute([$do_number, $salesActivityId, $detail_id]);
+                    } else {
+                        // Update activity_detail_id jika sudah ada
+                        $updateDO = $db->prepare("UPDATE detail_delivery_orders SET activity_detail_id = ?, sales_activity_id = ?, updated_at = NOW() WHERE do_number = ?");
+                        $updateDO->execute([$detail_id, $salesActivityId, $do_number]);
                     }
                 }
                 
@@ -436,6 +508,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     // Hapus data terkait TR
                     $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?")->execute([$trNumber]);
                     $db->prepare("DELETE FROM detail_transaction_requests WHERE trf_number = ?")->execute([$trNumber]);
+                }
+            }
+            
+            // Jika detail yang dihapus memiliki do_number, cek apakah masih ada yang lain
+            if ($detailToDelete && !empty($detailToDelete['do_number'])) {
+                $doNumber = $detailToDelete['do_number'];
+                
+                // Cek apakah masih ada activity_details lain dengan do_number yang sama
+                $checkOtherDO = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE do_number = ? AND id != ?");
+                $checkOtherDO->execute([$doNumber, $detail_id]);
+                $otherDOCount = $checkOtherDO->fetchColumn();
+                
+                if ($otherDOCount == 0) {
+                    // Hapus data terkait DO
+                    $db->prepare("DELETE FROM do_approval_history WHERE do_number = ?")->execute([$doNumber]);
+                    $db->prepare("DELETE FROM do_units WHERE do_number = ?")->execute([$doNumber]);
+                    $db->prepare("DELETE FROM do_accessories WHERE do_number = ?")->execute([$doNumber]);
+                    $db->prepare("DELETE FROM do_logistics WHERE do_number = ?")->execute([$doNumber]);
+                    $db->prepare("DELETE FROM do_product_supports WHERE do_number = ?")->execute([$doNumber]);
+                    $db->prepare("DELETE FROM detail_delivery_orders WHERE do_number = ?")->execute([$doNumber]);
                 }
             }
             
@@ -637,6 +729,7 @@ foreach ($detailsList as $d) {
         .badge-tugas.Prospecting { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
         .badge-tugas.Negosiasi { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
         .badge-tugas.Kontrak { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
+        .badge-tugas.Delivery.Order { background: rgba(52, 152, 219, 0.15); color: #2471a3; }
         .badge-tugas.After.Sales { background: rgba(26, 188, 156, 0.12); color: #16a085; }
 
         .badge-status {
@@ -725,7 +818,7 @@ foreach ($detailsList as $d) {
 
         .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
 
-        .tr-number-display, .di-number-display {
+        .tr-number-display, .di-number-display, .do-number-display {
             background: rgba(255, 215, 0, 0.1);
             padding: 10px 15px;
             border-radius: 8px;
@@ -909,6 +1002,7 @@ foreach ($detailsList as $d) {
                                 <th>Jenis Tugas</th>
                                 <th>TR Number</th>
                                 <th>DI Number</th>
+                                <th>DO Number</th>
                                 <th>Due Date</th>
                                 <th>Status</th>
                                 <th>Sales</th>
@@ -924,7 +1018,7 @@ foreach ($detailsList as $d) {
                                         <td><strong><?= htmlspecialchars($detail['subject']) ?></strong></td>
                                         <td><?= htmlspecialchars($activity['nama_pt']) ?></td>
                                         <td>
-                                            <span class="badge-tugas <?= str_replace('/', '\/', $detail['jenis_tugas']) ?>">
+                                            <span class="badge-tugas <?= str_replace('/', '\/', str_replace(' ', '.', $detail['jenis_tugas'])) ?>">
                                                 <?= htmlspecialchars($detail['jenis_tugas']) ?>
                                             </span>
                                         </td>
@@ -945,6 +1039,17 @@ foreach ($detailsList as $d) {
                                                    style="color: #27ae60; text-decoration: none; font-weight: 600;"
                                                    target="_blank">
                                                     <?= htmlspecialchars($detail['di_number']) ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($detail['do_number'])): ?>
+                                                <a href="detaildo.php?do_number=<?= urlencode($detail['do_number']) ?>" 
+                                                   style="color: #2471a3; text-decoration: none; font-weight: 600;"
+                                                   target="_blank">
+                                                    <?= htmlspecialchars($detail['do_number']) ?>
                                                 </a>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
@@ -996,7 +1101,7 @@ foreach ($detailsList as $d) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="11" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada aktivitas
                                     </td>
                                 </tr>
@@ -1040,6 +1145,7 @@ foreach ($detailsList as $d) {
                                 <option value="Prospecting">Prospecting</option>
                                 <option value="Negosiasi">Negosiasi</option>
                                 <option value="Kontrak">Kontrak</option>
+                                <option value="Delivery Order">Delivery Order</option>
                                 <option value="After Sales">After Sales</option>
                             </select>
                         </div>
@@ -1054,6 +1160,13 @@ foreach ($detailsList as $d) {
                             <label class="form-label">Transaction Request Form</label>
                             <div class="tr-number-display">
                                 <?= generateTRNumber($db) ?>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3" id="doNumberFieldAdd" style="display: none;">
+                            <label class="form-label">Delivery Order Number</label>
+                            <div class="do-number-display">
+                                <?= generateDONumber($db) ?>
                             </div>
                         </div>
                         
@@ -1191,14 +1304,56 @@ foreach ($detailsList as $d) {
         
         document.getElementById('jenis_tugas_add').addEventListener('change', function() {
             var trNumberField = document.getElementById('trNumberFieldAdd');
+            var doNumberField = document.getElementById('doNumberFieldAdd');
             var negosiasiInfoAdd = document.getElementById('negosiasiInfoAdd');
             
             if (this.value === 'Negosiasi') {
                 trNumberField.style.display = 'block';
+                doNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'none';
                 negosiasiInfoAdd.innerHTML = '';
+            } else if (this.value === 'Delivery Order') {
+                trNumberField.style.display = 'none';
+                doNumberField.style.display = 'block';
+                negosiasiInfoAdd.style.display = 'block';
+                
+                var infoHtml = '';
+                if (negosiasiCompletedList.length > 0) {
+                    var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1];
+                    
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    
+                    if (lastNegosiasi.tr_number) {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
+                    }
+                    
+                    if (lastNegosiasi.di_number) {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastNegosiasi.di_number) + '" style="color: #27ae60;" target="_blank">' + lastNegosiasi.di_number + '</a></div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
+                    }
+                    
+                    if (lastNegosiasi.customer_deal) {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> ' + lastNegosiasi.customer_deal + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> -</div>';
+                    }
+                    
+                    infoHtml += '</div>';
+                } else {
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-info-circle"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    infoHtml += '<div class="text-muted">Tidak ada data Negosiasi yang completed.</div>';
+                    infoHtml += '</div>';
+                }
+                
+                negosiasiInfoAdd.innerHTML = infoHtml;
             } else if (this.value === 'Kontrak' || this.value === 'After Sales') {
                 trNumberField.style.display = 'none';
+                doNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'block';
                 
                 var infoHtml = '';
@@ -1237,6 +1392,7 @@ foreach ($detailsList as $d) {
                 negosiasiInfoAdd.innerHTML = infoHtml;
             } else {
                 trNumberField.style.display = 'none';
+                doNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'none';
                 negosiasiInfoAdd.innerHTML = '';
             }
@@ -1278,6 +1434,11 @@ foreach ($detailsList as $d) {
                     <div class="info-item">
                         <div class="info-label">DI Number</div>
                         <div class="info-value"><a href="detaildi.php?di_number=${encodeURIComponent(data.di_number)}" style="color: #27ae60; font-weight: 600;" target="_blank">${data.di_number}</a></div>
+                    </div>` : ''}
+                    ${data.do_number ? `
+                    <div class="info-item">
+                        <div class="info-label">DO Number</div>
+                        <div class="info-value"><a href="detaildo.php?do_number=${encodeURIComponent(data.do_number)}" style="color: #2471a3; font-weight: 600;" target="_blank">${data.do_number}</a></div>
                     </div>` : ''}
                     ${data.customer_deal ? `
                     <div class="info-item">
@@ -1330,7 +1491,7 @@ foreach ($detailsList as $d) {
                 document.getElementById('customer_deal_complete').required = true;
             }
             
-            if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
+            if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales' || data.jenis_tugas === 'Delivery Order') {
                 var infoHtml = '';
                 
                 if (negosiasiCompletedList.length > 0) {
