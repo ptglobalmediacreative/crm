@@ -74,8 +74,8 @@ $role = $_SESSION['role'] ?? 'user';
 $tr_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
 $activeTab = isset($_GET['tab']) ? bersihkan($_GET['tab']) : 'summary';
 
-// Validasi tab
-$validTabs = ['summary', 'detail_unit', 'term_of_payment', 'additional_cost', 'mediator'];
+// Validasi tab - TAMBAH product_support
+$validTabs = ['summary', 'detail_unit', 'term_of_payment', 'additional_cost', 'mediator', 'product_support'];
 if (!in_array($activeTab, $validTabs)) {
     $activeTab = 'summary';
 }
@@ -86,7 +86,7 @@ if (empty($tr_number)) {
 }
 
 // ============================================
-// AMBIL DATA TRANSACTION REQUEST (QUERY SEDERHANA)
+// AMBIL DATA TRANSACTION REQUEST
 // ============================================
 $sql = "SELECT ad.tr_number, 
                ad.due_date,
@@ -318,12 +318,40 @@ try {
 }
 
 // ============================================
+// AMBIL DATA PRODUCT SUPPORTS (BARU)
+// ============================================
+$trSupports = [];
+try {
+    $sqlSup = "SELECT * FROM tr_product_supports WHERE trf_number = ? ORDER BY id ASC";
+    $stmtSup = $db->prepare($sqlSup);
+    $stmtSup->execute([$tr_number]);
+    $trSupports = $stmtSup->fetchAll();
+} catch (Exception $e) {
+    $trSupports = [];
+}
+
+// Group supports by type
+$supportsGrouped = [
+    'free_filter_engine' => [],
+    'jarak_service' => [],
+    'catatan' => [],
+    'free_service' => [],
+    'warranty' => []
+];
+foreach ($trSupports as $support) {
+    if (isset($supportsGrouped[$support['support_type']])) {
+        $supportsGrouped[$support['support_type']][] = $support;
+    }
+}
+
+// ============================================
 // HANDLE FORM SUBMISSION
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    $editActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_cost', 'save_mediator'];
+    // TAMBAH save_product_support ke editActions
+    $editActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_cost', 'save_mediator', 'save_product_support'];
     if (in_array($action, $editActions) && !$canEdit) {
         if ($hasBeenApproved) {
             setFlash('TR ini sudah di-approve, data tidak bisa diedit lagi!', 'danger');
@@ -641,6 +669,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=mediator");
     }
+    
+    // ============================================
+    // SAVE PRODUCT SUPPORT (BARU)
+    // ============================================
+    if ($action === 'save_product_support') {
+        try {
+            $db->beginTransaction();
+            
+            $deleteSql = "DELETE FROM tr_product_supports WHERE trf_number = ?";
+            $deleteStmt = $db->prepare($deleteSql);
+            $deleteStmt->execute([$tr_number]);
+            
+            $supportTypes = [
+                'free_filter_engine' => $_POST['free_filter_engine'] ?? [],
+                'jarak_service' => $_POST['jarak_service'] ?? [],
+                'catatan' => $_POST['catatan'] ?? [],
+                'free_service' => $_POST['free_service'] ?? [],
+                'warranty' => $_POST['warranty'] ?? []
+            ];
+            
+            foreach ($supportTypes as $type => $values) {
+                foreach ($values as $value) {
+                    if (!empty($value)) {
+                        $insertSql = "INSERT INTO tr_product_supports (trf_number, support_type, value, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
+                        $insertStmt = $db->prepare($insertSql);
+                        $insertStmt->execute([$tr_number, $type, $value]);
+                    }
+                }
+            }
+            
+            resetApprovalHistory($db, $tr_number);
+            $db->commit();
+            setFlash('Data Product Support berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('Gagal menyimpan data product support: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=product_support");
+    }
 }
 
 // ============================================
@@ -656,19 +723,16 @@ foreach ($termPayments as $top) {
     $totalTOP += (float)$top['amount'];
 }
 
-// Total Additional Cost HANYA dari Additional Cost Items
 $totalAdditionalCost = 0;
 foreach ($additionalCostItems as $item) {
     $totalAdditionalCost += (float)$item['amount'];
 }
 
-// Total Mediator Fee dihitung terpisah (hanya untuk tampilan di tab Mediator)
 $totalMediatorFee = 0;
 foreach ($mediators as $med) {
     $totalMediatorFee += (float)$med['amount'];
 }
 
-// Total Masukan = Total Unit - Total Additional Cost
 $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 
 // ============================================
@@ -919,24 +983,6 @@ if (count($additionalCostItems) == 0) {
             box-shadow: none;
         }
 
-        .btn-warning-custom {
-            background: #ffd700;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #0e1a2b;
-        }
-        .btn-warning-custom:hover {
-            background: #e6c200;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-            color: #0e1a2b;
-        }
-        .btn-warning-custom i { margin-right: 6px; }
-
         .btn-secondary-custom {
             background: #f0f2f5;
             border: none;
@@ -1019,41 +1065,13 @@ if (count($additionalCostItems) == 0) {
         .tab-nav .nav-tabs .nav-link:hover { background: #f8f9fa; color: #0e1a2b; }
         .tab-nav .nav-tabs .nav-link.active { background: #0e1a2b; color: #ffd700; }
 
-        .cost-item-row {
+        .cost-item-row, .mediator-row {
             background: #fff;
             border: 1px solid #e0e4ea;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
         }
-        .cost-item-row .cost-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f0f2f5;
-        }
-        .cost-item-row .cost-item-header strong { color: #0e1a2b; font-size: 14px; }
-        .cost-item-row .cost-item-header strong i { color: #ffd700; }
-
-        .mediator-row {
-            background: #fff;
-            border: 1px solid #e0e4ea;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .mediator-row .mediator-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f0f2f5;
-        }
-        .mediator-row .mediator-header strong { color: #0e1a2b; font-size: 14px; }
-        .mediator-row .mediator-header strong i { color: #ffd700; }
 
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
@@ -1099,7 +1117,7 @@ if (count($additionalCostItems) == 0) {
         <?php endif; ?>
         
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="#" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
         <?php endif; ?>
         
         <?php if (in_array('data_user', $menuNames)): ?>
@@ -1143,29 +1161,34 @@ if (count($additionalCostItems) == 0) {
         <!-- TAB NAVIGATION -->
         <div class="tab-nav">
             <ul class="nav nav-tabs" id="trTabs" role="tablist">
-                <li class="nav-item" role="presentation">
+                <li class="nav-item">
                     <a class="nav-link <?= $activeTab == 'summary' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=summary">
                         <i class="fas fa-info-circle"></i> Summary
                     </a>
                 </li>
-                <li class="nav-item" role="presentation">
+                <li class="nav-item">
                     <a class="nav-link <?= $activeTab == 'detail_unit' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=detail_unit">
                         <i class="fas fa-boxes"></i> Detail Unit
                     </a>
                 </li>
-                <li class="nav-item" role="presentation">
+                <li class="nav-item">
                     <a class="nav-link <?= $activeTab == 'term_of_payment' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=term_of_payment">
                         <i class="fas fa-money-bill-wave"></i> Term Of Payment
                     </a>
                 </li>
-                <li class="nav-item" role="presentation">
+                <li class="nav-item">
                     <a class="nav-link <?= $activeTab == 'additional_cost' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=additional_cost">
                         <i class="fas fa-coins"></i> Additional Cost
                     </a>
                 </li>
-                <li class="nav-item" role="presentation">
+                <li class="nav-item">
                     <a class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=mediator">
                         <i class="fas fa-user-tie"></i> Data Mediator
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= $activeTab == 'product_support' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=product_support">
+                        <i class="fas fa-headset"></i> Product Support
                     </a>
                 </li>
             </ul>
@@ -1932,14 +1955,192 @@ if (count($additionalCostItems) == 0) {
         </div>
         <?php endif; ?>
 
+        <!-- ============================================ -->
+        <!-- TAB CONTENT: PRODUCT SUPPORT (BARU) -->
+        <!-- ============================================ -->
+        <?php if ($activeTab == 'product_support'): ?>
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-headset"></i> Product Support</h6>
+                <?php if ($canEdit): ?>
+                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editSupport', 'viewSupport')">
+                    <i class="fas fa-edit"></i> <?= count($trSupports) > 0 ? 'Edit Support' : 'Tambah Support' ?>
+                </button>
+                <?php endif; ?>
+            </div>
+            <div class="card-body-custom">
+                <div id="editSupport" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="save_product_support">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Free Filter Engine</label>
+                            <div id="ffeContainer">
+                                <?php foreach ($supportsGrouped['free_filter_engine'] as $item): ?>
+                                    <input type="text" name="free_filter_engine[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Free Filter Engine">
+                                <?php endforeach; ?>
+                                <?php if (count($supportsGrouped['free_filter_engine']) == 0): ?>
+                                    <input type="text" name="free_filter_engine[]" class="form-control mb-2" placeholder="Free Filter Engine">
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('ffeContainer', 'free_filter_engine[]')">
+                                <i class="fas fa-plus"></i> Tambah
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Jarak Service</label>
+                            <div id="jsContainer">
+                                <?php foreach ($supportsGrouped['jarak_service'] as $item): ?>
+                                    <input type="text" name="jarak_service[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Jarak Service">
+                                <?php endforeach; ?>
+                                <?php if (count($supportsGrouped['jarak_service']) == 0): ?>
+                                    <input type="text" name="jarak_service[]" class="form-control mb-2" placeholder="Jarak Service">
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('jsContainer', 'jarak_service[]')">
+                                <i class="fas fa-plus"></i> Tambah
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Catatan</label>
+                            <div id="catatanContainer">
+                                <?php foreach ($supportsGrouped['catatan'] as $item): ?>
+                                    <input type="text" name="catatan[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Catatan">
+                                <?php endforeach; ?>
+                                <?php if (count($supportsGrouped['catatan']) == 0): ?>
+                                    <input type="text" name="catatan[]" class="form-control mb-2" placeholder="Catatan">
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('catatanContainer', 'catatan[]')">
+                                <i class="fas fa-plus"></i> Tambah
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Free Service</label>
+                            <div id="fsContainer">
+                                <?php foreach ($supportsGrouped['free_service'] as $item): ?>
+                                    <input type="text" name="free_service[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Free Service">
+                                <?php endforeach; ?>
+                                <?php if (count($supportsGrouped['free_service']) == 0): ?>
+                                    <input type="text" name="free_service[]" class="form-control mb-2" placeholder="Free Service">
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('fsContainer', 'free_service[]')">
+                                <i class="fas fa-plus"></i> Tambah
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Warranty</label>
+                            <div id="warrantyContainer">
+                                <?php foreach ($supportsGrouped['warranty'] as $item): ?>
+                                    <input type="text" name="warranty[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Warranty">
+                                <?php endforeach; ?>
+                                <?php if (count($supportsGrouped['warranty']) == 0): ?>
+                                    <input type="text" name="warranty[]" class="form-control mb-2" placeholder="Warranty">
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('warrantyContainer', 'warranty[]')">
+                                <i class="fas fa-plus"></i> Tambah
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Simpan Product Support
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editSupport', 'viewSupport')">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </form>
+                </div>
+                
+                <div id="viewSupport">
+                    <?php if (count($trSupports) > 0): ?>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <?php if (count($supportsGrouped['free_filter_engine']) > 0): ?>
+                                    <div class="info-label">Free Filter Engine</div>
+                                    <?php foreach ($supportsGrouped['free_filter_engine'] as $item): ?>
+                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                                
+                                <?php if (count($supportsGrouped['jarak_service']) > 0): ?>
+                                    <div class="info-label">Jarak Service</div>
+                                    <?php foreach ($supportsGrouped['jarak_service'] as $item): ?>
+                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                                
+                                <?php if (count($supportsGrouped['catatan']) > 0): ?>
+                                    <div class="info-label">Catatan</div>
+                                    <?php foreach ($supportsGrouped['catatan'] as $item): ?>
+                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="col-md-6">
+                                <?php if (count($supportsGrouped['free_service']) > 0): ?>
+                                    <div class="info-label">Free Service</div>
+                                    <?php foreach ($supportsGrouped['free_service'] as $item): ?>
+                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                                
+                                <?php if (count($supportsGrouped['warranty']) > 0): ?>
+                                    <div class="info-label">Warranty</div>
+                                    <?php foreach ($supportsGrouped['warranty'] as $item): ?>
+                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-headset me-2"></i> Belum ada data product support
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
     </div>
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // FUNGSI UNTUK SUMMARY
-        // ============================================
+        function toggleSection(editId, viewId) {
+            const editEl = document.getElementById(editId);
+            const viewEl = document.getElementById(viewId);
+            if (editEl.style.display === 'none') {
+                editEl.style.display = 'block';
+                viewEl.style.display = 'none';
+            } else {
+                editEl.style.display = 'none';
+                viewEl.style.display = 'block';
+            }
+        }
+        
+        function addInputRow(containerId, inputName) {
+            const container = document.getElementById(containerId);
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.name = inputName;
+            newInput.className = 'form-control mb-2';
+            newInput.placeholder = inputName.replace('[]', '');
+            container.appendChild(newInput);
+        }
+        
+        function removeRow(button) {
+            button.closest('.row').remove();
+        }
+        
         function showEditSummary() {
             document.getElementById('editSummaryForm').style.display = 'block';
             document.getElementById('viewSummary').style.display = 'none';
@@ -1952,356 +2153,13 @@ if (count($additionalCostItems) == 0) {
         
         function submitApproval(action) {
             if (action === 'reject') {
-                if (!confirm('Yakin ingin me-reject TR ini?')) {
-                    return;
-                }
+                if (!confirm('Yakin ingin me-reject TR ini?')) return;
             }
             if (action === 'approve') {
-                if (!confirm('Yakin ingin meng-approve TR ini?')) {
-                    return;
-                }
+                if (!confirm('Yakin ingin meng-approve TR ini?')) return;
             }
             document.getElementById('approvalAction').value = action;
             document.getElementById('approvalForm').submit();
-        }
-        
-        // ============================================
-        // FUNGSI UNTUK DETAIL UNIT
-        // ============================================
-        function showAddUnitForm() {
-            document.getElementById('addUnitForm').style.display = 'block';
-            document.getElementById('unitForm').reset();
-            document.getElementById('unit_id_hidden').value = '0';
-            document.getElementById('deleteUnitBtn').style.display = 'none';
-            
-            <?php if (count($detailUnits) > 0): ?>
-                <?php $firstUnit = $detailUnits[0]; ?>
-                document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
-                document.getElementById('unit_id').value = '<?= $firstUnit['unit_id'] ?>';
-                document.getElementById('qty').value = '<?= $firstUnit['qty'] ?>';
-                document.getElementById('price').value = '<?= $firstUnit['price'] ?>';
-                
-                const specInput = document.querySelector('input[name="specification"]');
-                const attachmentInput = document.querySelector('input[name="additional_attachment"]');
-                const warantyInput = document.querySelector('input[name="waranty"]');
-                const locationInput = document.querySelector('input[name="machine_location"]');
-                const deliveryTermsInput = document.querySelector('input[name="delivery_terms"]');
-                const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
-                const transTypeInput = document.querySelector('select[name="transaction_type"]');
-                
-                specInput.value = '<?= addslashes($firstUnit['specification']) ?>';
-                attachmentInput.value = '<?= addslashes($firstUnit['additional_attachment']) ?>';
-                warantyInput.value = '<?= addslashes($firstUnit['waranty']) ?>';
-                locationInput.value = '<?= addslashes($firstUnit['machine_location']) ?>';
-                deliveryTermsInput.value = '<?= addslashes($firstUnit['delivery_terms']) ?>';
-                deliveryScheduleInput.value = '<?= $firstUnit['delivery_schedule'] ?>';
-                transTypeInput.value = '<?= addslashes($firstUnit['transaction_type']) ?>';
-                
-                calculateTotal();
-                toggleOtherTransaction();
-                document.getElementById('deleteUnitBtn').style.display = 'inline-block';
-            <?php else: ?>
-                calculateTotal();
-                toggleOtherTransaction();
-            <?php endif; ?>
-        }
-        
-        function showNewUnitForm() {
-            document.getElementById('addUnitForm').style.display = 'block';
-            document.getElementById('unitForm').reset();
-            document.getElementById('unit_id_hidden').value = '0';
-            document.getElementById('deleteUnitBtn').style.display = 'none';
-            calculateTotal();
-            toggleOtherTransaction();
-        }
-        
-        function hideAddUnitForm() {
-            document.getElementById('addUnitForm').style.display = 'none';
-        }
-        
-        function calculateTotal() {
-            const price = parseFloat(document.getElementById('price').value) || 0;
-            const qty = parseInt(document.getElementById('qty').value) || 0;
-            const ppn = price * 0.11;
-            const grandTotal = (price + ppn) * qty;
-            
-            document.getElementById('ppn_display').value = 'Rp ' + ppn.toLocaleString('id-ID');
-            document.getElementById('grand_total_display').value = 'Rp ' + grandTotal.toLocaleString('id-ID');
-        }
-        
-        function toggleOtherTransaction() {
-            const type = document.getElementById('transaction_type').value;
-            const otherInput = document.getElementById('transaction_type_other');
-            if (type === 'Other') {
-                otherInput.style.display = 'block';
-            } else {
-                otherInput.style.display = 'none';
-            }
-        }
-        
-        function deleteUnit() {
-            const unitId = document.getElementById('unit_id_hidden').value;
-            if (unitId > 0) {
-                if (confirm('Yakin ingin menghapus unit ini?')) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.innerHTML = `
-                        <input type="hidden" name="action" value="delete_unit">
-                        <input type="hidden" name="unit_id" value="${unitId}">
-                    `;
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            }
-        }
-        
-        // ============================================
-        // FUNGSI UNTUK TERM OF PAYMENT
-        // ============================================
-        function showTOPSection() {
-            document.getElementById('topForm').style.display = 'block';
-        }
-        
-        function hideTOPSection() {
-            document.getElementById('topForm').style.display = 'none';
-        }
-        
-        function addDPRow() {
-            const container = document.getElementById('dpContainer');
-            const newRow = document.createElement('div');
-            newRow.className = 'row mb-2 dp-row';
-            newRow.innerHTML = `
-                <div class="col-md-4">
-                    <input type="text" name="dp_label[]" class="form-control" placeholder="Label (contoh: DP 1)">
-                </div>
-                <div class="col-md-3">
-                    <input type="number" name="dp_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
-                </div>
-                <div class="col-md-4">
-                    <input type="text" name="dp_keterangan[]" class="form-control" placeholder="Keterangan">
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            container.appendChild(newRow);
-        }
-        
-        function addAngsuranRow() {
-            const container = document.getElementById('angsuranContainer');
-            const newRow = document.createElement('div');
-            newRow.className = 'row mb-2 angsuran-row';
-            newRow.innerHTML = `
-                <div class="col-md-4">
-                    <input type="text" name="angsuran_label[]" class="form-control" placeholder="Label (contoh: Angsuran 1)">
-                </div>
-                <div class="col-md-3">
-                    <input type="number" name="angsuran_amount[]" class="form-control" placeholder="Nominal" min="0" step="0.01">
-                </div>
-                <div class="col-md-4">
-                    <input type="text" name="angsuran_keterangan[]" class="form-control" placeholder="Keterangan">
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow(this)"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            container.appendChild(newRow);
-        }
-        
-        function removeRow(button) {
-            button.closest('.row').remove();
-        }
-        
-        // ============================================
-        // FUNGSI UNTUK ADDITIONAL COST ITEMS (MULTIPLE)
-        // ============================================
-        let costItemRowCount = 0;
-        
-        function toggleCostForm() {
-            const formContainer = document.getElementById('costFormContainer');
-            if (formContainer.style.display === 'none') {
-                formContainer.style.display = 'block';
-                loadCostItemData();
-            } else {
-                formContainer.style.display = 'none';
-            }
-        }
-        
-        function addCostItemRow(data = null) {
-            costItemRowCount++;
-            const container = document.getElementById('costItemRows');
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'cost-item-row';
-            rowDiv.id = 'costItemRow_' + costItemRowCount;
-            
-            rowDiv.innerHTML = `
-                <div class="cost-item-header">
-                    <strong>
-                        <i class="fas fa-coins"></i> 
-                        Item ${costItemRowCount}
-                    </strong>
-                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeCostItemRow(${costItemRowCount})">
-                        <i class="fas fa-trash"></i> Hapus
-                    </button>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Nama Item *</label>
-                        <input type="text" name="item_name[]" class="form-control" placeholder="Contoh: Insurance, Delivery Cost, dll" value="${data ? data.item_name : ''}" required>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Nominal (Rp) *</label>
-                        <input type="number" name="item_amount[]" class="form-control" min="0" step="0.01" placeholder="0" value="${data ? data.amount : 0}" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Keterangan</label>
-                        <input type="text" name="item_keterangan[]" class="form-control" placeholder="Keterangan (opsional)" value="${data ? data.keterangan : ''}">
-                    </div>
-                </div>
-            `;
-            
-            container.appendChild(rowDiv);
-        }
-        
-        function removeCostItemRow(rowId) {
-            const row = document.getElementById('costItemRow_' + rowId);
-            if (row) {
-                row.remove();
-                const rows = document.querySelectorAll('.cost-item-row');
-                rows.forEach((row, index) => {
-                    const title = row.querySelector('strong');
-                    if (title) {
-                        title.innerHTML = `<i class="fas fa-coins"></i> Item ${index + 1}`;
-                    }
-                });
-            }
-        }
-        
-        function loadCostItemData() {
-            const container = document.getElementById('costItemRows');
-            container.innerHTML = '';
-            costItemRowCount = 0;
-            
-            <?php if (count($additionalCostItems) > 0): ?>
-                <?php foreach ($additionalCostItems as $item): ?>
-                    addCostItemRow({
-                        item_name: '<?= addslashes($item['item_name']) ?>',
-                        amount: '<?= $item['amount'] ?>',
-                        keterangan: '<?= addslashes($item['keterangan'] ?? '') ?>'
-                    });
-                <?php endforeach; ?>
-            <?php else: ?>
-                addCostItemRow();
-            <?php endif; ?>
-        }
-        
-        // ============================================
-        // FUNGSI UNTUK MULTIPLE MEDIATOR
-        // ============================================
-        let mediatorRowCount = 0;
-        
-        function toggleMediatorForm() {
-            const formContainer = document.getElementById('mediatorFormContainer');
-            if (formContainer.style.display === 'none') {
-                formContainer.style.display = 'block';
-                loadMediatorData();
-            } else {
-                formContainer.style.display = 'none';
-            }
-        }
-        
-        function addMediatorRow(data = null) {
-            mediatorRowCount++;
-            const container = document.getElementById('mediatorRows');
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'mediator-row';
-            rowDiv.id = 'mediatorRow_' + mediatorRowCount;
-            
-            rowDiv.innerHTML = `
-                <div class="mediator-header">
-                    <strong>
-                        <i class="fas fa-user-tie"></i> 
-                        Mediator ${mediatorRowCount}
-                    </strong>
-                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeMediatorRow(${mediatorRowCount})">
-                        <i class="fas fa-trash"></i> Hapus
-                    </button>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="mediator_name[]" class="form-control" value="${data ? data.name : ''}">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">ID Card No</label>
-                        <input type="text" name="mediator_id_card[]" class="form-control" value="${data ? data.id_card_no : ''}">
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">NPWP No</label>
-                        <input type="text" name="mediator_npwp[]" class="form-control" value="${data ? data.npwp_no : ''}">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Bank Name</label>
-                        <input type="text" name="mediator_bank_name[]" class="form-control" value="${data ? data.bank_name : ''}">
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Bank Account</label>
-                        <input type="text" name="mediator_bank_account[]" class="form-control" value="${data ? data.bank_account : ''}">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Amount</label>
-                        <input type="number" name="mediator_amount[]" class="form-control" min="0" step="0.01" value="${data ? data.amount : 0}">
-                    </div>
-                </div>
-            `;
-            
-            container.appendChild(rowDiv);
-        }
-        
-        function removeMediatorRow(rowId) {
-            const row = document.getElementById('mediatorRow_' + rowId);
-            if (row) {
-                row.remove();
-                const rows = document.querySelectorAll('.mediator-row');
-                rows.forEach((row, index) => {
-                    const title = row.querySelector('strong');
-                    if (title) {
-                        title.innerHTML = `<i class="fas fa-user-tie"></i> Mediator ${index + 1}`;
-                    }
-                });
-            }
-        }
-        
-        function loadMediatorData() {
-            const container = document.getElementById('mediatorRows');
-            container.innerHTML = '';
-            mediatorRowCount = 0;
-            
-            <?php if (count($mediators) > 0): ?>
-                <?php foreach ($mediators as $med): ?>
-                    addMediatorRow({
-                        name: '<?= addslashes($med['name']) ?>',
-                        id_card_no: '<?= addslashes($med['id_card_no']) ?>',
-                        npwp_no: '<?= addslashes($med['npwp_no']) ?>',
-                        bank_name: '<?= addslashes($med['bank_name']) ?>',
-                        bank_account: '<?= addslashes($med['bank_account']) ?>',
-                        amount: '<?= $med['amount'] ?>'
-                    });
-                <?php endforeach; ?>
-            <?php else: ?>
-                addMediatorRow();
-            <?php endif; ?>
         }
     </script>
 </body>
