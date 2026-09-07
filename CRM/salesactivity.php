@@ -88,31 +88,49 @@ function getJenisProspek($db, $salesActivityId) {
     }
     
     $jenis_tugas = $lastActivity['jenis_tugas'];
-    $status = $lastActivity['status'];
     $customer_deal = $lastActivity['customer_deal'];
     
-    if ($jenis_tugas === 'Negosiasi' && $status === 'completed') {
+    // Delivery Order: Cek Customer Deal (Yes = Deal, No = Lost Deal)
+    if ($jenis_tugas === 'Delivery Order') {
         if ($customer_deal === 'Yes') {
             return 'Deal';
         } elseif ($customer_deal === 'No') {
             return 'Lost Deal';
         }
+        return null;
     }
     
+    // Negosiasi = Hot Prospect
     if ($jenis_tugas === 'Negosiasi') {
         return 'Hot Prospect';
     }
     
-    $mapping = [
-        'Perkenalan' => 'Suspect',
-        'Visit/Meeting' => 'Prospect',
-        'Prospecting' => 'Hot Prospect',
-        'Kontrak' => 'Deal',
-        'Delivery Order' => 'Deal',
-        'After Sales' => 'Deal'
-    ];
+    // Kontrak = Hot Prospect
+    if ($jenis_tugas === 'Kontrak') {
+        return 'Hot Prospect';
+    }
     
-    return $mapping[$jenis_tugas] ?? null;
+    // Prospecting = Prospect
+    if ($jenis_tugas === 'Prospecting') {
+        return 'Prospect';
+    }
+    
+    // Perkenalan = Suspect
+    if ($jenis_tugas === 'Perkenalan') {
+        return 'Suspect';
+    }
+    
+    // Visit/Meeting = Suspect
+    if ($jenis_tugas === 'Visit/Meeting') {
+        return 'Suspect';
+    }
+    
+    // After Sales = Deal
+    if ($jenis_tugas === 'After Sales') {
+        return 'Deal';
+    }
+    
+    return null;
 }
 
 // ============================================
