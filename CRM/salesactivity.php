@@ -108,6 +108,7 @@ function getJenisProspek($db, $salesActivityId) {
         'Visit/Meeting' => 'Prospect',
         'Prospecting' => 'Hot Prospect',
         'Kontrak' => 'Deal',
+        'Delivery Order' => 'Deal',
         'After Sales' => 'Deal'
     ];
     
@@ -152,6 +153,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 $filterMonth = isset($_GET['month']) ? bersihkan($_GET['month']) : date('Y-m');
 $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
+$filterJenisProspek = isset($_GET['jenis_prospek']) ? bersihkan($_GET['jenis_prospek']) : '';
 
 $where = "WHERE 1=1";
 $params = [];
@@ -172,6 +174,12 @@ if (!empty($search)) {
 if (!empty($filterMonth)) {
     $where .= " AND DATE_FORMAT(sa.created_at, '%Y-%m') = ?";
     $params[] = $filterMonth;
+}
+
+// Filter Jenis Prospek
+if (!empty($filterJenisProspek)) {
+    $where .= " AND sa.jenis_prospek = ?";
+    $params[] = $filterJenisProspek;
 }
 
 // ============================================
@@ -198,6 +206,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<h2>Data Sales Activity - PT Ganda Elang Tangguh</h2>';
     echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . ' WIB</p>';
     echo '<p>Filter Bulan: ' . date('F Y', strtotime($filterMonth . '-01')) . '</p>';
+    if (!empty($filterJenisProspek)) {
+        echo '<p>Filter Jenis Prospek: ' . htmlspecialchars($filterJenisProspek) . '</p>';
+    }
     echo '<table border="1" cellpadding="5" cellspacing="0">';
     echo '<thead>';
     echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
@@ -796,7 +807,7 @@ $role = $_SESSION['role'] ?? 'user';
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&search=<?= urlencode($search) ?>" class="btn btn-success-custom">
+                <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&search=<?= urlencode($search) ?>" class="btn btn-success-custom">
                     <i class="fas fa-file-excel"></i> Export Excel
                 </a>
                 <?php if (canAdd('sales_activity')): ?>
@@ -832,6 +843,16 @@ $role = $_SESSION['role'] ?? 'user';
                 <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
                 <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
                     <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars($filterMonth) ?>" style="width: 160px;" onchange="this.form.submit()">
+                    
+                    <select name="jenis_prospek" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
+                        <option value="">Semua Prospek</option>
+                        <option value="Suspect" <?= $filterJenisProspek === 'Suspect' ? 'selected' : '' ?>>Suspect</option>
+                        <option value="Prospect" <?= $filterJenisProspek === 'Prospect' ? 'selected' : '' ?>>Prospect</option>
+                        <option value="Hot Prospect" <?= $filterJenisProspek === 'Hot Prospect' ? 'selected' : '' ?>>Hot Prospect</option>
+                        <option value="Deal" <?= $filterJenisProspek === 'Deal' ? 'selected' : '' ?>>Deal</option>
+                        <option value="Lost Deal" <?= $filterJenisProspek === 'Lost Deal' ? 'selected' : '' ?>>Lost Deal</option>
+                    </select>
+                    
                     <?php if ($userRole !== 'sales'): ?>
                     <select name="sales_id" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                         <option value="0">Semua Sales</option>
@@ -842,9 +863,10 @@ $role = $_SESSION['role'] ?? 'user';
                         <?php endforeach; ?>
                     </select>
                     <?php endif; ?>
+                    
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 180px;">
                     <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
-                    <?php if (!empty($search) || $filterMonth !== date('Y-m') || $filterSalesId > 0): ?>
+                    <?php if (!empty($search) || $filterMonth !== date('Y-m') || $filterSalesId > 0 || !empty($filterJenisProspek)): ?>
                         <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i> Reset</a>
                     <?php endif; ?>
                 </form>
@@ -949,15 +971,15 @@ $role = $_SESSION['role'] ?? 'user';
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
