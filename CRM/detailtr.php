@@ -2130,7 +2130,7 @@ if (count($additionalCostItems) == 0) {
                         <input type="hidden" name="action" value="save_cost_calculation">
                         <div class="row">
                             <div class="col-md-4 mb-3"><label class="form-label">Dealer Price (Rp) *</label><input type="number" name="dealer_price" id="dealer_price" class="form-control" min="0" step="0.01" value="<?= $costCalculation['dealer_price'] ?? 0 ?>" required onchange="calculateCostCalc()" onkeyup="calculateCostCalc()"></div>
-                            <div class="col-md-4 mb-3"><label class="form-label">Persentase (%) *</label><input type="number" name="persentase" id="persentase" class="form-control" min="0" max="100" step="0.01" value="<?= $costCalculation['persentase'] ?? 0 ?>" required onchange="calculateCostCalc()" onkeyup="calculateCostCalc()"></div>
+                            <div class="col-md-4 mb-3"><label class="form-label">Persentase Diskon (%) *</label><input type="number" name="persentase" id="persentase" class="form-control" min="0" max="100" step="0.01" value="<?= $costCalculation['persentase'] ?? 0 ?>" required onchange="calculateCostCalc()" onkeyup="calculateCostCalc()"></div>
                             <div class="col-md-4 mb-3"><label class="form-label">Support Price</label><input type="text" id="support_price_display" class="form-control" readonly></div>
                         </div>
                         <div class="row">
