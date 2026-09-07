@@ -100,13 +100,13 @@ function getJenisProspek($db, $salesActivityId) {
     }
     
     if ($jenis_tugas === 'Negosiasi') {
-        return 'Hot Prospek';
+        return 'Hot Prospect';
     }
     
     $mapping = [
-        'Perkenalan' => 'Low Prospek',
-        'Visit/Meeting' => 'Middle Prospek',
-        'Prospecting' => 'Hot Prospek',
+        'Perkenalan' => 'Suspect',
+        'Visit/Meeting' => 'Prospect',
+        'Prospecting' => 'Hot Prospect',
         'Kontrak' => 'Deal',
         'After Sales' => 'Deal'
     ];
@@ -255,9 +255,9 @@ $chartActivities = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Hitung rekap untuk chart
 $prospekCounts = [
-    'Low Prospek' => 0,
-    'Middle Prospek' => 0,
-    'Hot Prospek' => 0,
+    'Suspect' => 0,
+    'Prospect' => 0,
+    'Hot Prospect' => 0,
     'Deal' => 0,
     'Lost Deal' => 0
 ];
@@ -568,9 +568,9 @@ $role = $_SESSION['role'] ?? 'user';
             font-weight: 600;
             white-space: nowrap;
         }
-        .badge-prospek.low-prospek { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-prospek.middle-prospek { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
-        .badge-prospek.hot-prospek { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
+        .badge-prospek.suspect { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
+        .badge-prospek.prospect { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
+        .badge-prospek.hot-prospect { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
         .badge-prospek.deal-prospek { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-prospek.lost-deal { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
 
@@ -887,9 +887,9 @@ $role = $_SESSION['role'] ?? 'user';
                                                 $jenisProspek = $act['jenis_prospek'] ?? null;
                                                 $badgeClass = '';
                                                 switch ($jenisProspek) {
-                                                    case 'Low Prospek': $badgeClass = 'low-prospek'; break;
-                                                    case 'Middle Prospek': $badgeClass = 'middle-prospek'; break;
-                                                    case 'Hot Prospek': $badgeClass = 'hot-prospek'; break;
+                                                    case 'Suspect': $badgeClass = 'suspect'; break;
+                                                    case 'Prospect': $badgeClass = 'prospect'; break;
+                                                    case 'Hot Prospect': $badgeClass = 'hot-prospect'; break;
                                                     case 'Deal': $badgeClass = 'deal-prospek'; break;
                                                     case 'Lost Deal': $badgeClass = 'lost-deal'; break;
                                                 }
@@ -1147,26 +1147,26 @@ $role = $_SESSION['role'] ?? 'user';
             type: 'doughnut',
             data: {
                 labels: [
-                    'Low Prospek (<?= $prospekCounts['Low Prospek'] ?>)',
-                    'Middle Prospek (<?= $prospekCounts['Middle Prospek'] ?>)',
-                    'Hot Prospek (<?= $prospekCounts['Hot Prospek'] ?>)',
+                    'Suspect (<?= $prospekCounts['Suspect'] ?>)',
+                    'Prospect (<?= $prospekCounts['Prospect'] ?>)',
+                    'Hot Prospect (<?= $prospekCounts['Hot Prospect'] ?>)',
                     'Deal (<?= $prospekCounts['Deal'] ?>)',
                     'Lost Deal (<?= $prospekCounts['Lost Deal'] ?>)'
                 ],
                 datasets: [{
                     data: [
-                        <?= $prospekCounts['Low Prospek'] ?>,
-                        <?= $prospekCounts['Middle Prospek'] ?>,
-                        <?= $prospekCounts['Hot Prospek'] ?>,
+                        <?= $prospekCounts['Suspect'] ?>,
+                        <?= $prospekCounts['Prospect'] ?>,
+                        <?= $prospekCounts['Hot Prospect'] ?>,
                         <?= $prospekCounts['Deal'] ?>,
                         <?= $prospekCounts['Lost Deal'] ?>
                     ],
                     backgroundColor: [
-                        '#2980b9',
-                        '#8e44ad',
-                        '#d4a017',
+                        '#3498db',
+                        '#9b59b6',
+                        '#f39c12',
                         '#27ae60',
-                        '#c0392b'
+                        '#e74c3c'
                     ],
                     borderWidth: 3,
                     borderColor: '#ffffff',
