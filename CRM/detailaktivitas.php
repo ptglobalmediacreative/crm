@@ -249,18 +249,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $errors[] = 'Data detail tidak ditemukan!';
         }
         
-        // Jika jenis_tugas = Negosiasi, wajib isi customer_deal
-        if ($detail && $detail['jenis_tugas'] === 'Negosiasi') {
+        // ============================================
+        // JIKA JENIS TUGAS = DELIVERY ORDER
+        // Wajib isi customer_deal
+        // Yes = Deal, No = Lost Deal
+        // ============================================
+        if ($detail && $detail['jenis_tugas'] === 'Delivery Order') {
             if (empty($customer_deal)) $errors[] = 'Customer Deal wajib dipilih!';
+            
             // Generate DI Number hanya jika Customer Deal = Yes
             if ($customer_deal === 'Yes') {
                 $di_number = generateDINumber($db);
             }
         }
         
-        // Jika jenis_tugas = Kontrak, Delivery Order, atau After Sales, ambil TR & DI Number dari Negosiasi sebelumnya
-        if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'Delivery Order' || $detail['jenis_tugas'] === 'After Sales')) {
-            $stmt = $db->prepare("SELECT tr_number, di_number, customer_deal FROM activity_details 
+        // Untuk Negosiasi, Kontrak, dan After Sales ambil TR & DI Number dari data sebelumnya
+        if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales')) {
+            $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details 
                                   WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
                                   ORDER BY id DESC LIMIT 1");
             $stmt->execute([$detail['sales_activity_id']]);
@@ -268,10 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             if ($negosiasiData) {
                 $tr_number = $negosiasiData['tr_number'];
-                
-                if ($negosiasiData['customer_deal'] === 'Yes' && !empty($negosiasiData['di_number'])) {
-                    $di_number = $negosiasiData['di_number'];
-                }
+                $di_number = $negosiasiData['di_number'];
             }
         }
         
@@ -477,7 +479,7 @@ foreach ($detailsList as $d) {
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;500;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -507,7 +509,7 @@ foreach ($detailsList as $d) {
         }
         .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
         .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text h5 { font-weight: 500; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
+        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
         .sidebar .brand .brand-text h5 span { color: #ffd700; }
         .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
 
@@ -553,7 +555,7 @@ foreach ($detailsList as $d) {
             margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
         }
         .page-header h4 { 
-            font-weight: 500; color: #0e1a2b; font-size: 24px; margin:0; 
+            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
             letter-spacing: -0.5px;
         }
         .page-header h4 span { color: #ffd700; }
@@ -572,7 +574,7 @@ foreach ($detailsList as $d) {
             border-bottom: 1px solid #f0f2f5;
         }
         .info-card .info-item:last-child { border-bottom: none; }
-        .info-card .info-label { font-weight: 600; color: #555; width: 150px; flex-shrink: 0; font-size: 13px; }
+        .info-card .info-label { font-weight: 600; color: #555; width: 180px; flex-shrink: 0; font-size: 13px; }
         .info-card .info-value { color: #0e1a2b; font-size: 13px; }
 
         .card-custom {
@@ -632,7 +634,7 @@ foreach ($detailsList as $d) {
             font-weight: 600;
             white-space: nowrap;
         }
-        .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2950b9; }
+        .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-tugas.Visit\/Meeting { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
         .badge-tugas.Prospecting { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
         .badge-tugas.Negosiasi { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
@@ -647,7 +649,7 @@ foreach ($detailsList as $d) {
             font-weight: 600;
             white-space: nowrap;
         }
-        .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2950b9; }
+        .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
         .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
         .badge-status.overdue { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
 
@@ -666,8 +668,6 @@ foreach ($detailsList as $d) {
         .btn-action:hover { transform: scale(1.1); }
         .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
         .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
-        .btn-action.edit { background: rgba(52, 152, 219, 0.1); color: #2950b9; }
-        .btn-action.edit:hover { background: rgba(52, 152, 219, 0.2); }
         .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
         .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
         .btn-action.complete { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
@@ -774,7 +774,7 @@ foreach ($detailsList as $d) {
             }
         }
 
-        @media (max-width: 450px) {
+        @media (max-width: 480px) {
             .modal-body { padding: 14px 16px; }
             .modal-header { padding: 14px 16px; }
             .table-custom { font-size: 11px; }
@@ -910,6 +910,7 @@ foreach ($detailsList as $d) {
                                 <th>Jenis Tugas</th>
                                 <th>TR Number</th>
                                 <th>DI Number</th>
+                                <th>Customer Deal</th>
                                 <th>Due Date</th>
                                 <th>Status</th>
                                 <th>Sales</th>
@@ -932,7 +933,7 @@ foreach ($detailsList as $d) {
                                         <td>
                                             <?php if (!empty($detail['tr_number'])): ?>
                                                 <a href="detailtr.php?tr_number=<?= urlencode($detail['tr_number']) ?>" 
-                                                   style="color: #2950b9; text-decoration: none; font-weight: 600;"
+                                                   style="color: #2980b9; text-decoration: none; font-weight: 600;"
                                                    target="_blank">
                                                     <?= htmlspecialchars($detail['tr_number']) ?>
                                                 </a>
@@ -947,6 +948,19 @@ foreach ($detailsList as $d) {
                                                    target="_blank">
                                                     <?= htmlspecialchars($detail['di_number']) ?>
                                                 </a>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($detail['customer_deal'])): ?>
+                                                <?php if ($detail['customer_deal'] === 'Yes'): ?>
+                                                    <span class="badge-status completed">YES</span>
+                                                <?php elseif ($detail['customer_deal'] === 'No'): ?>
+                                                    <span class="badge-status overdue">NO</span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
@@ -997,7 +1011,7 @@ foreach ($detailsList as $d) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="11" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada aktivitas
                                     </td>
                                 </tr>
@@ -1211,7 +1225,7 @@ foreach ($detailsList as $d) {
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2950b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
@@ -1220,12 +1234,6 @@ foreach ($detailsList as $d) {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastNegosiasi.di_number) + '" style="color: #27ae60;" target="_blank">' + lastNegosiasi.di_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
-                    }
-                    
-                    if (lastNegosiasi.customer_deal) {
-                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> ' + lastNegosiasi.customer_deal + '</div>';
-                    } else {
-                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> -</div>';
                     }
                     
                     infoHtml += '</div>';
@@ -1274,7 +1282,7 @@ foreach ($detailsList as $d) {
                     ${data.tr_number ? `
                     <div class="info-item">
                         <div class="info-label">TR Number</div>
-                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2950b9; font-weight: 600;" target="_blank">${data.tr_number}</a></div>
+                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2980b9; font-weight: 600;" target="_blank">${data.tr_number}</a></div>
                     </div>` : ''}
                     ${data.di_number ? `
                     <div class="info-item">
@@ -1327,12 +1335,13 @@ foreach ($detailsList as $d) {
                 existingContainer.remove();
             }
             
-            if (data.jenis_tugas === 'Negosiasi') {
+            // HANYA Delivery Order yang menampilkan Customer Deal
+            if (data.jenis_tugas === 'Delivery Order') {
                 document.getElementById('customerDealFieldComplete').style.display = 'block';
                 document.getElementById('customer_deal_complete').required = true;
             }
             
-            if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'Delivery Order' || data.jenis_tugas === 'After Sales') {
+            if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
                 var infoHtml = '';
                 
                 if (negosiasiCompletedList.length > 0) {
@@ -1342,7 +1351,7 @@ foreach ($detailsList as $d) {
                     infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
                     
                     if (lastNegosiasi.tr_number) {
-                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2950b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
@@ -1351,12 +1360,6 @@ foreach ($detailsList as $d) {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastNegosiasi.di_number) + '" style="color: #27ae60;" target="_blank">' + lastNegosiasi.di_number + '</a></div>';
                     } else {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
-                    }
-                    
-                    if (lastNegosiasi.customer_deal) {
-                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> ' + lastNegosiasi.customer_deal + '</div>';
-                    } else {
-                        infoHtml += '<div class="mb-0"><strong>Customer Deal:</strong> -</div>';
                     }
                     
                     infoHtml += '</div>';
