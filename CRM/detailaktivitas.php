@@ -1308,7 +1308,6 @@ foreach ($detailsList as $d) {
             document.getElementById('diNumberFieldComplete').style.display = 'none';
             document.getElementById('customer_deal_complete').value = '';
             
-            // Hapus info negosiasi jika ada
             var existingContainer = document.getElementById('negosiasiInfoContainer');
             if (existingContainer) {
                 existingContainer.remove();
@@ -1360,7 +1359,6 @@ foreach ($detailsList as $d) {
                 infoContainer.id = 'negosiasiInfoContainer';
                 infoContainer.innerHTML = infoHtml;
                 
-                // Insert setelah attachment file
                 var attachmentField = document.getElementById('attachment_file').closest('.mb-3');
                 attachmentField.after(infoContainer);
             }
