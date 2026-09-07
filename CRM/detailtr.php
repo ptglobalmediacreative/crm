@@ -1214,13 +1214,13 @@ if (count($additionalCostItems) == 0) {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= $activeTab == 'additional_cost' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=additional_cost">
-                        <i class="fas fa-coins"></i> Additional Cost
+                    <a class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=mediator">
+                        <i class="fas fa-user-tie"></i> Data Mediator
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= $activeTab == 'mediator' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=mediator">
-                        <i class="fas fa-user-tie"></i> Data Mediator
+                    <a class="nav-link <?= $activeTab == 'additional_cost' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=additional_cost">
+                        <i class="fas fa-coins"></i> Additional Cost
                     </a>
                 </li>
                 <li class="nav-item">
@@ -1231,7 +1231,7 @@ if (count($additionalCostItems) == 0) {
             </ul>
         </div>
 
-                <!-- ============================================ -->
+        <!-- ============================================ -->
         <!-- TAB CONTENT: SUMMARY -->
         <!-- ============================================ -->
         <?php if ($activeTab == 'summary'): ?>
@@ -1798,97 +1798,7 @@ if (count($additionalCostItems) == 0) {
         </div>
         <?php endif; ?>
 
-        <!-- ============================================ -->
-        <!-- TAB CONTENT: ADDITIONAL COST (MULTIPLE ITEMS) -->
-        <!-- ============================================ -->
-        <?php if ($activeTab == 'additional_cost'): ?>
-        <div class="card-custom">
-            <div class="card-header-custom">
-                <h6><i class="fas fa-coins"></i> Additional Cost / Machines</h6>
-                <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleCostForm()">
-                    <i class="fas fa-edit"></i> <?= count($additionalCostItems) > 0 ? 'Edit Cost' : 'Tambah Cost' ?>
-                </button>
-                <?php endif; ?>
-            </div>
-            <div class="card-body-custom">
-                <div id="costFormContainer" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <form method="POST" id="costForm">
-                        <input type="hidden" name="action" value="save_cost">
-                        
-                        <div id="costItemRows">
-                            <!-- Cost item rows akan ditambahkan di sini oleh JavaScript -->
-                        </div>
-                        
-                        <div class="mt-3">
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addCostItemRow()">
-                                <i class="fas fa-plus"></i> Tambah Item
-                            </button>
-                        </div>
-                        
-                        <hr>
-                        
-                        <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan Semua Cost
-                        </button>
-                        <button type="button" class="btn btn-secondary-custom" onclick="toggleCostForm()">
-                            <i class="fas fa-times"></i> Batal
-                        </button>
-                    </form>
-                </div>
-                
-                <div id="viewCost">
-                    <?php if (count($additionalCostItems) > 0): ?>
-                        <?php foreach ($additionalCostItems as $index => $item): ?>
-                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
-                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
-                                    <strong style="color: #0e1a2b;">
-                                        <i class="fas fa-coins" style="color: #ffd700;"></i> 
-                                        <?= htmlspecialchars($item['item_name']) ?>
-                                    </strong>
-                                </div>
-                                <div class="card-body" style="padding: 15px;">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="info-label">Nama Item</div>
-                                            <div class="info-value"><?= htmlspecialchars($item['item_name']) ?></div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="info-label">Nominal</div>
-                                            <div class="info-value">
-                                                <strong style="color: #27ae60;">
-                                                    Rp <?= number_format($item['amount'], 0, ',', '.') ?>
-                                                </strong>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <?php if (!empty($item['keterangan'])): ?>
-                                    <div class="info-label">Keterangan</div>
-                                    <div class="info-value" style="margin-bottom:0;"><?= htmlspecialchars($item['keterangan']) ?></div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                        
-                        <hr>
-                        
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="total-box">
-                                    <span class="total-label">Total Additional Cost</span>
-                                    <span class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-coins me-2"></i> Belum ada data Additional Cost
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
+
 
         <!-- ============================================ -->
         <!-- TAB CONTENT: DATA MEDIATOR (MULTIPLE) -->
@@ -1985,6 +1895,98 @@ if (count($additionalCostItems) == 0) {
                     <?php else: ?>
                         <div class="text-center py-4 text-muted">
                             <i class="fas fa-user-tie me-2"></i> Belum ada data Mediator
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ============================================ -->
+        <!-- TAB CONTENT: ADDITIONAL COST (MULTIPLE ITEMS) -->
+        <!-- ============================================ -->
+        <?php if ($activeTab == 'additional_cost'): ?>
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-coins"></i> Additional Cost / Machines</h6>
+                <?php if ($canEdit): ?>
+                <button class="btn btn-primary-custom btn-sm" onclick="toggleCostForm()">
+                    <i class="fas fa-edit"></i> <?= count($additionalCostItems) > 0 ? 'Edit Cost' : 'Tambah Cost' ?>
+                </button>
+                <?php endif; ?>
+            </div>
+            <div class="card-body-custom">
+                <div id="costFormContainer" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <form method="POST" id="costForm">
+                        <input type="hidden" name="action" value="save_cost">
+                        
+                        <div id="costItemRows">
+                            <!-- Cost item rows akan ditambahkan di sini oleh JavaScript -->
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addCostItemRow()">
+                                <i class="fas fa-plus"></i> Tambah Item
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <button type="submit" class="btn btn-primary-custom">
+                            <i class="fas fa-save"></i> Simpan Semua Cost
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="toggleCostForm()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </form>
+                </div>
+                
+                <div id="viewCost">
+                    <?php if (count($additionalCostItems) > 0): ?>
+                        <?php foreach ($additionalCostItems as $index => $item): ?>
+                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
+                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
+                                    <strong style="color: #0e1a2b;">
+                                        <i class="fas fa-coins" style="color: #ffd700;"></i> 
+                                        <?= htmlspecialchars($item['item_name']) ?>
+                                    </strong>
+                                </div>
+                                <div class="card-body" style="padding: 15px;">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-label">Nama Item</div>
+                                            <div class="info-value"><?= htmlspecialchars($item['item_name']) ?></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-label">Nominal</div>
+                                            <div class="info-value">
+                                                <strong style="color: #27ae60;">
+                                                    Rp <?= number_format($item['amount'], 0, ',', '.') ?>
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php if (!empty($item['keterangan'])): ?>
+                                    <div class="info-label">Keterangan</div>
+                                    <div class="info-value" style="margin-bottom:0;"><?= htmlspecialchars($item['keterangan']) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="total-box">
+                                    <span class="total-label">Total Additional Cost</span>
+                                    <span class="total-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></span>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-coins me-2"></i> Belum ada data Additional Cost
                         </div>
                     <?php endif; ?>
                 </div>
