@@ -1054,6 +1054,62 @@ if (count($additionalCostItems) == 0) {
             margin-bottom: 15px;
         }
 
+        /* Perbaikan untuk tombol hapus kecil */
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 11px;
+            border-radius: 6px;
+        }
+
+        .btn-danger-custom.btn-sm {
+            background: #e74c3c;
+            border: none;
+            padding: 5px 10px;
+            font-size: 11px;
+            transition: all 0.3s ease;
+            color: #fff;
+        }
+
+        .btn-danger-custom.btn-sm:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+            color: #fff;
+        }
+
+        .btn-secondary-custom.btn-sm {
+            background: #f0f2f5;
+            border: none;
+            padding: 5px 10px;
+            font-size: 11px;
+            transition: all 0.3s ease;
+            color: #555;
+        }
+
+        .btn-secondary-custom.btn-sm:hover {
+            background: #e8edf2;
+            color: #333;
+        }
+
+        /* Style untuk header baris dinamis */
+        .cost-item-header, .mediator-header, .d-flex.justify-content-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .cost-item-header strong, .mediator-header strong, .d-flex.justify-content-between strong {
+            color: #0e1a2b;
+            font-size: 14px;
+        }
+
+        .cost-item-header strong i, .mediator-header strong i, .d-flex.justify-content-between strong i {
+            color: #ffd700;
+            margin-right: 5px;
+        }
+
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
