@@ -2099,6 +2099,25 @@ if (count($additionalCostItems) == 0) {
             document.getElementById('approvalAction').value = action;
             document.getElementById('approvalForm').submit();
         }
+
+        // ============================================
+        // FUNGSI UMUM TOGGLE SECTION
+        // ============================================
+        function toggleSection(editId, viewId) {
+            const editEl = document.getElementById(editId);
+            const viewEl = document.getElementById(viewId);
+            if (editEl.style.display === 'none') {
+                editEl.style.display = 'block';
+                viewEl.style.display = 'none';
+                // Jika editSupport yang diklik, load data support
+                if (editId === 'editSupport') {
+                    loadSupportData();
+                }
+            } else {
+                editEl.style.display = 'none';
+                viewEl.style.display = 'block';
+            }
+        }
         
         // ============================================
         // FUNGSI UNTUK DETAIL UNIT
