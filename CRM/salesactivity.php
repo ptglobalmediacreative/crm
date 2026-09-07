@@ -154,6 +154,7 @@ $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 $filterMonth = isset($_GET['month']) ? bersihkan($_GET['month']) : date('Y-m');
 $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $filterJenisProspek = isset($_GET['jenis_prospek']) ? bersihkan($_GET['jenis_prospek']) : '';
+$filterStatus = isset($_GET['status']) ? bersihkan($_GET['status']) : '';
 
 $where = "WHERE 1=1";
 $params = [];
@@ -182,6 +183,12 @@ if (!empty($filterJenisProspek)) {
     $params[] = $filterJenisProspek;
 }
 
+// Filter Status
+if (!empty($filterStatus)) {
+    $where .= " AND sa.status = ?";
+    $params[] = $filterStatus;
+}
+
 // ============================================
 // EXPORT TO EXCEL
 // ============================================
@@ -208,6 +215,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<p>Filter Bulan: ' . date('F Y', strtotime($filterMonth . '-01')) . '</p>';
     if (!empty($filterJenisProspek)) {
         echo '<p>Filter Jenis Prospek: ' . htmlspecialchars($filterJenisProspek) . '</p>';
+    }
+    if (!empty($filterStatus)) {
+        echo '<p>Filter Status: ' . htmlspecialchars($filterStatus) . '</p>';
     }
     echo '<table border="1" cellpadding="5" cellspacing="0">';
     echo '<thead>';
@@ -320,7 +330,6 @@ unset($act);
 // AMBIL DATA ACCOUNTS UNTUK DROPDOWN
 // ============================================
 if ($userRole === 'sales') {
-    // Sales hanya melihat account miliknya
     $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
                     FROM accounts 
                     WHERE sales_id = ? 
@@ -329,7 +338,6 @@ if ($userRole === 'sales') {
     $stmt->execute([$userId]);
     $accountsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    // Non-sales melihat semua account
     $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
                     FROM accounts ORDER BY nama_pt ASC";
     $accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
@@ -351,12 +359,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $account_id = (int)$_POST['account_id'];
         
-        // Ambil sales_id dari account yang dipilih
         $stmt = $db->prepare("SELECT sales_id FROM accounts WHERE id = ?");
         $stmt->execute([$account_id]);
         $accountSalesId = $stmt->fetchColumn();
         
-        // Untuk sales, validasi bahwa account adalah miliknya
         if ($userRole === 'sales') {
             if ($accountSalesId != $userId) {
                 setFlash('Anda tidak bisa menambahkan aktivitas untuk account milik sales lain!', 'danger');
@@ -364,7 +370,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $sales_id = $userId;
         } else {
-            // Sales otomatis dari account management
             $sales_id = $accountSalesId ? (int)$accountSalesId : NULL;
         }
         
@@ -807,7 +812,7 @@ $role = $_SESSION['role'] ?? 'user';
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&search=<?= urlencode($search) ?>" class="btn btn-success-custom">
+                <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>&search=<?= urlencode($search) ?>" class="btn btn-success-custom">
                     <i class="fas fa-file-excel"></i> Export Excel
                 </a>
                 <?php if (canAdd('sales_activity')): ?>
@@ -820,7 +825,6 @@ $role = $_SESSION['role'] ?? 'user';
 
         <!-- CHART GRID -->
         <div class="chart-grid">
-            <!-- Chart Jenis Prospek -->
             <div class="chart-card">
                 <h6><i class="fas fa-filter" style="color:#ffd700;"></i> Rekap Jenis Prospek</h6>
                 <div class="chart-wrapper">
@@ -828,7 +832,6 @@ $role = $_SESSION['role'] ?? 'user';
                 </div>
             </div>
             
-            <!-- Chart Status -->
             <div class="chart-card">
                 <h6><i class="fas fa-tasks" style="color:#2980b9;"></i> Rekap Status</h6>
                 <div class="chart-wrapper">
@@ -853,6 +856,13 @@ $role = $_SESSION['role'] ?? 'user';
                         <option value="Lost Deal" <?= $filterJenisProspek === 'Lost Deal' ? 'selected' : '' ?>>Lost Deal</option>
                     </select>
                     
+                    <select name="status" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
+                        <option value="">Semua Status</option>
+                        <option value="In Progress" <?= $filterStatus === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+                        <option value="Completed" <?= $filterStatus === 'Completed' ? 'selected' : '' ?>>Completed</option>
+                        <option value="Overdue" <?= $filterStatus === 'Overdue' ? 'selected' : '' ?>>Overdue</option>
+                    </select>
+                    
                     <?php if ($userRole !== 'sales'): ?>
                     <select name="sales_id" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                         <option value="0">Semua Sales</option>
@@ -866,7 +876,7 @@ $role = $_SESSION['role'] ?? 'user';
                     
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 180px;">
                     <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
-                    <?php if (!empty($search) || $filterMonth !== date('Y-m') || $filterSalesId > 0 || !empty($filterJenisProspek)): ?>
+                    <?php if (!empty($search) || $filterMonth !== date('Y-m') || $filterSalesId > 0 || !empty($filterJenisProspek) || !empty($filterStatus)): ?>
                         <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i> Reset</a>
                     <?php endif; ?>
                 </form>
@@ -971,15 +981,15 @@ $role = $_SESSION['role'] ?? 'user';
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
@@ -1135,7 +1145,6 @@ $role = $_SESSION['role'] ?? 'user';
                     $('#nama_pic').val(selectedOption.data('nama_pic'));
                     $('#no_hp_pic').val(selectedOption.data('no_hp_pic'));
                     
-                    // Auto isi Sales
                     var salesId = selectedOption.data('sales_id');
                     if (salesId) {
                         $('#sales_id_hidden').val(salesId);
@@ -1161,9 +1170,7 @@ $role = $_SESSION['role'] ?? 'user';
             });
         });
 
-        // ============================================
         // CHART JENIS PROSPEK
-        // ============================================
         const ctxProspek = document.getElementById('chartJenisProspek').getContext('2d');
         new Chart(ctxProspek, {
             type: 'doughnut',
@@ -1183,13 +1190,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <?= $prospekCounts['Deal'] ?>,
                         <?= $prospekCounts['Lost Deal'] ?>
                     ],
-                    backgroundColor: [
-                        '#3498db',
-                        '#9b59b6',
-                        '#f39c12',
-                        '#27ae60',
-                        '#e74c3c'
-                    ],
+                    backgroundColor: ['#3498db', '#9b59b6', '#f39c12', '#27ae60', '#e74c3c'],
                     borderWidth: 3,
                     borderColor: '#ffffff',
                     hoverOffset: 10
@@ -1201,36 +1202,13 @@ $role = $_SESSION['role'] ?? 'user';
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15,
-                            font: { family: 'Inter', size: 12, weight: '600' }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        titleColor: '#0e1a2b',
-                        bodyColor: '#0e1a2b',
-                        borderColor: '#e0e4ea',
-                        borderWidth: 1,
-                        cornerRadius: 10,
-                        padding: 12,
-                        callbacks: {
-                            label: function(context) {
-                                var value = context.raw || 0;
-                                var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
-                                var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                return ' Total: ' + value + ' (' + percentage + '%)';
-                            }
-                        }
+                        labels: { usePointStyle: true, padding: 15, font: { family: 'Inter', size: 12, weight: '600' } }
                     }
                 }
             }
         });
 
-        // ============================================
         // CHART STATUS
-        // ============================================
         const ctxStatus = document.getElementById('chartStatus').getContext('2d');
         new Chart(ctxStatus, {
             type: 'doughnut',
@@ -1246,11 +1224,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <?= $statusCounts['Completed'] ?>,
                         <?= $statusCounts['Overdue'] ?>
                     ],
-                    backgroundColor: [
-                        '#2980b9',
-                        '#27ae60',
-                        '#c0392b'
-                    ],
+                    backgroundColor: ['#2980b9', '#27ae60', '#c0392b'],
                     borderWidth: 3,
                     borderColor: '#ffffff',
                     hoverOffset: 10
@@ -1262,28 +1236,7 @@ $role = $_SESSION['role'] ?? 'user';
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15,
-                            font: { family: 'Inter', size: 12, weight: '600' }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        titleColor: '#0e1a2b',
-                        bodyColor: '#0e1a2b',
-                        borderColor: '#e0e4ea',
-                        borderWidth: 1,
-                        cornerRadius: 10,
-                        padding: 12,
-                        callbacks: {
-                            label: function(context) {
-                                var value = context.raw || 0;
-                                var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
-                                var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                return ' Total: ' + value + ' (' + percentage + '%)';
-                            }
-                        }
+                        labels: { usePointStyle: true, padding: 15, font: { family: 'Inter', size: 12, weight: '600' } }
                     }
                 }
             }
@@ -1291,50 +1244,17 @@ $role = $_SESSION['role'] ?? 'user';
 
         function detailActivity(data) {
             var html = `
-                <div class="detail-item">
-                    <div class="detail-label">Leads Number</div>
-                    <div class="detail-value"><strong>${data.leads_number}</strong></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Jenis Prospek</div>
-                    <div class="detail-value">${data.jenis_prospek || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Status</div>
-                    <div class="detail-value">${data.status_prospek || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Nama PT</div>
-                    <div class="detail-value">${data.nama_pt || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Badan Usaha</div>
-                    <div class="detail-value">${data.badan_usaha || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Business Segment</div>
-                    <div class="detail-value">${data.bidang_usaha || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Nama PIC</div>
-                    <div class="detail-value">${data.nama_pic || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Contact Mobile</div>
-                    <div class="detail-value">${data.no_hp_pic || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Email PIC</div>
-                    <div class="detail-value">${data.email_pic || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Sales</div>
-                    <div class="detail-value">${data.sales_name || '-'}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Tanggal Dibuat</div>
-                    <div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
+                <div class="detail-item"><div class="detail-label">Leads Number</div><div class="detail-value"><strong>${data.leads_number}</strong></div></div>
+                <div class="detail-item"><div class="detail-label">Jenis Prospek</div><div class="detail-value">${data.jenis_prospek || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${data.status_prospek || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Nama PT</div><div class="detail-value">${data.nama_pt || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Badan Usaha</div><div class="detail-value">${data.badan_usaha || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Business Segment</div><div class="detail-value">${data.bidang_usaha || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Nama PIC</div><div class="detail-value">${data.nama_pic || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Contact Mobile</div><div class="detail-value">${data.no_hp_pic || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Email PIC</div><div class="detail-value">${data.email_pic || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Sales</div><div class="detail-value">${data.sales_name || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">Tanggal Dibuat</div><div class="detail-value">${new Date(data.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>
             `;
             document.getElementById('detailBody').innerHTML = html;
             var modal = new bootstrap.Modal(document.getElementById('modalDetail'));
