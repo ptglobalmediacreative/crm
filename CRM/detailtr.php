@@ -330,27 +330,12 @@ try {
     $trSupports = [];
 }
 
-// Group supports by type
-$supportsGrouped = [
-    'free_filter_engine' => [],
-    'jarak_service' => [],
-    'catatan' => [],
-    'free_service' => [],
-    'warranty' => []
-];
-foreach ($trSupports as $support) {
-    if (isset($supportsGrouped[$support['support_type']])) {
-        $supportsGrouped[$support['support_type']][] = $support;
-    }
-}
-
 // ============================================
 // HANDLE FORM SUBMISSION
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    // TAMBAH save_product_support ke editActions
     $editActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_cost', 'save_mediator', 'save_product_support'];
     if (in_array($action, $editActions) && !$canEdit) {
         if ($hasBeenApproved) {
@@ -671,7 +656,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // ============================================
-    // SAVE PRODUCT SUPPORT (BARU)
+    // SAVE PRODUCT SUPPORT (BARU - DENGAN NAMA DAN KETERANGAN)
     // ============================================
     if ($action === 'save_product_support') {
         try {
@@ -681,21 +666,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
             
-            $supportTypes = [
-                'free_filter_engine' => $_POST['free_filter_engine'] ?? [],
-                'jarak_service' => $_POST['jarak_service'] ?? [],
-                'catatan' => $_POST['catatan'] ?? [],
-                'free_service' => $_POST['free_service'] ?? [],
-                'warranty' => $_POST['warranty'] ?? []
-            ];
+            // Ambil data dari form
+            $support_names = $_POST['support_name'] ?? [];
+            $support_keterangans = $_POST['support_keterangan'] ?? [];
             
-            foreach ($supportTypes as $type => $values) {
-                foreach ($values as $value) {
-                    if (!empty($value)) {
-                        $insertSql = "INSERT INTO tr_product_supports (trf_number, support_type, value, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
-                        $insertStmt = $db->prepare($insertSql);
-                        $insertStmt->execute([$tr_number, $type, $value]);
-                    }
+            foreach ($support_names as $index => $name) {
+                if (!empty($name)) {
+                    $keterangan = $support_keterangans[$index] ?? '';
+                    
+                    $insertSql = "INSERT INTO tr_product_supports (trf_number, support_name, keterangan, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
+                    $insertStmt = $db->prepare($insertSql);
+                    $insertStmt->execute([$tr_number, $name, $keterangan]);
                 }
             }
             
@@ -1065,7 +1046,7 @@ if (count($additionalCostItems) == 0) {
         .tab-nav .nav-tabs .nav-link:hover { background: #f8f9fa; color: #0e1a2b; }
         .tab-nav .nav-tabs .nav-link.active { background: #0e1a2b; color: #ffd700; }
 
-        .cost-item-row, .mediator-row {
+        .support-row {
             background: #fff;
             border: 1px solid #e0e4ea;
             border-radius: 8px;
@@ -1194,7 +1175,7 @@ if (count($additionalCostItems) == 0) {
             </ul>
         </div>
 
-        <!-- ============================================ -->
+                <!-- ============================================ -->
         <!-- TAB CONTENT: SUMMARY -->
         <!-- ============================================ -->
         <?php if ($activeTab == 'summary'): ?>
@@ -1956,7 +1937,7 @@ if (count($additionalCostItems) == 0) {
         <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- TAB CONTENT: PRODUCT SUPPORT (BARU) -->
+        <!-- TAB CONTENT: PRODUCT SUPPORT (BARU - NAMA & KETERANGAN) -->
         <!-- ============================================ -->
         <?php if ($activeTab == 'product_support'): ?>
         <div class="card-custom">
@@ -1973,85 +1954,20 @@ if (count($additionalCostItems) == 0) {
                     <form method="POST">
                         <input type="hidden" name="action" value="save_product_support">
                         
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Free Filter Engine</label>
-                            <div id="ffeContainer">
-                                <?php foreach ($supportsGrouped['free_filter_engine'] as $item): ?>
-                                    <input type="text" name="free_filter_engine[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Free Filter Engine">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['free_filter_engine']) == 0): ?>
-                                    <input type="text" name="free_filter_engine[]" class="form-control mb-2" placeholder="Free Filter Engine">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('ffeContainer', 'free_filter_engine[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
+                        <div id="supportRows">
+                            <!-- Support rows akan ditambahkan di sini oleh JavaScript -->
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Jarak Service</label>
-                            <div id="jsContainer">
-                                <?php foreach ($supportsGrouped['jarak_service'] as $item): ?>
-                                    <input type="text" name="jarak_service[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Jarak Service">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['jarak_service']) == 0): ?>
-                                    <input type="text" name="jarak_service[]" class="form-control mb-2" placeholder="Jarak Service">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('jsContainer', 'jarak_service[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Catatan</label>
-                            <div id="catatanContainer">
-                                <?php foreach ($supportsGrouped['catatan'] as $item): ?>
-                                    <input type="text" name="catatan[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Catatan">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['catatan']) == 0): ?>
-                                    <input type="text" name="catatan[]" class="form-control mb-2" placeholder="Catatan">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('catatanContainer', 'catatan[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Free Service</label>
-                            <div id="fsContainer">
-                                <?php foreach ($supportsGrouped['free_service'] as $item): ?>
-                                    <input type="text" name="free_service[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Free Service">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['free_service']) == 0): ?>
-                                    <input type="text" name="free_service[]" class="form-control mb-2" placeholder="Free Service">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('fsContainer', 'free_service[]')">
-                                <i class="fas fa-plus"></i> Tambah
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Warranty</label>
-                            <div id="warrantyContainer">
-                                <?php foreach ($supportsGrouped['warranty'] as $item): ?>
-                                    <input type="text" name="warranty[]" class="form-control mb-2" value="<?= htmlspecialchars($item['value']) ?>" placeholder="Warranty">
-                                <?php endforeach; ?>
-                                <?php if (count($supportsGrouped['warranty']) == 0): ?>
-                                    <input type="text" name="warranty[]" class="form-control mb-2" placeholder="Warranty">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addInputRow('warrantyContainer', 'warranty[]')">
-                                <i class="fas fa-plus"></i> Tambah
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addSupportRow()">
+                                <i class="fas fa-plus"></i> Tambah Support
                             </button>
                         </div>
                         
                         <hr>
                         
                         <button type="submit" class="btn btn-primary-custom">
-                            <i class="fas fa-save"></i> Simpan Product Support
+                            <i class="fas fa-save"></i> Simpan Semua Support
                         </button>
                         <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editSupport', 'viewSupport')">
                             <i class="fas fa-times"></i> Batal
@@ -2061,45 +1977,28 @@ if (count($additionalCostItems) == 0) {
                 
                 <div id="viewSupport">
                     <?php if (count($trSupports) > 0): ?>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <?php if (count($supportsGrouped['free_filter_engine']) > 0): ?>
-                                    <div class="info-label">Free Filter Engine</div>
-                                    <?php foreach ($supportsGrouped['free_filter_engine'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                
-                                <?php if (count($supportsGrouped['jarak_service']) > 0): ?>
-                                    <div class="info-label">Jarak Service</div>
-                                    <?php foreach ($supportsGrouped['jarak_service'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                
-                                <?php if (count($supportsGrouped['catatan']) > 0): ?>
-                                    <div class="info-label">Catatan</div>
-                                    <?php foreach ($supportsGrouped['catatan'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                        <?php foreach ($trSupports as $index => $support): ?>
+                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
+                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
+                                    <strong style="color: #0e1a2b;">
+                                        <i class="fas fa-headset" style="color: #ffd700;"></i> 
+                                        Support <?= $index + 1 ?>
+                                    </strong>
+                                </div>
+                                <div class="card-body" style="padding: 15px;">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-label">Nama Support</div>
+                                            <div class="info-value"><?= htmlspecialchars($support['support_name']) ?></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-label">Keterangan</div>
+                                            <div class="info-value"><?= htmlspecialchars($support['keterangan'] ?: '-') ?></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <?php if (count($supportsGrouped['free_service']) > 0): ?>
-                                    <div class="info-label">Free Service</div>
-                                    <?php foreach ($supportsGrouped['free_service'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                
-                                <?php if (count($supportsGrouped['warranty']) > 0): ?>
-                                    <div class="info-label">Warranty</div>
-                                    <?php foreach ($supportsGrouped['warranty'] as $item): ?>
-                                        <div class="info-value"><?= htmlspecialchars($item['value']) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                        <?php endforeach; ?>
                     <?php else: ?>
                         <div class="text-center py-4 text-muted">
                             <i class="fas fa-headset me-2"></i> Belum ada data product support
@@ -2127,14 +2026,70 @@ if (count($additionalCostItems) == 0) {
             }
         }
         
-        function addInputRow(containerId, inputName) {
-            const container = document.getElementById(containerId);
-            const newInput = document.createElement('input');
-            newInput.type = 'text';
-            newInput.name = inputName;
-            newInput.className = 'form-control mb-2';
-            newInput.placeholder = inputName.replace('[]', '');
-            container.appendChild(newInput);
+        // ============================================
+        // FUNGSI UNTUK PRODUCT SUPPORT (NAMA & KETERANGAN)
+        // ============================================
+        let supportRowCount = 0;
+        
+        function addSupportRow(data = null) {
+            supportRowCount++;
+            const container = document.getElementById('supportRows');
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'support-row';
+            rowDiv.id = 'supportRow_' + supportRowCount;
+            
+            rowDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid #f0f2f5;">
+                    <strong><i class="fas fa-headset" style="color: #ffd700;"></i> Support ${supportRowCount}</strong>
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeSupportRow(${supportRowCount})">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nama Support *</label>
+                        <input type="text" name="support_name[]" class="form-control" placeholder="Contoh: Free Filter Engine, Jarak Service, dll" value="${data ? data.support_name : ''}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Keterangan</label>
+                        <input type="text" name="support_keterangan[]" class="form-control" placeholder="Keterangan (opsional)" value="${data ? data.keterangan : ''}">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(rowDiv);
+        }
+        
+        function removeSupportRow(rowId) {
+            const row = document.getElementById('supportRow_' + rowId);
+            if (row) {
+                row.remove();
+                const rows = document.querySelectorAll('.support-row');
+                rows.forEach((row, index) => {
+                    const title = row.querySelector('strong');
+                    if (title) {
+                        title.innerHTML = `<i class="fas fa-headset" style="color: #ffd700;"></i> Support ${index + 1}`;
+                    }
+                });
+            }
+        }
+        
+        function loadSupportData() {
+            const container = document.getElementById('supportRows');
+            container.innerHTML = '';
+            supportRowCount = 0;
+            
+            <?php if (count($trSupports) > 0): ?>
+                <?php foreach ($trSupports as $support): ?>
+                    addSupportRow({
+                        support_name: '<?= addslashes($support['support_name']) ?>',
+                        keterangan: '<?= addslashes($support['keterangan'] ?? '') ?>'
+                    });
+                <?php endforeach; ?>
+            <?php else: ?>
+                addSupportRow();
+            <?php endif; ?>
         }
         
         function removeRow(button) {
@@ -2161,6 +2116,16 @@ if (count($additionalCostItems) == 0) {
             document.getElementById('approvalAction').value = action;
             document.getElementById('approvalForm').submit();
         }
+        
+        // Load data support saat edit diklik
+        document.addEventListener('DOMContentLoaded', function() {
+            const editBtn = document.querySelector('button[onclick*="toggleSection(\'editSupport\'"]');
+            if (editBtn) {
+                editBtn.addEventListener('click', function() {
+                    loadSupportData();
+                });
+            }
+        });
     </script>
 </body>
 </html>
