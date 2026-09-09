@@ -772,7 +772,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $selling_price = 0;
             foreach ($detailUnits as $unit) {
-                $selling_price += (float)$unit['grand_total'];
+                $selling_price += (float)$unit['price'];
             }
 
             $total_cogs = $support_price + $additional_cost;
