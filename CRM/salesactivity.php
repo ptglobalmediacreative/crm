@@ -45,23 +45,22 @@ function getRoleLabel($role) {
 function generateLeadsNumber($db) {
     $tahun = date('Y');
     $bulan = date('n');
-    $romawi = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-    $bulanRomawi = $romawi[$bulan];
-    
-    $pattern = "%/GET-ACT/JKT/{$bulanRomawi}/{$tahun}%";
-    $stmt = $db->prepare("SELECT leads_number FROM sales_activities WHERE leads_number LIKE ? ORDER BY id DESC LIMIT 1");
+    $bulanRomawi = getBulanRomawi($bulan);
+
+    // Ambil nomor terbesar pada periode berjalan.
+    // Tidak bergantung pada ID terakhir sehingga tetap benar setelah penghapusan.
+    $pattern = "%/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
+
+    $stmt = $db->prepare("
+        SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(leads_number, '/', 1) AS UNSIGNED)), 0)
+        FROM sales_activities
+        WHERE leads_number LIKE ?
+    ");
     $stmt->execute([$pattern]);
-    $lastNumber = $stmt->fetchColumn();
-    
-    if ($lastNumber) {
-        $parts = explode('/', $lastNumber);
-        $lastSequence = (int)$parts[0];
-        $nextSequence = $lastSequence + 1;
-        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-    } else {
-        $sequence = '0001';
-    }
-    
+    $lastSequence = (int)$stmt->fetchColumn();
+
+    $sequence = str_pad((string)($lastSequence + 1), 4, '0', STR_PAD_LEFT);
+
     return "{$sequence}/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
 }
 
@@ -71,6 +70,66 @@ function generateLeadsNumber($db) {
 function getBulanRomawi($month) {
     $romawi = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
     return $romawi[(int)$month];
+}
+
+// ============================================
+// RENUMBER SEMUA ACTIVITY NUMBER
+// Format: 0001/GET-ACT/JKT/IX/2026
+// Diurutkan PER PERIODE berdasarkan created_at, lalu id.
+// ============================================
+function renumberAllActivityNumbers($db) {
+    $stmt = $db->query("
+        SELECT id, leads_number,
+               SUBSTRING_INDEX(leads_number, '/GET-ACT/JKT/', -1) AS period
+        FROM sales_activities
+        WHERE leads_number IS NOT NULL
+          AND TRIM(leads_number) <> ''
+        ORDER BY period ASC, created_at ASC, id ASC
+    ");
+
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!$rows) return 0;
+
+    $sequenceByPeriod = [];
+    $mapping = [];
+
+    foreach ($rows as $row) {
+        $period = $row['period'];
+        if (!isset($sequenceByPeriod[$period])) {
+            $sequenceByPeriod[$period] = 1;
+        }
+
+        $mapping[(int)$row['id']] = [
+            'old' => $row['leads_number'],
+            'new' => str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
+                   . '/GET-ACT/JKT/' . $period
+        ];
+        $sequenceByPeriod[$period]++;
+    }
+
+    $needsUpdate = false;
+    foreach ($mapping as $item) {
+        if ($item['old'] !== $item['new']) {
+            $needsUpdate = true;
+            break;
+        }
+    }
+    if (!$needsUpdate) return 0;
+
+    // Nomor sementara mencegah benturan UNIQUE KEY saat 0002 -> 0001, dst.
+    $token = '__ACT_RENUMBER_' . bin2hex(random_bytes(8)) . '__';
+
+    $stmtTemp = $db->prepare("UPDATE sales_activities SET leads_number = ? WHERE id = ?");
+    foreach ($mapping as $id => $item) {
+        $stmtTemp->execute([$token . $id, $id]);
+    }
+
+    $stmtFinal = $db->prepare("UPDATE sales_activities SET leads_number = ? WHERE id = ?");
+    foreach ($mapping as $id => $item) {
+        $stmtFinal->execute([$item['new'], $id]);
+    }
+
+    return count($mapping);
 }
 
 
@@ -610,8 +669,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             $result = deleteSalesActivityAndRelatedData($db, $id);
 
+            // Setelah activity dihapus, rapikan Activity Number per periode.
+            renumberAllActivityNumbers($db);
+
             setFlash(
-                'Sales Activity berhasil dihapus. Data Detail Aktivitas dan Transaction Request terkait sudah dibersihkan, lalu nomor TR yang tersisa sudah dirapikan kembali.',
+                'Sales Activity berhasil dihapus. Data Detail Aktivitas dan Transaction Request terkait sudah dibersihkan, lalu nomor TR dan Activity Number yang tersisa sudah dirapikan kembali.',
                 'success'
             );
         } catch (Throwable $e) {
