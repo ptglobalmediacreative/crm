@@ -2200,7 +2200,7 @@ if (count($additionalCostItems) == 0) {
                         <div class="row">
                             <div class="col-md-4 mb-3"><label class="form-label">Additional Cost</label><input type="text" class="form-control" value="Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?>" readonly></div>
                             <div class="col-md-4 mb-3"><label class="form-label">Total COGS</label><input type="text" id="total_cogs_display" class="form-control" readonly></div>
-                            <div class="col-md-4 mb-3"><label class="form-label">Selling Price to Customer</label><input type="text" class="form-control" value="Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?>" readonly></div>
+                            <div class="col-md-4 mb-3"><label class="form-label">Selling Price to Customer</label><input type="text" class="form-control" value="Rp <?= number_format($totalUnitPrice, 0, ',', '.') ?>" readonly></div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3"><label class="form-label">Dealer Profit Request</label><input type="text" id="dealer_profit_display" class="form-control" readonly style="font-weight: bold; color: #27ae60;"></div>
