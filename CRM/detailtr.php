@@ -139,15 +139,32 @@ try {
 $request['status'] = $statusTR;
 
 // ============================================
-// CEK HAK EDIT
+// CEK HAK EDIT PER DIVISI / SECTION
 // ============================================
-$canEdit = false;
-if ($userRole === 'sales' && isset($request['sales_user_id']) && $request['sales_user_id'] == $userId) {
-    $canEdit = true;
+// Sales hanya boleh mengelola TR miliknya sendiri untuk:
+// Summary, Detail Unit, Term Of Payment, dan Data Mediator.
+$canEditSalesSection = (
+    $userRole === 'sales' &&
+    isset($request['sales_user_id']) &&
+    (int)$request['sales_user_id'] === (int)$userId
+);
+
+// Business hanya boleh input/edit:
+// Additional Cost, Product Support, dan Cost Calculation.
+$canEditBusinessSection = ($userRole === 'business');
+
+// Sales sama sekali tidak boleh melihat section internal Business.
+$businessOnlyTabs = ['additional_cost', 'product_support', 'cost_calculation'];
+$canViewBusinessTabs = ($userRole !== 'sales');
+
+// Cegah Sales membuka tab Business lewat URL secara langsung.
+if (!$canViewBusinessTabs && in_array($activeTab, $businessOnlyTabs, true)) {
+    setFlash('Anda tidak memiliki akses ke menu Business!', 'danger');
+    redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
 }
 
-$reviewOnlyRoles = ['sales_manager', 'direktur_sales', 'business', 'direktur_operasional', 'direktur_utama', 'finance', 'it_support', 'admin'];
-$isReviewOnly = in_array($userRole, $reviewOnlyRoles);
+$reviewOnlyRoles = ['sales_manager', 'direktur_sales', 'direktur_operasional', 'direktur_utama', 'finance', 'it_support', 'admin'];
+$isReviewOnly = in_array($userRole, $reviewOnlyRoles, true);
 
 // ============================================
 // CEK APAKAH TR SUDAH PERNAH DI-APPROVE
@@ -165,7 +182,8 @@ try {
 }
 
 if ($hasBeenApproved) {
-    $canEdit = false;
+    $canEditSalesSection = false;
+    $canEditBusinessSection = false;
 }
 
 // ============================================
@@ -200,10 +218,10 @@ try {
 $approvalLevels = [
     1 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
     2 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
-    3 => ['role' => 'business', 'label' => 'Divisi Business'],
-    4 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
-    5 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
+    3 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
+    4 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
+$totalApprovalLevels = count($approvalLevels);
 
 // ============================================
 // TENTUKAN CURRENT APPROVER DAN NEXT APPROVER
@@ -213,20 +231,41 @@ $currentApproverLabel = '';
 $nextApproverLabel = '';
 
 if ($detailTR) {
-    $lastApprovedOrder = 0;
+    // Hitung approval hanya berdasarkan struktur BARU.
+    // Approval Business dari struktur lama diabaikan agar tidak melompati level.
+    $approvedByOrder = [];
+    $rejectedByCurrentFlow = false;
+
     foreach ($approvalHistory as $approval) {
-        if ($approval['status'] == 'approved') {
-            $lastApprovedOrder = max($lastApprovedOrder, $approval['approval_order']);
+        $order = (int)($approval['approval_order'] ?? 0);
+        if (!isset($approvalLevels[$order])) {
+            continue;
+        }
+
+        // Record lama hanya dianggap valid bila role pada order tersebut
+        // sama dengan role pada struktur approval yang sekarang.
+        if (($approval['approval_role'] ?? '') !== $approvalLevels[$order]['role']) {
+            continue;
+        }
+
+        if ($approval['status'] === 'approved') {
+            $approvedByOrder[$order] = true;
+        } elseif ($approval['status'] === 'rejected') {
+            $rejectedByCurrentFlow = true;
         }
     }
-    
-    $isRejected = false;
-    foreach ($approvalHistory as $approval) {
-        if ($approval['status'] == 'rejected') {
-            $isRejected = true;
+
+    // Approval harus berurutan mulai dari level 1.
+    $lastApprovedOrder = 0;
+    for ($order = 1; $order <= $totalApprovalLevels; $order++) {
+        if (!empty($approvedByOrder[$order])) {
+            $lastApprovedOrder = $order;
+        } else {
             break;
         }
     }
+    
+    $isRejected = $rejectedByCurrentFlow;
     
     if ($isRejected || $detailTR['status'] == 'rejected') {
         $currentApprovalOrder = 0;
@@ -238,10 +277,10 @@ if ($detailTR) {
         $nextApproverLabel = 'No More Approval';
     } else {
         $currentApprovalOrder = $lastApprovedOrder + 1;
-        if ($currentApprovalOrder <= 5) {
+        if ($currentApprovalOrder <= $totalApprovalLevels) {
             $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
             $nextOrder = $currentApprovalOrder + 1;
-            $nextApproverLabel = $nextOrder <= 5 ? $approvalLevels[$nextOrder]['label'] : 'No More Approval';
+            $nextApproverLabel = $nextOrder <= $totalApprovalLevels ? $approvalLevels[$nextOrder]['label'] : 'No More Approval';
         } else {
             $currentApproverLabel = 'No More Approval';
             $nextApproverLabel = 'No More Approval';
@@ -347,14 +386,29 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    $editActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_cost', 'save_mediator', 'save_product_support', 'save_cost_calculation'];
-    if (in_array($action, $editActions) && !$canEdit) {
+    // ============================================
+    // VALIDASI HAK AKSES ACTION DI SERVER SIDE
+    // Jangan hanya mengandalkan tombol yang disembunyikan di tampilan.
+    // ============================================
+    $salesEditActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_mediator'];
+    $businessEditActions = ['save_cost', 'save_product_support', 'save_cost_calculation'];
+
+    if (in_array($action, $salesEditActions, true) && !$canEditSalesSection) {
         if ($hasBeenApproved) {
-            setFlash('TR ini sudah di-approve, data tidak bisa diedit lagi!', 'danger');
+            setFlash('TR ini sudah masuk proses approval, data tidak bisa diedit lagi!', 'danger');
         } else {
-            setFlash('Anda tidak memiliki hak untuk mengedit data ini!', 'danger');
+            setFlash('Hanya Sales pemilik TR yang dapat menambah atau mengedit bagian ini!', 'danger');
         }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
+        redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
+    }
+
+    if (in_array($action, $businessEditActions, true) && !$canEditBusinessSection) {
+        if ($hasBeenApproved) {
+            setFlash('TR ini sudah masuk proses approval, data tidak bisa diedit lagi!', 'danger');
+        } else {
+            setFlash('Hanya Divisi Business yang dapat menambah atau mengedit bagian ini!', 'danger');
+        }
+        redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
     }
     
     // SAVE SUMMARY
@@ -391,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $currentOrder = (int)($_POST['approval_order'] ?? 0);
             
             $canApprove = false;
-            if ($currentOrder > 0 && $currentOrder <= 5) {
+            if ($currentOrder > 0 && $currentOrder <= $totalApprovalLevels) {
                 $requiredRole = $approvalLevels[$currentOrder]['role'];
                 if ($userRole == $requiredRole) {
                     $canApprove = true;
@@ -410,8 +464,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingApproval = $checkApproval->fetch();
                 
                 if ($existingApproval) {
-                    $updateApproval = $db->prepare("UPDATE tr_approval_history SET status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
-                    $updateApproval->execute([$approvalStatus, $userId, $existingApproval['id']]);
+                    $updateApproval = $db->prepare("UPDATE tr_approval_history SET approval_role = ?, status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
+                    $updateApproval->execute([$approvalLevels[$currentOrder]['role'], $approvalStatus, $userId, $existingApproval['id']]);
                 } else {
                     $insertApproval = $db->prepare("INSERT INTO tr_approval_history (trf_number, approval_order, approval_role, status, catatan, approved_by, created_at) VALUES (?, ?, ?, ?, '', ?, NOW())");
                     $insertApproval->execute([$tr_number, $currentOrder, $approvalLevels[$currentOrder]['role'], $approvalStatus, $userId]);
@@ -420,7 +474,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newStatus = 'pending';
                 if ($approvalStatus == 'rejected') {
                     $newStatus = 'rejected';
-                } elseif ($currentOrder >= 5) {
+                } elseif ($currentOrder >= $totalApprovalLevels) {
                     $newStatus = 'approved';
                 }
                 
@@ -708,9 +762,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dealer_price = (float)($_POST['dealer_price'] ?? 0);
             $persentase = (float)($_POST['persentase'] ?? 0);
             $support_price = $dealer_price - ($dealer_price * ($persentase / 100));
-            $additional_cost = $totalAdditionalCost;
+
+            // Hitung langsung dari data yang sudah di-load karena blok POST
+            // berjalan sebelum variabel total di bagian bawah file dibuat.
+            $additional_cost = 0;
+            foreach ($additionalCostItems as $item) {
+                $additional_cost += (float)$item['amount'];
+            }
+
+            $selling_price = 0;
+            foreach ($detailUnits as $unit) {
+                $selling_price += (float)$unit['grand_total'];
+            }
+
             $total_cogs = $support_price + $additional_cost;
-            $selling_price = $totalUnitGrandTotal;
             $dealer_profit_request = $selling_price - $total_cogs;
             $dealer_profit_net = $selling_price > 0 ? ($dealer_profit_request / $selling_price) * 100 : 0;
             
@@ -1260,6 +1325,7 @@ if (count($additionalCostItems) == 0) {
                         <i class="fas fa-user-tie"></i> Data Mediator
                     </a>
                 </li>
+                <?php if ($canViewBusinessTabs): ?>
                 <li class="nav-item">
                     <a class="nav-link <?= $activeTab == 'additional_cost' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=additional_cost">
                         <i class="fas fa-coins"></i> Additional Cost
@@ -1275,6 +1341,7 @@ if (count($additionalCostItems) == 0) {
                         <i class="fas fa-calculator"></i> Cost Calculation
                     </a>
                 </li>
+                <?php endif; ?>
             </ul>
         </div>
 
@@ -1295,7 +1362,7 @@ if (count($additionalCostItems) == 0) {
                             <i class="fas fa-times-circle"></i> Rejected
                         <?php endif; ?>
                     </span>
-                    <?php if ($canEdit): ?>
+                    <?php if ($canEditSalesSection): ?>
                     <button class="btn btn-primary-custom btn-sm" onclick="showEditSummary()">
                         <i class="fas fa-edit"></i> Edit
                     </button>
@@ -1406,7 +1473,7 @@ if (count($additionalCostItems) == 0) {
                     </div>
                 </div>
                 
-                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 5 && $request['status'] == 'pending'): ?>
+                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= $totalApprovalLevels && $request['status'] == 'pending'): ?>
                     <?php 
                     $canApprove = false;
                     $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
@@ -1462,7 +1529,7 @@ if (count($additionalCostItems) == 0) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
-                <?php if ($canEdit): ?>
+                <?php if ($canEditSalesSection): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm()">
                     <i class="fas fa-edit"></i> <?= count($detailUnits) > 0 ? 'Edit Unit' : 'Tambah Unit' ?>
                 </button>
@@ -1656,7 +1723,7 @@ if (count($additionalCostItems) == 0) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-money-bill-wave"></i> Term Of Payment</h6>
-                <?php if ($canEdit): ?>
+                <?php if ($canEditSalesSection): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="showTOPSection()">
                     <i class="fas fa-edit"></i> Edit TOP
                 </button>
@@ -1861,7 +1928,7 @@ if (count($additionalCostItems) == 0) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
-                <?php if ($canEdit): ?>
+                <?php if ($canEditSalesSection): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="toggleMediatorForm()">
                     <i class="fas fa-edit"></i> <?= count($mediators) > 0 ? 'Edit Mediator' : 'Tambah Mediator' ?>
                 </button>
@@ -1959,11 +2026,11 @@ if (count($additionalCostItems) == 0) {
         <!-- ============================================ -->
         <!-- TAB CONTENT: ADDITIONAL COST (MULTIPLE ITEMS) -->
         <!-- ============================================ -->
-        <?php if ($activeTab == 'additional_cost'): ?>
+        <?php if ($activeTab == 'additional_cost' && $canViewBusinessTabs): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-coins"></i> Additional Cost / Machines</h6>
-                <?php if ($canEdit): ?>
+                <?php if ($canEditBusinessSection): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="toggleCostForm()">
                     <i class="fas fa-edit"></i> <?= count($additionalCostItems) > 0 ? 'Edit Cost' : 'Tambah Cost' ?>
                 </button>
@@ -2051,11 +2118,11 @@ if (count($additionalCostItems) == 0) {
         <!-- ============================================ -->
         <!-- TAB CONTENT: PRODUCT SUPPORT (BARU - NAMA & KETERANGAN) -->
         <!-- ============================================ -->
-        <?php if ($activeTab == 'product_support'): ?>
+        <?php if ($activeTab == 'product_support' && $canViewBusinessTabs): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-headset"></i> Product Support</h6>
-                <?php if ($canEdit): ?>
+                <?php if ($canEditBusinessSection): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editSupport', 'viewSupport')">
                     <i class="fas fa-edit"></i> <?= count($trSupports) > 0 ? 'Edit Support' : 'Tambah Support' ?>
                 </button>
@@ -2124,11 +2191,11 @@ if (count($additionalCostItems) == 0) {
         <!-- ============================================ -->
         <!-- TAB CONTENT: COST CALCULATION -->
         <!-- ============================================ -->
-         <?php if ($activeTab == 'cost_calculation'): ?>
+         <?php if ($activeTab == 'cost_calculation' && $canViewBusinessTabs): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-calculator"></i> Cost Calculation</h6>
-                <?php if ($canEdit): ?>
+                <?php if ($canEditBusinessSection): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editCostCalc', 'viewCostCalc')"><i class="fas fa-edit"></i> <?= $costCalculation ? 'Edit Calculation' : 'Tambah Calculation' ?></button>
                 <?php endif; ?>
             </div>
