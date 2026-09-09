@@ -806,6 +806,11 @@ foreach ($detailUnits as $unit) {
     $totalUnitGrandTotal += (float)$unit['grand_total'];
 }
 
+$totalUnitPrice = 0;
+foreach ($detailUnits as $unit) {
+    $totalUnitPrice += (float)$unit['price'];
+}
+
 $totalTOP = 0;
 foreach ($termPayments as $top) {
     $totalTOP += (float)$top['amount'];
@@ -1686,7 +1691,7 @@ if (count($additionalCostItems) == 0) {
                             <div class="col-md-12">
                                 <div class="total-box">
                                     <span class="total-label">Total Grand Total Unit</span>
-                                    <span class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></span>
+                                    <span class="total-value">Rp <?= number_format($totalUnitPrice, 0, ',', '.') ?></span>
                                 </div>
                             </div>
                         </div>
