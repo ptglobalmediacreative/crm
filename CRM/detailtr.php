@@ -1455,22 +1455,6 @@ if (count($additionalCostItems) == 0) {
                         </div>
                     </div>
                     
-                    <hr>
-                    
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="info-label">Grand Total Unit (Include PPN)</div>
-                            <div class="info-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="info-label">Total Additional Cost</div>
-                            <div class="info-value">Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?></div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="info-label">Total Masukan</div>
-                            <div class="info-value"><strong>Rp <?= number_format($totalMasukan, 0, ',', '.') ?></strong></div>
-                        </div>
-                    </div>
                 </div>
                 
                 <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= $totalApprovalLevels && $request['status'] == 'pending'): ?>
