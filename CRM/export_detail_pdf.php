@@ -1,6 +1,7 @@
 <?php
 // ============================================
-// START OUTPUT BUFFERING
+// EXPORT DETAIL TR -> PDF
+// Struktur disesuaikan dengan detailtr.php
 // ============================================
 ob_start();
 
@@ -46,14 +47,19 @@ function formatRp($number) {
 }
 
 function formatNumber($number) {
-    $number = (float)$number;
-    return number_format($number, 0, ',', '.');
+    return number_format((float)$number, 0, ',', '.');
 }
 
 function formatDateId($date) {
     if (empty($date)) return '-';
     $ts = strtotime($date);
     return $ts ? date('d/m/Y', $ts) : '-';
+}
+
+function formatDateTimeId($date) {
+    if (empty($date)) return '-';
+    $ts = strtotime($date);
+    return $ts ? date('d/m/Y H:i', $ts) : '-';
 }
 
 function getNamaProduk($unitId, $produkList) {
@@ -81,13 +87,13 @@ function statusClass($status) {
 }
 
 // ============================================
-// AMBIL DATA TRANSACTION REQUEST
+// DATA TRANSACTION REQUEST
 // ============================================
 $sql = "SELECT ad.tr_number,
                ad.due_date,
-               ad.created_at as request_date,
-               ad.id as latest_activity_id,
-               a.id as account_id,
+               ad.created_at AS request_date,
+               ad.id AS latest_activity_id,
+               a.id AS account_id,
                a.nama_pt,
                a.badan_usaha,
                a.alamat,
@@ -96,10 +102,10 @@ $sql = "SELECT ad.tr_number,
                a.jabatan_pic,
                a.no_hp_pic,
                a.email_pic,
-               u.full_name as sales_name,
-               u.id as sales_user_id,
+               u.full_name AS sales_name,
+               u.id AS sales_user_id,
                sa.sales_id,
-               sa.id as sales_activity_id
+               sa.id AS sales_activity_id
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
         LEFT JOIN accounts a ON sa.account_id = a.id
@@ -118,39 +124,32 @@ if (!$request) {
 }
 
 // ============================================
-// DAPATKAN STATUS
-// ============================================
-$statusTR = 'pending';
-try {
-    $checkStatus = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-    $checkStatus->execute([$tr_number]);
-    $statusData = $checkStatus->fetch();
-    if ($statusData && !empty($statusData['status'])) {
-        $statusTR = $statusData['status'];
-    }
-} catch (Exception $e) {
-    $statusTR = 'pending';
-}
-$request['status'] = $statusTR;
-
-// ============================================
-// DETAIL TRANSACTION REQUEST
+// DETAIL TRANSACTION REQUEST / SUMMARY
 // ============================================
 $detailTR = null;
 try {
-    $stmtDetail = $db->prepare("SELECT * FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
+    $stmtDetail = $db->prepare(
+        "SELECT * FROM detail_transaction_requests
+         WHERE trf_number = ?
+         ORDER BY id DESC LIMIT 1"
+    );
     $stmtDetail->execute([$tr_number]);
     $detailTR = $stmtDetail->fetch();
 } catch (Exception $e) {
     $detailTR = null;
 }
 
+$statusTR = !empty($detailTR['status']) ? $detailTR['status'] : 'pending';
+$request['status'] = $statusTR;
+
 // ============================================
 // PRODUK
 // ============================================
 $produkList = [];
 try {
-    $stmtProduk = $db->prepare("SELECT id, nama_produk FROM products ORDER BY nama_produk ASC");
+    $stmtProduk = $db->prepare(
+        "SELECT id, nama_produk FROM products ORDER BY nama_produk ASC"
+    );
     $stmtProduk->execute();
     $produkList = $stmtProduk->fetchAll();
 } catch (Exception $e) {
@@ -162,7 +161,11 @@ try {
 // ============================================
 $detailUnits = [];
 try {
-    $stmtUnit = $db->prepare("SELECT * FROM tr_detail_units WHERE trf_number = ? ORDER BY id ASC");
+    $stmtUnit = $db->prepare(
+        "SELECT * FROM tr_detail_units
+         WHERE trf_number = ?
+         ORDER BY id ASC"
+    );
     $stmtUnit->execute([$tr_number]);
     $detailUnits = $stmtUnit->fetchAll();
 } catch (Exception $e) {
@@ -174,7 +177,11 @@ try {
 // ============================================
 $termPayments = [];
 try {
-    $stmtTOP = $db->prepare("SELECT * FROM tr_term_of_payments WHERE trf_number = ? ORDER BY id ASC");
+    $stmtTOP = $db->prepare(
+        "SELECT * FROM tr_term_of_payments
+         WHERE trf_number = ?
+         ORDER BY id ASC"
+    );
     $stmtTOP->execute([$tr_number]);
     $termPayments = $stmtTOP->fetchAll();
 } catch (Exception $e) {
@@ -182,23 +189,31 @@ try {
 }
 
 // ============================================
-// ADDITIONAL COST ITEMS
+// ADDITIONAL COST - MULTIPLE
 // ============================================
 $additionalCostItems = [];
 try {
-    $stmtCostItems = $db->prepare("SELECT * FROM tr_additional_cost_items WHERE trf_number = ? ORDER BY id ASC");
-    $stmtCostItems->execute([$tr_number]);
-    $additionalCostItems = $stmtCostItems->fetchAll();
+    $stmtCost = $db->prepare(
+        "SELECT * FROM tr_additional_cost_items
+         WHERE trf_number = ?
+         ORDER BY id ASC"
+    );
+    $stmtCost->execute([$tr_number]);
+    $additionalCostItems = $stmtCost->fetchAll();
 } catch (Exception $e) {
     $additionalCostItems = [];
 }
 
 // ============================================
-// MEDIATOR
+// MEDIATOR - MULTIPLE
 // ============================================
 $mediators = [];
 try {
-    $stmtMediator = $db->prepare("SELECT * FROM tr_mediators WHERE trf_number = ? ORDER BY id ASC");
+    $stmtMediator = $db->prepare(
+        "SELECT * FROM tr_mediators
+         WHERE trf_number = ?
+         ORDER BY id ASC"
+    );
     $stmtMediator->execute([$tr_number]);
     $mediators = $stmtMediator->fetchAll();
 } catch (Exception $e) {
@@ -206,23 +221,34 @@ try {
 }
 
 // ============================================
-// PRODUCT SUPPORTS
+// PRODUCT SUPPORT - MULTIPLE
+// Sesuai detailtr.php:
+// support_name + keterangan
 // ============================================
 $trSupports = [];
 try {
-    $stmtSup = $db->prepare("SELECT * FROM tr_product_supports WHERE trf_number = ? ORDER BY id ASC");
-    $stmtSup->execute([$tr_number]);
-    $trSupports = $stmtSup->fetchAll();
+    $stmtSupport = $db->prepare(
+        "SELECT * FROM tr_product_supports
+         WHERE trf_number = ?
+         ORDER BY id ASC"
+    );
+    $stmtSupport->execute([$tr_number]);
+    $trSupports = $stmtSupport->fetchAll();
 } catch (Exception $e) {
     $trSupports = [];
 }
 
 // ============================================
 // COST CALCULATION
+// Sesuai detailtr.php
 // ============================================
 $costCalculation = null;
 try {
-    $stmtCC = $db->prepare("SELECT * FROM tr_cost_calculations WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
+    $stmtCC = $db->prepare(
+        "SELECT * FROM tr_cost_calculations
+         WHERE trf_number = ?
+         ORDER BY id DESC LIMIT 1"
+    );
     $stmtCC->execute([$tr_number]);
     $costCalculation = $stmtCC->fetch();
 } catch (Exception $e) {
@@ -231,11 +257,16 @@ try {
 
 // ============================================
 // APPROVAL HISTORY
+// Struktur approval TERBARU detailtr.php:
+// 1 Sales Manager
+// 2 Direktur Sales
+// 3 Direktur Operasional
+// 4 Direktur Utama
 // ============================================
 $approvalHistory = [];
 try {
     $stmtApproval = $db->prepare(
-        "SELECT ah.*, u.full_name as approver_name
+        "SELECT ah.*, u.full_name AS approver_name
          FROM tr_approval_history ah
          LEFT JOIN users u ON ah.approved_by = u.id
          WHERE ah.trf_number = ?
@@ -247,9 +278,6 @@ try {
     $approvalHistory = [];
 }
 
-// ============================================
-// APPROVAL LEVELS - SESUAI detailtr.php (4 LEVEL)
-// ============================================
 $approvalLevels = [
     1 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
     2 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
@@ -261,8 +289,11 @@ $approvalLevels = [
 // HITUNG TOTAL
 // ============================================
 $totalUnitGrandTotal = 0;
+$totalUnitQty = 0;
+
 foreach ($detailUnits as $unit) {
     $totalUnitGrandTotal += (float)($unit['grand_total'] ?? 0);
+    $totalUnitQty += (int)($unit['qty'] ?? 0);
 }
 
 $totalTOP = 0;
@@ -280,13 +311,30 @@ foreach ($mediators as $med) {
     $totalMediatorFee += (float)($med['amount'] ?? 0);
 }
 
+// ============================================
+// REKAP
+// Mengikuti rumus yang dipakai detailtr.php:
+// Total Masukan = Grand Total Unit - Additional Cost
+// ============================================
 $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 
+// Jika cost calculation tersedia, gunakan data tersimpan
+$ccDealerPrice = $costCalculation['dealer_price'] ?? 0;
+$ccPersentase = $costCalculation['persentase'] ?? 0;
+$ccSupportPrice = $costCalculation['support_price'] ?? 0;
+$ccTotalCogs = $costCalculation['total_cogs'] ?? 0;
+$ccSellingPrice = $costCalculation['selling_price'] ?? $totalUnitGrandTotal;
+$ccDealerProfitRequest = $costCalculation['dealer_profit_request'] ?? 0;
+$ccDealerProfitNet = $costCalculation['dealer_profit_net'] ?? (
+    $ccSellingPrice > 0 ? ($ccDealerProfitRequest / $ccSellingPrice) * 100 : 0
+);
+
 // ============================================
-// NAMA PT DISPLAY
+// NAMA CUSTOMER
 // ============================================
 $namaPT = $request['nama_pt'] ?? '-';
 $badanUsaha = $request['badan_usaha'] ?? '';
+
 $namaPTDisplay = (!empty($badanUsaha) && $namaPT !== '-')
     ? $namaPT . ', ' . $badanUsaha
     : $namaPT;
@@ -296,15 +344,18 @@ $namaPTDisplay = (!empty($badanUsaha) && $namaPT !== '-')
 // ============================================
 $logoHtml = '';
 $logoPath = 'images/kopsurat.png';
+
 if (file_exists($logoPath)) {
     $logoData = base64_encode(file_get_contents($logoPath));
-    $logoHtml = '<img src="data:image/png;base64,' . $logoData . '" class="logo-img" alt="Logo">';
+    $logoHtml =
+        '<img src="data:image/png;base64,' . $logoData .
+        '" class="logo-img" alt="Logo">';
 }
 
 ob_end_clean();
 
 // ============================================
-// BUILD HTML PDF
+// BUILD HTML
 // ============================================
 $html = '<!DOCTYPE html>
 <html lang="id">
@@ -312,9 +363,16 @@ $html = '<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Transaction Request Form - ' . h($tr_number) . '</title>
+
 <style>
-    @page { margin: 7mm 7mm 7mm 7mm; }
-    * { box-sizing: border-box; }
+    @page {
+        margin: 7mm 7mm 7mm 7mm;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
     body {
         font-family: Helvetica, Arial, sans-serif;
         font-size: 7.2px;
@@ -326,7 +384,7 @@ $html = '<!DOCTYPE html>
 
     .logo-wrap {
         text-align: right;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         padding-right: 3px;
     }
 
@@ -388,9 +446,25 @@ $html = '<!DOCTYPE html>
         background: #fff200;
     }
 
-    .center { text-align: center; }
-    .right { text-align: right; }
-    .bold { font-weight: 700; }
+    .blue {
+        background: #dff3fb;
+    }
+
+    .center {
+        text-align: center;
+    }
+
+    .right {
+        text-align: right;
+    }
+
+    .bold {
+        font-weight: 700;
+    }
+
+    .money {
+        white-space: nowrap;
+    }
 
     .meta-table td {
         height: 15px;
@@ -399,7 +473,7 @@ $html = '<!DOCTYPE html>
     .two-col {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 0;
+        border-spacing: 0;
     }
 
     .two-col > tbody > tr > td {
@@ -426,10 +500,6 @@ $html = '<!DOCTYPE html>
         min-height: 15px;
     }
 
-    .money {
-        white-space: nowrap;
-    }
-
     .summary-total td {
         font-size: 8px;
         font-weight: 700;
@@ -444,11 +514,9 @@ $html = '<!DOCTYPE html>
         background: #f3f3f3;
     }
 
-    .cost-item-table th {
-        background: #fff200;
-    }
-
-    .mediator-table th {
+    .cost-item-table th,
+    .mediator-table th,
+    .support-table th {
         background: #fff200;
     }
 
@@ -460,46 +528,114 @@ $html = '<!DOCTYPE html>
         font-size: 6.5px;
     }
 
-    .status-pending { background: #fff1bf; }
-    .status-approved { background: #d9efd9; }
-    .status-rejected { background: #f5d2d2; }
+    .status-pending {
+        background: #fff1bf;
+    }
+
+    .status-approved {
+        background: #d9efd9;
+    }
+
+    .status-rejected {
+        background: #f5d2d2;
+    }
 
     .keep {
         page-break-inside: avoid;
     }
 
-    .support-table th {
-        background: #fff200;
+    .page-break {
+        page-break-before: always;
+    }
+
+    .calc-highlight {
+        font-weight: 700;
+        background: #e6f0dc;
+    }
+
+    .profit {
+        font-weight: 700;
+        background: #d9efd9;
+    }
+
+    .negative {
+        background: #f5d2d2;
+        font-weight: 700;
+    }
+
+    .small-note {
+        font-size: 6.5px;
+        color: #555;
     }
 </style>
 </head>
+
 <body>
 
 <div class="logo-wrap">' . $logoHtml . '</div>
+
 <div class="title">TRANSACTION REQUEST FORM</div>
 
-<!-- HEADER / CUSTOMER + UNIT SUMMARY -->
+<!-- ===================================================== -->
+<!-- A. SUMMARY / CUSTOMER + UNIT SUMMARY -->
+<!-- ===================================================== -->
+<div class="section" style="margin-top:0;">A. SUMMARY</div>
+
 <table class="two-col">
     <tr>
         <td class="col-left">
             <table class="meta-table">
-                <tr><td class="label" style="width:31%">TR Number</td><td class="bold">' . h($tr_number) . '</td></tr>
-                <tr><td class="label">Request Date</td><td>' . formatDateId($request['request_date'] ?? null) . '</td></tr>
-                <tr><td class="label">Customer</td><td class="green bold">' . h($namaPTDisplay) . '</td></tr>
-                <tr><td class="label">NPWP</td><td>' . h($request['npwp'] ?? '-') . '</td></tr>
-                <tr><td class="label">Address</td><td>' . nl2br(h($request['alamat'] ?? '-')) . '</td></tr>
-                <tr><td class="label">Customer PIC (Signer)</td><td>' . h($request['nama_pic'] ?? '-') . '</td></tr>
-                <tr><td class="label">Position</td><td>' . h($request['jabatan_pic'] ?? '-') . '</td></tr>
-                <tr><td class="label">Phone</td><td>' . h($request['no_hp_pic'] ?? '-') . '</td></tr>
-                <tr><td class="label">e-Mail</td><td>' . h($request['email_pic'] ?? '-') . '</td></tr>
-                <tr><td class="label">Salesman</td><td>' . h($request['sales_name'] ?? '-') . '</td></tr>
                 <tr>
-                    <td class="label">Deskripsi</td>
-                    <td>' . nl2br(h($detailTR['deskripsi'] ?? '-')) . '</td>
+                    <td class="label" style="width:31%">TR Number</td>
+                    <td class="bold">' . h($tr_number) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Request Date</td>
+                    <td>' . formatDateId($request['request_date'] ?? null) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Due Date</td>
+                    <td>' . formatDateId($request['due_date'] ?? null) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Customer</td>
+                    <td class="green bold">' . h($namaPTDisplay) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">NPWP</td>
+                    <td>' . h($request['npwp'] ?? '-') . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Address</td>
+                    <td>' . nl2br(h($request['alamat'] ?? '-')) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Customer PIC (Signer)</td>
+                    <td>' . h($request['nama_pic'] ?? '-') . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Position</td>
+                    <td>' . h($request['jabatan_pic'] ?? '-') . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Phone</td>
+                    <td>' . h($request['no_hp_pic'] ?? '-') . '</td>
+                </tr>
+                <tr>
+                    <td class="label">e-Mail</td>
+                    <td>' . h($request['email_pic'] ?? '-') . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Salesman</td>
+                    <td>' . h($request['sales_name'] ?? '-') . '</td>
                 </tr>
                 <tr>
                     <td class="label">Status</td>
-                    <td><span class="status ' . statusClass($request['status'] ?? 'pending') . '">' . h(statusLabel($request['status'] ?? 'pending')) . '</span></td>
+                    <td>
+                        <span class="status ' . statusClass($request['status'] ?? 'pending') . '">
+                            ' . h(statusLabel($request['status'] ?? 'pending')) . '
+                        </span>
+                    </td>
                 </tr>
             </table>
         </td>
@@ -507,29 +643,36 @@ $html = '<!DOCTYPE html>
         <td class="col-right">
             <table class="unit-main">
                 <tr>
-                    <th style="width:28%">Model Unit</th>
+                    <th style="width:27%">Model Unit</th>
                     <th style="width:8%">Qty</th>
-                    <th style="width:8%">Curr.</th>
-                    <th style="width:18%">Price / Unit (Non PPN)</th>
-                    <th style="width:14%">PPN 11%</th>
-                    <th style="width:24%">Grand Total</th>
+                    <th style="width:7%">Curr.</th>
+                    <th style="width:20%">Price / Unit<br>(Non PPN)</th>
+                    <th style="width:15%">PPN 11%</th>
+                    <th style="width:23%">Grand Total<br>Include PPN</th>
                 </tr>';
 
 if (count($detailUnits) > 0) {
     foreach ($detailUnits as $unit) {
         $priceNonPPN = (float)($unit['price'] ?? 0);
-        $ppn = $priceNonPPN * 0.11;
-        $html .= '<tr>
-            <td>' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
-            <td class="center">' . h($unit['qty'] ?? '-') . '</td>
-            <td class="center">IDR</td>
-            <td class="right money">' . formatNumber($priceNonPPN) . '</td>
-            <td class="right money">' . formatNumber($ppn) . '</td>
-            <td class="right money bold">' . formatNumber($unit['grand_total'] ?? 0) . '</td>
-        </tr>';
+        $ppn = isset($unit['ppn'])
+            ? (float)$unit['ppn']
+            : ($priceNonPPN * 0.11);
+
+        $html .= '
+                <tr>
+                    <td>' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
+                    <td class="center">' . h($unit['qty'] ?? '-') . '</td>
+                    <td class="center">IDR</td>
+                    <td class="right money">' . formatNumber($priceNonPPN) . '</td>
+                    <td class="right money">' . formatNumber($ppn) . '</td>
+                    <td class="right money bold">' . formatNumber($unit['grand_total'] ?? 0) . '</td>
+                </tr>';
     }
 } else {
-    $html .= '<tr><td colspan="6" class="center">Belum ada detail unit</td></tr>';
+    $html .= '
+                <tr>
+                    <td colspan="6" class="center">Belum ada detail unit</td>
+                </tr>';
 }
 
 $html .= '
@@ -538,79 +681,72 @@ $html .= '
                     <td class="right money">' . formatRp($totalUnitGrandTotal) . '</td>
                 </tr>
             </table>
-
-            <div class="section" style="margin-top:5px;">C. TERM OF PAYMENT</div>
-            <table class="top-table">
-                <tr>
-                    <th style="width:34%">Payment</th>
-                    <th style="width:30%">Amount</th>
-                    <th style="width:36%">Keterangan</th>
-                </tr>';
-
-if (count($termPayments) > 0) {
-    foreach ($termPayments as $top) {
-        $html .= '<tr>
-            <td>' . h($top['payment_label'] ?? '-') . '</td>
-            <td class="right money bold">' . formatRp($top['amount'] ?? 0) . '</td>
-            <td>' . nl2br(h($top['keterangan'] ?? '-')) . '</td>
-        </tr>';
-    }
-} else {
-    $html .= '<tr><td colspan="3" class="center">Belum ada data TOP</td></tr>';
-}
-
-$html .= '<tr class="top-total">
-                <td class="right">TOTAL TOP</td>
-                <td class="right money">' . formatRp($totalTOP) . '</td>
-                <td></td>
-            </tr>
-            </table>
         </td>
     </tr>
 </table>
 
+<!-- ===================================================== -->
 <!-- B. DETAIL UNIT -->
+<!-- ===================================================== -->
 <div class="section">B. DETAIL UNIT</div>';
 
 if (count($detailUnits) > 0) {
     foreach ($detailUnits as $index => $unit) {
-        $html .= '<table class="unit-detail keep">
-            <tr>
-                <td class="label" style="width:18%">Model Unit</td>
-                <td style="width:32%">' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
-                <td class="label" style="width:18%">QTY</td>
-                <td style="width:32%">' . h($unit['qty'] ?? '-') . '</td>
-            </tr>
-            <tr>
-                <td class="label">Specification</td>
-                <td colspan="3">' . nl2br(h($unit['specification'] ?? '-')) . '</td>
-            </tr>
-            <tr>
-                <td class="label">Additional Attachment / Safety Devices</td>
-                <td colspan="3">' . nl2br(h($unit['additional_attachment'] ?? '-')) . '</td>
-            </tr>
-            <tr>
-                <td class="label">Waranty</td>
-                <td>' . h($unit['waranty'] ?? '-') . '</td>
-                <td class="label">Free Part/Service</td>
-                <td>' . h($unit['free_part_service'] ?? '-') . '</td>
-            </tr>
-            <tr>
-                <td class="label">Machine Location Works</td>
-                <td>' . h($unit['machine_location'] ?? '-') . '</td>
-                <td class="label">Delivery Schedule Plan</td>
-                <td class="green bold">' . formatDateId($unit['delivery_schedule'] ?? null) . '</td>
-            </tr>
-            <tr>
-                <td class="label">Delivery Terms</td>
-                <td>' . h($unit['delivery_terms'] ?? '-') . '</td>
-                <td class="label">Transaction Type</td>
-                <td>' . h($unit['transaction_type'] ?? '-') . '</td>
-            </tr>
-        </table>';
+        $html .= '
+<table class="unit-detail keep">
+    <tr>
+        <td class="label" style="width:18%">Model Unit</td>
+        <td style="width:32%">' . h(getNamaProduk($unit['unit_id'] ?? null, $produkList)) . '</td>
+        <td class="label" style="width:18%">QTY</td>
+        <td style="width:32%">' . h($unit['qty'] ?? '-') . '</td>
+    </tr>
+    <tr>
+        <td class="label">Price (Non PPN)</td>
+        <td>' . formatRp($unit['price'] ?? 0) . '</td>
+        <td class="label">PPN (11%)</td>
+        <td>' . formatRp($unit['ppn'] ?? 0) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Grand Total Include PPN</td>
+        <td class="green bold">' . formatRp($unit['grand_total'] ?? 0) . '</td>
+        <td class="label">Transaction Type</td>
+        <td>' . h($unit['transaction_type'] ?? '-') . '</td>
+    </tr>
+    <tr>
+        <td class="label">Specification</td>
+        <td colspan="3">' . nl2br(h($unit['specification'] ?? '-')) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Additional Attachment / Safety Devices</td>
+        <td colspan="3">' . nl2br(h($unit['additional_attachment'] ?? '-')) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Waranty</td>
+        <td>' . h($unit['waranty'] ?? '-') . '</td>
+        <td class="label">Free Part/Service</td>
+        <td>' . h($unit['free_part_service'] ?? '-') . '</td>
+    </tr>
+    <tr>
+        <td class="label">Machine Location Works</td>
+        <td>' . h($unit['machine_location'] ?? '-') . '</td>
+        <td class="label">Delivery Terms</td>
+        <td>' . h($unit['delivery_terms'] ?? '-') . '</td>
+    </tr>
+    <tr>
+        <td class="label">Delivery Schedule Plan</td>
+        <td class="green bold">' . formatDateId($unit['delivery_schedule'] ?? null) . '</td>
+        <td class="label">Unit Record</td>
+        <td>Unit ' . ($index + 1) . ' of ' . count($detailUnits) . '</td>
+    </tr>
+</table>';
     }
 } else {
-    $html .= '<table><tr><td class="center">Belum ada detail unit</td></tr></table>';
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada detail unit</td>
+    </tr>
+</table>';
 }
 
 $html .= '
@@ -621,187 +757,321 @@ $html .= '
     </tr>
 </table>
 
-<!-- D. ADDITIONAL COST (MULTIPLE ITEMS) -->
+<!-- ===================================================== -->
+<!-- C. TERM OF PAYMENT -->
+<!-- ===================================================== -->
+<div class="section">C. TERM OF PAYMENT</div>';
+
+if (count($termPayments) > 0) {
+    $html .= '
+<table class="top-table">
+    <tr>
+        <th style="width:25%">Payment Type</th>
+        <th style="width:30%">Payment / Label</th>
+        <th style="width:20%">Amount</th>
+        <th style="width:25%">Keterangan</th>
+    </tr>';
+
+    foreach ($termPayments as $top) {
+        $paymentType = strtolower((string)($top['payment_type'] ?? ''));
+        $paymentTypeLabel = [
+            'booking_fee' => 'Booking Fee',
+            'down_payment' => 'Down Payment',
+            'angsuran' => 'Angsuran',
+            'nominal_po' => 'Nominal PO Leasing'
+        ];
+
+        $typeDisplay = $paymentTypeLabel[$paymentType]
+            ?? ucwords(str_replace('_', ' ', $paymentType));
+
+        $html .= '
+    <tr>
+        <td>' . h($typeDisplay) . '</td>
+        <td>' . h($top['payment_label'] ?? '-') . '</td>
+        <td class="right money bold">' . formatRp($top['amount'] ?? 0) . '</td>
+        <td>' . nl2br(h($top['keterangan'] ?? '-')) . '</td>
+    </tr>';
+    }
+
+    $html .= '
+    <tr class="top-total">
+        <td colspan="2" class="right">TOTAL TOP</td>
+        <td class="right money">' . formatRp($totalTOP) . '</td>
+        <td></td>
+    </tr>
+</table>';
+} else {
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada data Term of Payment</td>
+    </tr>
+</table>';
+}
+
+// =====================================================
+// D. ADDITIONAL COST
+// =====================================================
+$html .= '
 <div class="section">D. ADDITIONAL COST</div>';
 
 if (count($additionalCostItems) > 0) {
-    $html .= '<table class="cost-item-table">
-        <tr>
-            <th style="width:5%">No</th>
-            <th style="width:25%">Nama Item</th>
-            <th style="width:25%">Nominal</th>
-            <th style="width:45%">Keterangan</th>
-        </tr>';
+    $html .= '
+<table class="cost-item-table">
+    <tr>
+        <th style="width:6%">No</th>
+        <th style="width:28%">Nama Item</th>
+        <th style="width:23%">Nominal</th>
+        <th style="width:43%">Keterangan</th>
+    </tr>';
+
     foreach ($additionalCostItems as $i => $item) {
-        $html .= '<tr>
-            <td class="center">' . ($i + 1) . '</td>
-            <td>' . h($item['item_name'] ?? '-') . '</td>
-            <td class="right money bold">' . formatRp($item['amount'] ?? 0) . '</td>
-            <td>' . nl2br(h($item['keterangan'] ?? '-')) . '</td>
-        </tr>';
+        $html .= '
+    <tr>
+        <td class="center">' . ($i + 1) . '</td>
+        <td>' . h($item['item_name'] ?? '-') . '</td>
+        <td class="right money bold">' . formatRp($item['amount'] ?? 0) . '</td>
+        <td>' . nl2br(h($item['keterangan'] ?? '-')) . '</td>
+    </tr>';
     }
-    $html .= '<tr class="top-total">
+
+    $html .= '
+    <tr class="top-total">
         <td colspan="2" class="right bold">TOTAL ADDITIONAL COST</td>
         <td class="right money bold green">' . formatRp($totalAdditionalCost) . '</td>
         <td></td>
     </tr>
-    </table>';
+</table>';
 } else {
-    $html .= '<table><tr><td class="center">Belum ada data Additional Cost</td></tr></table>';
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada data Additional Cost</td>
+    </tr>
+</table>';
 }
 
-// E. MEDIATOR
+// =====================================================
+// E. DATA MEDIATOR
+// =====================================================
 $html .= '
 <div class="section">E. DATA MEDIATOR</div>';
 
 if (count($mediators) > 0) {
-    $html .= '<table class="mediator-table">
-        <tr>
-            <th style="width:5%">No</th>
-            <th style="width:19%">Name</th>
-            <th style="width:15%">ID Card No</th>
-            <th style="width:15%">NPWP No</th>
-            <th style="width:14%">Bank Name</th>
-            <th style="width:17%">Bank Account</th>
-            <th style="width:15%">Amount</th>
-        </tr>';
+    $html .= '
+<table class="mediator-table">
+    <tr>
+        <th style="width:5%">No</th>
+        <th style="width:19%">Name</th>
+        <th style="width:15%">ID Card No</th>
+        <th style="width:15%">NPWP No</th>
+        <th style="width:14%">Bank Name</th>
+        <th style="width:17%">Bank Account</th>
+        <th style="width:15%">Amount</th>
+    </tr>';
+
     foreach ($mediators as $i => $med) {
-        $html .= '<tr>
-            <td class="center">' . ($i + 1) . '</td>
-            <td>' . h($med['name'] ?? '-') . '</td>
-            <td>' . h($med['id_card_no'] ?? '-') . '</td>
-            <td>' . h($med['npwp_no'] ?? '-') . '</td>
-            <td>' . h($med['bank_name'] ?? '-') . '</td>
-            <td>' . h($med['bank_account'] ?? '-') . '</td>
-            <td class="right money bold">' . formatRp($med['amount'] ?? 0) . '</td>
-        </tr>';
+        $html .= '
+    <tr>
+        <td class="center">' . ($i + 1) . '</td>
+        <td>' . h($med['name'] ?? '-') . '</td>
+        <td>' . h($med['id_card_no'] ?? '-') . '</td>
+        <td>' . h($med['npwp_no'] ?? '-') . '</td>
+        <td>' . h($med['bank_name'] ?? '-') . '</td>
+        <td>' . h($med['bank_account'] ?? '-') . '</td>
+        <td class="right money bold">' . formatRp($med['amount'] ?? 0) . '</td>
+    </tr>';
     }
-    $html .= '<tr class="top-total">
+
+    $html .= '
+    <tr class="top-total">
         <td colspan="6" class="right bold">TOTAL MEDIATOR FEE</td>
         <td class="right money bold">' . formatRp($totalMediatorFee) . '</td>
     </tr>
-    </table>';
+</table>';
 } else {
-    $html .= '<table><tr><td class="center">Belum ada data mediator</td></tr></table>';
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada data Mediator</td>
+    </tr>
+</table>';
 }
 
-// E2. PRODUCT SUPPORT
+// =====================================================
+// F. PRODUCT SUPPORT
+// =====================================================
 $html .= '
-<div class="section">E2. PRODUCT SUPPORT</div>';
+<div class="section">F. PRODUCT SUPPORT</div>';
 
 if (count($trSupports) > 0) {
-    $html .= '<table class="support-table">
-        <tr>
-            <th style="width:5%">No</th>
-            <th style="width:35%">Nama Support</th>
-            <th style="width:60%">Keterangan</th>
-        </tr>';
-    foreach ($trSupports as $i => $support) {
-        $html .= '<tr>
-            <td class="center">' . ($i + 1) . '</td>
-            <td>' . h($support['support_name'] ?? '-') . '</td>
-            <td>' . nl2br(h($support['keterangan'] ?? '-')) . '</td>
-        </tr>';
-    }
-    $html .= '</table>';
-} else {
-    $html .= '<table><tr><td class="center">Belum ada data Product Support</td></tr></table>';
-}
-
-// F. COST CALCULATION
-if ($costCalculation) {
-    $dealer_profit_net = $costCalculation['selling_price'] > 0 
-        ? ($costCalculation['dealer_profit_request'] / $costCalculation['selling_price']) * 100 
-        : 0;
-    
     $html .= '
-    <div class="section">F. COST CALCULATION</div>
-    <table>
-        <tr>
-            <td class="label" style="width:25%">Dealer Price</td>
-            <td class="right money" style="width:25%">' . formatRp($costCalculation['dealer_price'] ?? 0) . '</td>
-            <td class="label" style="width:25%">Persentase</td>
-            <td class="right" style="width:25%">' . h($costCalculation['persentase'] ?? 0) . '%</td>
-        </tr>
-        <tr>
-            <td class="label">Support Price</td>
-            <td class="right money">' . formatRp($costCalculation['support_price'] ?? 0) . '</td>
-            <td class="label">Additional Cost</td>
-            <td class="right money">' . formatRp($costCalculation['additional_cost'] ?? 0) . '</td>
-        </tr>
-        <tr>
-            <td class="label">Total COGS</td>
-            <td class="right money">' . formatRp($costCalculation['total_cogs'] ?? 0) . '</td>
-            <td class="label">Selling Price</td>
-            <td class="right money">' . formatRp($costCalculation['selling_price'] ?? 0) . '</td>
-        </tr>
-        <tr>
-            <td class="label green">Dealer Profit Request</td>
-            <td class="right money bold green">' . formatRp($costCalculation['dealer_profit_request'] ?? 0) . '</td>
-            <td class="label">Dealer Profit Net</td>
-            <td class="right bold">' . number_format($dealer_profit_net, 2, ',', '.') . '%</td>
-        </tr>
-    </table>';
+<table class="support-table">
+    <tr>
+        <th style="width:7%">No</th>
+        <th style="width:33%">Nama Support</th>
+        <th style="width:60%">Keterangan</th>
+    </tr>';
+
+    foreach ($trSupports as $i => $support) {
+        $html .= '
+    <tr>
+        <td class="center">' . ($i + 1) . '</td>
+        <td class="bold">' . h($support['support_name'] ?? '-') . '</td>
+        <td>' . nl2br(h($support['keterangan'] ?? '-')) . '</td>
+    </tr>';
+    }
+
+    $html .= '
+</table>';
+} else {
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada data Product Support</td>
+    </tr>
+</table>';
 }
 
-// G. REKAPITULASI
+// =====================================================
+// G. COST CALCULATION
+// =====================================================
 $html .= '
-<div class="section">G. REKAPITULASI</div>
+<div class="section">G. COST CALCULATION</div>';
+
+if ($costCalculation) {
+    $html .= '
+<table class="keep">
+    <tr>
+        <td class="label" style="width:30%">Dealer Price</td>
+        <td class="right money" style="width:20%">' . formatRp($ccDealerPrice) . '</td>
+        <td class="label" style="width:30%">Persentase Diskon</td>
+        <td class="right" style="width:20%">' . number_format((float)$ccPersentase, 2, ',', '.') . '%</td>
+    </tr>
+    <tr>
+        <td class="label">Support Price</td>
+        <td class="right money">' . formatRp($ccSupportPrice) . '</td>
+        <td class="label">Additional Cost</td>
+        <td class="right money">' . formatRp($totalAdditionalCost) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Total COGS</td>
+        <td class="right money bold">' . formatRp($ccTotalCogs) . '</td>
+        <td class="label">Selling Price to Customer</td>
+        <td class="right money bold">' . formatRp($ccSellingPrice) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Dealer Profit Request</td>
+        <td class="right money profit">' . formatRp($ccDealerProfitRequest) . '</td>
+        <td class="label">Dealer Profit Net</td>
+        <td class="right profit">' . number_format((float)$ccDealerProfitNet, 2, ',', '.') . '%</td>
+    </tr>
+</table>';
+} else {
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada data Cost Calculation</td>
+    </tr>
+</table>';
+}
+
+// =====================================================
+// H. REKAPITULASI
+// =====================================================
+$html .= '
+<div class="section">H. REKAPITULASI</div>
+
 <table class="summary-total">
     <tr>
-        <td class="label" style="width:34%">Grand Total Include PPN</td>
-        <td class="right money" style="width:16%">' . formatRp($totalUnitGrandTotal) . '</td>
-        <td class="label" style="width:34%">Total Additional Cost</td>
-        <td class="right money" style="width:16%">' . formatRp($totalAdditionalCost) . '</td>
+        <td class="label" style="width:32%">Total Unit Qty</td>
+        <td class="right" style="width:18%">' . formatNumber($totalUnitQty) . '</td>
+
+        <td class="label" style="width:32%">Grand Total Include PPN</td>
+        <td class="right money" style="width:18%">' . formatRp($totalUnitGrandTotal) . '</td>
     </tr>
     <tr>
-        <td class="label" style="width:34%">Total Masukan</td>
-        <td class="right money green" colspan="3">' . formatRp($totalMasukan) . '</td>
-    </tr>
-</table>
+        <td class="label">Total TOP</td>
+        <td class="right money">' . formatRp($totalTOP) . '</td>
 
-<!-- H. APPROVAL HISTORY -->
-<div class="section">H. APPROVAL HISTORY</div>';
+        <td class="label">Total Additional Cost</td>
+        <td class="right money">' . formatRp($totalAdditionalCost) . '</td>
+    </tr>
+    <tr>
+        <td class="label">Total Mediator Fee</td>
+        <td class="right money">' . formatRp($totalMediatorFee) . '</td>
+
+        <td class="label">Total Masukan</td>
+        <td class="right money green">' . formatRp($totalMasukan) . '</td>
+    </tr>
+</table>';
+
+// =====================================================
+// I. APPROVAL HISTORY
+// =====================================================
+$html .= '
+<div class="section">I. APPROVAL HISTORY</div>';
 
 if (count($approvalHistory) > 0) {
-    $html .= '<table>
-        <tr>
-            <th style="width:9%">Level</th>
-            <th style="width:23%">Role</th>
-            <th style="width:16%">Status</th>
-            <th style="width:27%">Approved By</th>
-            <th style="width:25%">Approved At</th>
-        </tr>';
+    $html .= '
+<table class="keep">
+    <tr>
+        <th style="width:8%">Level</th>
+        <th style="width:24%">Role</th>
+        <th style="width:16%">Status</th>
+        <th style="width:27%">Approved By</th>
+        <th style="width:25%">Approved At</th>
+    </tr>';
+
     foreach ($approvalHistory as $approval) {
         $levelNum = (int)($approval['approval_order'] ?? 0);
-        $levelLabel = $approvalLevels[$levelNum]['label'] ?? ('Level ' . $levelNum);
+
+        // Hanya tampilkan role yang sesuai struktur approval terbaru.
+        $levelLabel = $approvalLevels[$levelNum]['label']
+            ?? ('Level ' . $levelNum);
+
         $status = strtolower((string)($approval['status'] ?? 'pending'));
+
         $approverName = !empty($approval['approver_name'])
             ? $approval['approver_name']
-            : (($approval['approved_by'] ?? '') !== '' ? $approval['approved_by'] : '-');
-        
-        $approvedAtRaw = $approval['approved_at'] ?? '';
-        $approvedAtDisplay = '-';
-        if (!empty($approvedAtRaw) && strtotime($approvedAtRaw) !== false) {
-            $approvedAtDisplay = date('d/m/Y H:i', strtotime($approvedAtRaw));
-        }
+            : (
+                ($approval['approved_by'] ?? '') !== ''
+                    ? $approval['approved_by']
+                    : '-'
+            );
 
-        $html .= '<tr>
-            <td class="center">Level ' . $levelNum . '</td>
-            <td>' . h($levelLabel) . '</td>
-            <td class="center"><span class="status ' . statusClass($status) . '">' . h(statusLabel($status)) . '</span></td>
-            <td>' . h($approverName) . '</td>
-            <td class="center">' . $approvedAtDisplay . '</td>
-        </tr>';
+        $approvedAt = formatDateTimeId($approval['approved_at'] ?? '');
+
+        $html .= '
+    <tr>
+        <td class="center">Level ' . $levelNum . '</td>
+        <td>' . h($levelLabel) . '</td>
+        <td class="center">
+            <span class="status ' . statusClass($status) . '">
+                ' . h(statusLabel($status)) . '
+            </span>
+        </td>
+        <td>' . h($approverName) . '</td>
+        <td class="center">' . h($approvedAt) . '</td>
+    </tr>';
     }
-    $html .= '</table>';
+
+    $html .= '
+</table>';
 } else {
-    $html .= '<table><tr><td class="center">Belum ada approval history.</td></tr></table>';
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada approval history.</td>
+    </tr>
+</table>';
 }
 
+// =====================================================
 // FOOTER
+// =====================================================
 $html .= '
-<table style="margin-top:3px;">
+<table style="margin-top:4px;">
     <tr>
         <td class="label" style="width:18%">Generated</td>
         <td>' . date('d/m/Y H:i') . ' WIB</td>
@@ -809,6 +1079,10 @@ $html .= '
         <td class="bold">' . h($tr_number) . '</td>
     </tr>
 </table>
+
+<div class="small-note" style="margin-top:4px;">
+    Document generated from Transaction Request detail data.
+</div>
 
 </body>
 </html>';
@@ -829,7 +1103,9 @@ $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
-$filename = 'TR_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $tr_number) . '_' . date('Ymd_His') . '.pdf';
+$filename = 'TR_' .
+    preg_replace('/[^A-Za-z0-9_-]/', '_', $tr_number) .
+    '_' . date('Ymd_His') . '.pdf';
 
 header('Content-Type: application/pdf');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
