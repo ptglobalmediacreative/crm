@@ -678,7 +678,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rollBack();
             setFlash('Gagal menyimpan Additional Cost: ' . $e->getMessage(), 'danger');
         }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=additional_cost");
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=cost_calculation");
     }
     
     // SAVE MEDIATOR (MULTIPLE)
