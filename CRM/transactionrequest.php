@@ -658,17 +658,19 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                             </span>
                                         </td>
                                         <td style="text-align:center;">
-                                            <?php if ($isApproved): ?>
-                                                <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
-                                                   class="btn-pdf" 
-                                                   target="_blank"
-                                                   title="Download PDF Detail TR">
-                                                    <i class="fas fa-file-pdf"></i> PDF
-                                                </a>
-                                            <?php else: ?>
-                                                <span class="btn-pdf-disabled" title="PDF hanya tersedia untuk TR yang sudah Approved">
-                                                    <i class="fas fa-file-pdf"></i> PDF
-                                                </span>
+                                            <?php if ($userRole !== 'sales'): ?>
+                                                <?php if ($isApproved): ?>
+                                                    <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
+                                                       class="btn-pdf" 
+                                                       target="_blank"
+                                                       title="Download PDF Detail TR">
+                                                        <i class="fas fa-file-pdf"></i> PDF
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="btn-pdf-disabled" title="PDF hanya tersedia untuk TR yang sudah Approved">
+                                                        <i class="fas fa-file-pdf"></i> PDF
+                                                    </span>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
