@@ -80,10 +80,19 @@ if ($isSalesRole) {
 }
 $totalLeads = $db->query($sqlTotalLeads)->fetchColumn();
 
-/* Total Transaction Request */
-$sqlTotalTR = "SELECT COUNT(*) FROM transaction_requests WHERE 1=1";
+/* Total Transaction Request
+ *
+ * Sumber TR yang benar di CRM adalah activity_details.tr_number.
+ * Halaman Transaction Request juga menggunakan sumber ini dan menghitung
+ * nomor TR secara DISTINCT, karena satu TR dapat memiliki beberapa activity detail.
+ */
+$sqlTotalTR = "SELECT COUNT(DISTINCT ad.tr_number)
+               FROM activity_details ad
+               LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+               WHERE ad.tr_number IS NOT NULL
+                 AND TRIM(ad.tr_number) <> ''";
 if ($filterSalesId > 0) {
-    $sqlTotalTR .= " AND sales_id = $filterSalesId";
+    $sqlTotalTR .= " AND sa.sales_id = $filterSalesId";
 }
 $totalTransactionRequests = (int)$db->query($sqlTotalTR)->fetchColumn();
 
