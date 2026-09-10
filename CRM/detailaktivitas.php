@@ -180,69 +180,63 @@ function deleteUnusedDeliveryInstructionData($db, $diNumber) {
 // ============================================
 // HELPER: RENUMBER TR SELURUH DATABASE
 // ============================================
-function renumberAllTransactionRequestsFromActivities($db) {
-    // Ambil TR aktif dari master activity_details. Jika pernah terjadi korupsi
-    // temporary number, period tetap ditentukan dari created_at agar bisa dipulihkan.
-    $stmt = $db->query("
+function renumberAllTransactionRequestsFromActivities($db, $period = null) {
+    // Hanya renumber periode yang memang berubah. Jangan menyentuh TR bulan lain.
+    if ($period !== null) {
+        $period = trim((string)$period);
+        if (!preg_match('/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)\/\d{4}$/', $period)) {
+            throw new RuntimeException('Periode TR tidak valid untuk renumber: ' . $period);
+        }
+    }
+
+    $sql = "
         SELECT
             tr_number AS old_tr,
             MIN(created_at) AS first_created_at
         FROM activity_details
         WHERE tr_number IS NOT NULL
           AND TRIM(tr_number) <> ''
-        GROUP BY tr_number
-    ");
+    ";
+    $params = [];
+
+    if ($period !== null) {
+        $sql .= " AND tr_number LIKE ? ";
+        $params[] = '%/GET-TR/JKT/' . $period;
+    }
+
+    $sql .= " GROUP BY tr_number ORDER BY first_created_at ASC, old_tr ASC";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (!$rows) return 0;
 
-    $monthPeriods = [
-        '01' => 'I', '02' => 'II', '03' => 'III', '04' => 'IV',
-        '05' => 'V', '06' => 'VI', '07' => 'VII', '08' => 'VIII',
-        '09' => 'IX', '10' => 'X', '11' => 'XI', '12' => 'XII'
-    ];
-
-    foreach ($rows as &$row) {
-        $oldTr = trim((string)$row['old_tr']);
-        $period = null;
-
-        // Nomor normal: 0001/GET-TR/JKT/IX/2026
-        if (preg_match('#^\d{4}/GET-TR/JKT/([^/]+/\d{4})$#', $oldTr, $m)) {
-            $period = $m[1];
-        }
-
-        // Fallback untuk nomor temporary/corrupt lama: gunakan bulan created_at.
-        if ($period === null && !empty($row['first_created_at'])) {
-            $month = date('m', strtotime($row['first_created_at']));
-            $year  = date('Y', strtotime($row['first_created_at']));
-            if (isset($monthPeriods[$month])) {
-                $period = $monthPeriods[$month] . '/' . $year;
+    if ($period === null) {
+        foreach ($rows as &$row) {
+            if (preg_match('#^\d{4}/GET-TR/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($row['old_tr']), $m)) {
+                $row['period'] = $m[1];
+            } else {
+                throw new RuntimeException('Periode TR tidak dapat ditentukan untuk: ' . $row['old_tr']);
             }
         }
-
-        if ($period === null) {
-            throw new RuntimeException('Periode TR tidak dapat ditentukan untuk: ' . $oldTr);
-        }
-
-        $row['period'] = $period;
+        unset($row);
+        usort($rows, static function ($a, $b) {
+            return [$a['period'], $a['first_created_at'], $a['old_tr']] <=>
+                   [$b['period'], $b['first_created_at'], $b['old_tr']];
+        });
+    } else {
+        foreach ($rows as &$row) $row['period'] = $period;
+        unset($row);
     }
-    unset($row);
-
-    usort($rows, static function ($a, $b) {
-        return [$a['period'], $a['first_created_at'], $a['old_tr']] <=>
-               [$b['period'], $b['first_created_at'], $b['old_tr']];
-    });
 
     $mapping = [];
-    $sequenceByPeriod = [];
-
+    $sequence = 0;
     foreach ($rows as $row) {
-        $period = $row['period'];
-        $sequenceByPeriod[$period] = ($sequenceByPeriod[$period] ?? 0) + 1;
-
+        $sequence++;
         $mapping[$row['old_tr']] =
-            str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
-            . '/GET-TR/JKT/' . $period;
+            str_pad((string)$sequence, 4, '0', STR_PAD_LEFT) .
+            '/GET-TR/JKT/' . $row['period'];
     }
 
     $tableColumns = [
@@ -259,46 +253,40 @@ function renumberAllTransactionRequestsFromActivities($db) {
         'tr_term_of_payments' => 'trf_number'
     ];
 
-    // WAJIB <= VARCHAR(50).  __TRTMP_ (8) + 24 hex = 33 karakter.
-    // Nilai temporary ini hanya hidup selama transaction.
+    // Temporary key dijamin <= 50 karakter.
     $token = '__TRTMP_' . bin2hex(random_bytes(8));
+    $temporaryMap = [];
 
+    // Tahap 1: semua old number -> temporary number.
     foreach ($mapping as $oldTr => $newTr) {
         $temporaryTr = $token . '_' . substr(hash('sha256', $oldTr), 0, 24);
-
         if (strlen($temporaryTr) > 50) {
             throw new RuntimeException('Temporary TR number melebihi 50 karakter.');
         }
+        $temporaryMap[$oldTr] = $temporaryTr;
 
         foreach ($tableColumns as $table => $column) {
-            $stmt = $db->prepare(
-                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
-            );
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
             $stmt->execute([$temporaryTr, $oldTr]);
         }
     }
 
+    // Tahap 2: temporary number -> nomor final.
     foreach ($mapping as $oldTr => $newTr) {
-        $temporaryTr = $token . '_' . substr(hash('sha256', $oldTr), 0, 24);
-
+        $temporaryTr = $temporaryMap[$oldTr];
         foreach ($tableColumns as $table => $column) {
-            $stmt = $db->prepare(
-                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
-            );
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
             $stmt->execute([$newTr, $temporaryTr]);
         }
     }
 
-    try {
-        $db->exec("DELETE FROM tr_renumber_map");
-        $insertMap = $db->prepare(
-            "INSERT INTO tr_renumber_map (old_tr, new_tr) VALUES (?, ?)"
-        );
-        foreach ($mapping as $oldTr => $newTr) {
-            $insertMap->execute([$oldTr, $newTr]);
+    // Safety check: tidak boleh ada temporary TR yang tertinggal.
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` LIKE ?");
+        $stmt->execute([$token . '%']);
+        if ((int)$stmt->fetchColumn() > 0) {
+            throw new RuntimeException('Temporary TR masih tersisa di tabel ' . $table . '. Transaction dibatalkan.');
         }
-    } catch (PDOException $e) {
-        // Audit mapping opsional.
     }
 
     return count($mapping);
@@ -307,32 +295,59 @@ function renumberAllTransactionRequestsFromActivities($db) {
 // ============================================
 // HELPER: RENUMBER DI SELURUH DATABASE
 // ============================================
-function renumberAllDeliveryInstructions($db) {
-    $stmt = $db->query("
+function renumberAllDeliveryInstructions($db, $period = null) {
+    if ($period !== null) {
+        $period = trim((string)$period);
+        if (!preg_match('/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)\/\d{4}$/', $period)) {
+            throw new RuntimeException('Periode DI tidak valid untuk renumber: ' . $period);
+        }
+    }
+
+    $sql = "
         SELECT
             di_number AS old_di,
-            SUBSTRING_INDEX(di_number, '/GET-DI/JKT/', -1) AS period,
             MIN(created_at) AS first_created_at
         FROM activity_details
         WHERE di_number IS NOT NULL
           AND TRIM(di_number) <> ''
-        GROUP BY di_number
-        ORDER BY period ASC, first_created_at ASC, old_di ASC
-    ");
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    ";
+    $params = [];
+    if ($period !== null) {
+        $sql .= " AND di_number LIKE ? ";
+        $params[] = '%/GET-DI/JKT/' . $period;
+    }
+    $sql .= " GROUP BY di_number ORDER BY first_created_at ASC, old_di ASC";
 
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (!$rows) return 0;
 
+    if ($period === null) {
+        foreach ($rows as &$row) {
+            if (preg_match('#^\d{4}/GET-DI/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($row['old_di']), $m)) {
+                $row['period'] = $m[1];
+            } else {
+                throw new RuntimeException('Periode DI tidak dapat ditentukan untuk: ' . $row['old_di']);
+            }
+        }
+        unset($row);
+        usort($rows, static function ($a, $b) {
+            return [$a['period'], $a['first_created_at'], $a['old_di']] <=>
+                   [$b['period'], $b['first_created_at'], $b['old_di']];
+        });
+    } else {
+        foreach ($rows as &$row) $row['period'] = $period;
+        unset($row);
+    }
+
     $mapping = [];
-    $sequenceByPeriod = [];
-
+    $sequence = 0;
     foreach ($rows as $row) {
-        $period = $row['period'];
-        $sequenceByPeriod[$period] = ($sequenceByPeriod[$period] ?? 0) + 1;
-
+        $sequence++;
         $mapping[$row['old_di']] =
-            str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
-            . '/GET-DI/JKT/' . $period;
+            str_pad((string)$sequence, 4, '0', STR_PAD_LEFT) .
+            '/GET-DI/JKT/' . $row['period'];
     }
 
     $tableColumns = [
@@ -345,32 +360,36 @@ function renumberAllDeliveryInstructions($db) {
         'di_product_supports' => 'di_number'
     ];
 
-    // WAJIB <= VARCHAR(50).  __DITMP_ (8) + 24 hex = 33 karakter.
     $token = '__DITMP_' . bin2hex(random_bytes(8));
+    $temporaryMap = [];
 
     foreach ($mapping as $oldDi => $newDi) {
         $temporaryDi = $token . '_' . substr(hash('sha256', $oldDi), 0, 24);
-
         if (strlen($temporaryDi) > 50) {
             throw new RuntimeException('Temporary DI number melebihi 50 karakter.');
         }
+        $temporaryMap[$oldDi] = $temporaryDi;
 
         foreach ($tableColumns as $table => $column) {
-            $stmt = $db->prepare(
-                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
-            );
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
             $stmt->execute([$temporaryDi, $oldDi]);
         }
     }
 
     foreach ($mapping as $oldDi => $newDi) {
-        $temporaryDi = $token . '_' . substr(hash('sha256', $oldDi), 0, 24);
-
+        $temporaryDi = $temporaryMap[$oldDi];
         foreach ($tableColumns as $table => $column) {
-            $stmt = $db->prepare(
-                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
-            );
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
             $stmt->execute([$newDi, $temporaryDi]);
+        }
+    }
+
+    // Safety check: tidak boleh ada temporary DI yang tertinggal.
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` LIKE ?");
+        $stmt->execute([$token . '%']);
+        if ((int)$stmt->fetchColumn() > 0) {
+            throw new RuntimeException('Temporary DI masih tersisa di tabel ' . $table . '. Transaction dibatalkan.');
         }
     }
 
@@ -679,9 +698,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             deleteUnusedDeliveryInstructionData($db, $diNumber);
             deleteUnusedTransactionRequestData($db, $trNumber);
 
-            // Rapikan nomor dalam transaction yang sama.
-            renumberAllTransactionRequestsFromActivities($db);
-            renumberAllDeliveryInstructions($db);
+            // Rapikan hanya periode yang terdampak, dalam transaction yang sama.
+            $trPeriod = null;
+            if (!empty($trNumber) && preg_match('#^\d{4}/GET-TR/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($trNumber), $m)) {
+                $trPeriod = $m[1] . '/' . substr(trim($trNumber), -4);
+            }
+
+            $diPeriod = null;
+            if (!empty($diNumber) && preg_match('#^\d{4}/GET-DI/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($diNumber), $m)) {
+                $diPeriod = $m[1] . '/' . substr(trim($diNumber), -4);
+            }
+
+            if ($trPeriod !== null) {
+                renumberAllTransactionRequestsFromActivities($db, $trPeriod);
+            }
+            if ($diPeriod !== null) {
+                renumberAllDeliveryInstructions($db, $diPeriod);
+            }
 
             $db->commit();
 
