@@ -138,27 +138,26 @@ function renumberAllActivityNumbers($db) {
 // YANG TERKAIT DENGAN TR TERTENTU
 // ============================================
 function deleteTransactionRequestData($db, $trNumber) {
-    $tables = [
-        'detail_transaction_requests',
-        'transaction_requests',
-        'tr_additional_costs',
-        'tr_additional_cost_items',
-        'tr_approval_history',
-        'tr_cost_calculations',
-        'tr_detail_units',
-        'tr_mediators',
-        'tr_product_supports',
-        'tr_term_of_payments'
+    // activity_details menggunakan tr_number.
+    // Tabel Transaction Request menggunakan trf_number.
+    $tableColumns = [
+        'detail_transaction_requests' => 'trf_number',
+        'transaction_requests' => 'trf_number',
+        'tr_additional_costs' => 'trf_number',
+        'tr_additional_cost_items' => 'trf_number',
+        'tr_approval_history' => 'trf_number',
+        'tr_cost_calculations' => 'trf_number',
+        'tr_detail_units' => 'trf_number',
+        'tr_mediators' => 'trf_number',
+        'tr_product_supports' => 'trf_number',
+        'tr_term_of_payments' => 'trf_number'
     ];
 
-    foreach ($tables as $table) {
-        try {
-            $stmt = $db->prepare("DELETE FROM `{$table}` WHERE trf_number = ?");
-            $stmt->execute([$trNumber]);
-        } catch (PDOException $e) {
-            // Jangan hentikan proses apabila tabel tertentu tidak ada.
-            // Tabel yang memang ada akan tetap dibersihkan.
-        }
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare(
+            "DELETE FROM `{$table}` WHERE `{$column}` = ?"
+        );
+        $stmt->execute([$trNumber]);
     }
 }
 
@@ -169,93 +168,92 @@ function deleteTransactionRequestData($db, $trNumber) {
 // created_at paling awal.
 // ============================================
 function renumberAllTransactionRequests($db) {
-    $stmt = $db->query("\n        SELECT\n            ad.tr_number AS old_tr,\n            SUBSTRING_INDEX(ad.tr_number, '/GET-TR/JKT/', -1) AS period,\n            MIN(ad.created_at) AS first_created_at\n        FROM activity_details ad\n        WHERE ad.tr_number IS NOT NULL\n          AND TRIM(ad.tr_number) <> ''\n        GROUP BY ad.tr_number\n        ORDER BY period ASC, first_created_at ASC, old_tr ASC\n    ");
+    $stmt = $db->query("
+        SELECT
+            ad.tr_number AS old_tr,
+            SUBSTRING_INDEX(ad.tr_number, '/GET-TR/JKT/', -1) AS period,
+            MIN(ad.created_at) AS first_created_at
+        FROM activity_details ad
+        WHERE ad.tr_number IS NOT NULL
+          AND TRIM(ad.tr_number) <> ''
+        GROUP BY ad.tr_number
+        ORDER BY period ASC, first_created_at ASC, old_tr ASC
+    ");
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    if (!$rows) {
-        return 0;
-    }
+    if (!$rows) return 0;
 
     $mapping = [];
     $sequenceByPeriod = [];
 
     foreach ($rows as $row) {
         $period = $row['period'];
+
         if (!isset($sequenceByPeriod[$period])) {
             $sequenceByPeriod[$period] = 1;
         }
 
-        $newTr = str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
-               . '/GET-TR/JKT/' . $period;
+        $mapping[$row['old_tr']] =
+            str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
+            . '/GET-TR/JKT/' . $period;
 
-        $mapping[$row['old_tr']] = $newTr;
         $sequenceByPeriod[$period]++;
     }
 
-    $tables = [
-        'activity_details',
-        'detail_transaction_requests',
-        'transaction_requests',
-        'tr_additional_costs',
-        'tr_additional_cost_items',
-        'tr_approval_history',
-        'tr_cost_calculations',
-        'tr_detail_units',
-        'tr_mediators',
-        'tr_product_supports',
-        'tr_term_of_payments'
+    $tableColumns = [
+        'activity_details' => 'tr_number',
+        'detail_transaction_requests' => 'trf_number',
+        'transaction_requests' => 'trf_number',
+        'tr_additional_costs' => 'trf_number',
+        'tr_additional_cost_items' => 'trf_number',
+        'tr_approval_history' => 'trf_number',
+        'tr_cost_calculations' => 'trf_number',
+        'tr_detail_units' => 'trf_number',
+        'tr_mediators' => 'trf_number',
+        'tr_product_supports' => 'trf_number',
+        'tr_term_of_payments' => 'trf_number'
     ];
 
-    // Gunakan prefix sementara supaya tidak terjadi benturan nama
-    // saat 0002 harus menjadi 0001, 0003 menjadi 0002, dst.
-    $token = '__TR_RENUMBER_' . bin2hex(random_bytes(6)) . '__';
+    // Gunakan nomor sementara agar tidak bentrok dengan UNIQUE KEY.
+    $token = '__TR_RENUMBER_' . bin2hex(random_bytes(12)) . '__';
 
-    // Mapping lama -> sementara.
+    // Tahap 1: nomor lama -> sementara.
     foreach ($mapping as $oldTr => $newTr) {
         $temporaryTr = $token . hash('sha256', $oldTr);
-        foreach ($tables as $table) {
-            try {
-                $stmt = $db->prepare("UPDATE `{$table}` SET tr_number = ? WHERE tr_number = ?");
-                $stmt->execute([$temporaryTr, $oldTr]);
-            } catch (PDOException $e) {
-                // Tabel menggunakan nama kolom trf_number, bukan tr_number.
-                try {
-                    $stmt = $db->prepare("UPDATE `{$table}` SET trf_number = ? WHERE trf_number = ?");
-                    $stmt->execute([$temporaryTr, $oldTr]);
-                } catch (PDOException $ignored) {
-                    // Abaikan tabel/kolom yang tidak tersedia.
-                }
-            }
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare(
+                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
+            );
+            $stmt->execute([$temporaryTr, $oldTr]);
         }
     }
 
-    // Mapping sementara -> nomor TR final.
+    // Tahap 2: sementara -> nomor final.
     foreach ($mapping as $oldTr => $newTr) {
         $temporaryTr = $token . hash('sha256', $oldTr);
-        foreach ($tables as $table) {
-            try {
-                $stmt = $db->prepare("UPDATE `{$table}` SET tr_number = ? WHERE tr_number = ?");
-                $stmt->execute([$newTr, $temporaryTr]);
-            } catch (PDOException $e) {
-                try {
-                    $stmt = $db->prepare("UPDATE `{$table}` SET trf_number = ? WHERE trf_number = ?");
-                    $stmt->execute([$newTr, $temporaryTr]);
-                } catch (PDOException $ignored) {
-                    // Abaikan tabel/kolom yang tidak tersedia.
-                }
-            }
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare(
+                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
+            );
+            $stmt->execute([$newTr, $temporaryTr]);
         }
     }
 
-    // Simpan mapping jika tabel audit sudah dibuat.
+    // Audit mapping bersifat opsional.
     try {
         $db->exec("DELETE FROM tr_renumber_map");
-        $insertMap = $db->prepare("INSERT INTO tr_renumber_map (old_tr, new_tr) VALUES (?, ?)");
+
+        $insertMap = $db->prepare(
+            "INSERT INTO tr_renumber_map (old_tr, new_tr) VALUES (?, ?)"
+        );
+
         foreach ($mapping as $oldTr => $newTr) {
             $insertMap->execute([$oldTr, $newTr]);
         }
     } catch (PDOException $e) {
-        // Opsional; proses utama tidak bergantung pada tabel mapping.
+        // Tabel audit tidak wajib tersedia.
     }
 
     return count($mapping);
@@ -266,51 +264,85 @@ function renumberAllTransactionRequests($db) {
 // LALU RENUMBER TR SECARA OTOMATIS
 // ============================================
 function deleteSalesActivityAndRelatedData($db, $salesActivityId) {
-    // Ambil seluruh TR yang pernah digunakan oleh activity ini.
-    $stmt = $db->prepare("\n        SELECT DISTINCT tr_number\n        FROM activity_details\n        WHERE sales_activity_id = ?\n          AND tr_number IS NOT NULL\n          AND TRIM(tr_number) <> ''\n    ");
-    $stmt->execute([$salesActivityId]);
-    $trNumbers = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-    // Ambil seluruh ID detail activity agar bisa dibersihkan juga.
-    $stmt = $db->prepare("SELECT id FROM activity_details WHERE sales_activity_id = ?");
-    $stmt->execute([$salesActivityId]);
-    $detailIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
     $db->beginTransaction();
 
     try {
-        // 1. Hapus detail aktivitas.
-        // Jika ada attachment yang tersimpan sebagai file, database saja yang
-        // dibersihkan di sini; file fisik tidak disentuh agar aman.
-        $stmt = $db->prepare("DELETE FROM activity_details WHERE sales_activity_id = ?");
+        // Pastikan activity ada dan lock row selama proses.
+        $stmt = $db->prepare("
+            SELECT id
+            FROM sales_activities
+            WHERE id = ?
+            FOR UPDATE
+        ");
         $stmt->execute([$salesActivityId]);
 
-        // 2. Hapus sales activity induknya.
-        $stmt = $db->prepare("DELETE FROM sales_activities WHERE id = ?");
+        if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+            throw new RuntimeException('Sales Activity tidak ditemukan.');
+        }
+
+        // Simpan daftar TR sebelum detail dihapus.
+        $stmt = $db->prepare("
+            SELECT DISTINCT tr_number
+            FROM activity_details
+            WHERE sales_activity_id = ?
+              AND tr_number IS NOT NULL
+              AND TRIM(tr_number) <> ''
+        ");
+        $stmt->execute([$salesActivityId]);
+        $trNumbers = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Hitung detail untuk feedback.
+        $stmt = $db->prepare("
+            SELECT COUNT(*)
+            FROM activity_details
+            WHERE sales_activity_id = ?
+        ");
+        $stmt->execute([$salesActivityId]);
+        $detailCount = (int)$stmt->fetchColumn();
+
+        // 1. Hapus detail.
+        $stmt = $db->prepare("
+            DELETE FROM activity_details
+            WHERE sales_activity_id = ?
+        ");
         $stmt->execute([$salesActivityId]);
 
-        // 3. Hapus data TR hanya apabila TR tersebut sudah tidak dipakai
-        // oleh activity_details lain.
+        // 2. Hapus activity induk.
+        $stmt = $db->prepare("
+            DELETE FROM sales_activities
+            WHERE id = ?
+        ");
+        $stmt->execute([$salesActivityId]);
+
+        // 3. Hapus TR yang sudah tidak digunakan activity lain.
         foreach ($trNumbers as $trNumber) {
-            $check = $db->prepare("\n                SELECT COUNT(*)\n                FROM activity_details\n                WHERE tr_number = ?\n            ");
+            $check = $db->prepare("
+                SELECT COUNT(*)
+                FROM activity_details
+                WHERE tr_number = ?
+            ");
             $check->execute([$trNumber]);
-            $remaining = (int)$check->fetchColumn();
 
-            if ($remaining === 0) {
+            if ((int)$check->fetchColumn() === 0) {
                 deleteTransactionRequestData($db, $trNumber);
             }
         }
 
-        // 4. Rapikan nomor TR seluruh database setelah penghapusan.
+        // 4. Renumber TR.
         renumberAllTransactionRequests($db);
 
+        // 5. Renumber Activity Number.
+        renumberAllActivityNumbers($db);
+
+        // Semua perubahan baru dipermanenkan di sini.
         $db->commit();
 
         return [
             'success' => true,
             'tr_count' => count($trNumbers),
-            'detail_count' => count($detailIds)
+            'detail_count' => $detailCount
         ];
+
     } catch (Throwable $e) {
         if ($db->inTransaction()) {
             $db->rollBack();
@@ -411,7 +443,7 @@ $userRole = $_SESSION['role'] ?? 'user';
 $userId = $_SESSION['user_id'] ?? 0;
 
 $limit = 10;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
@@ -569,7 +601,11 @@ $countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa
 $stmt = $db->prepare($countSql);
 $stmt->execute($params);
 $totalData = $stmt->fetchColumn();
-$totalPages = ceil($totalData / $limit);
+$totalPages = max(1, (int)ceil($totalData / $limit));
+if ($page > $totalPages) {
+    $page = $totalPages;
+    $offset = ($page - 1) * $limit;
+}
 
 $sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
         FROM sales_activities sa 
@@ -668,9 +704,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         try {
             $result = deleteSalesActivityAndRelatedData($db, $id);
-
-            // Setelah activity dihapus, rapikan Activity Number per periode.
-            renumberAllActivityNumbers($db);
 
             setFlash(
                 'Sales Activity berhasil dihapus. Data Detail Aktivitas dan Transaction Request terkait sudah dibersihkan, lalu nomor TR dan Activity Number yang tersisa sudah dirapikan kembali.',
