@@ -50,39 +50,35 @@ function getBulanRomawi($month) {
 function generateTRNumber($db) {
     $tahun = date('Y');
     $bulanRomawi = getBulanRomawi(date('n'));
-    $pattern = "%/GET-TR/JKT/{$bulanRomawi}/{$tahun}%";
-    $stmt = $db->prepare("SELECT tr_number FROM activity_details WHERE tr_number LIKE ? ORDER BY id DESC LIMIT 1");
-    $stmt->execute([$pattern]);
-    $lastNumber = $stmt->fetchColumn();
-    
-    if ($lastNumber) {
-        $parts = explode('/', $lastNumber);
-        $nextSequence = (int)$parts[0] + 1;
-        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-    } else {
-        $sequence = '0001';
-    }
-    
-    return "{$sequence}/GET-TR/JKT/{$bulanRomawi}/{$tahun}";
+    $prefix = "/GET-TR/JKT/{$bulanRomawi}/{$tahun}";
+
+    $stmt = $db->prepare("
+        SELECT MAX(CAST(SUBSTRING_INDEX(tr_number, '/', 1) AS UNSIGNED))
+        FROM activity_details
+        WHERE tr_number LIKE ?
+    ");
+    $stmt->execute(['%' . $prefix]);
+    $maxSequence = (int)$stmt->fetchColumn();
+
+    return str_pad((string)($maxSequence + 1), 4, '0', STR_PAD_LEFT)
+        . $prefix;
 }
 
 function generateDINumber($db) {
     $tahun = date('Y');
     $bulanRomawi = getBulanRomawi(date('n'));
-    $pattern = "%/GET-DI/JKT/{$bulanRomawi}/{$tahun}%";
-    $stmt = $db->prepare("SELECT di_number FROM activity_details WHERE di_number LIKE ? ORDER BY id DESC LIMIT 1");
-    $stmt->execute([$pattern]);
-    $lastNumber = $stmt->fetchColumn();
-    
-    if ($lastNumber) {
-        $parts = explode('/', $lastNumber);
-        $nextSequence = (int)$parts[0] + 1;
-        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-    } else {
-        $sequence = '0001';
-    }
-    
-    return "{$sequence}/GET-DI/JKT/{$bulanRomawi}/{$tahun}";
+    $prefix = "/GET-DI/JKT/{$bulanRomawi}/{$tahun}";
+
+    $stmt = $db->prepare("
+        SELECT MAX(CAST(SUBSTRING_INDEX(di_number, '/', 1) AS UNSIGNED))
+        FROM activity_details
+        WHERE di_number LIKE ?
+    ");
+    $stmt->execute(['%' . $prefix]);
+    $maxSequence = (int)$stmt->fetchColumn();
+
+    return str_pad((string)($maxSequence + 1), 4, '0', STR_PAD_LEFT)
+        . $prefix;
 }
 
 // ============================================
@@ -124,6 +120,214 @@ $stmt = $db->prepare("UPDATE activity_details SET status = 'overdue'
                       AND due_date IS NOT NULL 
                       AND due_date < DATE_ADD(NOW(), INTERVAL 7 HOUR)");
 $stmt->execute([$leadsId]);
+
+// ============================================
+// HELPER: HAPUS DATA TR YANG SUDAH TIDAK TERPAKAI
+// ============================================
+function deleteUnusedTransactionRequestData($db, $trNumber) {
+    if (empty($trNumber)) return;
+
+    $check = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE tr_number = ?");
+    $check->execute([$trNumber]);
+
+    if ((int)$check->fetchColumn() > 0) return;
+
+    $tableColumns = [
+        'detail_transaction_requests' => 'trf_number',
+        'transaction_requests' => 'trf_number',
+        'tr_additional_costs' => 'trf_number',
+        'tr_additional_cost_items' => 'trf_number',
+        'tr_approval_history' => 'trf_number',
+        'tr_cost_calculations' => 'trf_number',
+        'tr_detail_units' => 'trf_number',
+        'tr_mediators' => 'trf_number',
+        'tr_product_supports' => 'trf_number',
+        'tr_term_of_payments' => 'trf_number'
+    ];
+
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("DELETE FROM `{$table}` WHERE `{$column}` = ?");
+        $stmt->execute([$trNumber]);
+    }
+}
+
+// ============================================
+// HELPER: HAPUS DATA DI YANG SUDAH TIDAK TERPAKAI
+// ============================================
+function deleteUnusedDeliveryInstructionData($db, $diNumber) {
+    if (empty($diNumber)) return;
+
+    $check = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE di_number = ?");
+    $check->execute([$diNumber]);
+
+    if ((int)$check->fetchColumn() > 0) return;
+
+    $tableColumns = [
+        'di_approval_history' => 'di_number',
+        'di_units' => 'di_number',
+        'di_accessories' => 'di_number',
+        'di_logistics' => 'di_number',
+        'di_product_supports' => 'di_number',
+        'detail_delivery_instructions' => 'di_number'
+    ];
+
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("DELETE FROM `{$table}` WHERE `{$column}` = ?");
+        $stmt->execute([$diNumber]);
+    }
+}
+
+// ============================================
+// HELPER: RENUMBER TR SELURUH DATABASE
+// ============================================
+function renumberAllTransactionRequestsFromActivities($db) {
+    $stmt = $db->query("
+        SELECT
+            tr_number AS old_tr,
+            SUBSTRING_INDEX(tr_number, '/GET-TR/JKT/', -1) AS period,
+            MIN(created_at) AS first_created_at
+        FROM activity_details
+        WHERE tr_number IS NOT NULL
+          AND TRIM(tr_number) <> ''
+        GROUP BY tr_number
+        ORDER BY period ASC, first_created_at ASC, old_tr ASC
+    ");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!$rows) return 0;
+
+    $mapping = [];
+    $sequenceByPeriod = [];
+
+    foreach ($rows as $row) {
+        $period = $row['period'];
+        $sequenceByPeriod[$period] = ($sequenceByPeriod[$period] ?? 0) + 1;
+
+        $mapping[$row['old_tr']] =
+            str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
+            . '/GET-TR/JKT/' . $period;
+    }
+
+    $tableColumns = [
+        'activity_details' => 'tr_number',
+        'detail_transaction_requests' => 'trf_number',
+        'transaction_requests' => 'trf_number',
+        'tr_additional_costs' => 'trf_number',
+        'tr_additional_cost_items' => 'trf_number',
+        'tr_approval_history' => 'trf_number',
+        'tr_cost_calculations' => 'trf_number',
+        'tr_detail_units' => 'trf_number',
+        'tr_mediators' => 'trf_number',
+        'tr_product_supports' => 'trf_number',
+        'tr_term_of_payments' => 'trf_number'
+    ];
+
+    $token = '__TR_DETAIL_RENUMBER_' . bin2hex(random_bytes(12)) . '__';
+
+    foreach ($mapping as $oldTr => $newTr) {
+        $temporaryTr = $token . hash('sha256', $oldTr);
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare(
+                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
+            );
+            $stmt->execute([$temporaryTr, $oldTr]);
+        }
+    }
+
+    foreach ($mapping as $oldTr => $newTr) {
+        $temporaryTr = $token . hash('sha256', $oldTr);
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare(
+                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
+            );
+            $stmt->execute([$newTr, $temporaryTr]);
+        }
+    }
+
+    try {
+        $db->exec("DELETE FROM tr_renumber_map");
+        $insertMap = $db->prepare(
+            "INSERT INTO tr_renumber_map (old_tr, new_tr) VALUES (?, ?)"
+        );
+        foreach ($mapping as $oldTr => $newTr) {
+            $insertMap->execute([$oldTr, $newTr]);
+        }
+    } catch (PDOException $e) {
+        // Audit mapping opsional.
+    }
+
+    return count($mapping);
+}
+
+// ============================================
+// HELPER: RENUMBER DI SELURUH DATABASE
+// ============================================
+function renumberAllDeliveryInstructions($db) {
+    $stmt = $db->query("
+        SELECT
+            di_number AS old_di,
+            SUBSTRING_INDEX(di_number, '/GET-DI/JKT/', -1) AS period,
+            MIN(created_at) AS first_created_at
+        FROM activity_details
+        WHERE di_number IS NOT NULL
+          AND TRIM(di_number) <> ''
+        GROUP BY di_number
+        ORDER BY period ASC, first_created_at ASC, old_di ASC
+    ");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!$rows) return 0;
+
+    $mapping = [];
+    $sequenceByPeriod = [];
+
+    foreach ($rows as $row) {
+        $period = $row['period'];
+        $sequenceByPeriod[$period] = ($sequenceByPeriod[$period] ?? 0) + 1;
+
+        $mapping[$row['old_di']] =
+            str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
+            . '/GET-DI/JKT/' . $period;
+    }
+
+    $tableColumns = [
+        'activity_details' => 'di_number',
+        'detail_delivery_instructions' => 'di_number',
+        'di_approval_history' => 'di_number',
+        'di_units' => 'di_number',
+        'di_accessories' => 'di_number',
+        'di_logistics' => 'di_number',
+        'di_product_supports' => 'di_number'
+    ];
+
+    $token = '__DI_DETAIL_RENUMBER_' . bin2hex(random_bytes(12)) . '__';
+
+    foreach ($mapping as $oldDi => $newDi) {
+        $temporaryDi = $token . hash('sha256', $oldDi);
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare(
+                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
+            );
+            $stmt->execute([$temporaryDi, $oldDi]);
+        }
+    }
+
+    foreach ($mapping as $oldDi => $newDi) {
+        $temporaryDi = $token . hash('sha256', $oldDi);
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare(
+                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
+            );
+            $stmt->execute([$newDi, $temporaryDi]);
+        }
+    }
+
+    return count($mapping);
+}
 
 // ============================================
 // PROSES TAMBAH DETAIL AKTIVITAS
@@ -375,55 +579,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             setFlash('Anda tidak memiliki akses!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
-        
-        $detail_id = (int)$_POST['detail_id'];
-        
-        $db->beginTransaction();
-        
-        try {
-            $stmt = $db->prepare("SELECT * FROM activity_details WHERE id = ?");
-            $stmt->execute([$detail_id]);
-            $detailToDelete = $stmt->fetch();
-            
-            $stmt = $db->prepare("DELETE FROM activity_details WHERE id = ?");
-            $stmt->execute([$detail_id]);
-            
-            if ($detailToDelete && !empty($detailToDelete['di_number'])) {
-                $diNumber = $detailToDelete['di_number'];
-                
-                $checkOtherDI = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE di_number = ? AND id != ?");
-                $checkOtherDI->execute([$diNumber, $detail_id]);
-                $otherDICount = $checkOtherDI->fetchColumn();
-                
-                if ($otherDICount == 0) {
-                    $db->prepare("DELETE FROM di_approval_history WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_units WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_accessories WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_logistics WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_product_supports WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM detail_delivery_instructions WHERE di_number = ?")->execute([$diNumber]);
-                }
-            }
-            
-            if ($detailToDelete && !empty($detailToDelete['tr_number'])) {
-                $trNumber = $detailToDelete['tr_number'];
-                
-                $checkOtherTR = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE tr_number = ? AND id != ?");
-                $checkOtherTR->execute([$trNumber, $detail_id]);
-                $otherTRCount = $checkOtherTR->fetchColumn();
-                
-                if ($otherTRCount == 0) {
-                    $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?")->execute([$trNumber]);
-                    $db->prepare("DELETE FROM detail_transaction_requests WHERE trf_number = ?")->execute([$trNumber]);
-                }
-            }
-            
-            $db->commit();
-            
-            setFlash('Aktivitas berhasil dihapus!', 'success');
+
+        $detail_id = (int)($_POST['detail_id'] ?? 0);
+
+        if ($detail_id <= 0) {
+            setFlash('Detail aktivitas tidak valid!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
-        } catch (Exception $e) {
-            $db->rollBack();
+        }
+
+        $db->beginTransaction();
+
+        try {
+            // Lock dan pastikan detail benar-benar milik leads ini.
+            $stmt = $db->prepare("
+                SELECT ad.*
+                FROM activity_details ad
+                WHERE ad.id = ?
+                  AND ad.sales_activity_id = ?
+                FOR UPDATE
+            ");
+            $stmt->execute([$detail_id, $leadsId]);
+            $detailToDelete = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$detailToDelete) {
+                throw new RuntimeException('Detail aktivitas tidak ditemukan.');
+            }
+
+            $trNumber = $detailToDelete['tr_number'] ?? null;
+            $diNumber = $detailToDelete['di_number'] ?? null;
+
+            $attachmentFiles = [];
+            if (!empty($detailToDelete['attachment_file'])) {
+                $attachmentFiles = array_filter(
+                    array_map('trim', explode(',', $detailToDelete['attachment_file']))
+                );
+            }
+
+            // Hapus detail aktivitas.
+            $stmt = $db->prepare("
+                DELETE FROM activity_details
+                WHERE id = ?
+                  AND sales_activity_id = ?
+            ");
+            $stmt->execute([$detail_id, $leadsId]);
+
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('Detail aktivitas gagal dihapus.');
+            }
+
+            // Hapus DI/TR hanya bila sudah tidak direferensikan detail lain.
+            deleteUnusedDeliveryInstructionData($db, $diNumber);
+            deleteUnusedTransactionRequestData($db, $trNumber);
+
+            // Rapikan nomor dalam transaction yang sama.
+            renumberAllTransactionRequestsFromActivities($db);
+            renumberAllDeliveryInstructions($db);
+
+            $db->commit();
+
+            // File fisik dihapus setelah commit.
+            foreach ($attachmentFiles as $attachmentPath) {
+                $safePath = str_replace(['..', '\\'], '', $attachmentPath);
+                if (
+                    strpos($safePath, 'uploads/attachments/') === 0 &&
+                    is_file($safePath)
+                ) {
+                    @unlink($safePath);
+                }
+            }
+
+            setFlash(
+                'Aktivitas berhasil dihapus dan nomor TR/DI telah dirapikan!',
+                'success'
+            );
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
             setFlash('Gagal menghapus data: ' . $e->getMessage(), 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
@@ -1053,7 +1288,7 @@ foreach ($detailsList as $d) {
                         <div class="mb-3" id="trNumberFieldAdd" style="display: none;">
                             <label class="form-label">Transaction Request Form</label>
                             <div class="tr-number-display">
-                                <?= generateTRNumber($db) ?>
+                                <?= htmlspecialchars(generateTRNumber($db)) ?>
                             </div>
                         </div>
                         
@@ -1111,7 +1346,7 @@ foreach ($detailsList as $d) {
                             <div class="mb-3" id="diNumberFieldComplete" style="display: none;">
                                 <label class="form-label">Delivery Instruction Number</label>
                                 <div class="di-number-display">
-                                    <?= generateDINumber($db) ?>
+                                    <?= htmlspecialchars(generateDINumber($db)) ?>
                                 </div>
                             </div>
                         </div>
