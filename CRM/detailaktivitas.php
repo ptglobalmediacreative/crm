@@ -181,20 +181,57 @@ function deleteUnusedDeliveryInstructionData($db, $diNumber) {
 // HELPER: RENUMBER TR SELURUH DATABASE
 // ============================================
 function renumberAllTransactionRequestsFromActivities($db) {
+    // Ambil TR aktif dari master activity_details. Jika pernah terjadi korupsi
+    // temporary number, period tetap ditentukan dari created_at agar bisa dipulihkan.
     $stmt = $db->query("
         SELECT
             tr_number AS old_tr,
-            SUBSTRING_INDEX(tr_number, '/GET-TR/JKT/', -1) AS period,
             MIN(created_at) AS first_created_at
         FROM activity_details
         WHERE tr_number IS NOT NULL
           AND TRIM(tr_number) <> ''
         GROUP BY tr_number
-        ORDER BY period ASC, first_created_at ASC, old_tr ASC
     ");
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (!$rows) return 0;
+
+    $monthPeriods = [
+        '01' => 'I', '02' => 'II', '03' => 'III', '04' => 'IV',
+        '05' => 'V', '06' => 'VI', '07' => 'VII', '08' => 'VIII',
+        '09' => 'IX', '10' => 'X', '11' => 'XI', '12' => 'XII'
+    ];
+
+    foreach ($rows as &$row) {
+        $oldTr = trim((string)$row['old_tr']);
+        $period = null;
+
+        // Nomor normal: 0001/GET-TR/JKT/IX/2026
+        if (preg_match('#^\d{4}/GET-TR/JKT/([^/]+/\d{4})$#', $oldTr, $m)) {
+            $period = $m[1];
+        }
+
+        // Fallback untuk nomor temporary/corrupt lama: gunakan bulan created_at.
+        if ($period === null && !empty($row['first_created_at'])) {
+            $month = date('m', strtotime($row['first_created_at']));
+            $year  = date('Y', strtotime($row['first_created_at']));
+            if (isset($monthPeriods[$month])) {
+                $period = $monthPeriods[$month] . '/' . $year;
+            }
+        }
+
+        if ($period === null) {
+            throw new RuntimeException('Periode TR tidak dapat ditentukan untuk: ' . $oldTr);
+        }
+
+        $row['period'] = $period;
+    }
+    unset($row);
+
+    usort($rows, static function ($a, $b) {
+        return [$a['period'], $a['first_created_at'], $a['old_tr']] <=>
+               [$b['period'], $b['first_created_at'], $b['old_tr']];
+    });
 
     $mapping = [];
     $sequenceByPeriod = [];
@@ -222,10 +259,16 @@ function renumberAllTransactionRequestsFromActivities($db) {
         'tr_term_of_payments' => 'trf_number'
     ];
 
-    $token = '__TR_DETAIL_RENUMBER_' . bin2hex(random_bytes(12)) . '__';
+    // WAJIB <= VARCHAR(50).  __TRTMP_ (8) + 24 hex = 33 karakter.
+    // Nilai temporary ini hanya hidup selama transaction.
+    $token = '__TRTMP_' . bin2hex(random_bytes(8));
 
     foreach ($mapping as $oldTr => $newTr) {
-        $temporaryTr = $token . hash('sha256', $oldTr);
+        $temporaryTr = $token . '_' . substr(hash('sha256', $oldTr), 0, 24);
+
+        if (strlen($temporaryTr) > 50) {
+            throw new RuntimeException('Temporary TR number melebihi 50 karakter.');
+        }
 
         foreach ($tableColumns as $table => $column) {
             $stmt = $db->prepare(
@@ -236,7 +279,7 @@ function renumberAllTransactionRequestsFromActivities($db) {
     }
 
     foreach ($mapping as $oldTr => $newTr) {
-        $temporaryTr = $token . hash('sha256', $oldTr);
+        $temporaryTr = $token . '_' . substr(hash('sha256', $oldTr), 0, 24);
 
         foreach ($tableColumns as $table => $column) {
             $stmt = $db->prepare(
@@ -302,10 +345,15 @@ function renumberAllDeliveryInstructions($db) {
         'di_product_supports' => 'di_number'
     ];
 
-    $token = '__DI_DETAIL_RENUMBER_' . bin2hex(random_bytes(12)) . '__';
+    // WAJIB <= VARCHAR(50).  __DITMP_ (8) + 24 hex = 33 karakter.
+    $token = '__DITMP_' . bin2hex(random_bytes(8));
 
     foreach ($mapping as $oldDi => $newDi) {
-        $temporaryDi = $token . hash('sha256', $oldDi);
+        $temporaryDi = $token . '_' . substr(hash('sha256', $oldDi), 0, 24);
+
+        if (strlen($temporaryDi) > 50) {
+            throw new RuntimeException('Temporary DI number melebihi 50 karakter.');
+        }
 
         foreach ($tableColumns as $table => $column) {
             $stmt = $db->prepare(
@@ -316,7 +364,7 @@ function renumberAllDeliveryInstructions($db) {
     }
 
     foreach ($mapping as $oldDi => $newDi) {
-        $temporaryDi = $token . hash('sha256', $oldDi);
+        $temporaryDi = $token . '_' . substr(hash('sha256', $oldDi), 0, 24);
 
         foreach ($tableColumns as $table => $column) {
             $stmt = $db->prepare(
