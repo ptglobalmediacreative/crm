@@ -74,7 +74,7 @@ $role = $_SESSION['role'] ?? 'user';
 $tr_number = isset($_GET['tr_number']) ? bersihkan($_GET['tr_number']) : '';
 $activeTab = isset($_GET['tab']) ? bersihkan($_GET['tab']) : 'summary';
 
-// Validasi tab - TAMBAH product_support
+// Validasi tab
 $validTabs = ['summary', 'detail_unit', 'term_of_payment', 'additional_cost', 'mediator', 'product_support', 'cost_calculation'];
 if (!in_array($activeTab, $validTabs)) {
     $activeTab = 'summary';
@@ -141,23 +141,17 @@ $request['status'] = $statusTR;
 // ============================================
 // CEK HAK EDIT PER DIVISI / SECTION
 // ============================================
-// Sales hanya boleh mengelola TR miliknya sendiri untuk:
-// Summary, Detail Unit, Term Of Payment, dan Data Mediator.
 $canEditSalesSection = (
     $userRole === 'sales' &&
     isset($request['sales_user_id']) &&
     (int)$request['sales_user_id'] === (int)$userId
 );
 
-// Business hanya boleh input/edit:
-// Additional Cost, Product Support, dan Cost Calculation.
 $canEditBusinessSection = ($userRole === 'business');
 
-// Sales sama sekali tidak boleh melihat section internal Business.
 $businessOnlyTabs = ['additional_cost', 'product_support', 'cost_calculation'];
 $canViewBusinessTabs = ($userRole !== 'sales');
 
-// Cegah Sales membuka tab Business lewat URL secara langsung.
 if (!$canViewBusinessTabs && in_array($activeTab, $businessOnlyTabs, true)) {
     setFlash('Anda tidak memiliki akses ke menu Business!', 'danger');
     redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
@@ -231,8 +225,6 @@ $currentApproverLabel = '';
 $nextApproverLabel = '';
 
 if ($detailTR) {
-    // Hitung approval hanya berdasarkan struktur BARU.
-    // Approval Business dari struktur lama diabaikan agar tidak melompati level.
     $approvedByOrder = [];
     $rejectedByCurrentFlow = false;
 
@@ -242,8 +234,6 @@ if ($detailTR) {
             continue;
         }
 
-        // Record lama hanya dianggap valid bila role pada order tersebut
-        // sama dengan role pada struktur approval yang sekarang.
         if (($approval['approval_role'] ?? '') !== $approvalLevels[$order]['role']) {
             continue;
         }
@@ -255,7 +245,6 @@ if ($detailTR) {
         }
     }
 
-    // Approval harus berurutan mulai dari level 1.
     $lastApprovedOrder = 0;
     for ($order = 1; $order <= $totalApprovalLevels; $order++) {
         if (!empty($approvedByOrder[$order])) {
@@ -357,7 +346,7 @@ try {
 }
 
 // ============================================
-// AMBIL DATA PRODUCT SUPPORTS (BARU)
+// AMBIL DATA PRODUCT SUPPORTS
 // ============================================
 $trSupports = [];
 try {
@@ -386,10 +375,6 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    // ============================================
-    // VALIDASI HAK AKSES ACTION DI SERVER SIDE
-    // Jangan hanya mengandalkan tombol yang disembunyikan di tampilan.
-    // ============================================
     $salesEditActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_mediator'];
     $businessEditActions = ['save_cost', 'save_product_support', 'save_cost_calculation'];
 
@@ -721,9 +706,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=mediator");
     }
     
-    // ============================================
-    // SAVE PRODUCT SUPPORT (BARU - DENGAN NAMA DAN KETERANGAN)
-    // ============================================
+    // SAVE PRODUCT SUPPORT
     if ($action === 'save_product_support') {
         try {
             $db->beginTransaction();
@@ -732,7 +715,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
             
-            // Ambil data dari form
             $support_names = $_POST['support_name'] ?? [];
             $support_keterangans = $_POST['support_keterangan'] ?? [];
             
@@ -756,6 +738,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=product_support");
     }
     
+    // SAVE COST CALCULATION
     if ($action === 'save_cost_calculation') {
         try {
             $db->beginTransaction();
@@ -763,16 +746,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $persentase = (float)($_POST['persentase'] ?? 0);
             $support_price = $dealer_price - ($dealer_price * ($persentase / 100));
 
-            // Hitung langsung dari data yang sudah di-load karena blok POST
-            // berjalan sebelum variabel total di bagian bawah file dibuat.
             $additional_cost = 0;
             foreach ($additionalCostItems as $item) {
                 $additional_cost += (float)$item['amount'];
-            }
-
-            $selling_price = 0;
-            foreach ($detailUnits as $unit) {
-                $selling_price += (float)$unit['price'];
             }
 
             $total_mediator_fee = 0;
@@ -780,18 +756,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $total_mediator_fee += (float)$med['amount'];
             }
 
+            $selling_price = 0;
+            foreach ($detailUnits as $unit) {
+                $selling_price += (float)$unit['price'];
+            }
+
             $total_cogs = $support_price + $additional_cost + $total_mediator_fee;
             $dealer_profit_request = $selling_price - $total_cogs;
             $dealer_profit_net = $selling_price > 0 ? ($dealer_profit_request / $selling_price) * 100 : 0;
-            
+
             $deleteSql = "DELETE FROM tr_cost_calculations WHERE trf_number = ?";
             $deleteStmt = $db->prepare($deleteSql);
             $deleteStmt->execute([$tr_number]);
-            
+
             $insertSql = "INSERT INTO tr_cost_calculations (trf_number, dealer_price, persentase, support_price, additional_cost, total_cogs, selling_price, dealer_profit_request, dealer_profit_net, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
             $insertStmt = $db->prepare($insertSql);
             $insertStmt->execute([$tr_number, $dealer_price, $persentase, $support_price, $additional_cost, $total_cogs, $selling_price, $dealer_profit_request, $dealer_profit_net]);
-            
+
             resetApprovalHistory($db, $tr_number);
             $db->commit();
             setFlash('Cost Calculation berhasil disimpan!', 'success');
@@ -800,7 +781,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setFlash('Gagal menyimpan Cost Calculation: ' . $e->getMessage(), 'danger');
         }
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=cost_calculation");
-    } 
+    }
 }
 
 // ============================================
@@ -1171,7 +1152,6 @@ if (count($additionalCostItems) == 0) {
             margin-bottom: 15px;
         }
 
-        /* Perbaikan untuk tombol hapus kecil */
         .btn-sm {
             padding: 5px 10px;
             font-size: 11px;
@@ -1207,7 +1187,6 @@ if (count($additionalCostItems) == 0) {
             color: #333;
         }
 
-        /* Style untuk header baris dinamis */
         .cost-item-header, .mediator-header, .d-flex.justify-content-between {
             display: flex;
             justify-content: space-between;
@@ -1913,8 +1892,6 @@ if (count($additionalCostItems) == 0) {
         </div>
         <?php endif; ?>
 
-
-
         <!-- ============================================ -->
         <!-- TAB CONTENT: DATA MEDIATOR (MULTIPLE) -->
         <!-- ============================================ -->
@@ -2110,7 +2087,7 @@ if (count($additionalCostItems) == 0) {
         <?php endif; ?>
 
         <!-- ============================================ -->
-        <!-- TAB CONTENT: PRODUCT SUPPORT (BARU - NAMA & KETERANGAN) -->
+        <!-- TAB CONTENT: PRODUCT SUPPORT -->
         <!-- ============================================ -->
         <?php if ($activeTab == 'product_support' && $canViewBusinessTabs): ?>
         <div class="card-custom">
@@ -2185,7 +2162,7 @@ if (count($additionalCostItems) == 0) {
         <!-- ============================================ -->
         <!-- TAB CONTENT: COST CALCULATION -->
         <!-- ============================================ -->
-         <?php if ($activeTab == 'cost_calculation' && $canViewBusinessTabs): ?>
+        <?php if ($activeTab == 'cost_calculation' && $canViewBusinessTabs): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-calculator"></i> Cost Calculation</h6>
@@ -2198,19 +2175,48 @@ if (count($additionalCostItems) == 0) {
                     <form method="POST">
                         <input type="hidden" name="action" value="save_cost_calculation">
                         <div class="row">
-                            <div class="col-md-4 mb-3"><label class="form-label">Dealer Price (Rp) *</label><input type="number" name="dealer_price" id="dealer_price" class="form-control" min="0" step="0.01" value="<?= $costCalculation['dealer_price'] ?? 0 ?>" required onchange="calculateCostCalc()" onkeyup="calculateCostCalc()"></div>
-                            <div class="col-md-4 mb-3"><label class="form-label">Persentase Diskon (%) *</label><input type="number" name="persentase" id="persentase" class="form-control" min="0" max="100" step="0.01" value="<?= $costCalculation['persentase'] ?? 0 ?>" required onchange="calculateCostCalc()" onkeyup="calculateCostCalc()"></div>
-                            <div class="col-md-4 mb-3"><label class="form-label">Support Price</label><input type="text" id="support_price_display" class="form-control" readonly></div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Dealer Price (Rp) *</label>
+                                <input type="number" name="dealer_price" id="dealer_price" class="form-control" min="0" step="0.01" value="<?= $costCalculation['dealer_price'] ?? 0 ?>" required onchange="calculateCostCalc()" onkeyup="calculateCostCalc()">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Persentase Diskon (%) *</label>
+                                <input type="number" name="persentase" id="persentase" class="form-control" min="0" max="100" step="0.01" value="<?= $costCalculation['persentase'] ?? 0 ?>" required onchange="calculateCostCalc()" onkeyup="calculateCostCalc()">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Support Price</label>
+                                <input type="text" id="support_price_display" class="form-control" readonly>
+                            </div>
                         </div>
+
                         <div class="row">
-                            <div class="col-md-3 mb-3"><label class="form-label">Additional Cost</label><input type="text" class="form-control" value="Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?>" readonly></div>
-                            <div class="col-md-3 mb-3"><label class="form-label">Mediator Fee</label><input type="text" class="form-control" value="Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?>" readonly></div>
-                            <div class="col-md-4 mb-3"><label class="form-label">Total COGS</label><input type="text" id="total_cogs_display" class="form-control" readonly></div>
-                            <div class="col-md-4 mb-3"><label class="form-label">Selling Price to Customer</label><input type="text" class="form-control" value="Rp <?= number_format($totalUnitPrice, 0, ',', '.') ?>" readonly></div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Additional Cost</label>
+                                <input type="text" class="form-control" value="Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?>" readonly>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Mediator Fee</label>
+                                <input type="text" class="form-control" value="Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?>" readonly>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Total COGS</label>
+                                <input type="text" id="total_cogs_display" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Selling Price (Non PPN)</label>
+                                <input type="text" class="form-control" value="Rp <?= number_format($totalUnitPrice, 0, ',', '.') ?>" readonly>
+                            </div>
                         </div>
+
                         <div class="row">
-                            <div class="col-md-6 mb-3"><label class="form-label">Dealer Profit Request</label><input type="text" id="dealer_profit_display" class="form-control" readonly style="font-weight: bold; color: #27ae60;"></div>
-                            <div class="col-md-6 mb-3"><label class="form-label">Dealer Profit Net (%)</label><input type="text" id="dealer_profit_net_display" class="form-control" readonly style="font-weight: bold; color: #2980b9;"></div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dealer Profit Request</label>
+                                <input type="text" id="dealer_profit_display" class="form-control" readonly style="font-weight: bold; color: #27ae60;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dealer Profit Net (%)</label>
+                                <input type="text" id="dealer_profit_net_display" class="form-control" readonly style="font-weight: bold; color: #2980b9;">
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan Cost Calculation</button>
                         <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editCostCalc', 'viewCostCalc')"><i class="fas fa-times"></i> Batal</button>
@@ -2221,17 +2227,33 @@ if (count($additionalCostItems) == 0) {
                         <?php $dealer_profit_net = $costCalculation['selling_price'] > 0 ? ($costCalculation['dealer_profit_request'] / $costCalculation['selling_price']) * 100 : 0; ?>
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="info-label">Dealer Price</div><div class="info-value">Rp <?= number_format($costCalculation['dealer_price'], 0, ',', '.') ?></div>
-                                <div class="info-label">Persentase</div><div class="info-value"><?= $costCalculation['persentase'] ?>%</div>
-                                <div class="info-label">Support Price</div><div class="info-value">Rp <?= number_format($costCalculation['support_price'], 0, ',', '.') ?></div>
-                                <div class="info-label">Additional Cost</div><div class="info-value">Rp <?= number_format($costCalculation['additional_cost'], 0, ',', '.') ?></div>
-                                <div class="info-label">Mediator Fee</div><div class="info-value">Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?></div>
+                                <div class="info-label">Dealer Price</div>
+                                <div class="info-value">Rp <?= number_format($costCalculation['dealer_price'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Persentase</div>
+                                <div class="info-value"><?= $costCalculation['persentase'] ?>%</div>
+                                
+                                <div class="info-label">Support Price</div>
+                                <div class="info-value">Rp <?= number_format($costCalculation['support_price'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Additional Cost</div>
+                                <div class="info-value">Rp <?= number_format($costCalculation['additional_cost'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Mediator Fee</div>
+                                <div class="info-value">Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?></div>
                             </div>
                             <div class="col-md-6">
-                                <div class="info-label">Total COGS</div><div class="info-value">Rp <?= number_format($costCalculation['total_cogs'], 0, ',', '.') ?></div>
-                                <div class="info-label">Selling Price to Customer</div><div class="info-value">Rp <?= number_format($costCalculation['selling_price'], 0, ',', '.') ?></div>
-                                <div class="info-label">Dealer Profit Request</div><div class="info-value" style="color: #27ae60; font-weight: 700;">Rp <?= number_format($costCalculation['dealer_profit_request'], 0, ',', '.') ?></div>
-                                <div class="info-label">Dealer Profit Net</div><div class="info-value" style="color: #2980b9; font-weight: 700;"><?= number_format($dealer_profit_net, 2, ',', '.') ?>%</div>
+                                <div class="info-label">Total COGS</div>
+                                <div class="info-value">Rp <?= number_format($costCalculation['total_cogs'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Selling Price (Non PPN)</div>
+                                <div class="info-value">Rp <?= number_format($costCalculation['selling_price'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Dealer Profit Request</div>
+                                <div class="info-value" style="color: #27ae60; font-weight: 700;">Rp <?= number_format($costCalculation['dealer_profit_request'], 0, ',', '.') ?></div>
+                                
+                                <div class="info-label">Dealer Profit Net</div>
+                                <div class="info-value" style="color: #2980b9; font-weight: 700;"><?= number_format($dealer_profit_net, 2, ',', '.') ?>%</div>
                             </div>
                         </div>
                     <?php else: ?>
@@ -2241,7 +2263,9 @@ if (count($additionalCostItems) == 0) {
             </div>
         </div>
         <?php endif; ?>
+
     </div>
+    <!-- END MAIN CONTENT -->
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -2294,13 +2318,15 @@ if (count($additionalCostItems) == 0) {
         function calculateCostCalc() {
             const dealerPrice = parseFloat(document.getElementById('dealer_price').value) || 0;
             const persentase = parseFloat(document.getElementById('persentase').value) || 0;
-            const additionalCost = <?= $totalAdditionalCost ?>;
-            const mediatorFee = <?= $totalMediatorFee ?>;
-            const sellingPrice = <?= $totalUnitGrandTotal ?>;
+            const additionalCost = <?= (float)$totalAdditionalCost ?>;
+            const mediatorFee = <?= (float)$totalMediatorFee ?>;
+            const sellingPrice = <?= (float)$totalUnitPrice ?>;
+
             const supportPrice = dealerPrice - (dealerPrice * (persentase / 100));
             const totalCogs = supportPrice + additionalCost + mediatorFee;
             const dealerProfitRequest = sellingPrice - totalCogs;
             const dealerProfitNet = sellingPrice > 0 ? (dealerProfitRequest / sellingPrice) * 100 : 0;
+
             document.getElementById('support_price_display').value = 'Rp ' + supportPrice.toLocaleString('id-ID');
             document.getElementById('total_cogs_display').value = 'Rp ' + totalCogs.toLocaleString('id-ID');
             document.getElementById('dealer_profit_display').value = 'Rp ' + dealerProfitRequest.toLocaleString('id-ID');
@@ -2649,7 +2675,7 @@ if (count($additionalCostItems) == 0) {
         }
 
         // ============================================
-        // FUNGSI UNTUK PRODUCT SUPPORT (NAMA & KETERANGAN)
+        // FUNGSI UNTUK PRODUCT SUPPORT
         // ============================================
         let supportRowCount = 0;
         
@@ -2713,15 +2739,6 @@ if (count($additionalCostItems) == 0) {
                 addSupportRow();
             <?php endif; ?>
         }
-        
-        
-        // Load data support saat edit diklik
-        document.addEventListener('DOMContentLoaded', function() {
-            const editBtn = document.querySelector('button[onclick*="toggleSection(\'editSupport\'"]');
-            if (editBtn) { editBtn.addEventListener('click', function() { loadSupportData(); }); }
-            if (document.getElementById('editCostCalc')) { calculateCostCalc(); }
-        });
-        
     </script>
 </body>
 </html>
