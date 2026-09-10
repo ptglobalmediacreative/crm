@@ -775,7 +775,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $selling_price += (float)$unit['price'];
             }
 
-            $total_cogs = $support_price + $additional_cost;
+            $total_mediator_fee = 0;
+            foreach ($mediators as $med) {
+                $total_mediator_fee += (float)$med['amount'];
+            }
+
+            $total_cogs = $support_price + $additional_cost + $total_mediator_fee;
             $dealer_profit_request = $selling_price - $total_cogs;
             $dealer_profit_net = $selling_price > 0 ? ($dealer_profit_request / $selling_price) * 100 : 0;
             
@@ -2198,7 +2203,8 @@ if (count($additionalCostItems) == 0) {
                             <div class="col-md-4 mb-3"><label class="form-label">Support Price</label><input type="text" id="support_price_display" class="form-control" readonly></div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3"><label class="form-label">Additional Cost</label><input type="text" class="form-control" value="Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?>" readonly></div>
+                            <div class="col-md-3 mb-3"><label class="form-label">Additional Cost</label><input type="text" class="form-control" value="Rp <?= number_format($totalAdditionalCost, 0, ',', '.') ?>" readonly></div>
+                            <div class="col-md-3 mb-3"><label class="form-label">Mediator Fee</label><input type="text" class="form-control" value="Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?>" readonly></div>
                             <div class="col-md-4 mb-3"><label class="form-label">Total COGS</label><input type="text" id="total_cogs_display" class="form-control" readonly></div>
                             <div class="col-md-4 mb-3"><label class="form-label">Selling Price to Customer</label><input type="text" class="form-control" value="Rp <?= number_format($totalUnitPrice, 0, ',', '.') ?>" readonly></div>
                         </div>
@@ -2219,6 +2225,7 @@ if (count($additionalCostItems) == 0) {
                                 <div class="info-label">Persentase</div><div class="info-value"><?= $costCalculation['persentase'] ?>%</div>
                                 <div class="info-label">Support Price</div><div class="info-value">Rp <?= number_format($costCalculation['support_price'], 0, ',', '.') ?></div>
                                 <div class="info-label">Additional Cost</div><div class="info-value">Rp <?= number_format($costCalculation['additional_cost'], 0, ',', '.') ?></div>
+                                <div class="info-label">Mediator Fee</div><div class="info-value">Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?></div>
                             </div>
                             <div class="col-md-6">
                                 <div class="info-label">Total COGS</div><div class="info-value">Rp <?= number_format($costCalculation['total_cogs'], 0, ',', '.') ?></div>
@@ -2288,9 +2295,10 @@ if (count($additionalCostItems) == 0) {
             const dealerPrice = parseFloat(document.getElementById('dealer_price').value) || 0;
             const persentase = parseFloat(document.getElementById('persentase').value) || 0;
             const additionalCost = <?= $totalAdditionalCost ?>;
+            const mediatorFee = <?= $totalMediatorFee ?>;
             const sellingPrice = <?= $totalUnitGrandTotal ?>;
             const supportPrice = dealerPrice - (dealerPrice * (persentase / 100));
-            const totalCogs = supportPrice + additionalCost;
+            const totalCogs = supportPrice + additionalCost + mediatorFee;
             const dealerProfitRequest = sellingPrice - totalCogs;
             const dealerProfitNet = sellingPrice > 0 ? (dealerProfitRequest / sellingPrice) * 100 : 0;
             document.getElementById('support_price_display').value = 'Rp ' + supportPrice.toLocaleString('id-ID');
