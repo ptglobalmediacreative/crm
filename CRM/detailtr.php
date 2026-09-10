@@ -1675,7 +1675,7 @@ if (count($additionalCostItems) == 0) {
                             <div class="col-md-12">
                                 <div class="total-box">
                                     <span class="total-label">Total Grand Total Unit</span>
-                                    <span class="total-value">Rp <?= number_format($totalUnitPrice, 0, ',', '.') ?></span>
+                                    <span class="total-value">Rp <?= number_format($totalUnitGrandTotal, 0, ',', '.') ?></span>
                                 </div>
                             </div>
                         </div>
