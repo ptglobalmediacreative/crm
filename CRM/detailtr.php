@@ -47,17 +47,62 @@ function getRoleLabel($role) {
 // FUNGSI UNTUK RESET APPROVAL HISTORY
 // ============================================
 function resetApprovalHistory($db, $tr_number) {
-    try {
-        $deleteApproval = $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?");
-        $deleteApproval->execute([$tr_number]);
-        
-        $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
-        $updateDetail->execute([$tr_number]);
-        
-        return true;
-    } catch (Exception $e) {
-        return false;
+    $deleteApproval = $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?");
+    $deleteApproval->execute([$tr_number]);
+
+    $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+    $updateDetail->execute([$tr_number]);
+
+    return true;
+}
+
+// Validasi minimum data yang wajib ada sebelum TR dapat di-approve.
+function validateTRApprovalData($detailTR, $detailUnits, $termPayments, $additionalCostItems) {
+    $missing = [];
+
+    if (!$detailTR || trim((string)($detailTR['deskripsi'] ?? '')) === '') {
+        $missing[] = 'Deskripsi (Summary)';
     }
+
+    if (empty($detailUnits)) {
+        $missing[] = 'Detail Unit';
+    } else {
+        foreach ($detailUnits as $unit) {
+            if ((int)($unit['unit_id'] ?? 0) <= 0) {
+                $missing[] = 'Detail Unit - Produk';
+                break;
+            }
+            if ((int)($unit['qty'] ?? 0) <= 0) {
+                $missing[] = 'Detail Unit - Quantity';
+                break;
+            }
+            if ((float)($unit['price'] ?? 0) <= 0) {
+                $missing[] = 'Detail Unit - Harga';
+                break;
+            }
+        }
+    }
+
+    if (empty($termPayments)) {
+        $missing[] = 'Term of Payment';
+    } else {
+        $hasPositivePayment = false;
+        foreach ($termPayments as $payment) {
+            if ((float)($payment['amount'] ?? 0) > 0) {
+                $hasPositivePayment = true;
+                break;
+            }
+        }
+        if (!$hasPositivePayment) {
+            $missing[] = 'Term of Payment - Nominal';
+        }
+    }
+
+    if (empty($additionalCostItems)) {
+        $missing[] = 'Additional Cost';
+    }
+
+    return $missing;
 }
 
 // ============================================
@@ -427,39 +472,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
             $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
-            $currentOrder = (int)($_POST['approval_order'] ?? 0);
-            
-            $canApprove = false;
-            if ($currentOrder > 0 && $currentOrder <= $totalApprovalLevels) {
-                $requiredRole = $approvalLevels[$currentOrder]['role'];
-                if ($userRole == $requiredRole) {
-                    $canApprove = true;
+            $postedOrder = (int)($_POST['approval_order'] ?? 0);
+
+            // Ambil status + approval history TERBARU di dalam transaction.
+            // Jangan mempercayai approval_order dari browser sebagai sumber kebenaran.
+            $lockDetail = $db->prepare("SELECT * FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1 FOR UPDATE");
+            $lockDetail->execute([$tr_number]);
+            $lockedDetailTR = $lockDetail->fetch();
+
+            if (!$lockedDetailTR) {
+                throw new Exception('Detail Transaction Request tidak ditemukan.');
+            }
+
+            if (in_array($lockedDetailTR['status'], ['approved', 'rejected'], true)) {
+                throw new Exception('TR sudah berstatus ' . ucfirst($lockedDetailTR['status']) . ' dan tidak dapat diproses kembali.');
+            }
+
+            $lockedHistoryStmt = $db->prepare("SELECT approval_order, approval_role, status FROM tr_approval_history WHERE trf_number = ? ORDER BY approval_order ASC FOR UPDATE");
+            $lockedHistoryStmt->execute([$tr_number]);
+            $lockedHistory = $lockedHistoryStmt->fetchAll();
+
+            $approvedByOrder = [];
+            foreach ($lockedHistory as $history) {
+                if ((int)$history['approval_order'] > 0 && $history['status'] === 'approved') {
+                    $approvedByOrder[(int)$history['approval_order']] = true;
                 }
             }
-            
-            $checkDataComplete = true;
-            if (empty($detailTR['deskripsi'])) $checkDataComplete = false;
-            if (count($detailUnits) == 0) $checkDataComplete = false;
-            if (count($termPayments) == 0) $checkDataComplete = false;
-            if (count($additionalCostItems) == 0) $checkDataComplete = false;
-            
+
+            $serverCurrentOrder = 1;
+            for ($order = 1; $order <= $totalApprovalLevels; $order++) {
+                if (!empty($approvedByOrder[$order])) {
+                    $serverCurrentOrder = $order + 1;
+                } else {
+                    break;
+                }
+            }
+
+            $canApprove = (
+                $postedOrder > 0 &&
+                $postedOrder === $serverCurrentOrder &&
+                $serverCurrentOrder <= $totalApprovalLevels &&
+                isset($approvalLevels[$serverCurrentOrder]) &&
+                hash_equals((string)$approvalLevels[$serverCurrentOrder]['role'], (string)$userRole)
+            );
+
+            $approvalMissing = validateTRApprovalData($lockedDetailTR, $detailUnits, $termPayments, $additionalCostItems);
+            $checkDataComplete = empty($approvalMissing);
+
             if ($canApprove && $checkDataComplete) {
                 $checkApproval = $db->prepare("SELECT id FROM tr_approval_history WHERE trf_number = ? AND approval_order = ?");
-                $checkApproval->execute([$tr_number, $currentOrder]);
+                $checkApproval->execute([$tr_number, $serverCurrentOrder]);
                 $existingApproval = $checkApproval->fetch();
                 
                 if ($existingApproval) {
                     $updateApproval = $db->prepare("UPDATE tr_approval_history SET approval_role = ?, status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
-                    $updateApproval->execute([$approvalLevels[$currentOrder]['role'], $approvalStatus, $userId, $existingApproval['id']]);
+                    $updateApproval->execute([$approvalLevels[$serverCurrentOrder]['role'], $approvalStatus, $userId, $existingApproval['id']]);
                 } else {
                     $insertApproval = $db->prepare("INSERT INTO tr_approval_history (trf_number, approval_order, approval_role, status, catatan, approved_by, created_at) VALUES (?, ?, ?, ?, '', ?, NOW())");
-                    $insertApproval->execute([$tr_number, $currentOrder, $approvalLevels[$currentOrder]['role'], $approvalStatus, $userId]);
+                    $insertApproval->execute([$tr_number, $serverCurrentOrder, $approvalLevels[$serverCurrentOrder]['role'], $approvalStatus, $userId]);
                 }
                 
                 $newStatus = 'pending';
                 if ($approvalStatus == 'rejected') {
                     $newStatus = 'rejected';
-                } elseif ($currentOrder >= $totalApprovalLevels) {
+                } elseif ($serverCurrentOrder >= $totalApprovalLevels) {
                     $newStatus = 'approved';
                 }
                 
@@ -472,7 +548,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$canApprove) {
                     setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
                 } elseif (!$checkDataComplete) {
-                    setFlash('Data belum lengkap!', 'danger');
+                    setFlash('Data belum lengkap: ' . implode(', ', $approvalMissing), 'danger');
                 }
             }
         } catch (Exception $e) {
@@ -500,6 +576,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $transaction_type = $_POST['transaction_type'] ?? '';
             $transaction_type_other = $_POST['transaction_type_other'] ?? '';
             
+            if (empty($unit_id) || (int)$unit_id <= 0) {
+                throw new Exception('Produk/unit wajib dipilih.');
+            }
+            if ($qty <= 0) {
+                throw new Exception('Quantity harus lebih besar dari 0.');
+            }
+            if ($price <= 0) {
+                throw new Exception('Harga unit harus lebih besar dari 0.');
+            }
+
             $ppn = $price * 0.11;
             $grand_total = ($price + $ppn) * $qty;
             
@@ -744,6 +830,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             $dealer_price = (float)($_POST['dealer_price'] ?? 0);
             $persentase = (float)($_POST['persentase'] ?? 0);
+
+            if ($dealer_price <= 0) {
+                throw new Exception('Dealer Price harus lebih besar dari 0.');
+            }
+            if ($persentase < 0 || $persentase > 100) {
+                throw new Exception('Persentase harus berada di antara 0 sampai 100.');
+            }
+            if (empty($detailUnits)) {
+                throw new Exception('Detail Unit wajib diisi sebelum Cost Calculation.');
+            }
+
             $support_price = $dealer_price - ($dealer_price * ($persentase / 100));
 
             $additional_cost = 0;
