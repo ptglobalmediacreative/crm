@@ -315,6 +315,63 @@ $sqlActivities = "SELECT sa.*, a.nama_pt, u.full_name as sales_name,
                   LIMIT $activityLimit";
 $recentActivities = $db->query($sqlActivities)->fetchAll(PDO::FETCH_ASSOC);
 
+// ============================================
+// HOT OPPORTUNITIES
+// Hanya tampilkan account yang ACTIVITY TERBARUNYA
+// masuk kategori Hot Prospect (Negosiasi / Kontrak).
+// Jadi aktivitas Prospecting, Suspect, Deal, Lost Deal, dll
+// tidak ikut masuk ke panel Hot Opportunities.
+// ============================================
+$sqlHotOpportunities = "
+    SELECT latest.account_id, latest.nama_pt, latest.sales_name,
+           latest.jenis_tugas, latest.subject, latest.created_at
+    FROM (
+        SELECT sa.account_id, a.nama_pt, u.full_name AS sales_name,
+               ad.jenis_tugas, ad.subject, ad.created_at, ad.id,
+               ROW_NUMBER() OVER (
+                   PARTITION BY sa.account_id
+                   ORDER BY ad.id DESC
+               ) AS rn
+        FROM sales_activities sa
+        INNER JOIN activity_details ad ON ad.sales_activity_id = sa.id
+        LEFT JOIN accounts a ON sa.account_id = a.id
+        LEFT JOIN users u ON sa.sales_id = u.id
+        WHERE sa.account_id IS NOT NULL
+          AND ad.jenis_tugas IS NOT NULL
+          AND TRIM(ad.jenis_tugas) <> ''
+          " . ($filterSalesId > 0 ? " AND sa.sales_id = $filterSalesId" : "") . "
+    ) latest
+    WHERE latest.rn = 1
+      AND latest.jenis_tugas IN ('Negosiasi', 'Kontrak')
+    ORDER BY latest.created_at DESC
+    LIMIT 5
+";
+try {
+    $hotOpportunities = $db->query($sqlHotOpportunities)->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Fallback untuk MySQL versi lama yang belum mendukung ROW_NUMBER().
+    $sqlHotOpportunities = "
+        SELECT sa.account_id, a.nama_pt, u.full_name AS sales_name,
+               ad.jenis_tugas, ad.subject, ad.created_at
+        FROM sales_activities sa
+        INNER JOIN activity_details ad ON ad.sales_activity_id = sa.id
+        LEFT JOIN accounts a ON sa.account_id = a.id
+        LEFT JOIN users u ON sa.sales_id = u.id
+        WHERE sa.account_id IS NOT NULL
+          AND ad.jenis_tugas IN ('Negosiasi', 'Kontrak')
+          " . ($filterSalesId > 0 ? " AND sa.sales_id = $filterSalesId" : "") . "
+          AND ad.id = (
+              SELECT MAX(ad2.id)
+              FROM sales_activities sa2
+              INNER JOIN activity_details ad2 ON ad2.sales_activity_id = sa2.id
+              WHERE sa2.account_id = sa.account_id
+          )
+        ORDER BY ad.created_at DESC
+        LIMIT 5
+    ";
+    $hotOpportunities = $db->query($sqlHotOpportunities)->fetchAll(PDO::FETCH_ASSOC);
+}
+
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 ?>
@@ -375,7 +432,7 @@ $role = $_SESSION['role'] ?? 'user';
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-filter"></i> Sales Pipeline</div><div class="panel-sub">Current prospect movement by stage</div></div><span class="panel-sub"><?= htmlspecialchars($filteredSalesName) ?></span></div><div class="panel-body"><div class="pipeline">
 <?php $pipe=[['Suspect','blue',$pipelineCounts['Suspect'],32],['Prospect','cyan',$pipelineCounts['Prospect'],52],['Hot Prospect','amber',$pipelineCounts['Hot Prospect'],68],['Deal','green',$pipelineCounts['Deal'],84],['Lost Deal','red',$pipelineCounts['Lost Deal'],30]]; foreach($pipe as $p): $c=['blue'=>'#60a5fa','cyan'=>'#22d3ee','amber'=>'#fbbf24','red'=>'#fb7185','green'=>'#34d399','purple'=>'#a78bfa'][$p[1]]; ?><div class="stage" style="--c:<?= $c ?>;--w:<?= $p[3] ?>%"><div class="stage-name"><?= htmlspecialchars($p[0]) ?></div><div class="stage-num"><?= number_format($p[2]) ?></div><div class="stage-meta">Accounts in stage</div><div class="stage-bar"><span></span></div></div><?php endforeach; ?></div></div></div>
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-fire"></i> Hot Opportunities</div><div class="panel-sub">Highest priority prospects</div></div><span class="panel-sub">View all →</span></div><div class="panel-body hot-list">
-<?php $hotDemo=[]; foreach($recentActivities as $a){ if(count($hotDemo)>=5) break; $hotDemo[]=$a; } if($hotDemo): foreach($hotDemo as $i=>$a): ?><div class="hot-item"><div class="machine"><i class="fas fa-tractor"></i></div><div><div class="hot-name"><?= htmlspecialchars($a['nama_pt']??'-') ?></div><div class="hot-desc"><?= htmlspecialchars($a['jenis_tugas']??'Sales Activity') ?> · <?= htmlspecialchars($a['subject']??'-') ?></div></div><div><div class="hot-value">#<?= $i+1 ?></div><div class="score">Priority</div><div class="scorebar" style="--score:<?= max(35,90-($i*10)) ?>%"><span></span></div></div></div><?php endforeach; else: ?><div class="empty">Belum ada opportunity terbaru.</div><?php endif; ?></div></div>
+<?php if($hotOpportunities): foreach($hotOpportunities as $i=>$a): ?><div class="hot-item"><div class="machine"><i class="fas fa-tractor"></i></div><div><div class="hot-name"><?= htmlspecialchars($a['nama_pt']??'-') ?></div><div class="hot-desc"><?= htmlspecialchars($a['jenis_tugas']??'Hot Prospect') ?> · <?= htmlspecialchars($a['subject']??'-') ?></div></div><div><div class="hot-value">#<?= $i+1 ?></div><div class="score">Hot Prospect</div><div class="scorebar" style="--score:<?= max(55,95-($i*8)) ?>%"><span></span></div></div></div><?php endforeach; else: ?><div class="empty">Belum ada Hot Prospect.</div><?php endif; ?></div></div>
 </section>
 <section class="lower">
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-chart-area"></i> Activity Performance</div><div class="panel-sub">Daily sales activity for <?= date('F Y',strtotime($filterMonth.'-01')) ?></div></div></div><div class="panel-body"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div></div>
