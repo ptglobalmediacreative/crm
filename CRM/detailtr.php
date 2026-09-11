@@ -1314,57 +1314,226 @@ if (count($additionalCostItems) == 0) {
             }
             .tab-nav .nav-tabs .nav-link { padding: 10px 15px; font-size: 12px; }
         }
-    </style>
+    
+        /* ===== DASHBOARD PREMIUM THEME ===== */
+        :root{
+            --bg:#070b14;
+            --panel:#0b1120;
+            --panel-2:#0a1020;
+            --line:rgba(148,163,184,.13);
+            --text:#e8eef7;
+            --muted:#7f8ba0;
+            --blue:#3b82f6;
+            --blue-soft:rgba(59,130,246,.12);
+            --gold:#d4a72c;
+        }
+        html,body{min-height:100%;background:var(--bg)!important;color:var(--text)!important;}
+        body{padding-bottom:30px!important;overflow-x:hidden;}
+        .topbar{
+            position:fixed;top:0;left:0;right:0;height:72px;z-index:1100;
+            display:flex;align-items:center;padding:0 24px;
+            background:rgba(7,11,20,.94);border-bottom:1px solid var(--line);
+            backdrop-filter:blur(16px);
+        }
+        .top-brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#fff;}
+        .top-brand img{width:38px;height:38px;object-fit:contain;}
+        .top-brand strong{display:block;font-size:13px;font-weight:800;letter-spacing:.1px;}
+        .top-brand small{display:block;color:#68758a;font-size:9px;margin-top:2px;letter-spacing:.35px;}
+        .top-actions{display:flex;align-items:center;gap:10px;margin-left:auto;}
+        .icon-btn{width:38px;height:38px;border:1px solid var(--line);background:#0a1020;color:#aeb9ca;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;}
+        .notif{position:absolute;right:-2px;top:-3px;background:#ef4444;color:#fff;border-radius:10px;font-size:8px;padding:3px 5px;font-weight:700;}
+        .top-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:1px solid rgba(96,165,250,.5);color:#fff;}
+        .top-mobile-toggle{display:none;}
+
+        .sidebar{
+            width:245px!important;height:calc(100vh - 72px)!important;top:72px!important;
+            background:#080d18!important;padding:22px 14px 18px!important;
+            border-right:1px solid var(--line);box-shadow:none!important;
+            display:flex;flex-direction:column;
+        }
+        .sidebar .brand{padding:0 10px 18px!important;margin-bottom:18px!important;border-bottom:1px solid var(--line)!important;gap:10px;}
+        .sidebar .brand .logo-wrapper{width:36px!important;height:36px!important;}
+        .sidebar .brand .brand-text h5{font-size:12px!important;letter-spacing:.45px!important;}
+        .sidebar .brand .brand-text small{font-size:8px!important;letter-spacing:.7px!important;color:#647188!important;}
+        .sidebar-section-title{font-size:9px;color:#556176;letter-spacing:1.5px;font-weight:800;padding:0 12px 8px;}
+        .administration-title{margin-top:16px;}
+        .sidebar .nav-item{
+            min-height:42px;padding:10px 12px!important;margin-bottom:4px!important;
+            border-radius:9px!important;color:#8995a8!important;font-size:12px!important;
+            font-weight:600!important;gap:0;box-shadow:none!important;
+        }
+        .sidebar .nav-item i{width:24px!important;margin-right:9px!important;font-size:13px!important;color:#738096;}
+        .sidebar .nav-item span{white-space:nowrap;}
+        .sidebar .nav-item:hover{background:rgba(255,255,255,.035)!important;color:#eef4ff!important;}
+        .sidebar .nav-item:hover i{color:#9fb7d8;}
+        .sidebar .nav-item.active{
+            background:linear-gradient(90deg,rgba(59,130,246,.18),rgba(59,130,246,.08))!important;
+            color:#7eb1ff!important;box-shadow:inset 3px 0 0 #3b82f6!important;
+        }
+        .sidebar .nav-item.active i{color:#60a5fa!important;}
+        .sidebar-spacer{flex:1;}
+        .sidebar .user-profile{margin-top:14px!important;padding:13px 8px 0!important;border-top:1px solid var(--line)!important;gap:9px;}
+        .sidebar .user-profile .avatar{width:34px!important;height:34px!important;font-size:12px!important;background:linear-gradient(135deg,#172554,#1d4ed8)!important;color:#dbeafe!important;border:1px solid rgba(96,165,250,.35)!important;}
+        .sidebar .user-profile .user-info .name{font-size:11px!important;color:#e7edf6!important;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .sidebar .user-profile .user-info .role{font-size:9px!important;color:#66748a!important;margin-top:2px;}
+        .sidebar .logout-btn{margin-top:9px!important;padding:9px!important;border-radius:8px!important;background:rgba(239,68,68,.07)!important;color:#f87171!important;font-size:11px!important;}
+        .sidebar .logout-btn:hover{background:rgba(239,68,68,.12)!important;}
+
+        .main-content{margin-left:245px!important;padding:98px 28px 25px!important;width:auto!important;min-height:100vh;}
+        .page-header{margin-bottom:20px!important;align-items:center!important;}
+        .page-header h4{color:#eef3fa!important;font-size:21px!important;font-weight:800!important;letter-spacing:-.4px;}
+        .page-header h4 span,.page-header h4 i{color:#60a5fa!important;}
+        .page-header > div:last-child{display:flex;align-items:center;}
+        .btn-secondary-custom{
+            display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+            min-height:40px;background:#0a1020!important;border:1px solid var(--line)!important;border-radius:10px!important;
+            padding:9px 16px!important;font-weight:700!important;font-size:12px!important;line-height:1!important;
+            color:#aeb9ca!important;text-decoration:none!important;white-space:nowrap;
+        }
+        .btn-secondary-custom:hover{background:#111a2d!important;border-color:rgba(96,165,250,.45)!important;color:#fff!important;transform:translateY(-1px);}
+
+        .card-custom,.tab-nav{
+            background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:14px!important;
+            box-shadow:0 8px 28px rgba(0,0,0,.14)!important;
+        }
+        .card-custom:hover,.tab-nav:hover{border-color:rgba(96,165,250,.22)!important;box-shadow:0 12px 32px rgba(0,0,0,.2)!important;}
+        .card-custom .card-header-custom{border-bottom:1px solid var(--line)!important;padding:17px 20px!important;}
+        .card-custom .card-header-custom h6{color:#dce5f1!important;font-size:13px!important;font-weight:700!important;}
+        .card-custom .card-header-custom h6 i{color:#60a5fa!important;}
+        .card-custom .card-body-custom{color:#cbd5e1!important;}
+        .info-label{color:#65738a!important;font-size:9px!important;}
+        .info-value{color:#e2e8f0!important;font-size:13px!important;}
+        .form-label{color:#8d9bb0!important;}
+        .form-control,.form-select{
+            background:#080e1b!important;color:#dbe5f2!important;border:1px solid rgba(148,163,184,.16)!important;
+        }
+        .form-control::placeholder{color:#536176!important;}
+        .form-control:focus,.form-select:focus{background:#0a1120!important;color:#fff!important;border-color:rgba(96,165,250,.6)!important;box-shadow:0 0 0 3px rgba(59,130,246,.1)!important;}
+        .form-select option{background:#0b1120;color:#e5edf7;}
+        .tab-nav{padding:5px!important;overflow-x:auto!important;}
+        .tab-nav .nav-tabs{padding:3px!important;gap:3px!important;}
+        .tab-nav .nav-tabs .nav-link{color:#7f8ba0!important;border-radius:9px!important;padding:10px 15px!important;font-size:11px!important;}
+        .tab-nav .nav-tabs .nav-link:hover{background:rgba(255,255,255,.035)!important;color:#dbe7f5!important;}
+        .tab-nav .nav-tabs .nav-link.active{background:rgba(59,130,246,.13)!important;color:#70adff!important;}
+        .support-row{background:#080e1b!important;border:1px solid var(--line)!important;color:#cbd5e1!important;}
+        .cost-item-header,.mediator-header,.d-flex.justify-content-between{border-bottom-color:var(--line)!important;}
+        .cost-item-header strong,.mediator-header strong,.d-flex.justify-content-between strong{color:#dce5f1!important;}
+        .total-box{background:#080e1b!important;border:1px solid var(--line);color:#fff;}
+        .total-box .total-label{color:#718097!important;}
+        .total-box .total-value{color:#60a5fa!important;}
+        .btn-primary-custom{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;color:#fff!important;border:1px solid rgba(96,165,250,.25)!important;}
+        .btn-primary-custom:hover{background:linear-gradient(135deg,#3b82f6,#2563eb)!important;}
+        .btn-success-custom{background:#15803d!important;}
+        .btn-danger-custom{background:#b91c1c!important;}
+        .badge-status-tr.pending{background:rgba(234,179,8,.12)!important;color:#facc15!important;}
+        .badge-status-tr.approved{background:rgba(59,130,246,.12)!important;color:#60a5fa!important;}
+        .badge-status-tr.rejected{background:rgba(239,68,68,.12)!important;color:#f87171!important;}
+        .alert{background:#0b1120!important;border:1px solid var(--line)!important;color:#cbd5e1!important;}
+        .table,.table *{border-color:var(--line)!important;}
+        .table{--bs-table-bg:transparent;--bs-table-color:#cbd5e1;}
+        .table thead th{background:#0a1020!important;color:#718097!important;}
+        .table tbody td{background:#0b1120!important;color:#cbd5e1!important;}
+        .table tbody tr:hover td{background:rgba(255,255,255,.025)!important;}
+        .text-muted{color:#68758a!important;}
+        .footer-text{color:#536176!important;}
+        .footer-text a{color:#7892b3!important;}
+        .pagination .page-link{background:#0a1020!important;border-color:var(--line)!important;color:#8fa0b7!important;}
+        .pagination .page-item.active .page-link{background:#2563eb!important;border-color:#2563eb!important;color:#fff!important;}
+        .mobile-toggle{display:none!important;}
+
+        @media(max-width:991px){
+            .top-mobile-toggle{display:flex;width:36px;height:36px;border:1px solid var(--line);background:#0a1020;color:#aeb9ca;border-radius:9px;align-items:center;justify-content:center;margin-right:12px;}
+            .sidebar{transform:translateX(-100%)!important;}
+            .sidebar.open{transform:translateX(0)!important;box-shadow:14px 0 35px rgba(0,0,0,.4)!important;}
+            .main-content{margin-left:0!important;padding:92px 18px 25px!important;}
+            .mobile-toggle{display:none!important;}
+        }
+        @media(max-width:600px){
+            .topbar{padding:0 14px;}
+            .top-brand strong{font-size:11px;}
+            .top-brand small{font-size:8px;}
+            .top-brand img{width:34px;height:34px;}
+            .top-actions .icon-btn{width:34px;height:34px;}
+            .top-avatar{width:34px;height:34px;}
+            .page-header{gap:10px!important;}
+            .page-header h4{font-size:17px!important;}
+            .page-header > div:last-child{width:100%;}
+            .page-header > div:last-child .btn-secondary-custom{width:100%;}
+            .card-custom .card-header-custom{padding:14px!important;}
+            .tab-nav .nav-tabs .nav-link{padding:9px 11px!important;font-size:10px!important;}
+        }
+</style>
 </head>
-<body>
+<body><header class="topbar">
+    <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Open menu">
+        <i class="fas fa-bars"></i>
+    </button>
+    <a class="top-brand" href="dashboard.php">
+        <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
+        <div>
+            <strong>PT Ganda Elang Tangguh</strong>
+            <small>Customer Relationship Management</small>
+        </div>
+    </a>
+    <div class="top-actions">
+        <button class="icon-btn" type="button" aria-label="Notifications">
+            <i class="far fa-bell"></i><span class="notif">!</span>
+        </button>
+        <div class="top-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div>
+    </div>
+</header>
+
 
     <!-- SIDEBAR MODERN -->
     <nav class="sidebar" id="sidebar">
-        <a href="dashboard.php" class="brand">
-            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-            <div class="brand-text">
-                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-                <small>PT Ganda Elang Tangguh</small>
-            </div>
-        </a>
-
-        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
-        
-        <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i> Sales Activity</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('transaction_request', $menuNames)): ?>
-            <a href="transactionrequest.php" class="nav-item active"><i class="fas fa-file-signature"></i> TR Request</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
-        <?php endif; ?>
-
-        <div class="user-profile">
-            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-            <div class="user-info">
-                <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= getRoleLabel($role) ?></div>
-            </div>
+    <a href="dashboard.php" class="brand">
+        <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
+        <div class="brand-text">
+            <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
+            <small>PT Ganda Elang Tangguh</small>
         </div>
-        <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
-    </nav>
+    </a>
+
+    <div class="sidebar-section-title">MAIN MENU</div>
+    <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+
+    <?php if (in_array('sales_activity', $menuNames)): ?>
+        <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i><span>Sales Activity</span></a>
+    <?php endif; ?>
+
+    <?php if (in_array('account_management', $menuNames)): ?>
+        <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i><span>Account Management</span></a>
+    <?php endif; ?>
+
+    <?php if (in_array('transaction_request', $menuNames)): ?>
+        <a href="transactionrequest.php" class="nav-item active"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a>
+    <?php endif; ?>
+
+    <?php if (in_array('produk', $menuNames)): ?>
+        <a href="produk.php" class="nav-item"><i class="fas fa-box"></i><span>Produk</span></a>
+    <?php endif; ?>
+
+    <?php if (in_array('delivery_order', $menuNames)): ?>
+        <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-truck"></i><span>Delivery Order</span></a>
+    <?php endif; ?>
+
+    <div class="sidebar-section-title administration-title">ADMINISTRATION</div>
+
+    <?php if (in_array('data_user', $menuNames)): ?>
+        <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i><span>Data User</span></a>
+    <?php endif; ?>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="user-profile">
+        <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
+        <div class="user-info">
+            <div class="name"><?= htmlspecialchars($fullName) ?></div>
+            <div class="role"><?= getRoleLabel($role) ?></div>
+        </div>
+    </div>
+    <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+</nav>
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
