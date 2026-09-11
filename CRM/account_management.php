@@ -1054,56 +1054,130 @@ function canSalesEdit($db, $account_id, $userId) {
             color: #0e1a2b;
             font-weight: 600;
         }
+    
+        /* =========================================================
+           DASHBOARD PREMIUM THEME — PRESENTATION ONLY
+           ========================================================= */
+        :root{--bg:#070b14;--panel:#0b1120;--panel2:#0a1020;--line:rgba(255,255,255,.08);--text:#eef3fb;--muted:#8f9bb0;--blue:#2563eb;--gold:#d4a017;}
+        body{font-family:'Inter','Segoe UI',sans-serif!important;background:radial-gradient(circle at 15% 0%,rgba(37,99,235,.10),transparent 30%),linear-gradient(180deg,#080d18 0%,#060a12 100%)!important;color:var(--text)!important;padding:0!important;min-height:100vh;}
+        .topbar{position:fixed;top:0;left:0;right:0;height:72px;background:rgba(7,11,20,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(16px);display:flex;align-items:center;padding:0 22px;z-index:1100;}
+        .top-brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#fff;}
+        .top-brand img{width:36px;height:36px;object-fit:contain;}
+        .top-brand strong{display:block;font-size:13px;font-weight:800;letter-spacing:.1px;}
+        .top-brand small{display:block;color:#738096;font-size:9px;margin-top:2px;letter-spacing:.45px;}
+        .top-actions{display:flex;align-items:center;gap:10px;margin-left:auto;}
+        .icon-btn{width:38px;height:38px;border:1px solid var(--line);background:#0a1020;color:#aeb9ca;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;}
+        .notif{position:absolute;right:-2px;top:-3px;background:#ef4444;color:#fff;border-radius:10px;font-size:8px;padding:3px 5px;font-weight:700;}
+        .top-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:1px solid rgba(96,165,250,.5);color:#fff;}
+        .sidebar{top:72px!important;bottom:0!important;height:auto!important;width:245px!important;background:rgba(8,13,24,.98)!important;border-right:1px solid var(--line);padding:22px 14px!important;z-index:1000;box-shadow:18px 0 40px rgba(0,0,0,.16);}
+        .sidebar .brand{display:none!important;}
+        .rail-label{font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:#59667c;font-weight:800;padding:8px 12px 10px;}
+        .sidebar .nav-item{display:flex!important;align-items:center!important;gap:12px!important;padding:11px 12px!important;color:#8995a9!important;border-radius:9px!important;margin:3px 0!important;font-size:12px!important;font-weight:600!important;text-decoration:none!important;transition:.2s!important;}
+        .sidebar .nav-item i{width:18px!important;margin:0!important;font-size:13px!important;text-align:center!important;}
+        .sidebar .nav-item span{display:block!important;}
+        .sidebar .nav-item:hover{background:rgba(255,255,255,.045)!important;color:#e8eef8!important;}
+        .sidebar .nav-item.active{background:linear-gradient(90deg,rgba(37,99,235,.20),rgba(37,99,235,.06))!important;color:#70a4ff!important;box-shadow:inset 2px 0 0 #3b82f6!important;}
+        .sidebar-spacer{flex:1;}
+        .sidebar .user-profile{margin-top:18px!important;padding:12px 8px!important;border-top:1px solid var(--line)!important;gap:10px!important;}
+        .sidebar .user-profile .avatar{width:34px!important;height:34px!important;background:linear-gradient(135deg,#1e3a8a,#2563eb)!important;color:#fff!important;border:1px solid rgba(96,165,250,.45)!important;font-size:12px!important;}
+        .sidebar .user-profile .user-info .name{font-size:11px!important;color:#e8edf6!important;}
+        .sidebar .user-profile .user-info .role{font-size:9px!important;color:#68758a!important;}
+        .sidebar .logout-btn{display:flex!important;align-items:center!important;gap:10px!important;text-align:left!important;margin-top:6px!important;padding:10px 12px!important;background:rgba(239,68,68,.07)!important;color:#ef7777!important;font-size:11px!important;}
+        .sidebar .logout-btn:hover{background:rgba(239,68,68,.12)!important;}
+        .main-content{margin-left:245px!important;padding:96px 28px 28px!important;width:auto!important;min-height:100vh;}
+        .page-header{margin-bottom:22px!important;}
+        .page-header h4{color:#f1f5fb!important;font-size:24px!important;}
+        .page-header h4 span{color:#60a5fa!important;}
+        .page-header h4 span i{color:#60a5fa!important;}
+        .stat-grid{gap:14px!important;margin-bottom:18px!important;}
+        .stat-card,.card-custom{background:linear-gradient(180deg,rgba(14,22,38,.96),rgba(9,15,27,.96))!important;border:1px solid var(--line)!important;box-shadow:0 14px 35px rgba(0,0,0,.16)!important;color:#eaf0f8!important;}
+        .stat-card{padding:18px!important;border-radius:14px!important;}
+        .stat-card:hover,.card-custom:hover{border-color:rgba(96,165,250,.25)!important;box-shadow:0 18px 42px rgba(0,0,0,.24)!important;}
+        .stat-card .stat-number{color:#f4f7fb!important;font-size:23px!important;}
+        .stat-card .stat-label{color:#8290a5!important;font-size:11px!important;}
+        .stat-card .stat-icon.gold{background:rgba(212,160,23,.12)!important;color:#e0b53d!important;}
+        .stat-card .stat-icon.blue{background:rgba(59,130,246,.12)!important;color:#60a5fa!important;}
+        .stat-card .stat-icon.green{background:rgba(34,197,94,.12)!important;color:#4ade80!important;}
+        .stat-card .stat-icon.purple{background:rgba(168,85,247,.12)!important;color:#c084fc!important;}
+        .card-custom .card-header-custom{border-bottom:1px solid var(--line)!important;padding:16px 18px!important;}
+        .card-custom .card-header-custom h6{color:#edf2f8!important;font-size:13px!important;}
+        .card-custom .card-header-custom h6 i{color:#60a5fa!important;}
+        .card-custom .card-body-custom{background:transparent!important;}
+        .table-custom{color:#cbd5e1!important;}
+        .table-custom th{background:#0a1020!important;color:#748198!important;border-bottom:1px solid var(--line)!important;font-size:10px!important;}
+        .table-custom td{border-bottom:1px solid rgba(255,255,255,.055)!important;color:#cbd5e1!important;}
+        .table-custom tr:hover{background:rgba(255,255,255,.025)!important;}
+        .table-custom td strong{color:#f0f4fa!important;}
+        .text-muted{color:#68758a!important;}
+        .text-success{color:#4ade80!important;} .text-warning{color:#fbbf24!important;}
+        .form-control,.form-select{background:#080f1d!important;border:1px solid var(--line)!important;color:#dce5f1!important;border-radius:8px!important;}
+        .form-control::placeholder{color:#59667a!important;}
+        .form-control:focus,.form-select:focus{border-color:rgba(96,165,250,.55)!important;box-shadow:0 0 0 3px rgba(37,99,235,.10)!important;}
+        .form-select option{background:#0b1120;color:#fff;}
+        .btn-primary-custom{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;color:#fff!important;border:0!important;}
+        .btn-primary-custom:hover{background:linear-gradient(135deg,#3b82f6,#2563eb)!important;}
+        .btn-secondary-custom{background:#111827!important;color:#aeb9ca!important;border:1px solid var(--line)!important;}
+        .btn-secondary-custom:hover{background:#172033!important;color:#fff!important;}
+        .btn-success-custom{background:rgba(34,197,94,.08)!important;color:#4ade80!important;border:1px solid rgba(34,197,94,.25)!important;}
+        .badge-lead,.badge-sales,.badge-badan-usaha{border:1px solid rgba(255,255,255,.06);}
+        .modal-content{background:#0b1120!important;color:#dbe5f1!important;border:1px solid var(--line)!important;box-shadow:0 25px 70px rgba(0,0,0,.45)!important;}
+        .modal-header,.modal-footer{border-color:var(--line)!important;}
+        .modal-header .modal-title{color:#f1f5fb!important;}
+        .modal-header .modal-title i{color:#60a5fa!important;}
+        .form-label{color:#b8c3d3!important;}
+        .form-control[readonly]{background:#070d18!important;color:#8290a5!important;}
+        .detail-item{border-color:var(--line)!important;}
+        .detail-item .detail-label{color:#718097!important;}
+        .detail-item .detail-value{color:#dbe4ef!important;}
+        .breadcrumb-item.active{color:#dce5f1!important;}
+        .breadcrumb-item a{color:#60a5fa!important;}
+        .footer-text{color:#566277!important;}
+        .footer-text a{color:#718097!important;}
+        .pagination .page-link{background:#0a1020!important;border-color:var(--line)!important;color:#9aa7ba!important;}
+        .pagination .page-item.active .page-link{background:#2563eb!important;border-color:#2563eb!important;color:#fff!important;}
+        .top-mobile-toggle{display:none;background:#0a1020;border:1px solid var(--line);color:#9fb0c8;width:38px;height:38px;border-radius:9px;margin-right:10px;}
+        @media(max-width:991px){.top-mobile-toggle{display:flex;align-items:center;justify-content:center}.sidebar{transform:translateX(-100%)!important}.sidebar.open{transform:translateX(0)!important}.main-content{margin-left:0!important;padding:92px 18px 24px!important}.page-header>div:last-child{width:100%}.page-header>div:last-child{justify-content:flex-start;display:flex;flex-wrap:wrap}.sidebar{width:245px!important}}
+        @media(max-width:480px){.top-brand strong{font-size:11px}.top-brand small{font-size:8px}.top-brand img{width:32px;height:32px}.main-content{padding:88px 12px 20px!important}.page-header h4{font-size:19px!important}.stat-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important}.stat-card{padding:14px!important}.card-custom .card-header-custom{align-items:flex-start!important}.card-custom .card-header-custom form{width:100%!important}.card-custom .card-header-custom form input{width:100%!important}.table-custom{min-width:1050px!important}}
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR MODERN -->
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
+        <a class="top-brand" href="dashboard.php"><img src="images/logo.webp" alt="GET"><div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div></a>
+        <div class="top-actions"><button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button><div class="top-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div></div>
+    </header>
+
+    <!-- SIDEBAR -->
     <nav class="sidebar" id="sidebar">
-        <a href="dashboard.php" class="brand">
-            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-            <div class="brand-text">
-                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-                <small>PT Ganda Elang Tangguh</small>
-            </div>
-        </a>
-
-        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
-        
+        <div class="rail-label">Main Menu</div>
+        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
         <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i> Sales Activity</a>
+            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item active"><i class="fas fa-building"></i> Account</a>
+            <a href="account_management.php" class="nav-item active"><i class="fas fa-building"></i><span>Account Management</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('transaction_request', $menuNames)): ?>
-            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
+            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
+            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i><span>Produk</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-truck-moving"></i><span>Delivery Order</span></a>
         <?php endif; ?>
-        
+        <div class="rail-label">Administration</div>
         <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
+            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i><span>Data User</span></a>
         <?php endif; ?>
-
-        <div class="user-profile">
-            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-            <div class="user-info">
-                <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= getRoleLabel($role) ?></div>
-            </div>
-        </div>
-        <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
+        <?php if (in_array('data_sales', $menuNames) && file_exists('data_sales.php')): ?>
+            <a href="data_sales.php" class="nav-item"><i class="fas fa-user-tie"></i><span>Data Sales</span></a>
+        <?php endif; ?>
+        <div class="sidebar-spacer"></div>
+        <div class="user-profile"><div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div><div class="user-info"><div class="name"><?= htmlspecialchars($fullName) ?></div><div class="role"><?= getRoleLabel($role) ?></div></div></div>
+        <a href="logout.php" class="logout-btn"><i class="fas fa-power-off"></i><span>Logout</span></a>
     </nav>
 
     <!-- MAIN CONTENT -->
