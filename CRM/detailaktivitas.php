@@ -1013,16 +1013,38 @@ foreach ($detailsList as $d) {
         .btn-primary-custom i { margin-right: 6px; }
 
         .btn-secondary-custom {
-            background: #f0f2f5;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 40px;
+            background: #0a1020;
+            border: 1px solid rgba(148,163,184,.20);
+            border-radius: 10px;
+            padding: 9px 16px;
+            font-weight: 700;
             font-size: 13px;
-            transition: all 0.3s ease;
-            color: #555;
+            line-height: 1;
+            transition: all 0.25s ease;
+            color: #aeb9ca;
+            text-decoration: none;
+            white-space: nowrap;
         }
-        .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
+        .btn-secondary-custom i {
+            font-size: 12px;
+            margin: 0;
+        }
+        .btn-secondary-custom:hover {
+            background: #111a2d;
+            border-color: rgba(96,165,250,.45);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .page-header > .d-flex {
+            align-items: center;
+            flex-wrap: wrap;
+        }
 
         .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
 
