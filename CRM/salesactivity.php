@@ -826,7 +826,7 @@ a{color:inherit}
 <header class="topbar">
     <button class="mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
     <a class="brand" href="dashboard.php"><img src="images/logo.webp" alt="GET"><div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div></a>
-    <div class="top-actions"><div class="avatar"><?= strtoupper(substr($fullName,0,1)) ?></div></div>
+    <div class="top-actions"><button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button><div class="avatar"><?= strtoupper(substr($fullName,0,1)) ?></div></div>
 </header>
 <div class="shell">
 <aside class="rail" id="sidebar">
