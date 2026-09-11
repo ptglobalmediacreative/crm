@@ -1468,13 +1468,6 @@ if (count($additionalCostItems) == 0) {
     <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Open menu">
         <i class="fas fa-bars"></i>
     </button>
-    <a class="top-brand" href="dashboard.php">
-        <img src="images/logo.webp" alt="PT Ganda Elang Tangguh">
-        <div>
-            <strong>PT Ganda Elang Tangguh</strong>
-            <small>Customer Relationship Management</small>
-        </div>
-    </a>
     <div class="top-actions">
         <button class="icon-btn" type="button" aria-label="Notifications">
             <i class="far fa-bell"></i><span class="notif">!</span>
