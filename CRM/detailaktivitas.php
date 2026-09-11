@@ -1084,60 +1084,156 @@ foreach ($detailsList as $d) {
             .info-card .info-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
             .info-card .info-value { font-size: 12px; }
         }
+    /* =========================================================
+           DASHBOARD PREMIUM THEME — VISUAL ONLY
+           Backend, queries, POST actions and JavaScript unchanged.
+           ========================================================= */
+        :root{--bg:#060b18;--panel:#0b1222;--panel2:#0d1730;--line:rgba(148,163,184,.16);--text:#f7f9ff;--muted:#8e9bb5;--blue:#3b82f6;--blue2:#60a5fa;--green:#34d399;--red:#fb7185;--amber:#fbbf24}
+        html,body{min-height:100%;background:#060b18}
+        body{font-family:Inter,Arial,sans-serif!important;background:radial-gradient(circle at 70% -10%,rgba(37,99,235,.20),transparent 30%),linear-gradient(145deg,#050914,#08111f 55%,#07162c)!important;color:var(--text)!important;padding-bottom:0!important;overflow-x:hidden}
+        .topbar{height:72px;border-bottom:1px solid var(--line);background:rgba(5,9,20,.88);backdrop-filter:blur(18px);display:flex;align-items:center;padding:0 26px;gap:24px;position:sticky;top:0;z-index:1050}
+        .topbar .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#fff;min-width:220px;margin:0;padding:0;border:0}
+        .topbar .brand img{width:38px;height:38px;object-fit:contain}
+        .topbar .brand strong{font-size:17px;letter-spacing:-.4px;color:#fff}
+        .topbar .brand small{display:block;color:#65738e;font-size:9px;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px}
+        .top-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+        .icon-btn{width:38px;height:38px;border:1px solid var(--line);background:#0a1020;color:#aeb9ca;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}
+        .notif{position:absolute;right:-2px;top:-3px;background:#ef4444;color:#fff;border-radius:10px;font-size:8px;padding:3px 5px;font-weight:700}
+        .top-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:1px solid rgba(96,165,250,.5);color:#fff}
+        .shell{display:flex;min-height:calc(100vh - 72px)}
+        .rail{width:245px!important;position:fixed;top:72px;bottom:0;left:0;background:rgba(5,10,21,.92)!important;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px!important;gap:6px;z-index:1040;overflow-y:auto;transform:none!important}
+        .rail-label{font-size:9px;color:#52627d;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;padding:8px 12px 7px}
+        .rail a{width:100%;height:43px;border-radius:11px;color:#8794aa;display:flex;align-items:center;gap:12px;text-decoration:none;transition:.2s;padding:0 13px;font-size:11px;font-weight:600}
+        .rail a i{width:20px;text-align:center;font-size:14px;color:#6e7d97;margin:0}
+        .rail a:hover,.rail a.active{color:#fff;background:linear-gradient(90deg,rgba(59,130,246,.20),rgba(37,99,235,.06));box-shadow:inset 2px 0 0 #60a5fa}
+        .rail a.active i{color:#60a5fa}
+        .rail .spacer{flex:1;min-height:20px}
+        .rail-user{margin:8px 4px 4px!important;padding:12px!important;border:1px solid rgba(148,163,184,.10)!important;background:rgba(10,18,34,.7)!important;border-radius:13px!important;display:flex;align-items:center;gap:10px}
+        .rail-user .mini-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800}
+        .rail-user strong{display:block;font-size:10px;color:#e8eef9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rail-user span{display:block;font-size:8px;color:#66758f;margin-top:2px}
+        .logout-link{margin:0!important;background:transparent!important;color:#8794aa!important;text-align:left!important}
+        .logout-link:hover{color:#fb7185!important;background:rgba(251,113,133,.08)!important}
+        .logout-link i{color:#6e7d97!important}
+        .content{margin-left:245px!important;width:calc(100% - 245px)!important;padding:26px 28px 50px!important;min-width:0}
+        .page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:20px}
+        .page-header h4{font-size:26px!important;letter-spacing:-1px!important;font-weight:800!important;color:#f7f9ff!important;margin:0!important}
+        .page-header h4 span,.page-header h4 span i{color:#60a5fa!important}
+        .page-header > div:last-child{display:flex;gap:8px}
+        .info-card,.card-custom{background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96))!important;border:1px solid var(--line)!important;border-radius:17px!important;box-shadow:0 18px 45px rgba(0,0,0,.18)!important;color:#dce5f5}
+        .info-card{padding:17px 18px!important;margin-bottom:14px!important}
+        .info-card .info-item{padding:11px 0;border-bottom:1px solid rgba(148,163,184,.08)!important}
+        .info-card .info-label{color:#687791!important;font-size:10px!important;width:180px}
+        .info-card .info-value{color:#dce5f5!important;font-size:11px!important}
+        .card-custom .card-header-custom{height:58px;padding:0 18px;border-bottom:1px solid rgba(148,163,184,.10)!important}
+        .card-custom .card-header-custom h6{color:#f7f9ff!important;font-size:13px!important;font-weight:700}
+        .card-custom .card-header-custom h6 i{color:#60a5fa!important}
+        .card-custom .card-body-custom{background:transparent!important}
+        .table-custom{font-size:11px!important;color:#cdd7e7!important}
+        .table-custom th{color:#71809b!important;background:rgba(6,13,27,.65)!important;border-bottom:1px solid rgba(148,163,184,.10)!important;font-size:9px!important;padding:12px 14px!important}
+        .table-custom td{color:#cdd7e7!important;border-bottom:1px solid rgba(148,163,184,.08)!important;padding:12px 14px!important;background:transparent!important}
+        .table-custom tr:hover td{background:rgba(59,130,246,.035)!important}
+        .text-muted{color:#66758f!important}
+        .btn-primary-custom{background:linear-gradient(135deg,#3b82f6,#6366f1)!important;border:0!important;border-radius:11px!important;color:#fff!important;padding:10px 15px!important;font-size:11px!important;font-weight:700!important;box-shadow:0 0 24px rgba(59,130,246,.18)}
+        .btn-primary-custom:hover{transform:translateY(-1px);box-shadow:0 8px 25px rgba(59,130,246,.22)}
+        .btn-secondary-custom{height:38px;background:rgba(10,17,33,.85)!important;border:1px solid var(--line)!important;border-radius:11px!important;color:#aeb9ca!important;padding:0 14px!important;font-size:11px!important}
+        .btn-secondary-custom:hover{background:#0d1730!important;color:#fff!important}
+        .badge-tugas,.badge-status{border:1px solid rgba(148,163,184,.12);box-shadow:none}
+        .btn-action{border:1px solid rgba(148,163,184,.10)!important;background:rgba(10,18,34,.75)!important}
+        .btn-action.detail{color:#60a5fa!important}.btn-action.delete{color:#fb7185!important}.btn-action.complete{color:#34d399!important}
+        .modal-content{background:#0b1222!important;color:#dce5f5!important;border:1px solid var(--line)!important;border-radius:16px!important;box-shadow:0 25px 70px rgba(0,0,0,.45)}
+        .modal-header,.modal-footer{border-color:rgba(148,163,184,.10)!important}
+        .modal-header .modal-title{color:#f7f9ff!important}
+        .modal-header .modal-title i{color:#60a5fa!important}
+        .form-label{color:#9aa8bf!important}
+        .form-control,.form-select{background:#070e1c!important;color:#dce5f5!important;border:1px solid rgba(148,163,184,.16)!important;border-radius:10px!important}
+        .form-control:focus,.form-select:focus{border-color:#3b82f6!important;box-shadow:0 0 0 3px rgba(59,130,246,.12)!important}
+        .form-control[readonly]{background:#0d1730!important;color:#8e9bb5!important}
+        .tr-number-display,.di-number-display{background:rgba(59,130,246,.10)!important;color:#60a5fa!important;border:1px solid rgba(59,130,246,.20)}
+        .info-negosiasi-container{background:rgba(10,18,34,.75)!important;border:1px solid rgba(96,165,250,.25)!important}
+        .info-negosiasi-container h6{color:#60a5fa!important}
+        .alert{background:#0d1730;border:1px solid var(--line);color:#dce5f5}
+        .footer-text{color:#44536c!important}.footer-text a{color:#60a5fa!important}
+        .top-mobile-toggle{display:none}
+        @media(max-width:991px){
+            .top-mobile-toggle{display:flex!important;background:transparent!important;border:1px solid var(--line)!important;width:38px;height:38px;border-radius:10px;color:#60a5fa!important;align-items:center;justify-content:center}
+            .rail{transform:translateX(-100%)!important;display:flex!important;transition:transform .25s ease!important}
+            .rail.open{transform:translateX(0)!important}
+            .content{margin-left:0!important;width:100%!important;padding:20px!important}
+            .page-header{align-items:flex-start}
+        }
+        @media(max-width:650px){
+            .topbar{height:64px;padding:0 14px;gap:10px}
+            .topbar .brand{min-width:0}.topbar .brand div{display:none}
+            .top-avatar{width:36px;height:36px}.icon-btn{width:36px;height:36px}
+            .rail{top:64px}
+            .content{padding:20px 14px 40px!important}
+            .info-card .info-item{flex-direction:column}.info-card .info-label{width:100%;margin-bottom:3px}
+            .page-header{flex-direction:column;align-items:stretch;gap:12px}
+            .page-header>div:last-child{width:100%;flex-wrap:wrap}
+        }
+>
     </style>
 </head>
-<body>
-
-    <!-- SIDEBAR MODERN -->
-    <nav class="sidebar" id="sidebar">
-        <a href="dashboard.php" class="brand">
-            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-            <div class="brand-text">
-                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-                <small>PT Ganda Elang Tangguh</small>
+<body>    <header class="topbar">
+        <button class="mobile-toggle top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <a class="brand" href="dashboard.php">
+            <img src="images/logo.webp" alt="GET">
+            <div>
+                <strong>PT Ganda Elang Tangguh</strong>
+                <small>Customer Relationship Management</small>
             </div>
         </a>
-
-        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
-        
-        <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="salesactivity.php" class="nav-item active"><i class="fas fa-chart-bar"></i> Sales Activity</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('transaction_request', $menuNames)): ?>
-            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
-        <?php endif; ?>
-
-        <div class="user-profile">
-            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-            <div class="user-info">
-                <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= getRoleLabel($role) ?></div>
-            </div>
+        <div class="top-actions">
+            <button class="icon-btn" type="button" aria-label="Notifications">
+                <i class="far fa-bell"></i><span class="notif">!</span>
+            </button>
+            <div class="top-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div>
         </div>
-        <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
-    </nav>
+    </header>
 
+    <div class="shell">
+        <aside class="rail" id="sidebar">
+            <div class="rail-label">Main Menu</div>
+            <a href="dashboard.php"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+            <?php if (in_array('sales_activity', $menuNames)): ?>
+                <a class="active" href="salesactivity.php"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a>
+            <?php endif; ?>
+            <?php if (in_array('account_management', $menuNames)): ?>
+                <a href="account_management.php"><i class="fas fa-building"></i><span>Account Management</span></a>
+            <?php endif; ?>
+            <?php if (in_array('transaction_request', $menuNames)): ?>
+                <a href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a>
+            <?php endif; ?>
+            <?php if (in_array('produk', $menuNames)): ?>
+                <a href="produk.php"><i class="fas fa-box"></i><span>Produk</span></a>
+            <?php endif; ?>
+            <?php if (in_array('delivery_order', $menuNames)): ?>
+                <a href="deliveryinstruction.php"><i class="fas fa-truck-moving"></i><span>Delivery Order</span></a>
+            <?php endif; ?>
+
+            <div class="rail-label">Administration</div>
+            <?php if (in_array('data_user', $menuNames)): ?>
+                <a href="data_user.php"><i class="fas fa-users"></i><span>Data User</span></a>
+            <?php endif; ?>
+            <?php if (in_array('data_sales', $menuNames) && file_exists('data_sales.php')): ?>
+                <a href="data_sales.php"><i class="fas fa-user-tie"></i><span>Data Sales</span></a>
+            <?php endif; ?>
+
+            <div class="spacer"></div>
+            <div class="rail-user">
+                <div class="mini-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div>
+                <div>
+                    <strong><?= htmlspecialchars($fullName) ?></strong>
+                    <span><?= htmlspecialchars(getRoleLabel($role)) ?></span>
+                </div>
+            </div>
+            <a class="logout-link" href="logout.php"><i class="fas fa-power-off"></i><span>Logout</span></a>
+        </aside>
     <!-- MAIN CONTENT -->
-    <div class="main-content">
+    <main class="content">
         
         <!-- HEADER -->
         <div class="page-header">
@@ -1478,6 +1574,7 @@ foreach ($detailsList as $d) {
                 </div>
             </div>
         </div>
+    </main>
     </div>
 
     <!-- SCRIPTS -->
