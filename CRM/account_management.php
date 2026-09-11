@@ -1138,6 +1138,50 @@ function canSalesEdit($db, $account_id, $userId) {
         .top-mobile-toggle{display:none;background:#0a1020;border:1px solid var(--line);color:#9fb0c8;width:38px;height:38px;border-radius:9px;margin-right:10px;}
         @media(max-width:991px){.top-mobile-toggle{display:flex;align-items:center;justify-content:center}.sidebar{transform:translateX(-100%)!important}.sidebar.open{transform:translateX(0)!important}.main-content{margin-left:0!important;padding:92px 18px 24px!important}.page-header>div:last-child{width:100%}.page-header>div:last-child{justify-content:flex-start;display:flex;flex-wrap:wrap}.sidebar{width:245px!important}}
         @media(max-width:480px){.top-brand strong{font-size:11px}.top-brand small{font-size:8px}.top-brand img{width:32px;height:32px}.main-content{padding:88px 12px 20px!important}.page-header h4{font-size:19px!important}.stat-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important}.stat-card{padding:14px!important}.card-custom .card-header-custom{align-items:flex-start!important}.card-custom .card-header-custom form{width:100%!important}.card-custom .card-header-custom form input{width:100%!important}.table-custom{min-width:1050px!important}}
+        /* ===== ACCOUNT LIST — SAME DARK PANEL AS DASHBOARD ===== */
+        .card-custom,
+        .card-custom .card-body-custom,
+        .card-custom .table-responsive,
+        .card-custom .table-custom,
+        .card-custom .table-custom tbody,
+        .card-custom .table-custom tr,
+        .card-custom .card-footer {
+            background: transparent !important;
+        }
+        .card-custom .card-body-custom {
+            background: #0b1120 !important;
+        }
+        .card-custom .table-responsive {
+            background: #0b1120 !important;
+        }
+        .card-custom .table-custom {
+            --bs-table-bg: #0b1120 !important;
+            --bs-table-color: #cbd5e1 !important;
+            --bs-table-striped-bg: #0b1120 !important;
+            --bs-table-hover-bg: rgba(255,255,255,.025) !important;
+            --bs-table-border-color: rgba(255,255,255,.055) !important;
+            background: #0b1120 !important;
+        }
+        .card-custom .table-custom > :not(caption) > * > * {
+            background-color: #0b1120 !important;
+            color: #cbd5e1 !important;
+            border-bottom-color: rgba(255,255,255,.055) !important;
+        }
+        .card-custom .table-custom thead > tr > th {
+            background: #0a1020 !important;
+            color: #748198 !important;
+        }
+        .card-custom .table-custom tbody > tr:hover > td,
+        .card-custom .table-custom tbody > tr:hover > th {
+            background: rgba(255,255,255,.025) !important;
+            color: #e8eef7 !important;
+        }
+        .card-custom .card-footer {
+            background: #0b1120 !important;
+            border-top: 1px solid var(--line) !important;
+        }
+        .card-custom .table-custom td strong { color: #f0f4fa !important; }
+        .card-custom .table-custom td .text-muted { color: #68758a !important; }
     </style>
 </head>
 <body>
