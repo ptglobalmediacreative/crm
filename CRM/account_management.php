@@ -1182,6 +1182,56 @@ function canSalesEdit($db, $account_id, $userId) {
         }
         .card-custom .table-custom td strong { color: #f0f4fa !important; }
         .card-custom .table-custom td .text-muted { color: #68758a !important; }
+        /* ===== SALES NAME — RAPih & KONSISTEN ===== */
+        .card-custom .table-custom td:nth-child(9) {
+            min-width: 150px;
+            max-width: 190px;
+            white-space: nowrap;
+        }
+        .card-custom .table-custom td:nth-child(9) .badge-sales {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            max-width: 175px;
+            min-height: 28px;
+            padding: 5px 10px !important;
+            border-radius: 8px !important;
+            background: rgba(59,130,246,.10) !important;
+            border: 1px solid rgba(96,165,250,.18) !important;
+            color: #9fc5ff !important;
+            font-size: 10px !important;
+            font-weight: 600 !important;
+            line-height: 1.2 !important;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .card-custom .table-custom td:nth-child(9) .badge-sales i {
+            flex: 0 0 auto;
+            font-size: 9px;
+            color: #60a5fa !important;
+        }
+        .card-custom .table-custom td:nth-child(9) .text-muted {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+        }
+        .modal .detail-value .badge-sales {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 11px !important;
+            border-radius: 8px !important;
+            background: rgba(59,130,246,.10) !important;
+            border: 1px solid rgba(96,165,250,.18) !important;
+            color: #9fc5ff !important;
+            font-size: 11px !important;
+        }
+        @media(max-width:991px){
+            .card-custom .table-custom td:nth-child(9){min-width:140px;max-width:170px;}
+            .card-custom .table-custom td:nth-child(9) .badge-sales{max-width:155px;}
+        }
     </style>
 </head>
 <body>
