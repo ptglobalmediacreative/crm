@@ -196,337 +196,76 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            padding-bottom: 70px;
-        }
-        
-        .sidebar {
-            width: 260px;
-            height: 100vh;
-            background: #0e1a2b;
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            padding: 30px 20px;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        .sidebar::-webkit-scrollbar { width: 4px; }
-        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
-
-        .sidebar .brand { 
-            display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; 
-            padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
-        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
-        .sidebar .brand .brand-text h5 span { color: #ffd700; }
-        .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
-
-        .sidebar .nav-item { 
-            display: flex; align-items: center; padding: 12px 16px; 
-            color: rgba(255,255,255,0.6); text-decoration: none; 
-            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; 
-            font-size: 14px; position: relative;
-        }
-        .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
-        .sidebar .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .sidebar .nav-item.active { 
-            background: rgba(255, 215, 0, 0.1); 
-            color: #ffd700; 
-            box-shadow: inset 3px 0 0 #ffd700;
-        }
-        
-        .sidebar .user-profile { 
-            margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); 
-            display: flex; align-items: center; gap: 12px; 
-        }
-        .sidebar .user-profile .avatar { 
-            width: 42px; height: 42px; border-radius: 50%; 
-            background: linear-gradient(135deg, #1a1a2e, #16213e); 
-            color: #ffd700; display: flex; align-items: center; justify-content: center; 
-            font-weight: 700; font-size: 16px; border: 2px solid rgba(255,215,0,0.2);
-        }
-        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #fff; }
-        .sidebar .user-profile .user-info .role { font-size: 12px; color: rgba(255,255,255,0.4); }
-
-        .sidebar .logout-btn {
-            display: block; text-align: center; margin-top: 15px; 
-            padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; 
-            font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); 
-            transition: all 0.2s;
-        }
-        .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
-
-        .main-content { margin-left: 260px; padding: 30px; width: 100%; }
-
-        .page-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
-        }
-        .page-header h4 { 
-            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
-            letter-spacing: -0.5px;
-        }
-        .page-header h4 span { color: #ffd700; }
-
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .stat-card { 
-            background: #fff; border-radius: 16px; padding: 20px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e0e4ea; 
-            transition: all 0.3s ease;
-        }
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
-        .stat-card .stat-icon { 
-            width: 44px; height: 44px; border-radius: 12px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 18px; margin-bottom: 10px; 
-        }
-        .stat-card .stat-icon.gold { background: rgba(255, 215, 0, 0.12); color: #d4a017; }
-        .stat-card .stat-icon.blue { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .stat-card .stat-icon.red { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
-        .stat-card .stat-number { font-size: 24px; font-weight: 800; color: #0e1a2b; margin-bottom: 2px; }
-        .stat-card .stat-label { font-size: 13px; color: #888; }
-
-        .card-custom {
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            border: 1px solid #e0e4ea;
-            transition: all 0.3s ease;
-        }
-        .card-custom:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
-        
-        .card-custom .card-header-custom {
-            padding: 20px 24px;
-            border-bottom: 1px solid #f0f2f5;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .card-custom .card-header-custom h6 {
-            font-weight: 600;
-            color: #0e1a2b;
-            margin: 0;
-            font-size: 16px;
-        }
-        .card-custom .card-header-custom h6 i {
-            color: #ffd700;
-            margin-right: 8px;
-        }
-        .card-custom .card-body-custom { padding: 0; overflow-x: auto; }
-        
-        .table-custom { margin-bottom: 0; font-size: 13px; }
-        .table-custom th {
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            color: #7f8c8d;
-            border-bottom: 1px solid #f0f2f5;
-            padding: 12px 16px;
-            background: #fafafa;
-            white-space: nowrap;
-        }
-        .table-custom td {
-            padding: 12px 16px;
-            vertical-align: middle;
-            border-bottom: 1px solid #f0f2f5;
-        }
-        .table-custom tr:last-child td { border-bottom: none; }
-        .table-custom tr:hover { background: #f8f9fa; }
-
-        .badge-status-tr {
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        .badge-status-tr.pending { background: rgba(241, 196, 15, 0.15); color: #d4a017; }
-        .badge-status-tr.approved { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
-        .badge-status-tr.rejected { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
-
-        /* TR Number Link */
-        .tr-number-link {
-            color: #2980b9;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-
-        /* Tombol PDF - Hanya untuk Approved */
-        .btn-pdf {
-            background: #27ae60;
-            border: none;
-            border-radius: 6px;
-            padding: 4px 12px;
-            font-size: 11px;
-            color: #fff;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 600;
-        }
-        .btn-pdf:hover {
-            background: #1e8449;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
-            color: #fff;
-        }
-        .btn-pdf i {
-            font-size: 13px;
-        }
-        
-        /* Tombol PDF Disabled (untuk yang belum approved) */
-        .btn-pdf-disabled {
-            background: #bdc3c7;
-            border: none;
-            border-radius: 6px;
-            padding: 4px 12px;
-            font-size: 11px;
-            color: #fff;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 600;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-        .btn-pdf-disabled i {
-            font-size: 13px;
-        }
-
-        .btn-primary-custom {
-            background: #0e1a2b;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-primary-custom:hover {
-            background: #1a2d4a;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(14, 26, 43, 0.3);
-            color: #fff;
-        }
-        .btn-primary-custom i { margin-right: 6px; }
-
-        .btn-secondary-custom {
-            background: #f0f2f5;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #555;
-        }
-        .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
-
-        .filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-buttons .btn-filter {
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-            border: 2px solid #e8edf2;
-            background: transparent;
-            color: #666;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-        .filter-buttons .btn-filter:hover { border-color: #ffd700; color: #0e1a2b; }
-        .filter-buttons .btn-filter.active { background: #0e1a2b; border-color: #0e1a2b; color: #fff; }
-        .filter-buttons .btn-filter .count {
-            background: rgba(0,0,0,0.1);
-            padding: 0 6px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 4px;
-        }
-        .filter-buttons .btn-filter.active .count { background: rgba(255,255,255,0.2); }
-
-        .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
-
-        .mobile-toggle { display: none; }
-        .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
-        .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
-        .footer-text a:hover { color: #ffd700; }
-
-        @media (max-width: 991px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 20px; }
-            .mobile-toggle { 
-                display: flex !important; background: #0e1a2b; border: none; 
-                width: 40px; height: 40px; border-radius: 8px; 
-                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
-            }
-            .stat-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 480px) {
-            .stat-grid { grid-template-columns: 1fr; }
-            .stat-card .stat-number { font-size: 17px; }
-            .stat-card { padding: 12px 14px; }
-            .table-custom { font-size: 11px; }
-            .table-custom th, .table-custom td { padding: 6px 8px; }
-            .tr-number-link { font-size: 11px; }
-        }
-    </style>
+:root{--bg:#060b16;--panel:#0b1120;--panel2:#0a1020;--line:rgba(148,163,184,.14);--text:#e8eef7;--muted:#748198;--blue:#2563eb;--blue2:#60a5fa;--gold:#f5c84b}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;background:var(--bg)}
+body{font-family:'Inter','Segoe UI',sans-serif;color:var(--text);padding-bottom:40px;background:radial-gradient(circle at 75% -10%,rgba(37,99,235,.08),transparent 32%),#060b16}
+.topbar{height:72px;position:fixed;top:0;left:0;right:0;z-index:1100;background:rgba(6,11,22,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px}
+.top-brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#fff}.top-brand img{width:38px;height:38px;object-fit:contain}.top-brand strong{display:block;font-size:13px;font-weight:800;letter-spacing:.2px}.top-brand small{display:block;color:#68758a;font-size:9px;margin-top:2px;letter-spacing:.4px}
+.top-actions{display:flex;align-items:center;gap:10px;margin-left:auto}.icon-btn{width:38px;height:38px;border:1px solid var(--line);background:#0a1020;color:#aeb9ca;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}.notif{position:absolute;right:-2px;top:-3px;background:#ef4444;color:#fff;border-radius:10px;font-size:8px;padding:3px 5px;font-weight:700}.top-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:1px solid rgba(96,165,250,.5)}
+.top-mobile-toggle{display:none}
+.sidebar{width:245px;height:calc(100vh - 72px);position:fixed;top:72px;left:0;z-index:1000;background:linear-gradient(180deg,#08101e,#070d19);border-right:1px solid var(--line);padding:22px 16px;overflow-y:auto}
+.sidebar::-webkit-scrollbar{width:4px}.sidebar::-webkit-scrollbar-thumb{background:rgba(148,163,184,.16);border-radius:10px}
+.sidebar .brand{display:none}.menu-section{font-size:9px;font-weight:800;letter-spacing:1.2px;color:#4f5d73;padding:10px 12px 8px}.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;margin:3px 0;color:#8290a5;text-decoration:none;border-radius:9px;font-size:12px;font-weight:600;transition:.2s}.nav-item i{width:18px;text-align:center;font-size:13px}.nav-item:hover{background:rgba(255,255,255,.035);color:#e8eef7}.nav-item.active{background:rgba(37,99,235,.16);color:#8dbaff;box-shadow:inset 3px 0 0 #3b82f6}.sidebar-bottom{margin-top:24px;padding-top:16px;border-top:1px solid var(--line)}.user-profile{display:flex;align-items:center;gap:10px;padding:4px 5px}.sidebar .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800}.user-info{min-width:0}.user-info .name{font-size:11px;font-weight:700;color:#dce4ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.user-info .role{font-size:9px;color:#66748a;margin-top:2px}.logout-btn{display:block;margin-top:12px;padding:9px 10px;border-radius:8px;color:#ef8b8b;text-decoration:none;background:rgba(239,68,68,.06);font-size:11px;font-weight:700;text-align:left}.logout-btn i{margin-right:8px}.logout-btn:hover{background:rgba(239,68,68,.12)}
+.main-content{margin-left:245px;padding:104px 30px 30px;max-width:1600px}
+.page-header{margin-bottom:24px}.eyebrow{font-size:9px;letter-spacing:1.4px;color:#5f7392;font-weight:800;margin-bottom:7px}.page-header h1{font-size:25px;line-height:1.2;font-weight:800;letter-spacing:-.5px;color:#eef3f9}.page-header h1 i{font-size:19px;color:#60a5fa;margin-right:8px}.page-header p{font-size:12px;color:#68758a;margin-top:7px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat-card{background:linear-gradient(145deg,#0d1525,#0a101d);border:1px solid var(--line);border-radius:13px;padding:17px;box-shadow:0 10px 30px rgba(0,0,0,.14);transition:.25s}.stat-card:hover{transform:translateY(-2px);border-color:rgba(96,165,250,.25)}.stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:12px}.stat-icon.gold{background:rgba(245,200,75,.1);color:#f5c84b}.stat-icon.blue{background:rgba(59,130,246,.11);color:#60a5fa}.stat-icon.red{background:rgba(239,68,68,.1);color:#f87171}.stat-number{font-size:22px;font-weight:800;color:#f0f4fa}.stat-label{font-size:10px;color:#68758a;margin-top:3px}
+.card-custom{background:#0b1120;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,.16)}.card-header-custom{padding:17px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.card-header-custom h6{margin:0;color:#dce4ef;font-size:13px;font-weight:700}.card-header-custom h6 i{color:#60a5fa;margin-right:7px}.card-header-custom form{display:flex;align-items:center}.card-header-custom input{background:#0a1020!important;border:1px solid var(--line)!important;color:#dce4ef!important;border-radius:8px!important}.card-header-custom input::placeholder{color:#59677d}.btn-primary-custom{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:0;border-radius:8px;padding:8px 14px;color:#fff;font-size:11px;font-weight:700}.btn-secondary-custom{background:#0a1020;border:1px solid var(--line);border-radius:8px;padding:8px 14px;color:#9aa8ba;font-size:11px;font-weight:700}
+.border-bottom{border-color:var(--line)!important}.filter-buttons{display:flex;gap:7px;flex-wrap:wrap}.btn-filter{padding:7px 12px;border:1px solid var(--line);background:#0a1020;border-radius:8px;color:#748198;text-decoration:none;font-size:10px;font-weight:600}.btn-filter:hover{color:#dce4ef;border-color:rgba(96,165,250,.3)}.btn-filter.active{background:rgba(37,99,235,.15);border-color:rgba(96,165,250,.3);color:#9fc5ff}.btn-filter .count{background:rgba(255,255,255,.05);padding:2px 6px;border-radius:10px;margin-left:4px}
+.card-body-custom{padding:0}.table-responsive{background:#0b1120}.table-custom{margin:0!important;width:100%;font-size:11px;--bs-table-bg:#0b1120;--bs-table-color:#cbd5e1;--bs-table-border-color:rgba(255,255,255,.055)}.table-custom th{background:#0a1020!important;color:#65738a!important;border-bottom:1px solid var(--line)!important;padding:11px 14px!important;font-size:9px;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}.table-custom td{background:#0b1120!important;color:#aeb9ca!important;border-bottom:1px solid rgba(255,255,255,.045)!important;padding:12px 14px!important;vertical-align:middle}.table-custom tbody tr:hover td{background:rgba(255,255,255,.025)!important;color:#e8eef7}.tr-number-link{color:#8dbaff;text-decoration:none;font-weight:700;font-size:11px}.tr-number-link:hover{color:#fff}.badge-status-tr{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:7px;font-size:9px;font-weight:700}.badge-status-tr.pending{background:rgba(245,200,75,.09);color:#f5c84b;border:1px solid rgba(245,200,75,.14)}.badge-status-tr.approved{background:rgba(59,130,246,.1);color:#7db2ff;border:1px solid rgba(96,165,250,.14)}.badge-status-tr.rejected{background:rgba(239,68,68,.09);color:#f08080;border:1px solid rgba(239,68,68,.14)}.btn-pdf{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:7px;padding:5px 9px;color:#75df9a;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700}.btn-pdf-disabled{background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.12);border-radius:7px;padding:5px 9px;color:#59677d;display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;cursor:not-allowed}.card-footer{background:#0b1120!important;border-top:1px solid var(--line)!important}.pagination{gap:4px}.pagination .page-link{background:#0a1020;border:1px solid var(--line);color:#8190a5;border-radius:7px!important;font-size:10px}.pagination .page-item.active .page-link{background:#2563eb;border-color:#2563eb;color:#fff}.pagination .page-link:hover{background:#111a2d;color:#fff}.alert{border-radius:9px;border:1px solid var(--line);font-size:11px}.footer-text{text-align:center;padding:18px 0 5px;color:#4f5d73;font-size:9px}.footer-text a{color:#6f8098;text-decoration:none}
+@media(max-width:991px){.topbar{padding:0 16px}.top-mobile-toggle{display:flex;width:36px;height:36px;margin-right:10px;border:1px solid var(--line);background:#0a1020;color:#9fc5ff;border-radius:8px;align-items:center;justify-content:center}.sidebar{transform:translateX(-100%);transition:.25s}.sidebar.open{transform:translateX(0)}.main-content{margin-left:0;padding:94px 18px 25px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.top-brand div{display:none}.main-content{padding-left:12px;padding-right:12px}.stat-grid{grid-template-columns:1fr 1fr;gap:9px}.stat-card{padding:13px}.page-header h1{font-size:21px}.card-header-custom{align-items:stretch}.card-header-custom form{width:100%}.card-header-custom input{flex:1;width:auto!important}.table-custom{min-width:760px}.filter-buttons{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}.btn-filter{white-space:nowrap}}
+</style>
 </head>
 <body>
+<header class="topbar">
+    <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
+    <a class="top-brand" href="dashboard.php">
+        <img src="images/logo.webp" alt="GET">
+        <div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div>
+    </a>
+    <div class="top-actions">
+        <button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button>
+        <div class="top-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div>
+    </div>
+</header>
+<!-- SIDEBAR MODERN -->
+<nav class="sidebar" id="sidebar">
+    <a href="dashboard.php" class="brand">
+        <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
+        <div class="brand-text">
+            <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
+            <small>PT Ganda Elang Tangguh</small>
+        </div>
+    </a>
 
-    <!-- SIDEBAR MODERN -->
-    <nav class="sidebar" id="sidebar">
-        <a href="dashboard.php" class="brand">
-            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-            <div class="brand-text">
-                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-                <small>PT Ganda Elang Tangguh</small>
-            </div>
-        </a>
+    <div class="menu-section">MAIN MENU</div>
+    <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+    <?php if (in_array('sales_activity', $menuNames)): ?>
+        <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i><span>Sales Activity</span></a>
+    <?php endif; ?>
+    <?php if (in_array('account_management', $menuNames)): ?>
+        <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i><span>Account Management</span></a>
+    <?php endif; ?>
+    <?php if (in_array('transaction_request', $menuNames)): ?>
+        <a href="transactionrequest.php" class="nav-item active"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a>
+    <?php endif; ?>
+    <?php if (in_array('produk', $menuNames)): ?>
+        <a href="produk.php" class="nav-item"><i class="fas fa-box"></i><span>Produk</span></a>
+    <?php endif; ?>
+    <?php if (in_array('delivery_order', $menuNames)): ?>
+        <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-truck"></i><span>Delivery Order</span></a>
+    <?php endif; ?>
 
-        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
-        
-        <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i> Sales Activity</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('transaction_request', $menuNames)): ?>
-            <a href="transactionrequest.php" class="nav-item active"><i class="fas fa-file-signature"></i> TR Request</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
-        <?php endif; ?>
+    <div class="menu-section">ADMINISTRATION</div>
+    <?php if (in_array('data_user', $menuNames)): ?>
+        <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i><span>Data User</span></a>
+    <?php endif; ?>
+    <?php if (in_array('data_sales', $menuNames)): ?>
+        <a href="data_sales.php" class="nav-item"><i class="fas fa-user-tie"></i><span>Data Sales</span></a>
+    <?php endif; ?>
 
+    <div class="sidebar-bottom">
         <div class="user-profile">
             <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
             <div class="user-info">
@@ -534,27 +273,19 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                 <div class="role"><?= getRoleLabel($role) ?></div>
             </div>
         </div>
-        <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
-    </nav>
-
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-        
-        <!-- HEADER -->
-        <div class="page-header">
-            <div style="display:flex; gap:15px; align-items:center;">
-                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div>
-                    <h4><span><i class="fas fa-file-signature" style="color:#ffd700;"></i></span> Transaction Request</h4>
-                </div>
-            </div>
-        </div>
-
-        <!-- STATISTIK -->
+        <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</nav>
+<div class="main-content">
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div>
+        <div class="eyebrow">TRANSACTION MANAGEMENT</div>
+        <h1><i class="fas fa-file-signature"></i> Transaction Request</h1>
+        <p>Kelola dan pantau seluruh pengajuan transaction request.</p>
+    </div>
+</div>
+<!-- STATISTIK -->
         <div class="stat-grid">
             <div class="stat-card">
                 <div class="stat-icon gold"><i class="fas fa-file-signature"></i></div>
@@ -712,8 +443,8 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
         </div>
 
-    </div>
-
+    
+</div>
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
