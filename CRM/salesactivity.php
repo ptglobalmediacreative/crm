@@ -601,8 +601,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         echo '<td>' . htmlspecialchars($act['bidang_usaha'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($jenisProspek) . '</td>';
         echo '<td>' . htmlspecialchars($statusProspek) . '</td>';
-        echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>;
-        echo '<td>' . htmlspecialchars($lastActivity) . '</td>;
+        echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($lastActivity) . '</td>';
         echo '<td>' . htmlspecialchars($act['sales_name'] ?? '-') . '</td>';
         echo '<td>' . date('d-m-Y H:i', strtotime($act['created_at'])) . '</td>';
         echo '</tr>';
@@ -1005,7 +1005,7 @@ a{color:inherit}
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
+                                    <td colspan="10" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data aktivitas
                                     </td>
                                 </tr>
