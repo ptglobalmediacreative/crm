@@ -1148,6 +1148,22 @@ textarea.form-control{min-height:96px;resize:vertical}
  .tab-nav .nav-tabs .nav-link{font-size:9px;gap:5px;padding:8px 10px}
 }
 
+/* SEARCHABLE UNIT COMBOBOX */
+.unit-combobox{position:relative;width:100%;z-index:30}
+.unit-combo-control{height:40px;display:flex;align-items:center;gap:9px;padding:0 12px;background:#081426;border:1px solid rgba(148,163,184,.16);border-radius:9px;cursor:text;transition:.2s}
+.unit-combobox.is-open .unit-combo-control,.unit-combo-control:focus-within{border-color:rgba(96,165,250,.48);box-shadow:0 0 0 3px rgba(59,130,246,.10);background:#0b172c}
+.unit-combo-control>i:first-child{color:#60a5fa;font-size:11px;flex:0 0 auto}
+.unit-combo-chevron{color:#60708b;font-size:10px;transition:.2s}
+.unit-combobox.is-open .unit-combo-chevron{transform:rotate(180deg);color:#60a5fa}
+.unit-combo-dropdown{position:absolute;left:0;right:0;top:calc(100% + 6px);padding:6px;background:#0b1425;border:1px solid rgba(148,163,184,.16);border-radius:10px;box-shadow:0 18px 38px rgba(0,0,0,.35);opacity:0;visibility:hidden;transform:translateY(-4px);transition:.16s;max-height:260px;overflow-y:auto}
+.unit-combobox.is-open .unit-combo-dropdown{opacity:1;visibility:visible;transform:translateY(0)}
+.unit-combo-option{width:100%;min-height:36px;display:flex;align-items:center;text-align:left;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#cbd6e8;font:600 11px Inter,Arial,sans-serif;cursor:pointer}
+.unit-combo-option:hover{background:rgba(96,165,250,.10);color:#fff}
+.unit-combo-option span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unit-combo-empty{display:none;padding:10px;color:#6f7d95;font-size:10px;text-align:center}
+.unit-native-select{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important}
+.unit-search-box{display:none!important}
+
 /* DETAIL UNIT + TOP — EXPLICIT DARK FORM POLISH */
 #addUnitForm,#topForm{
     background:linear-gradient(145deg,rgba(10,20,39,.96),rgba(7,14,28,.98))!important;
@@ -1524,18 +1540,31 @@ textarea.form-control{min-height:96px;resize:vertical}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Unit *</label>
                                 <div class="unit-select-wrap">
-                                    <div class="unit-search-box">
-                                        <i class="fas fa-search"></i>
-                                        <input type="text" id="unitSearch" class="unit-search-input" placeholder="Ketik nama unit untuk mencari..." autocomplete="off">
+                                    <div class="unit-combobox" id="unitCombobox">
+                                        <div class="unit-combo-control" id="unitComboControl">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text" id="unitSearch" class="unit-search-input" placeholder="Cari / pilih unit..." autocomplete="off">
+                                            <i class="fas fa-chevron-down unit-combo-chevron"></i>
+                                        </div>
+                                        <div class="unit-combo-dropdown" id="unitComboDropdown">
+                                            <div class="unit-combo-empty" id="unitComboEmpty">Ketik untuk mencari unit</div>
+                                            <div class="unit-combo-options" id="unitComboOptions">
+                                                <?php foreach ($produkList as $produk): ?>
+                                                    <button type="button" class="unit-combo-option" data-value="<?= $produk['id'] ?>" data-label="<?= htmlspecialchars($produk['nama_produk'], ENT_QUOTES) ?>">
+                                                        <span><?= htmlspecialchars($produk['nama_produk']) ?></span>
+                                                    </button>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <select name="unit_id" id="unit_id" class="form-select" required>
-                                    <option value="">-- Pilih Unit --</option>
-                                    <?php foreach ($produkList as $produk): ?>
-                                        <option value="<?= $produk['id'] ?>">
-                                            <?= htmlspecialchars($produk['nama_produk']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                                    <select name="unit_id" id="unit_id" class="form-select unit-native-select" required aria-hidden="true" tabindex="-1">
+                                        <option value="">-- Pilih Unit --</option>
+                                        <?php foreach ($produkList as $produk): ?>
+                                            <option value="<?= $produk['id'] ?>">
+                                                <?= htmlspecialchars($produk['nama_produk']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
@@ -2390,21 +2419,68 @@ textarea.form-control{min-height:96px;resize:vertical}
         }
         
         // ============================================
-        // FUNGSI PENCARIAN UNIT
+        // SEARCHABLE UNIT COMBOBOX
         // ============================================
         function filterUnitOptions() {
             const search = document.getElementById('unitSearch');
             const select = document.getElementById('unit_id');
-            if (!search || !select) return;
+            const optionsWrap = document.getElementById('unitComboOptions');
+            const empty = document.getElementById('unitComboEmpty');
+            if (!search || !select || !optionsWrap) return;
+
             const keyword = search.value.trim().toLowerCase();
-            Array.from(select.options).forEach((option, index) => {
-                if (index === 0) { option.hidden = false; return; }
-                option.hidden = keyword !== '' && !option.text.toLowerCase().includes(keyword);
+            let visible = 0;
+            optionsWrap.querySelectorAll('.unit-combo-option').forEach(option => {
+                const label = (option.dataset.label || option.textContent || '').toLowerCase();
+                const show = keyword === '' || label.includes(keyword);
+                option.style.display = show ? 'flex' : 'none';
+                if (show) visible++;
             });
+
+            if (empty) {
+                empty.textContent = visible ? 'Pilih unit dari daftar' : 'Unit tidak ditemukan';
+                empty.style.display = visible ? 'none' : 'block';
+            }
         }
+
+        function openUnitDropdown() {
+            const combo = document.getElementById('unitCombobox');
+            if (!combo) return;
+            combo.classList.add('is-open');
+            filterUnitOptions();
+        }
+
+        function closeUnitDropdown() {
+            const combo = document.getElementById('unitCombobox');
+            if (combo) combo.classList.remove('is-open');
+        }
+
+        function selectUnitOption(value, label) {
+            const select = document.getElementById('unit_id');
+            const search = document.getElementById('unitSearch');
+            if (!select || !search) return;
+            select.value = String(value);
+            search.value = label || '';
+            filterUnitOptions();
+            closeUnitDropdown();
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
         function resetUnitSearch() {
             const search = document.getElementById('unitSearch');
-            if (search) { search.value = ''; filterUnitOptions(); }
+            const select = document.getElementById('unit_id');
+            if (search) search.value = '';
+            if (select) select.value = '';
+            filterUnitOptions();
+            closeUnitDropdown();
+        }
+
+        function syncUnitSearchFromSelect() {
+            const search = document.getElementById('unitSearch');
+            const select = document.getElementById('unit_id');
+            if (!search || !select) return;
+            const selected = select.options[select.selectedIndex];
+            search.value = selected && selected.value ? selected.text.trim() : '';
         }
 
         // ============================================
@@ -2421,6 +2497,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <?php $firstUnit = $detailUnits[0]; ?>
                 document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
                 document.getElementById('unit_id').value = '<?= $firstUnit['unit_id'] ?>';
+                syncUnitSearchFromSelect();
                 document.getElementById('qty').value = '<?= $firstUnit['qty'] ?>';
                 document.getElementById('price').value = '<?= $firstUnit['price'] ?>';
                 
@@ -2833,7 +2910,29 @@ textarea.form-control{min-height:96px;resize:vertical}
         }
         document.addEventListener('DOMContentLoaded', function() {
             const unitSearch = document.getElementById('unitSearch');
-            if (unitSearch) unitSearch.addEventListener('input', filterUnitOptions);
+            const unitControl = document.getElementById('unitComboControl');
+            const unitSelect = document.getElementById('unit_id');
+            if (unitSearch) {
+                unitSearch.addEventListener('focus', openUnitDropdown);
+                unitSearch.addEventListener('input', function(){ openUnitDropdown(); filterUnitOptions(); });
+                unitSearch.addEventListener('keydown', function(event){
+                    if (event.key === 'Escape') closeUnitDropdown();
+                });
+            }
+            if (unitControl) unitControl.addEventListener('click', function(){
+                openUnitDropdown();
+                if (unitSearch) unitSearch.focus();
+            });
+            document.querySelectorAll('.unit-combo-option').forEach(function(option){
+                option.addEventListener('click', function(){
+                    selectUnitOption(this.dataset.value, this.dataset.label);
+                });
+            });
+            if (unitSelect) unitSelect.addEventListener('change', syncUnitSearchFromSelect);
+            document.addEventListener('click', function(event){
+                const combo = document.getElementById('unitCombobox');
+                if (combo && !combo.contains(event.target)) closeUnitDropdown();
+            });
         });
     </script>
 </body>
