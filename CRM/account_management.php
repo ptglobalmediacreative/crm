@@ -653,7 +653,7 @@ a{color:inherit}
 .sidebar .user-profile .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;border:0}
 .sidebar .user-profile .user-info .name{display:block;font-size:10px;color:#e8eef9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar .user-profile .user-info .role{display:block;font-size:8px;color:#66758f;margin-top:2px}
-.sidebar .logout-btn{width:100%;height:43px;border-radius:11px;color:#8794aa;display:flex;align-items:center;gap:12px;text-decoration:none;transition:.2s;padding:0 13px;font-size:11px;font-weight:600}
+.sidebar .logout-btn{display:flex;align-items:center;gap:10px;text-align:left;color:#8794aa;background:transparent;border:0;margin-top:0;padding:0 13px;height:43px;font-size:11px;text-decoration:none}
 .sidebar .logout-btn:hover{color:#fb7185;background:rgba(251,113,133,.08);box-shadow:none}
 .main-content{margin-left:245px;width:calc(100% - 245px);padding:26px 28px 50px;min-height:calc(100vh - 72px)}
 .page-header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:22px;flex-wrap:wrap}
