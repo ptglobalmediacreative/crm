@@ -1074,7 +1074,8 @@ textarea.form-control{min-height:96px;resize:vertical}
 }
 </style>
 </head>
-<body>\n    <!-- TOPBAR -->
+<body>    
+    <!-- TOPBAR -->
     <header class="topbar">
         <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
         <a class="top-brand" href="dashboard.php"><img src="images/logo.webp" alt="GET"><div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div></a>
