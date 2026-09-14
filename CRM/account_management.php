@@ -877,7 +877,7 @@ html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover { backg
                 </a>
                 <?php if ($userRole === 'sales' || $isDirektur || canAdd('account_management')): ?>
                     <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
-                        <i class="fas fa-plus"></i> Tambah
+                        <i class="fas fa-plus"></i> Tambah Account
                     </button>
                 <?php endif; ?>
             </div>
