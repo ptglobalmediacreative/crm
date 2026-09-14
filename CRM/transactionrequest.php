@@ -287,6 +287,107 @@ a{color:inherit}
 .footer-text,.footer{text-align:center;color:#44536c;font-size:9px;margin-top:20px}.footer-text a{color:#6b7a94;text-decoration:none}.footer-text a:hover{color:#60a5fa}
 @media(max-width:991px){.topbar{padding:0 16px}.top-mobile-toggle{display:flex;width:36px;height:36px;margin-right:10px;border:1px solid var(--line);background:#0a1427;color:#60a5fa;border-radius:9px;align-items:center;justify-content:center}.sidebar{transform:translateX(-100%);transition:.25s}.sidebar.open{transform:translateX(0)}.main-content{margin-left:0;width:100%;padding:94px 18px 40px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.page-header{align-items:flex-start}}
 @media(max-width:520px){.top-brand div{display:none}.main-content{padding:88px 10px 35px}.stat-grid{grid-template-columns:1fr 1fr;gap:9px}.stat-card{padding:13px}.stat-card .stat-number{font-size:20px}.page-header h1{font-size:22px}.page-header p{font-size:10px}.card-custom .card-header-custom{align-items:flex-start;padding:13px}.card-custom .card-header-custom form{width:100%}.card-header-custom input{flex:1;width:auto!important}.table-custom{min-width:760px}.filter-buttons{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}.btn-filter{white-space:nowrap}}
+
+
+/* =========================================================
+   FINAL HEADER PARITY — ACCOUNT MANAGEMENT REFERENCE
+   UI only. No PHP / DB / query / filter / pagination changes.
+   ========================================================= */
+.topbar{
+    height:72px!important;
+    padding:0 42px!important;
+    gap:24px!important;
+    background:rgba(5,9,20,.92)!important;
+    border-bottom:1px solid rgba(148,163,184,.16)!important;
+}
+.top-brand{
+    min-width:0!important;
+    gap:14px!important;
+    color:#fff!important;
+}
+.top-brand img{
+    width:52px!important;
+    height:52px!important;
+    object-fit:contain!important;
+}
+.top-brand strong{
+    display:block!important;
+    font-size:25px!important;
+    line-height:1.05!important;
+    font-weight:800!important;
+    letter-spacing:-.65px!important;
+    color:#f7f9ff!important;
+}
+.top-brand small{
+    display:block!important;
+    margin-top:5px!important;
+    color:#667795!important;
+    font-size:12px!important;
+    line-height:1!important;
+    text-transform:uppercase!important;
+    letter-spacing:2px!important;
+    font-weight:500!important;
+}
+.top-actions{gap:10px!important}
+.top-avatar{width:40px!important;height:40px!important}
+
+.main-content{
+    padding:32px 46px 50px!important;
+}
+.page-header{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    margin-bottom:26px!important;
+    min-height:58px!important;
+}
+.page-header > div{width:100%!important}
+.page-header .eyebrow,
+.page-header p{
+    display:none!important;
+}
+.page-header h1{
+    display:flex!important;
+    align-items:center!important;
+    gap:0!important;
+    margin:0!important;
+    color:#f7f9ff!important;
+    font-size:38px!important;
+    line-height:1.08!important;
+    font-weight:800!important;
+    letter-spacing:-1.5px!important;
+}
+.page-header h1 i{
+    width:57px!important;
+    height:57px!important;
+    flex:0 0 57px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0 15px 0 0!important;
+    border-radius:15px!important;
+    border:1px solid rgba(96,165,250,.18)!important;
+    background:linear-gradient(145deg,rgba(24,45,76,.72),rgba(13,28,49,.82))!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+    color:#60a5fa!important;
+    font-size:21px!important;
+}
+
+@media(max-width:991px){
+    .topbar{padding:0 18px!important}
+    .main-content{padding:30px 22px 40px!important}
+    .page-header h1{font-size:32px!important}
+}
+@media(max-width:520px){
+    .top-brand img{width:42px!important;height:42px!important}
+    .top-brand strong{font-size:18px!important}
+    .top-brand small{font-size:8px!important;letter-spacing:1.3px!important}
+    .main-content{padding:24px 14px 35px!important}
+    .page-header{margin-bottom:20px!important}
+    .page-header h1{font-size:25px!important;letter-spacing:-.8px!important}
+    .page-header h1 i{width:48px!important;height:48px!important;flex-basis:48px!important;border-radius:13px!important;font-size:18px!important;margin-right:12px!important}
+}
+
 </style>
 </head>
 <body>
