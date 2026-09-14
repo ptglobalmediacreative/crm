@@ -572,14 +572,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<thead>';
     echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
     echo '<th>No</th>';
-    echo '<th>Leads Number</th>';
-    echo '<th>Nama PT</th>';
-    echo '<th>Badan Usaha</th>';
+    echo '<th>Activity Number</th>';
+    echo '<th>Nama Perusahaan</th>';
     echo '<th>Business Segment</th>';
     echo '<th>Jenis Prospek</th>';
     echo '<th>Status</th>';
     echo '<th>Nama PIC</th>';
-    echo '<th>Contact Mobile Phone</th>';
+    echo '<th>Last Activity</th>';
     echo '<th>Sales</th>';
     echo '<th>Tanggal Dibuat</th>';
     echo '</tr>';
@@ -590,17 +589,20 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     foreach ($exportActivities as $act) {
         $jenisProspek = getJenisProspek($db, $act['id']) ?? '-';
         $statusProspek = getStatusProspek($db, $act['id']) ?? '-';
+        $lastActivityStmtExport = $db->prepare("SELECT jenis_tugas FROM activity_details WHERE sales_activity_id = ? ORDER BY id DESC LIMIT 1");
+        $lastActivityStmtExport->execute([$act['id']]);
+        $lastActivity = $lastActivityStmtExport->fetchColumn() ?: '-';
         
         echo '<tr>';
         echo '<td>' . $no++ . '</td>';
         echo '<td>' . htmlspecialchars($act['leads_number']) . '</td>';
-        echo '<td>' . htmlspecialchars($act['nama_pt']) . '</td>';
-        echo '<td>' . htmlspecialchars($act['badan_usaha'] ?? '-') . '</td>';
+        $namaPerusahaan = trim(($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? ''));
+        echo '<td>' . htmlspecialchars($namaPerusahaan ?: '-') . '</td>';
         echo '<td>' . htmlspecialchars($act['bidang_usaha'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($jenisProspek) . '</td>';
         echo '<td>' . htmlspecialchars($statusProspek) . '</td>';
-        echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($act['no_hp_pic'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>;
+        echo '<td>' . htmlspecialchars($lastActivity) . '</td>;
         echo '<td>' . htmlspecialchars($act['sales_name'] ?? '-') . '</td>';
         echo '<td>' . date('d-m-Y H:i', strtotime($act['created_at'])) . '</td>';
         echo '</tr>';
@@ -671,7 +673,19 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
+// Ambil Jenis Tugas terakhir dari activity_details untuk setiap Sales Activity.
+// Diambil berdasarkan Activity Number / sales_activity_id masing-masing.
+$lastActivityStmt = $db->prepare("
+    SELECT jenis_tugas
+    FROM activity_details
+    WHERE sales_activity_id = ?
+    ORDER BY id DESC
+    LIMIT 1
+");
+
 foreach ($activities as &$act) {
+    $lastActivityStmt->execute([$act['id']]);
+    $act['last_activity'] = $lastActivityStmt->fetchColumn() ?: null;
     $act['jenis_prospek'] = getJenisProspek($db, $act['id']);
     $act['status_prospek'] = getStatusProspek($db, $act['id']);
     $stmt = $db->prepare("UPDATE sales_activities SET jenis_prospek = ?, status = ? WHERE id = ?");
@@ -810,7 +824,7 @@ a{color:inherit}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}.chart-card{background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96));border:1px solid var(--line);border-radius:17px;box-shadow:0 18px 45px rgba(0,0,0,.18);overflow:hidden;transition:.25s}.chart-card:hover{border-color:rgba(96,165,250,.35);box-shadow:0 20px 48px rgba(0,0,0,.25)}.chart-card h6{height:58px;margin:0;padding:0 18px;display:flex;align-items:center;font-size:13px;font-weight:700;color:#f7f9ff;border-bottom:1px solid rgba(148,163,184,.10)}.chart-card h6 i{color:#60a5fa!important;margin-right:9px}.chart-wrapper{height:270px;width:100%;position:relative;padding:10px 16px 14px}
 .card-custom{background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96));border:1px solid var(--line);border-radius:17px;box-shadow:0 18px 45px rgba(0,0,0,.18);overflow:hidden;transition:.25s}.card-custom:hover{border-color:rgba(96,165,250,.35);box-shadow:0 20px 48px rgba(0,0,0,.25)}.card-custom .card-header-custom{padding:15px 18px;border-bottom:1px solid rgba(148,163,184,.10);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}.card-custom .card-header-custom h6{font-weight:700;color:#f7f9ff;margin:0;font-size:13px}.card-custom .card-header-custom h6 i{color:#60a5fa;margin-right:8px}.card-custom .card-body-custom{padding:0;overflow-x:auto}
 .table-responsive{border-radius:0}.table-custom{margin-bottom:0;font-size:10px;color:#cbd5e1;--bs-table-bg:transparent;--bs-table-color:#cbd5e1}.table-custom th{font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.45px;color:#66758f;border-bottom:1px solid rgba(148,163,184,.10);padding:13px 14px;background:rgba(5,12,25,.48);white-space:nowrap}.table-custom td{padding:13px 14px;vertical-align:middle;border-bottom:1px solid rgba(148,163,184,.07);color:#cbd5e1;background:transparent}.table-custom tbody tr{transition:.15s}.table-custom tbody tr:hover td{background:rgba(59,130,246,.035)}.table-custom tr:last-child td{border-bottom:none}.table-custom a{color:#60a5fa!important;text-decoration:none;font-weight:700}.table-custom a:hover{color:#93c5fd!important}.text-muted{color:#64748b!important}
-.badge-prospek,.badge-status-prospek{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:8px;font-weight:700;white-space:nowrap;border:1px solid transparent}.badge-prospek.suspect{background:rgba(96,165,250,.10);color:#93c5fd;border-color:rgba(96,165,250,.15)}.badge-prospek.prospect{background:rgba(167,139,250,.10);color:#c4b5fd;border-color:rgba(167,139,250,.15)}.badge-prospek.hot-prospect{background:rgba(251,191,36,.10);color:#fcd34d;border-color:rgba(251,191,36,.15)}.badge-prospek.deal-prospek{background:rgba(52,211,153,.10);color:#6ee7b7;border-color:rgba(52,211,153,.15)}.badge-prospek.lost-deal{background:rgba(251,113,133,.10);color:#fb7185;border-color:rgba(251,113,133,.15)}.badge-status-prospek.in-progress{background:rgba(34,211,238,.10);color:#67e8f9;border-color:rgba(34,211,238,.15)}.badge-status-prospek.completed{background:rgba(52,211,153,.10);color:#6ee7b7;border-color:rgba(52,211,153,.15)}.badge-status-prospek.overdue{background:rgba(251,113,133,.10);color:#fb7185;border-color:rgba(251,113,133,.15)}
+.badge-prospek,.badge-status-prospek{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:8px;font-weight:700;white-space:nowrap;border:1px solid transparent}.badge-prospek.suspect{background:rgba(96,165,250,.10);color:#93c5fd;border-color:rgba(96,165,250,.15)}.badge-prospek.prospect{background:rgba(167,139,250,.10);color:#c4b5fd;border-color:rgba(167,139,250,.15)}.badge-prospek.hot-prospect{background:rgba(251,191,36,.10);color:#fcd34d;border-color:rgba(251,191,36,.15)}.badge-prospek.deal-prospek{background:rgba(52,211,153,.10);color:#6ee7b7;border-color:rgba(52,211,153,.15)}.badge-prospek.lost-deal{background:rgba(251,113,133,.10);color:#fb7185;border-color:rgba(251,113,133,.15)}.badge-status-prospek.in-progress{background:rgba(34,211,238,.10);color:#67e8f9;border-color:rgba(34,211,238,.15)}.badge-status-prospek.completed{background:rgba(52,211,153,.10);color:#6ee7b7;border-color:rgba(52,211,153,.15)}.badge-status-prospek.overdue{background:rgba(251,113,133,.10);color:#fb7185;border-color:rgba(251,113,133,.15)}.last-activity{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:rgba(96,165,250,.08);color:#93c5fd;border:1px solid rgba(96,165,250,.14);font-size:8px;font-weight:700;white-space:nowrap}
 .btn-action{width:29px;height:29px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;transition:.2s;font-size:10px;cursor:pointer}.btn-action:hover{transform:translateY(-1px) scale(1.04)}.btn-action.detail{background:rgba(96,165,250,.10);color:#60a5fa;border-color:rgba(96,165,250,.12)}.btn-action.detail:hover{background:rgba(96,165,250,.18)}.btn-action.delete{background:rgba(251,113,133,.09);color:#fb7185;border-color:rgba(251,113,133,.12)}.btn-action.delete:hover{background:rgba(251,113,133,.16)}
 .card-footer{background:rgba(5,12,25,.35)!important;border-top:1px solid rgba(148,163,184,.08)!important}.pagination{gap:4px}.pagination .page-link{background:#0a1427;border:1px solid rgba(148,163,184,.12);color:#8492aa;border-radius:8px!important;font-size:9px;padding:6px 9px}.pagination .page-link:hover{background:#10203a;color:#fff;border-color:rgba(96,165,250,.25)}.pagination .page-item.active .page-link{background:#2563eb;border-color:#3b82f6;color:#fff;box-shadow:0 0 15px rgba(59,130,246,.22)}
 .form-label{font-weight:600;font-size:11px;color:#aebbd0}.form-control,.form-select{border-radius:9px;padding:9px 11px;border:1px solid rgba(148,163,184,.16);background:#0a1427;color:#dbe5f5;font-size:11px;transition:.2s}.form-control::placeholder{color:#52627d}.form-control:focus,.form-select:focus{border-color:rgba(96,165,250,.55);box-shadow:0 0 0 3px rgba(59,130,246,.10);background:#0b172d;color:#fff}.form-control[readonly]{background:#0a1325;color:#7f8da5;cursor:not-allowed}.form-select option{background:#0b1222;color:#dbe5f5}.btn-primary-custom{background:linear-gradient(135deg,#3b82f6,#6366f1);border:0;border-radius:9px;padding:9px 15px;font-weight:700;font-size:11px;transition:.2s;color:#fff}.btn-primary-custom:hover{background:linear-gradient(135deg,#4f8df7,#6d70f3);transform:translateY(-1px);box-shadow:0 8px 22px rgba(59,130,246,.2);color:#fff}.btn-primary-custom i{margin-right:6px}.btn-secondary-custom{background:#111d31;border:1px solid rgba(148,163,184,.13);border-radius:9px;padding:9px 15px;font-weight:600;font-size:11px;color:#8f9db4;transition:.2s}.btn-secondary-custom:hover{background:#17253d;color:#fff;border-color:rgba(148,163,184,.22)}.btn-danger{background:#dc3545!important;border:0;border-radius:9px;font-size:11px;font-weight:700}.alert{border-radius:10px;border:1px solid rgba(96,165,250,.14);padding:10px 13px;font-size:11px;background:#0c1830;color:#cbd5e1}.detail-item{display:flex;padding:10px 0;border-bottom:1px solid rgba(148,163,184,.08)}.detail-item:last-child{border-bottom:none}.detail-item .detail-label{font-weight:600;color:#6f7f98;width:160px;flex-shrink:0;font-size:10px}.detail-item .detail-value{color:#dbe5f5;font-size:10px;word-break:break-word}.leads-number-display{background:rgba(59,130,246,.08);border:1px solid rgba(96,165,250,.14);padding:10px 13px;border-radius:9px;font-weight:700;color:#60a5fa;text-align:center;font-size:14px;letter-spacing:.5px}
@@ -909,13 +923,12 @@ a{color:inherit}
                             <tr>
                                 <th>No</th>
                                 <th>Activity Number</th>
-                                <th>Nama PT</th>
-                                <th>Badan Usaha</th>
+                                <th>Nama Perusahaan</th>
                                 <th>Business Segment</th>
                                 <th>Jenis Prospek</th>
                                 <th>Status</th>
                                 <th>Nama PIC</th>
-                                <th>Contact Mobile Phone</th>
+                                <th>Last Activity</th>
                                 <th>Sales</th>
                                 <th>Aksi</th>
                             </tr>
@@ -931,8 +944,7 @@ a{color:inherit}
                                                 <?= htmlspecialchars($act['leads_number']) ?>
                                             </a>
                                         </td>
-                                        <td><?= htmlspecialchars($act['nama_pt']) ?></td>
-                                        <td><?= htmlspecialchars($act['badan_usaha'] ?? '-') ?></td>
+                                        <td><?= htmlspecialchars(trim(($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? '')) ?: '-') ?></td>
                                         <td><?= htmlspecialchars($act['bidang_usaha'] ?? '-') ?></td>
                                         <td>
                                             <?php 
@@ -969,7 +981,13 @@ a{color:inherit}
                                             <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($act['nama_pic'] ?? '-') ?></td>
-                                        <td><?= htmlspecialchars($act['no_hp_pic'] ?? '-') ?></td>
+                                        <td>
+                                            <?php if (!empty($act['last_activity'])): ?>
+                                                <span class="last-activity"><?= htmlspecialchars($act['last_activity']) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= htmlspecialchars($act['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
@@ -987,7 +1005,7 @@ a{color:inherit}
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="11" class="text-center py-4 text-muted">
+                                    <td colspan="9" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data aktivitas
                                     </td>
                                 </tr>
