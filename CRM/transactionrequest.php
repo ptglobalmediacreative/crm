@@ -288,134 +288,105 @@ a{color:inherit}
 @media(max-width:991px){.topbar{padding:0 16px}.top-mobile-toggle{display:flex;width:36px;height:36px;margin-right:10px;border:1px solid var(--line);background:#0a1427;color:#60a5fa;border-radius:9px;align-items:center;justify-content:center}.sidebar{transform:translateX(-100%);transition:.25s}.sidebar.open{transform:translateX(0)}.main-content{margin-left:0;width:100%;padding:94px 18px 40px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.page-header{align-items:flex-start}}
 @media(max-width:520px){.top-brand div{display:none}.main-content{padding:88px 10px 35px}.stat-grid{grid-template-columns:1fr 1fr;gap:9px}.stat-card{padding:13px}.stat-card .stat-number{font-size:20px}.page-header h1{font-size:22px}.page-header p{font-size:10px}.card-custom .card-header-custom{align-items:flex-start;padding:13px}.card-custom .card-header-custom form{width:100%}.card-header-custom input{flex:1;width:auto!important}.table-custom{min-width:760px}.filter-buttons{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}.btn-filter{white-space:nowrap}}
 
-
 /* =========================================================
-   FINAL HEADER PARITY — ACCOUNT MANAGEMENT REFERENCE
-   UI only. No PHP / DB / query / filter / pagination changes.
+   FINAL ALIGNMENT — SAME VISUAL SYSTEM AS ACCOUNT MANAGEMENT
+   UI only. PHP / DB / query / filter / pagination logic untouched.
    ========================================================= */
-.topbar{
-    height:72px!important;
-    padding:0 42px!important;
-    gap:24px!important;
-    background:rgba(5,9,20,.92)!important;
-    border-bottom:1px solid rgba(148,163,184,.16)!important;
+.rail-label{
+    font-size:9px!important;color:#52627d!important;text-transform:uppercase!important;
+    letter-spacing:1.5px!important;font-weight:800!important;padding:8px 12px 7px!important;
 }
-.top-brand{
-    min-width:0!important;
-    gap:14px!important;
-    color:#fff!important;
-}
-.top-brand img{
-    width:52px!important;
-    height:52px!important;
-    object-fit:contain!important;
-}
-.top-brand strong{
-    display:block!important;
-    font-size:25px!important;
-    line-height:1.05!important;
-    font-weight:800!important;
-    letter-spacing:-.65px!important;
-    color:#f7f9ff!important;
-}
-.top-brand small{
-    display:block!important;
-    margin-top:5px!important;
-    color:#667795!important;
-    font-size:12px!important;
-    line-height:1!important;
-    text-transform:uppercase!important;
-    letter-spacing:2px!important;
-    font-weight:500!important;
-}
-.top-actions{gap:10px!important}
-.top-avatar{width:40px!important;height:40px!important}
+.sidebar-spacer{flex:1!important;min-height:24px!important}
+.sidebar .nav-item i{width:20px!important}
+.sidebar .nav-item{height:43px!important;border-radius:11px!important;padding:0 13px!important;margin:0!important}
+.sidebar .user-profile{margin:8px 4px 4px!important;padding:12px!important}
+.sidebar .logout-btn{height:43px!important;border-radius:11px!important;padding:0 13px!important;margin:0!important}
+.sidebar .logout-btn i{width:20px!important;margin:0!important}
 
-.main-content{
-    padding:32px 46px 50px!important;
-}
-.page-header{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:flex-start!important;
-    margin-bottom:26px!important;
-    min-height:58px!important;
-}
-.page-header > div{width:100%!important}
-.page-header .eyebrow,
-.page-header p{
-    display:none!important;
-}
-.page-header h1{
-    display:flex!important;
-    align-items:center!important;
-    gap:0!important;
-    margin:0!important;
-    color:#f7f9ff!important;
-    font-size:38px!important;
-    line-height:1.08!important;
-    font-weight:800!important;
-    letter-spacing:-1.5px!important;
-}
-.page-header h1 i{
-    width:57px!important;
-    height:57px!important;
-    flex:0 0 57px!important;
-    display:inline-flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    margin:0 15px 0 0!important;
-    border-radius:15px!important;
-    border:1px solid rgba(96,165,250,.18)!important;
-    background:linear-gradient(145deg,rgba(24,45,76,.72),rgba(13,28,49,.82))!important;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
-    color:#60a5fa!important;
-    font-size:21px!important;
-}
+/* Top brand — identical scale/spacing */
+.topbar{padding:0 28px!important;height:72px!important}
+.top-brand{min-width:245px!important;gap:11px!important}
+.top-brand img{width:38px!important;height:38px!important}
+.top-brand>div{line-height:1.05!important}
+.top-brand strong{display:block!important;font-size:17px!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.4px!important}
+.top-brand small{display:block!important;font-size:9px!important;line-height:1!important;letter-spacing:1.2px!important;margin-top:2px!important;text-transform:uppercase!important;color:#65738e!important}
+.top-actions{gap:12px!important}
+
+/* Page title — exact Account Management treatment */
+.main-content{padding:28px 30px 52px!important}
+.page-header{min-height:48px!important;margin-bottom:20px!important;align-items:center!important}
+.page-header>div:first-child{gap:12px!important}
+.page-header h4{display:flex!important;align-items:center!important;gap:10px!important;font-size:25px!important;line-height:1.1!important;font-weight:800!important;letter-spacing:-.4px!important;color:#f7f9ff!important;margin:0!important}
+.page-header h4 span{width:38px!important;height:38px!important;border-radius:11px!important;background:rgba(96,165,250,.10)!important;border:1px solid rgba(96,165,250,.15)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0}
+.page-header h4 span i{font-size:15px!important;color:#60a5fa!important;margin:0!important}
+
+/* Same card proportions */
+.stat-grid{gap:14px!important;margin-bottom:18px!important}
+.stat-card{min-height:128px!important;padding:18px 19px!important;border-radius:17px!important}
+.stat-card .stat-icon{width:38px!important;height:38px!important;border-radius:11px!important}
+.stat-card .stat-number{font-size:24px!important;line-height:1!important;margin-top:15px!important;margin-bottom:6px!important}
+.stat-card .stat-label{font-size:10px!important;text-transform:uppercase!important;letter-spacing:.7px!important;font-weight:700!important;color:#70809b!important}
+.card-custom{border-radius:16px!important}
+.card-custom .card-header-custom{min-height:62px!important;padding:13px 17px!important}
+.card-custom .card-header-custom h6{font-size:12px!important;letter-spacing:.1px!important}
+.card-custom .card-header-custom form{gap:7px!important}
+.card-custom .card-header-custom form input{height:36px!important;width:230px!important}
+
+/* Same table rhythm */
+.table-custom{font-size:10px!important;min-width:1120px!important}
+.table-custom thead th{height:43px!important;padding:11px 13px!important;font-size:8.5px!important;letter-spacing:.6px!important}
+.table-custom tbody td{height:54px!important;padding:10px 13px!important;font-size:10px!important}
+.table-custom th:first-child,.table-custom td:first-child{width:48px!important;text-align:center!important}
+.table-custom th:last-child,.table-custom td:last-child{width:92px!important;text-align:center!important}
+
+/* Same scrollbar */
+html,body{scrollbar-color:rgba(96,165,250,.32) #060b18!important;scrollbar-width:thin}
+html::-webkit-scrollbar,body::-webkit-scrollbar{width:7px;height:7px}
+html::-webkit-scrollbar-track,body::-webkit-scrollbar-track{background:#060b18}
+html::-webkit-scrollbar-thumb,body::-webkit-scrollbar-thumb{background:rgba(96,165,250,.30);border-radius:999px;border:1px solid rgba(6,11,24,.9)}
+html::-webkit-scrollbar-thumb:hover,body::-webkit-scrollbar-thumb:hover{background:rgba(96,165,250,.48)}
 
 @media(max-width:991px){
-    .topbar{padding:0 18px!important}
-    .main-content{padding:30px 22px 40px!important}
-    .page-header h1{font-size:32px!important}
+ .topbar{padding:0 16px!important}
+ .main-content{margin-left:0!important;width:100%!important;padding:92px 18px 24px!important}
+ .sidebar{transform:translateX(-100%)!important}
+ .sidebar.open{transform:translateX(0)!important}
+ .top-mobile-toggle{display:flex!important}
 }
-@media(max-width:520px){
-    .top-brand img{width:42px!important;height:42px!important}
-    .top-brand strong{font-size:18px!important}
-    .top-brand small{font-size:8px!important;letter-spacing:1.3px!important}
-    .main-content{padding:24px 14px 35px!important}
-    .page-header{margin-bottom:20px!important}
-    .page-header h1{font-size:25px!important;letter-spacing:-.8px!important}
-    .page-header h1 i{width:48px!important;height:48px!important;flex-basis:48px!important;border-radius:13px!important;font-size:18px!important;margin-right:12px!important}
+@media(max-width:800px){
+ .topbar{padding:0 16px!important}
+ .top-brand{min-width:0!important}
+ .top-brand>div{display:none!important}
+ .sidebar{top:64px!important}
+ .main-content{padding:20px 14px 40px!important}
+ .page-header{align-items:flex-start!important;flex-direction:column!important}
+ .page-header h4{font-size:22px!important}
+ .table-custom{min-width:1120px!important}
+}
+@media(max-width:480px){
+ .topbar{height:64px!important;padding:0 12px!important}
+ .top-brand img{width:32px!important;height:32px!important}
+ .main-content{padding:17px 10px 34px!important}
+ .page-header h4{font-size:20px!important}
+ .page-header h4 span{width:34px!important;height:34px!important;border-radius:9px!important}
+ .stat-grid{gap:9px!important}
+ .stat-card{min-height:110px!important;padding:13px!important;border-radius:14px!important}
 }
 
 </style>
 </head>
 <body>
 <header class="topbar">
-    <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
-    <a class="top-brand" href="dashboard.php">
-        <img src="images/logo.webp" alt="GET">
-        <div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div>
-    </a>
-    <div class="top-actions">
-        <button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button>
-        <div class="top-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div>
-    </div>
+    <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
+    <a class="top-brand" href="dashboard.php"><img src="images/logo.webp" alt="GET"><div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div></a>
+    <div class="top-actions"><button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button><div class="top-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div></div>
 </header>
 <!-- SIDEBAR MODERN -->
 <nav class="sidebar" id="sidebar">
-    <a href="dashboard.php" class="brand">
-        <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-        <div class="brand-text">
-            <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-            <small>PT Ganda Elang Tangguh</small>
-        </div>
-    </a>
-
-    <div class="menu-section">MAIN MENU</div>
+    <div class="rail-label">Main Menu</div>
     <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
     <?php if (in_array('sales_activity', $menuNames)): ?>
-        <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i><span>Sales Activity</span></a>
+        <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a>
     <?php endif; ?>
     <?php if (in_array('account_management', $menuNames)): ?>
         <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i><span>Account Management</span></a>
@@ -427,32 +398,34 @@ a{color:inherit}
         <a href="produk.php" class="nav-item"><i class="fas fa-box"></i><span>Produk</span></a>
     <?php endif; ?>
     <?php if (in_array('delivery_order', $menuNames)): ?>
-        <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-truck"></i><span>Delivery Order</span></a>
+        <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-truck-moving"></i><span>Delivery Order</span></a>
     <?php endif; ?>
 
-    <div class="menu-section">ADMINISTRATION</div>
+    <div class="rail-label">Administration</div>
     <?php if (in_array('data_user', $menuNames)): ?>
         <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i><span>Data User</span></a>
     <?php endif; ?>
 
-    <div class="sidebar-bottom">
-        <div class="user-profile">
-            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-            <div class="user-info">
-                <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= getRoleLabel($role) ?></div>
-            </div>
+    <div class="sidebar-spacer"></div>
+    <div class="user-profile">
+        <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
+        <div class="user-info">
+            <div class="name"><?= htmlspecialchars($fullName) ?></div>
+            <div class="role"><?= getRoleLabel($role) ?></div>
         </div>
-        <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
+    <a href="logout.php" class="logout-btn"><i class="fas fa-power-off"></i><span>Logout</span></a>
 </nav>
 <div class="main-content">
 <!-- PAGE HEADER -->
 <div class="page-header">
-    <div>
-        <div class="eyebrow">TRANSACTION MANAGEMENT</div>
-        <h1><i class="fas fa-file-signature"></i> Transaction Request</h1>
-        <p>Kelola dan pantau seluruh pengajuan transaction request.</p>
+    <div style="display:flex; gap:15px; align-items:center;">
+        <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div>
+            <h4><span><i class="fas fa-file-signature"></i></span> Transaction Request</h4>
+        </div>
     </div>
 </div>
 <!-- STATISTIK -->
