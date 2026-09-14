@@ -832,3 +832,74 @@ body,
 .panel-head a.panel-link:hover {
   color: #2563eb !important;
 }
+
+/* Champagne Gold → White Premium Enterprise Theme */
+html,
+body,
+.app {
+  background: #fbfaf7 !important;
+  color: #252525 !important;
+}
+body {
+  background:
+    radial-gradient(
+      circle at 15% 5%,
+      rgba(215, 190, 137, 0.18),
+      transparent 30%
+    ),
+    linear-gradient(135deg, #fbfaf7 0%, #f5f1e8 45%, #fff 100%) !important;
+}
+.content {
+  background:
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(215, 190, 137, 0.16),
+      transparent 30%
+    ),
+    linear-gradient(135deg, #fbfaf7 0%, #f7f4ed 45%, #fff 100%) !important;
+  color: #252525 !important;
+}
+.kpi,
+.panel {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-color: #e8e1d5 !important;
+  box-shadow: 0 10px 30px rgba(80, 62, 32, 0.07) !important;
+}
+.stage,
+.quick {
+  background: #faf8f3 !important;
+  border-color: #e8e1d5 !important;
+}
+.filter {
+  background: #fff !important;
+  color: #39352f !important;
+  border-color: #ddd4c5 !important;
+}
+.page-title,
+.panel-title,
+.kpi-value {
+  color: #292722 !important;
+}
+.kpi-label,
+.panel-subtitle,
+.muted,
+.small-muted {
+  color: #756d62 !important;
+}
+.panel-link {
+  color: #9a7b35 !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+}
+.table-custom th {
+  color: #766d60 !important;
+  background: #faf8f3 !important;
+}
+.table-custom td {
+  color: #3b3833 !important;
+  border-color: #eee8dd !important;
+}
+.badge,
+.status {
+  border-color: #dfd2b8 !important;
+}
