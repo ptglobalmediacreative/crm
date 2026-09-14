@@ -452,9 +452,7 @@ body {
             <div class="page-title">
                 <div class="page-title-icon"><i class="fas fa-users"></i></div>
                 <div>
-                    <div class="eyebrow">ADMINISTRATION · USER MANAGEMENT</div>
                     <h1>Data User</h1>
-                    <p>Kelola akun, divisi, status pengguna, dan akses menu CRM.</p>
                 </div>
             </div>
             <div class="page-actions">
