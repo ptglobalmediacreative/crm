@@ -112,6 +112,20 @@ a{color:inherit}
 @media(max-width:480px){.topbar{height:64px}.shell{min-height:calc(100vh - 64px)}.content{padding:18px 10px 35px}.hero h1{font-size:22px}.hero p{font-size:10px}.chart-wrapper{height:235px;padding:8px}.chart-card h6{height:52px;padding:0 14px}.card-custom .card-header-custom{padding:13px}.form-control,.form-select{font-size:10px}.detail-item{flex-direction:column}.detail-item .detail-label{width:100%;margin-bottom:3px}.topbar .mobile-toggle{display:inline-flex}}
 
 /* ACCOUNT MANAGEMENT — COMPONENTS SPECIFIC TO THIS PAGE */
+/* ACCOUNT STATS — match the Sales Activity visual system */
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.stat-card{min-height:112px;background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96));border:1px solid var(--line);border-radius:17px;padding:16px 18px;box-shadow:0 18px 45px rgba(0,0,0,.18);transition:.25s;position:relative;overflow:hidden}
+.stat-card:hover{border-color:rgba(96,165,250,.35);box-shadow:0 20px 48px rgba(0,0,0,.25);transform:translateY(-1px)}
+.stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:10px;border:1px solid transparent}
+.stat-icon.gold{background:rgba(251,191,36,.10);color:#fcd34d;border-color:rgba(251,191,36,.14)}
+.stat-icon.blue{background:rgba(96,165,250,.10);color:#93c5fd;border-color:rgba(96,165,250,.14)}
+.stat-icon.green{background:rgba(52,211,153,.10);color:#6ee7b7;border-color:rgba(52,211,153,.14)}
+.stat-icon.purple{background:rgba(167,139,250,.10);color:#c4b5fd;border-color:rgba(167,139,250,.14)}
+.stat-number{font-size:21px;font-weight:800;line-height:1;color:#f7f9ff;margin-bottom:5px;letter-spacing:-.4px}
+.stat-label{font-size:9px;color:#71809a;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+@media(max-width:1050px){.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.stat-grid{grid-template-columns:1fr}.stat-card{min-height:100px}}
+
 .badge-badan-usaha{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:8px;font-weight:700;white-space:nowrap;background:rgba(167,139,250,.10);color:#c4b5fd;border:1px solid rgba(167,139,250,.14)}
 .badge-sales{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:8px;font-weight:700;white-space:nowrap;background:rgba(96,165,250,.10);color:#93c5fd;border:1px solid rgba(96,165,250,.14)}
 .badge-lead{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:8px;font-weight:700;white-space:nowrap;border:1px solid transparent}
@@ -651,6 +665,8 @@ function canSalesEdit($db, $account_id, $userId) {
 </head>
 <body>
 
+    <div class="app">
+
     <!-- TOPBAR -->
     <header class="topbar">
         <button class="mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
@@ -659,6 +675,7 @@ function canSalesEdit($db, $account_id, $userId) {
     </header>
 
     <!-- SIDEBAR -->
+    <div class="shell">
     <nav class="rail" id="sidebar">
         <div class="rail-label">Main Menu</div>
         <a href="dashboard.php" ><i class="fas fa-th-large"></i><span>Dashboard</span></a>
@@ -877,6 +894,9 @@ function canSalesEdit($db, $account_id, $userId) {
         </div>
 
     </div>
+    </div>
+    </div>
+
 
     <!-- MODALS -->
     <!-- Modal Tambah / Edit -->
