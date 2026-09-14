@@ -898,11 +898,27 @@ a{color:inherit}
 </aside>
 <main class="content">
 <section class="hero-row">
-    <div class="hero">
-        <div class="eyebrow">PT Ganda Elang Tangguh · Customer Relationship Management</div>
-        <h1>Sales Activity</h1>
-        <p>Monitor customer activities, prospect stages and sales performance.</p>
-    </div>
+        <!-- HEADER -->
+        <div class="page-header">
+            <div style="display:flex; gap:15px; align-items:center;">
+                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <h4><span><i class="fas fa-building" style="color:#ffd700;"></i></span> Account Management</h4>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="account_management.php?export=excel" class="btn btn-success-custom">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <?php if ($userRole === 'sales' || $isDirektur || canAdd('account_management')): ?>
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAccount">
+                        <i class="fas fa-plus"></i> Tambah
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
     <div class="header-actions">
         <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>&search=<?= urlencode($search) ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
         <?php if (canAdd('sales_activity')): ?><button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalActivity"><i class="fas fa-plus me-2"></i>Tambah Aktivitas</button><?php endif; ?>
