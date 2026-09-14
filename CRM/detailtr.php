@@ -1122,6 +1122,7 @@ textarea.form-control{min-height:96px;resize:vertical}
 .table-custom td,.table-custom th{white-space:normal}
 .badge-status-tr{min-height:24px}
 .alert{margin-bottom:18px}
+.result-item-card{margin:0 0 12px;background:linear-gradient(145deg,rgba(10,20,39,.92),rgba(7,14,28,.96));border:1px solid rgba(148,163,184,.11);border-radius:12px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.10);transition:.2s}.result-item-card:hover{border-color:rgba(96,165,250,.22);box-shadow:0 14px 30px rgba(0,0,0,.16)}.result-item-header{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:10px 14px;background:rgba(5,12,25,.42);border-bottom:1px solid rgba(148,163,184,.09)}.result-item-header strong{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:750;color:#e8eef8}.result-item-header strong i{color:#60a5fa;font-size:12px}.result-item-body{padding:14px}.result-item-body .row{--bs-gutter-x:18px}.result-item-body .info-label{margin-bottom:5px}.result-item-body .info-value{margin-bottom:13px;color:#dbe5f5}.cost-result-card .result-item-header strong i{color:#e0b53d}.support-result-card .result-item-header strong i{color:#60a5fa}.result-item-card:last-child{margin-bottom:0}
 .rejection-notice{margin:0 0 20px;padding:16px;border:1px solid rgba(251,113,133,.22);border-radius:13px;background:linear-gradient(145deg,rgba(74,18,35,.32),rgba(10,20,39,.72));box-shadow:0 10px 26px rgba(0,0,0,.10)}
 .rejection-notice-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:11px;margin-bottom:13px;border-bottom:1px solid rgba(251,113,133,.13);font-size:11px;font-weight:800;color:#fecdd3}.rejection-notice-head div{display:flex;align-items:center;gap:8px}.rejection-notice-head i{color:#fb7185}.rejection-notice-head span{font-size:9px;font-weight:600;color:#8e9bb5}.rejection-notice-body{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:16px}.rejection-item{min-width:0}.rejection-label{display:block;margin-bottom:6px;font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:#8e9bb5;font-weight:800}.rejection-comment{font-size:11px;line-height:1.65;color:#f1f5f9;white-space:normal;word-break:break-word}.rejection-item strong{font-size:11px;color:#e8eef7}.rejection-hint{margin-top:13px;padding-top:11px;border-top:1px solid rgba(148,163,184,.08);font-size:9px;line-height:1.55;color:#8e9bb5}.rejection-hint i{color:#fbbf24;margin-right:5px}.reject-modal{display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;padding:20px}.reject-modal.show{display:flex}.reject-modal-backdrop{position:absolute;inset:0;background:rgba(1,5,13,.78);backdrop-filter:blur(7px)}.reject-modal-dialog{position:relative;width:min(520px,100%);background:linear-gradient(145deg,#0c172b,#07101f);border:1px solid rgba(251,113,133,.22);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.48);overflow:hidden}.reject-modal-header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 18px;border-bottom:1px solid rgba(148,163,184,.10)}.reject-modal-header>div:first-child{display:flex;align-items:center;gap:11px}.reject-modal-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.16);color:#fb7185}.reject-modal-header h5{font-size:13px;font-weight:800;color:#f8fafc;margin:0}.reject-modal-header p{font-size:9px;color:#7f8da5;margin:3px 0 0;line-height:1.4}.reject-modal-close{width:32px;height:32px;border:1px solid rgba(148,163,184,.12);border-radius:8px;background:#0a1427;color:#8492aa;display:flex;align-items:center;justify-content:center}.reject-modal-body{padding:18px}.reject-modal-body>label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.55px;color:#aab7ca;font-weight:800;margin-bottom:7px}.reject-modal-body>label span{color:#fb7185}.reject-modal-body textarea{min-height:120px;background:#071223!important}.reject-modal-note{margin-top:9px;font-size:9px;color:#71809a;line-height:1.5}.reject-modal-note i{color:#60a5fa;margin-right:5px}.reject-modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid rgba(148,163,184,.10);background:rgba(5,12,25,.30)}
 @media(max-width:767px){.rejection-notice-body{grid-template-columns:1fr}.reject-modal{padding:12px}.reject-modal-dialog{border-radius:13px}}
@@ -2009,14 +2010,14 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <div id="viewCost">
                     <?php if (count($additionalCostItems) > 0): ?>
                         <?php foreach ($additionalCostItems as $index => $item): ?>
-                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
-                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
-                                    <strong style="color: #0e1a2b;">
-                                        <i class="fas fa-coins" style="color: #ffd700;"></i> 
+                            <div class="result-item-card cost-result-card">
+                                <div class="result-item-header">
+                                    <strong>
+                                        <i class="fas fa-coins"></i>
                                         <?= htmlspecialchars($item['item_name']) ?>
                                     </strong>
                                 </div>
-                                <div class="card-body" style="padding: 15px;">
+                                <div class="result-item-body">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="info-label">Nama Item</div>
@@ -2101,14 +2102,14 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <div id="viewSupport">
                     <?php if (count($trSupports) > 0): ?>
                         <?php foreach ($trSupports as $index => $support): ?>
-                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
-                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
-                                    <strong style="color: #0e1a2b;">
-                                        <i class="fas fa-headset" style="color: #ffd700;"></i> 
+                            <div class="result-item-card support-result-card">
+                                <div class="result-item-header">
+                                    <strong>
+                                        <i class="fas fa-headset"></i>
                                         Support <?= $index + 1 ?>
                                     </strong>
                                 </div>
-                                <div class="card-body" style="padding: 15px;">
+                                <div class="result-item-body">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="info-label">Nama Support</div>
@@ -2535,23 +2536,32 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Nama Item *</label>
-                        <input type="text" name="item_name[]" class="form-control" placeholder="Contoh: Insurance, Delivery Cost, dll" value="${data ? data.item_name : ''}" required>
+                        <input type="text" name="item_name[]" class="form-control" placeholder="Contoh: Insurance, Delivery Cost, dll" required>
                     </div>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nominal (Rp) *</label>
-                        <input type="number" name="item_amount[]" class="form-control" min="0" step="0.01" placeholder="0" value="${data ? data.amount : 0}" required>
+                        <input type="number" name="item_amount[]" class="form-control" min="0" step="0.01" placeholder="0" value="0" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Keterangan</label>
-                        <input type="text" name="item_keterangan[]" class="form-control" placeholder="Keterangan (opsional)" value="${data ? data.keterangan : ''}">
+                        <input type="text" name="item_keterangan[]" class="form-control" placeholder="Keterangan (opsional)">
                     </div>
                 </div>
             `;
             
             container.appendChild(rowDiv);
+
+            if (data) {
+                const nameInput = rowDiv.querySelector('input[name="item_name[]"]');
+                const amountInput = rowDiv.querySelector('input[name="item_amount[]"]');
+                const keteranganInput = rowDiv.querySelector('input[name="item_keterangan[]"]');
+                if (nameInput) nameInput.value = data.item_name ?? '';
+                if (amountInput) amountInput.value = data.amount ?? 0;
+                if (keteranganInput) keteranganInput.value = data.keterangan ?? '';
+            }
         }
         
         function removeCostItemRow(rowId) {
@@ -2576,9 +2586,9 @@ textarea.form-control{min-height:96px;resize:vertical}
             <?php if (count($additionalCostItems) > 0): ?>
                 <?php foreach ($additionalCostItems as $item): ?>
                     addCostItemRow({
-                        item_name: '<?= addslashes($item['item_name']) ?>',
-                        amount: '<?= $item['amount'] ?>',
-                        keterangan: '<?= addslashes($item['keterangan'] ?? '') ?>'
+                        item_name: <?= json_encode((string)($item['item_name'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        amount: <?= json_encode((string)($item['amount'] ?? 0), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        keterangan: <?= json_encode((string)($item['keterangan'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>
                     });
                 <?php endforeach; ?>
             <?php else: ?>
@@ -2714,16 +2724,23 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nama Support *</label>
-                        <input type="text" name="support_name[]" class="form-control" placeholder="Contoh: Free Filter Engine, Jarak Service, dll" value="${data ? data.support_name : ''}" required>
+                        <input type="text" name="support_name[]" class="form-control" placeholder="Contoh: Free Filter Engine, Jarak Service, dll" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Keterangan</label>
-                        <input type="text" name="support_keterangan[]" class="form-control" placeholder="Keterangan (opsional)" value="${data ? data.keterangan : ''}">
+                        <input type="text" name="support_keterangan[]" class="form-control" placeholder="Keterangan (opsional)">
                     </div>
                 </div>
             `;
             
             container.appendChild(rowDiv);
+
+            if (data) {
+                const nameInput = rowDiv.querySelector('input[name="support_name[]"]');
+                const keteranganInput = rowDiv.querySelector('input[name="support_keterangan[]"]');
+                if (nameInput) nameInput.value = data.support_name ?? '';
+                if (keteranganInput) keteranganInput.value = data.keterangan ?? '';
+            }
         }
         
         function removeSupportRow(rowId) {
@@ -2748,8 +2765,8 @@ textarea.form-control{min-height:96px;resize:vertical}
             <?php if (count($trSupports) > 0): ?>
                 <?php foreach ($trSupports as $support): ?>
                     addSupportRow({
-                        support_name: '<?= addslashes($support['support_name']) ?>',
-                        keterangan: '<?= addslashes($support['keterangan'] ?? '') ?>'
+                        support_name: <?= json_encode((string)($support['support_name'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        keterangan: <?= json_encode((string)($support['keterangan'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>
                     });
                 <?php endforeach; ?>
             <?php else: ?>
