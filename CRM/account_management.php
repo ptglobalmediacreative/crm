@@ -792,6 +792,30 @@ a{color:inherit}
  .topbar{padding:0 12px!important}
 }
 
+
+/* FINAL SCROLLBAR — SAME DARK CRM BACKGROUND */
+html, body {
+    scrollbar-color: rgba(96,165,250,.32) #060b18;
+    scrollbar-width: thin;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar { width: 7px; height: 7px; }
+html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background: #060b18; }
+html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb {
+    background: rgba(96,165,250,.30);
+    border-radius: 999px;
+    border: 1px solid rgba(6,11,24,.9);
+}
+html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover { background: rgba(96,165,250,.48); }
+.card-custom .card-body-custom::-webkit-scrollbar, .table-responsive::-webkit-scrollbar { height: 7px; }
+.card-custom .card-body-custom::-webkit-scrollbar-track, .table-responsive::-webkit-scrollbar-track { background: #060b18; }
+.card-custom .card-body-custom::-webkit-scrollbar-thumb, .table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(96,165,250,.28);
+    border-radius: 999px;
+}
+.card-custom .card-body-custom::-webkit-scrollbar-thumb:hover, .table-responsive::-webkit-scrollbar-thumb:hover { background: rgba(96,165,250,.46); }
+.sidebar::-webkit-scrollbar { width: 5px; }
+.sidebar::-webkit-scrollbar-track { background: #060b18; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(96,165,250,.24); border-radius: 999px; }
 </style>
 </head>
 <body>
