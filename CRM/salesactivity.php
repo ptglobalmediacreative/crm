@@ -933,7 +933,7 @@ a{color:inherit}
     min-width:220px!important;
 }
 .topbar .brand img{width:38px!important;height:38px!important;object-fit:contain!important}
-.topbar .brand strong{font-size:17px!important;font-weight:800!important;letter-spacing:-.4px!important;line-height:1.2!important}
+.topbar .brand strong{font-size:17px!important;font-weight:800!important;letter-spacing:-.4px!important;display:block;line-height:1.2!important}
 .topbar .brand small{display:block!important;color:#65738e!important;font-size:9px!important;text-transform:uppercase!important;letter-spacing:1.2px!important;margin-top:2px!important;line-height:1.2!important}
 .topbar .top-actions{display:flex!important;align-items:center!important;gap:10px!important;margin-left:auto!important}
 .topbar .icon-btn{width:38px!important;height:38px!important;border:1px solid var(--line)!important;background:#0a1020!important;color:#aeb9ca!important;border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important}
