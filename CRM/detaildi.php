@@ -783,6 +783,7 @@ textarea.form-control{min-height:96px;resize:vertical}
 .data-row{background:linear-gradient(145deg,rgba(10,20,39,.96),rgba(7,14,28,.98));border:1px solid rgba(148,163,184,.12);border-radius:12px;padding:15px;margin-bottom:14px;box-shadow:0 10px 25px rgba(0,0,0,.10)}
 .data-row .data-header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(148,163,184,.09)}
 .data-row .data-header strong{color:#e8eef7;font-size:11px;font-weight:700}.data-row .data-header strong i{color:#60a5fa;margin-right:6px}
+.unit-result-card{margin:0 0 14px;background:linear-gradient(145deg,rgba(10,20,39,.96),rgba(7,14,28,.98));border:1px solid rgba(148,163,184,.12);border-radius:12px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,.10);transition:.2s}.unit-result-card:hover{border-color:rgba(96,165,250,.24);box-shadow:0 14px 30px rgba(0,0,0,.16)}.unit-result-header{display:flex;align-items:center;min-height:46px;padding:10px 15px;background:rgba(5,12,25,.42);border-bottom:1px solid rgba(148,163,184,.09)}.unit-result-header strong{display:flex;align-items:center;gap:8px;color:#e8eef7;font-size:11px;font-weight:750}.unit-result-header strong i{color:#60a5fa;font-size:12px}.unit-result-body{padding:15px;background:transparent}.unit-result-body .info-value{color:#dbe5f5}.unit-result-body .info-label{color:#71809a}
 </style>
 </head>
 <body>
@@ -1049,14 +1050,14 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <div id="viewUnits">
                     <?php if (count($diUnits) > 0): ?>
                         <?php foreach ($diUnits as $index => $unit): ?>
-                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
-                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
-                                    <strong style="color: #0e1a2b;">
-                                        <i class="fas fa-box" style="color: #ffd700;"></i> 
+                            <div class="unit-result-card">
+                                <div class="unit-result-header">
+                                    <strong>
+                                        <i class="fas fa-box"></i> 
                                         Unit <?= $index + 1 ?>
                                     </strong>
                                 </div>
-                                <div class="card-body" style="padding: 15px;">
+                                <div class="unit-result-body">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="info-label">Lokasi Unit</div>
