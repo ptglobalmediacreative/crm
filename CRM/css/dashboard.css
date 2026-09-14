@@ -10,19 +10,8 @@
   min-height: calc(100vh - 72px);
   padding: 28px 30px 50px;
   box-sizing: border-box;
-  background:
-    radial-gradient(
-      circle at 15% 10%,
-      rgba(191, 219, 254, 0.65),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 85% 20%,
-      rgba(224, 242, 254, 0.8),
-      transparent 35%
-    ),
-    linear-gradient(135deg, #f8fbff 0%, #eef5fc 45%, #ffffff 100%);
-  color: #172033;
+  background: #070b14;
+  color: #e8eef9;
 }
 
 /* =========================
@@ -55,7 +44,7 @@
 
 .hero p {
   margin: 6px 0 0;
-  color: #64748b;
+  color: #71809a;
   font-size: 11px;
 }
 
@@ -69,11 +58,11 @@
 .filter {
   height: 36px;
   padding: 0 11px;
-  border: 1px solid #dbe4ef;
+  border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 9px;
   outline: none;
-  background: rgba(255, 255, 255, 0.88);
-  color: #334155;
+  background: #0b1220;
+  color: #cbd5e1;
   font-size: 11px;
 }
 
@@ -114,10 +103,10 @@
 
 .kpi,
 .panel {
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+  background: #0a1020;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
 }
 
 .kpi {
@@ -135,7 +124,7 @@
   right: -38px;
   bottom: -42px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.06);
+  background: rgba(59, 130, 246, 0.08);
   pointer-events: none;
 }
 
@@ -152,34 +141,34 @@
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: rgba(37, 99, 235, 0.09);
-  color: #2563eb;
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
   font-size: 13px;
 }
 
 .kpi-icon.cyan {
-  background: rgba(8, 145, 178, 0.09);
-  color: #0891b2;
+  background: rgba(34, 211, 238, 0.1);
+  color: #22d3ee;
 }
 
 .kpi-icon.purple {
-  background: rgba(124, 58, 237, 0.09);
-  color: #7c3aed;
+  background: rgba(167, 139, 250, 0.1);
+  color: #a78bfa;
 }
 
 .kpi-icon.amber {
-  background: rgba(217, 119, 6, 0.1);
-  color: #d97706;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
 }
 
 .kpi-icon.red {
-  background: rgba(225, 29, 72, 0.08);
-  color: #e11d48;
+  background: rgba(251, 113, 133, 0.1);
+  color: #fb7185;
 }
 
 .kpi-icon.green {
-  background: rgba(22, 163, 74, 0.09);
-  color: #16a34a;
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
 }
 
 .trend {
@@ -199,7 +188,7 @@
 
 .label {
   margin-top: 3px;
-  color: #64748b;
+  color: #687792;
   font-size: 9px;
 }
 
@@ -225,23 +214,23 @@
   justify-content: space-between;
   gap: 12px;
   padding: 13px 15px;
-  border-bottom: 1px solid #e8edf3;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.09);
 }
 
 .panel-title {
-  color: #172033;
+  color: #e8eef9;
   font-size: 11px;
   font-weight: 800;
 }
 
 .panel-title i {
   margin-right: 7px;
-  color: #2563eb;
+  color: #60a5fa;
 }
 
 .panel-sub {
   margin-top: 3px;
-  color: #64748b;
+  color: #60708b;
   font-size: 8px;
 }
 
@@ -324,9 +313,9 @@
 .stage {
   position: relative;
   padding: 11px;
-  border: 1px solid #e5eaf1;
+  border: 1px solid rgba(148, 163, 184, 0.08);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
+  background: #0d1628;
   overflow: hidden;
 }
 
@@ -342,7 +331,7 @@
 }
 
 .stage-name {
-  color: #64748b;
+  color: #8190a8;
   font-size: 8px;
   font-weight: 700;
 }
@@ -355,7 +344,7 @@
 
 .stage-meta {
   margin-top: 2px;
-  color: #94a3b8;
+  color: #52627d;
   font-size: 7px;
 }
 
@@ -364,7 +353,7 @@
   height: 3px;
   margin-top: 10px;
   border-radius: 5px;
-  background: #e9eef5;
+  background: rgba(148, 163, 184, 0.1);
   overflow: hidden;
 }
 
@@ -392,7 +381,7 @@
   align-items: center;
   gap: 10px;
   padding: 11px 0;
-  border-bottom: 1px solid #edf1f5;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.07);
 }
 
 .hot-item:last-child,
@@ -408,14 +397,14 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: rgba(37, 99, 235, 0.07);
-  color: #2563eb;
+  background: rgba(96, 165, 250, 0.09);
+  color: #60a5fa;
   font-size: 12px;
 }
 
 .hot-name,
 .act-title {
-  color: #1e293b;
+  color: #dbe5f4;
   font-size: 9px;
   font-weight: 700;
 }
@@ -435,7 +424,7 @@
 
 .score {
   margin-top: 2px;
-  color: #d97706;
+  color: #fbbf24;
   font-size: 7px;
   text-align: right;
 }
@@ -449,7 +438,7 @@
   display: block;
   width: var(--score);
   height: 100%;
-  background: #d97706;
+  background: #fbbf24;
 }
 
 /* =========================
@@ -461,14 +450,14 @@
 }
 
 .act-time {
-  color: #94a3b8;
+  color: #52627d;
   font-size: 7px;
   white-space: nowrap;
 }
 
 .empty {
   padding: 24px 0;
-  color: #64748b;
+  color: #53627b;
   font-size: 9px;
   text-align: center;
 }
@@ -488,7 +477,7 @@
   padding: 13px;
   border: 1px solid rgba(148, 163, 184, 0.09);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
+  background: #0d1628;
   color: inherit;
   text-decoration: none;
   transition: 0.2s ease;
@@ -496,33 +485,33 @@
 
 .quick:hover {
   border-color: rgba(96, 165, 250, 0.28);
-  background: #f8fbff;
+  background: #101a2e;
   transform: translateY(-2px);
 }
 
 .quick i {
   display: block;
   margin-bottom: 8px;
-  color: #2563eb;
+  color: #60a5fa;
   font-size: 15px;
 }
 
 .quick strong {
   display: block;
-  color: #1e293b;
+  color: #dbe5f4;
   font-size: 9px;
 }
 
 .quick span {
   display: block;
   margin-top: 3px;
-  color: #64748b;
+  color: #60708b;
   font-size: 7px;
 }
 
 .footer {
   padding-top: 18px;
-  color: #94a3b8;
+  color: #3f4d63;
   font-size: 8px;
   text-align: center;
 }
@@ -599,307 +588,4 @@
     grid-column: 2;
     text-align: left;
   }
-}
-
-/* =========================================================
-   LIGHT PREMIUM OVERRIDES — FINAL
-   ========================================================= */
-html,
-body {
-  background: #f8fbff !important;
-  color: #172033;
-}
-
-.content {
-  background:
-    radial-gradient(
-      circle at 15% 10%,
-      rgba(191, 219, 254, 0.65),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 85% 20%,
-      rgba(224, 242, 254, 0.8),
-      transparent 35%
-    ),
-    linear-gradient(135deg, #f8fbff 0%, #eef5fc 45%, #ffffff 100%) !important;
-  color: #172033 !important;
-}
-
-.kpi,
-.panel {
-  background: rgba(255, 255, 255, 0.94) !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
-}
-
-.stage,
-.quick {
-  background: rgba(248, 251, 255, 0.88) !important;
-  border-color: #e5eaf1 !important;
-}
-
-.filter {
-  background: rgba(255, 255, 255, 0.92) !important;
-  color: #334155 !important;
-  border-color: #dbe4ef !important;
-}
-
-.panel-title,
-.hero h1,
-.number {
-  color: #172033 !important;
-}
-.panel-sub,
-.hero p,
-.trend,
-.label,
-.stage-name,
-.stage-meta,
-.hot-desc,
-.act-desc,
-.act-time,
-.empty,
-.quick span,
-.footer {
-  color: #64748b !important;
-}
-
-.hot-name,
-.act-title,
-.quick strong {
-  color: #1e293b !important;
-}
-
-.panel-head {
-  border-bottom-color: #e8edf3 !important;
-}
-.hot-item,
-.activity {
-  border-bottom-color: #edf1f5 !important;
-}
-
-.machine,
-.act-icon {
-  background: rgba(37, 99, 235, 0.07) !important;
-  color: #2563eb !important;
-}
-
-.panel-head .panel-link,
-.panel-head a.panel-link {
-  color: #64748b !important;
-  font-size: 7px !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  text-decoration: none !important;
-}
-
-.panel-head .panel-link:hover,
-.panel-head a.panel-link:hover {
-  color: #2563eb !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-/* FINAL LIGHT ENTERPRISE OVERRIDE */
-html,
-body,
-.app {
-  background: #f8fbff !important;
-  color: #172033 !important;
-}
-.content {
-  background:
-    radial-gradient(
-      circle at 15% 10%,
-      rgba(191, 219, 254, 0.65),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 85% 20%,
-      rgba(224, 242, 254, 0.8),
-      transparent 35%
-    ),
-    linear-gradient(135deg, #f8fbff 0%, #eef5fc 45%, #fff 100%) !important;
-  color: #172033 !important;
-}
-.hero h1,
-.panel-title,
-.kpi .number,
-.hot-name,
-.stage-name,
-.activity .act-title {
-  color: #172033 !important;
-}
-.hero p,
-.panel-sub,
-.kpi .label,
-.stage-meta,
-.hot-desc,
-.act-desc,
-.act-time,
-.footer {
-  color: #64748b !important;
-}
-.kpi,
-.panel {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07) !important;
-}
-.stage,
-.quick {
-  background: rgba(248, 251, 255, 0.9) !important;
-  border-color: #e5eaf1 !important;
-}
-.filter {
-  background: #fff !important;
-  color: #334155 !important;
-  border-color: #dbe4ef !important;
-}
-.panel-link {
-  color: #64748b !important;
-}
-.panel-link:hover {
-  color: #2563eb !important;
-}
-.activity,
-.hot-item {
-  border-color: #edf1f6 !important;
-}
-
-/* FINAL COLOR & TYPOGRAPHY OVERRIDE */
-html,
-body,
-.app {
-  background: #f4f7fb !important;
-  color: #172033 !important;
-}
-.content {
-  background: linear-gradient(
-    135deg,
-    #f4f7fb 0%,
-    #e8f0f8 50%,
-    #ffffff 100%
-  ) !important;
-  color: #172033 !important;
-}
-.kpi,
-.panel {
-  background: rgba(255, 255, 255, 0.97) !important;
-  border-color: #d9e2ec !important;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07) !important;
-}
-.stage,
-.quick {
-  background: #f7faff !important;
-  border-color: #dbe5ef !important;
-}
-.filter {
-  background: #fff !important;
-  color: #263449 !important;
-  border-color: #cfd9e5 !important;
-}
-.page-title,
-.panel-title,
-.kpi-value {
-  color: #172033 !important;
-}
-.kpi-label,
-.panel-subtitle,
-.muted,
-.meta {
-  color: #64748b !important;
-}
-.table th {
-  color: #475569 !important;
-}
-.table td {
-  color: #263449 !important;
-}
-.panel-head .panel-link,
-.panel-head a.panel-link {
-  font-size: 12px !important;
-  font-weight: 650 !important;
-  color: #64748b !important;
-  text-decoration: none !important;
-  border: 0 !important;
-  background: transparent !important;
-}
-.panel-head .panel-link:hover,
-.panel-head a.panel-link:hover {
-  color: #2563eb !important;
-}
-
-/* Champagne Gold → White Premium Enterprise Theme */
-html,
-body,
-.app {
-  background: #fbfaf7 !important;
-  color: #252525 !important;
-}
-body {
-  background:
-    radial-gradient(
-      circle at 15% 5%,
-      rgba(215, 190, 137, 0.18),
-      transparent 30%
-    ),
-    linear-gradient(135deg, #fbfaf7 0%, #f5f1e8 45%, #fff 100%) !important;
-}
-.content {
-  background:
-    radial-gradient(
-      circle at 12% 8%,
-      rgba(215, 190, 137, 0.16),
-      transparent 30%
-    ),
-    linear-gradient(135deg, #fbfaf7 0%, #f7f4ed 45%, #fff 100%) !important;
-  color: #252525 !important;
-}
-.kpi,
-.panel {
-  background: rgba(255, 255, 255, 0.97) !important;
-  border-color: #e8e1d5 !important;
-  box-shadow: 0 10px 30px rgba(80, 62, 32, 0.07) !important;
-}
-.stage,
-.quick {
-  background: #faf8f3 !important;
-  border-color: #e8e1d5 !important;
-}
-.filter {
-  background: #fff !important;
-  color: #39352f !important;
-  border-color: #ddd4c5 !important;
-}
-.page-title,
-.panel-title,
-.kpi-value {
-  color: #292722 !important;
-}
-.kpi-label,
-.panel-subtitle,
-.muted,
-.small-muted {
-  color: #756d62 !important;
-}
-.panel-link {
-  color: #9a7b35 !important;
-  font-size: 12px !important;
-  font-weight: 650 !important;
-}
-.table-custom th {
-  color: #766d60 !important;
-  background: #faf8f3 !important;
-}
-.table-custom td {
-  color: #3b3833 !important;
-  border-color: #eee8dd !important;
-}
-.badge,
-.status {
-  border-color: #dfd2b8 !important;
 }

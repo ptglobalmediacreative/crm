@@ -384,8 +384,8 @@ try {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="css/navigation.css?v=20260914?v=20260914-light?v=20260914-light">
-<link rel="stylesheet" href="css/dashboard.css?v=20260914?v=20260914-light?v=20260914-light">
+<link rel="stylesheet" href="css/navigation.css">
+<link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
 <div class="app">
@@ -448,7 +448,7 @@ $pipelineColors = [
 <script>
 const ctx=document.getElementById('trendChart').getContext('2d');
 const gradient=ctx.createLinearGradient(0,0,0,260);gradient.addColorStop(0,'rgba(59,130,246,.30)');gradient.addColorStop(1,'rgba(59,130,246,0)');
-new Chart(ctx,{type:'line',data:{labels:<?= json_encode($chartLabels) ?>,datasets:<?= json_encode($chartDatasets) ?>},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#64748b',usePointStyle:true,font:{family:'Inter',size:9}}},tooltip:{backgroundColor:'#ffffff',borderColor:'#dbe4ef',borderWidth:1,titleColor:'#172033',bodyColor:'#475569'}},scales:{y:{beginAtZero:true,grid:{color:'rgba(148,163,184,.18)'},ticks:{color:'#64748b',font:{size:9}}},x:{grid:{display:false},ticks:{color:'#64748b',font:{size:9},maxTicksLimit:10}}}}});
+new Chart(ctx,{type:'line',data:{labels:<?= json_encode($chartLabels) ?>,datasets:<?= json_encode($chartDatasets) ?>},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{color:'#8290aa',usePointStyle:true,font:{family:'Inter',size:9}}},tooltip:{backgroundColor:'#0b1222',borderColor:'rgba(96,165,250,.3)',borderWidth:1,titleColor:'#fff',bodyColor:'#cbd5e1'}},scales:{y:{beginAtZero:true,grid:{color:'rgba(148,163,184,.08)'},ticks:{color:'#60708b',font:{size:9}}},x:{grid:{display:false},ticks:{color:'#60708b',font:{size:9},maxTicksLimit:10}}}}});
 function applyFilter(){const s=document.getElementById('filterSales')?document.getElementById('filterSales').value:0;const m=document.getElementById('filterMonth').value;location.href='?sales_id='+encodeURIComponent(s)+'&month='+encodeURIComponent(m)}
 </script>
 </body></html>
