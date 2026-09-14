@@ -848,8 +848,10 @@ body{font-family:Inter,Arial,sans-serif!important;background:radial-gradient(cir
 .sidebar .user-profile .avatar{width:32px!important;height:32px!important;border-radius:50%!important;background:linear-gradient(135deg,#1e3a8a,#2563eb)!important;color:#fff!important;font-size:11px!important;border:0!important}
 .sidebar .user-profile .user-info .name{font-size:10px!important;color:#e8eef9!important}
 .sidebar .user-profile .user-info .role{font-size:8px!important;color:#66758f!important}
-.sidebar .logout-btn{height:43px!important;padding:0 13px!important;color:#8794aa!important;font-size:11px!important}
-.sidebar .logout-btn:hover{color:#fb7185!important;background:rgba(251,113,133,.08)!important}
+.sidebar .logout-btn{width:100%!important;height:43px!important;border-radius:11px!important;color:#8794aa!important;background:transparent!important;display:flex!important;align-items:center!important;gap:12px!important;text-align:left!important;text-decoration:none!important;transition:.2s!important;padding:0 13px!important;margin-top:0!important;font-size:11px!important;font-weight:600!important;border:0!important;box-shadow:none!important}
+.sidebar .logout-btn i{width:20px!important;text-align:center!important;font-size:14px!important;color:#6e7d97!important}
+.sidebar .logout-btn:hover{color:#fb7185!important;background:rgba(251,113,133,.08)!important;box-shadow:none!important}
+.sidebar .logout-btn:hover i{color:#fb7185!important}
 
 /* Main / page header */
 .main-content{margin-left:245px!important;width:calc(100% - 245px)!important;padding:26px 28px 50px!important;min-height:calc(100vh - 72px)!important}
