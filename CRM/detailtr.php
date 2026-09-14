@@ -1147,6 +1147,38 @@ textarea.form-control{min-height:96px;resize:vertical}
  .card-header-custom h6{font-size:11px}
  .tab-nav .nav-tabs .nav-link{font-size:9px;gap:5px;padding:8px 10px}
 }
+
+/* DETAIL UNIT + TOP — EXPLICIT DARK FORM POLISH */
+#addUnitForm,#topForm{
+    background:linear-gradient(145deg,rgba(10,20,39,.96),rgba(7,14,28,.98))!important;
+    border:1px solid rgba(148,163,184,.12)!important;
+    border-radius:13px!important;
+    padding:18px!important;
+    box-shadow:0 14px 32px rgba(0,0,0,.14);
+}
+#addUnitForm .form-label,#topForm .form-label{color:#8e9bb5!important}
+#addUnitForm .form-control,#addUnitForm .form-select,#topForm .form-control,#topForm .form-select{
+    background:#081426!important;
+    border:1px solid rgba(148,163,184,.16)!important;
+    color:#dbe5f5!important;
+}
+#addUnitForm .form-control:focus,#addUnitForm .form-select:focus,#topForm .form-control:focus,#topForm .form-select:focus{
+    background:#0b172c!important;color:#fff!important;border-color:rgba(96,165,250,.45)!important;
+    box-shadow:0 0 0 3px rgba(59,130,246,.10)!important;
+}
+#addUnitForm .form-select option,#topForm .form-select option{background:#0b1222!important;color:#dbe5f5!important}
+.unit-select-wrap{display:flex;flex-direction:column;gap:7px}
+.unit-search-box{height:38px;display:flex;align-items:center;gap:9px;padding:0 11px;background:#071223;border:1px solid rgba(148,163,184,.15);border-radius:9px;transition:.2s}
+.unit-search-box:focus-within{border-color:rgba(96,165,250,.45);box-shadow:0 0 0 3px rgba(59,130,246,.10)}
+.unit-search-box i{font-size:11px;color:#60a5fa}
+.unit-search-input{width:100%;height:100%;border:0;outline:0;background:transparent;color:#dbe5f5;font:500 11px Inter,Arial,sans-serif}
+.unit-search-input::placeholder{color:#52627d}
+#unit_id{min-height:38px}
+.dp-row,.angsuran-row{padding:10px 0;margin:0 0 9px!important;background:rgba(7,18,34,.58);border:1px solid rgba(148,163,184,.08);border-radius:10px}
+.dp-row>div,.angsuran-row>div{padding-left:7px;padding-right:7px}
+#dpContainer,#angsuranContainer{padding:4px 0}
+#topForm .form-label.fw-bold{color:#dbe5f5!important;font-size:11px;text-transform:none;letter-spacing:0}
+@media(max-width:767px){.dp-row,.angsuran-row{padding:10px 8px}.dp-row>div,.angsuran-row>div{padding-left:5px;padding-right:5px}}
 </style>
 </head>
 <body>    
@@ -1286,7 +1318,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 </div>
             </div>
             <div class="card-body-custom">
-                <div id="editSummaryForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="editSummaryForm" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_summary">
                         
@@ -1423,7 +1455,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                     <?php endif; ?>
                     
                     <?php if ($canApprove): ?>
-                    <div class="mt-4 p-3" style="background: #f8f9fa; border-radius: 10px;">
+                    <div class="mt-4 p-3" style="border-radius: 10px;">
                         <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
                         <form method="POST" id="approvalForm">
                             <input type="hidden" name="action" id="approvalAction" value="approve">
@@ -1483,7 +1515,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="addUnitForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="addUnitForm" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
                     <form method="POST" id="unitForm">
                         <input type="hidden" name="action" value="save_unit">
                         <input type="hidden" name="unit_id_hidden" id="unit_id_hidden" value="0">
@@ -1491,7 +1523,12 @@ textarea.form-control{min-height:96px;resize:vertical}
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Unit *</label>
-                                <select name="unit_id" id="unit_id" class="form-select" required>
+                                <div class="unit-select-wrap">
+                                    <div class="unit-search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="unitSearch" class="unit-search-input" placeholder="Ketik nama unit untuk mencari..." autocomplete="off">
+                                    </div>
+                                    <select name="unit_id" id="unit_id" class="form-select" required>
                                     <option value="">-- Pilih Unit --</option>
                                     <?php foreach ($produkList as $produk): ?>
                                         <option value="<?= $produk['id'] ?>">
@@ -1499,6 +1536,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                </div>
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">QTY *</label>
@@ -1677,7 +1715,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="topForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="topForm" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_top">
                         
@@ -1880,7 +1918,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="mediatorFormContainer" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="mediatorFormContainer" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
                     <form method="POST" id="mediatorForm">
                         <input type="hidden" name="action" value="save_mediator">
                         
@@ -1982,7 +2020,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="costFormContainer" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="costFormContainer" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
                     <form method="POST" id="costForm">
                         <input type="hidden" name="action" value="save_cost">
                         
@@ -2074,7 +2112,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="editSupport" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="editSupport" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_product_support">
                         
@@ -2145,7 +2183,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="editCostCalc" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="editCostCalc" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
                     <form method="POST">
                         <input type="hidden" name="action" value="save_cost_calculation">
                         <div class="row">
@@ -2352,11 +2390,30 @@ textarea.form-control{min-height:96px;resize:vertical}
         }
         
         // ============================================
+        // FUNGSI PENCARIAN UNIT
+        // ============================================
+        function filterUnitOptions() {
+            const search = document.getElementById('unitSearch');
+            const select = document.getElementById('unit_id');
+            if (!search || !select) return;
+            const keyword = search.value.trim().toLowerCase();
+            Array.from(select.options).forEach((option, index) => {
+                if (index === 0) { option.hidden = false; return; }
+                option.hidden = keyword !== '' && !option.text.toLowerCase().includes(keyword);
+            });
+        }
+        function resetUnitSearch() {
+            const search = document.getElementById('unitSearch');
+            if (search) { search.value = ''; filterUnitOptions(); }
+        }
+
+        // ============================================
         // FUNGSI UNTUK DETAIL UNIT
         // ============================================
         function showAddUnitForm() {
             document.getElementById('addUnitForm').style.display = 'block';
             document.getElementById('unitForm').reset();
+            resetUnitSearch();
             document.getElementById('unit_id_hidden').value = '0';
             document.getElementById('deleteUnitBtn').style.display = 'none';
             
@@ -2397,6 +2454,7 @@ textarea.form-control{min-height:96px;resize:vertical}
         function showNewUnitForm() {
             document.getElementById('addUnitForm').style.display = 'block';
             document.getElementById('unitForm').reset();
+            resetUnitSearch();
             document.getElementById('unit_id_hidden').value = '0';
             document.getElementById('deleteUnitBtn').style.display = 'none';
             calculateTotal();
@@ -2773,6 +2831,10 @@ textarea.form-control{min-height:96px;resize:vertical}
                 addSupportRow();
             <?php endif; ?>
         }
+        document.addEventListener('DOMContentLoaded', function() {
+            const unitSearch = document.getElementById('unitSearch');
+            if (unitSearch) unitSearch.addEventListener('input', filterUnitOptions);
+        });
     </script>
 </body>
 </html>
