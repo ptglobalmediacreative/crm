@@ -20,7 +20,7 @@ $showMenu = static function($name) use ($menuNames) {
 <header class="topbar">
     <a class="brand" href="dashboard.php">
         <img src="images/logo.webp" alt="GET">
-        <div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div>
+        <div><strong>PT GANDA ELANG TANGGUH</strong><small>Customer Relationship Management</small></div>
     </a>
     <div class="top-actions">
         <button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button>
