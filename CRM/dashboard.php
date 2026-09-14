@@ -433,7 +433,7 @@ $pipelineColors = [
                 </div>
             </div>
         </div>
-<div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-fire"></i> Hot Opportunities</div><div class="panel-sub">Highest priority prospects</div></div><span class="panel-sub">View all →</span></div><div class="panel-body hot-list">
+<div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-fire"></i> Hot Opportunities</div><div class="panel-sub">Highest priority prospects</div></div><a class="panel-link" href="salesactivity.php?month=<?= urlencode($filterMonth) ?>&jenis_prospek=Hot+Prospect&status=&sales_id=<?= (int)$filterSalesId ?>&search=">View all →</a></div><div class="panel-body hot-list">
 <?php if($hotOpportunities): foreach($hotOpportunities as $i=>$a): ?><div class="hot-item"><div class="machine"><i class="fas fa-tractor"></i></div><div><div class="hot-name"><?= htmlspecialchars($a['nama_pt']??'-') ?></div><div class="hot-desc"><?= htmlspecialchars($a['jenis_tugas']??'Hot Prospect') ?> · <?= htmlspecialchars($a['subject']??'-') ?></div></div><div><div class="hot-value">#<?= $i+1 ?></div><div class="score">Hot Prospect</div><div class="scorebar" style="--score:<?= max(55,95-($i*8)) ?>%"><span></span></div></div></div><?php endforeach; else: ?><div class="empty">Belum ada Hot Prospect.</div><?php endif; ?></div></div>
 </section>
 <section class="lower">
