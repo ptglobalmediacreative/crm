@@ -372,8 +372,6 @@ try {
     $hotOpportunities = $db->query($sqlHotOpportunities)->fetchAll(PDO::FETCH_ASSOC);
 }
 
-$fullName = $_SESSION['full_name'] ?? 'User';
-$role = $_SESSION['role'] ?? 'user';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -391,10 +389,20 @@ $role = $_SESSION['role'] ?? 'user';
 </head>
 <body>
 <div class="app">
-<?php require_once 'navigation.php'; ?>
-<main class="content">
-<section class="hero-row"><div class="hero"><div class="eyebrow">PT Ganda Elang Tangguh · Customer Relationship Management</div><h1>Welcome, <?= htmlspecialchars($fullName) ?> 👋</h1><p>Monitor your sales pipeline, customer activities and dealership performance.</p></div><div class="filters"><?php if(!$isSalesRole): ?><select class="filter" id="filterSales" onchange="applyFilter()"><option value="0">All Sales</option><?php foreach($allSalesList as $s): ?><option value="<?= $s['id'] ?>" <?= ($filterSalesId==$s['id'])?'selected':'' ?>><?= htmlspecialchars($s['full_name']) ?></option><?php endforeach; ?></select><?php endif; ?><input class="filter" type="month" id="filterMonth" value="<?= htmlspecialchars($filterMonth) ?>" onchange="applyFilter()"><button class="btn-add" onclick="location.href='account_management.php'"><i class="fas fa-plus me-1"></i> Add Lead</button></div></section>
-<section class="kpis">
+    <?php require_once 'navigation.php'; ?>
+
+    <main class="content">
+<section class="hero-row">
+            <div class="hero">
+                <div class="eyebrow">PT Ganda Elang Tangguh · Customer Relationship Management</div>
+                <h1>Welcome, <?= htmlspecialchars($fullName) ?> 👋</h1>
+                <p>Monitor your sales pipeline, customer activities and dealership performance.</p>
+            </div>
+
+            <div class="filters"><?php if(!$isSalesRole): ?><select class="filter" id="filterSales" onchange="applyFilter()"><option value="0">All Sales</option><?php foreach($allSalesList as $s): ?><option value="<?= $s['id'] ?>" <?= ($filterSalesId==$s['id'])?'selected':'' ?>><?= htmlspecialchars($s['full_name']) ?></option><?php endforeach; ?></select><?php endif; ?><input class="filter" type="month" id="filterMonth" value="<?= htmlspecialchars($filterMonth) ?>" onchange="applyFilter()"><button class="btn-add" onclick="location.href='account_management.php'"><i class="fas fa-plus me-1"></i> Add Lead</button></div>
+        </section>
+
+        <section class="kpis">
 <div class="kpi"><div class="kpi-top"><div class="kpi-icon blue"><i class="fas fa-users"></i></div><span class="trend">CRM</span></div><div class="number"><?= number_format($totalLeads) ?></div><div class="label">Total Account / Leads</div></div>
 <div class="kpi"><div class="kpi-top"><div class="kpi-icon cyan"><i class="fas fa-user-plus"></i></div><span class="trend">30 days</span></div><div class="number"><?= number_format($db->query("SELECT COUNT(*) FROM accounts WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)" . ($filterSalesId > 0 ? " AND sales_id = $filterSalesId" : ""))->fetchColumn()) ?></div><div class="label">New Leads</div></div>
 <div class="kpi"><div class="kpi-top"><div class="kpi-icon purple"><i class="fas fa-file-signature"></i></div><span class="trend">TR</span></div><div class="number"><?= number_format($totalTransactionRequests) ?></div><div class="label">Total Transaction Request</div></div>
@@ -402,22 +410,46 @@ $role = $_SESSION['role'] ?? 'user';
 </section>
 <section class="dashboard-grid">
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-filter"></i> Sales Pipeline</div><div class="panel-sub">Current prospect movement by stage</div></div><span class="panel-sub"><?= htmlspecialchars($filteredSalesName) ?></span></div><div class="panel-body"><div class="pipeline">
-<?php $pipe=[['Suspect','blue',$pipelineCounts['Suspect'],32],['Prospect','cyan',$pipelineCounts['Prospect'],52],['Hot Prospect','amber',$pipelineCounts['Hot Prospect'],68],['Deal','green',$pipelineCounts['Deal'],84],['Lost Deal','red',$pipelineCounts['Lost Deal'],30]]; foreach($pipe as $p): $c=['blue'=>'#60a5fa','cyan'=>'#22d3ee','amber'=>'#fbbf24','red'=>'#fb7185','green'=>'#34d399','purple'=>'#a78bfa'][$p[1]]; ?><div class="stage" style="--c:<?= $c ?>;--w:<?= $p[3] ?>%"><div class="stage-name"><?= htmlspecialchars($p[0]) ?></div><div class="stage-num"><?= number_format($p[2]) ?></div><div class="stage-meta">Accounts in stage</div><div class="stage-bar"><span></span></div></div><?php endforeach; ?></div></div></div>
+<?php $pipe = [
+    ['Suspect', 'blue', $pipelineCounts['Suspect'], 32],
+    ['Prospect', 'cyan', $pipelineCounts['Prospect'], 52],
+    ['Hot Prospect', 'amber', $pipelineCounts['Hot Prospect'], 68],
+    ['Deal', 'green', $pipelineCounts['Deal'], 84],
+    ['Lost Deal', 'red', $pipelineCounts['Lost Deal'], 30],
+];
+
+$pipelineColors = [
+    'blue' => '#60a5fa',
+    'cyan' => '#22d3ee',
+    'amber' => '#fbbf24',
+    'red' => '#fb7185',
+    'green' => '#34d399',
+    'purple' => '#a78bfa',
+];
+?>
+<?php foreach ($pipe as $p):
+    $c = $pipelineColors[$p[1]] ?? '#60a5fa';
+?><div class="stage" style="--c:<?= $c ?>;--w:<?= $p[3] ?>%"><div class="stage-name"><?= htmlspecialchars($p[0]) ?></div><div class="stage-num"><?= number_format($p[2]) ?></div><div class="stage-meta">Accounts in stage</div><div class="stage-bar"><span></span></div></div><?php endforeach; ?>
+                </div>
+            </div>
+        </div>
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-fire"></i> Hot Opportunities</div><div class="panel-sub">Highest priority prospects</div></div><span class="panel-sub">View all →</span></div><div class="panel-body hot-list">
 <?php if($hotOpportunities): foreach($hotOpportunities as $i=>$a): ?><div class="hot-item"><div class="machine"><i class="fas fa-tractor"></i></div><div><div class="hot-name"><?= htmlspecialchars($a['nama_pt']??'-') ?></div><div class="hot-desc"><?= htmlspecialchars($a['jenis_tugas']??'Hot Prospect') ?> · <?= htmlspecialchars($a['subject']??'-') ?></div></div><div><div class="hot-value">#<?= $i+1 ?></div><div class="score">Hot Prospect</div><div class="scorebar" style="--score:<?= max(55,95-($i*8)) ?>%"><span></span></div></div></div><?php endforeach; else: ?><div class="empty">Belum ada Hot Prospect.</div><?php endif; ?></div></div>
 </section>
 <section class="lower">
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-chart-area"></i> Activity Performance</div><div class="panel-sub">Daily sales activity for <?= date('F Y',strtotime($filterMonth.'-01')) ?></div></div></div><div class="panel-body"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div></div>
-<div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-bolt"></i> Recent Activity</div><div class="panel-sub">Latest CRM actions</div></div><a href="salesactivity.php" style="font-size:9px;color:#60a5fa;text-decoration:none">View all →</a></div><div class="activity-list"><?php if($recentActivities): foreach($recentActivities as $act): ?><div class="activity"><div class="act-icon"><i class="fas fa-file-lines"></i></div><div><div class="act-title"><?= htmlspecialchars($act['subject']??'-') ?></div><div class="act-desc"><?= htmlspecialchars($act['nama_pt']??'-') ?> · <?= htmlspecialchars($act['jenis_tugas']??'-') ?></div></div><div class="act-time"><?= date('d M H:i',strtotime($act['created_at'])) ?></div></div><?php endforeach; else: ?><div class="empty">Belum ada aktivitas.</div><?php endif; ?></div></div>
+<div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-bolt"></i> Recent Activity</div><div class="panel-sub">Latest CRM actions</div></div><a class="panel-link" href="salesactivity.php">View all →</a></div><div class="activity-list"><?php if($recentActivities): foreach($recentActivities as $act): ?><div class="activity"><div class="act-icon"><i class="fas fa-file-lines"></i></div><div><div class="act-title"><?= htmlspecialchars($act['subject']??'-') ?></div><div class="act-desc"><?= htmlspecialchars($act['nama_pt']??'-') ?> · <?= htmlspecialchars($act['jenis_tugas']??'-') ?></div></div><div class="act-time"><?= date('d M H:i',strtotime($act['created_at'])) ?></div></div><?php endforeach; else: ?><div class="empty">Belum ada aktivitas.</div><?php endif; ?></div></div>
 </section>
-<section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-bolt"></i> Quick Access</div><div class="panel-sub">Frequently used CRM modules</div></div></div><div class="quick-grid">
+<section class="panel quick-access-panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-bolt"></i> Quick Access</div><div class="panel-sub">Frequently used CRM modules</div></div></div><div class="quick-grid">
 <?php if(in_array('sales_activity',$menuNames)): ?><a class="quick" href="salesactivity.php"><i class="fas fa-chart-line"></i><strong>Sales Activity</strong><span>Manage leads & prospect actions</span></a><?php endif; ?>
 <?php if(in_array('account_management',$menuNames)): ?><a class="quick" href="account_management.php"><i class="fas fa-building"></i><strong>Accounts</strong><span>Customer & company database</span></a><?php endif; ?>
 <?php if(in_array('transaction_request',$menuNames)): ?><a class="quick" href="transactionrequest.php"><i class="fas fa-file-signature"></i><strong>Transaction Request</strong><span>Track approval & transactions</span></a><?php endif; ?>
 <?php if(in_array('delivery_order',$menuNames)): ?><a class="quick" href="deliveryinstruction.php"><i class="fas fa-truck-moving"></i><strong>Delivery</strong><span>Monitor delivery instructions</span></a><?php endif; ?>
 </div></section>
 <div class="footer">© <?= date('Y') ?> PT Ganda Elang Tangguh · Heavy Equipment Dealer CRM</div>
-</main></div>
+    </main>
+</div>
+
 <script>
 const ctx=document.getElementById('trendChart').getContext('2d');
 const gradient=ctx.createLinearGradient(0,0,0,260);gradient.addColorStop(0,'rgba(59,130,246,.30)');gradient.addColorStop(1,'rgba(59,130,246,0)');
