@@ -1184,7 +1184,87 @@ textarea.form-control{min-height:96px;resize:vertical}
 #dpContainer,#angsuranContainer{padding:4px 0}
 #topForm .form-label.fw-bold{color:#dbe5f5!important;font-size:11px;text-transform:none;letter-spacing:0}
 @media(max-width:767px){.dp-row,.angsuran-row{padding:10px 8px}.dp-row>div,.angsuran-row>div{padding-left:5px;padding-right:5px}}
-    </style>
+    
+
+/* =========================================================
+   FINAL DATA MEDIATOR — PREMIUM DARK NAVY + CHAMPAGNE GOLD
+   ========================================================= */
+#viewMediator{width:100%;background:linear-gradient(145deg,#0d1a30 0%,#0a1427 55%,#08111f 100%)!important;border:1px solid rgba(214,182,90,.14)!important;border-radius:14px!important;padding:18px!important;color:#e8edf5!important;box-shadow:0 12px 30px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.025);overflow:hidden}
+#viewMediator .result-item-card,#viewMediator .mediator-card{background:linear-gradient(145deg,rgba(20,35,59,.96),rgba(10,21,40,.98))!important;border:1px solid rgba(148,163,184,.13)!important;border-radius:13px!important;box-shadow:0 8px 24px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.018);overflow:hidden;margin-bottom:12px;transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}
+#viewMediator .result-item-card:hover,#viewMediator .mediator-card:hover{border-color:rgba(214,182,90,.28)!important;box-shadow:0 12px 30px rgba(0,0,0,.2),0 0 0 1px rgba(214,182,90,.035);transform:translateY(-1px)}
+#viewMediator .result-item-header,#viewMediator .mediator-header{min-height:46px;padding:11px 14px!important;background:linear-gradient(135deg,rgba(214,182,90,.065),rgba(8,17,32,.55))!important;border-bottom:1px solid rgba(214,182,90,.11)!important;color:#f1f5f9!important;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#viewMediator .result-item-header strong,#viewMediator .mediator-header strong{color:#f3f6fa!important;font-size:11px!important;font-weight:750!important;letter-spacing:.15px;display:flex;align-items:center;gap:8px}
+#viewMediator .result-item-header strong i,#viewMediator .mediator-header strong i,#viewMediator i.fa-user-tie{color:#d6b65a!important;font-size:12px!important}
+#viewMediator .result-item-body{padding:15px!important;background:transparent!important;color:#dbe5f5!important}
+#viewMediator .info-label{display:block;margin-bottom:5px!important;color:#8d9bb2!important;font-size:9px!important;font-weight:700!important;text-transform:uppercase;letter-spacing:.75px;line-height:1.35}
+#viewMediator .info-value{min-height:36px;margin-bottom:13px!important;padding:9px 11px!important;background:rgba(255,255,255,.025)!important;border:1px solid rgba(148,163,184,.085)!important;border-radius:8px!important;color:#e7edf5!important;font-size:11px!important;font-weight:600!important;line-height:1.5;word-break:break-word;transition:background .2s ease,border-color .2s ease}
+#viewMediator .info-value:hover{background:rgba(214,182,90,.035)!important;border-color:rgba(214,182,90,.13)!important}
+#viewMediator .info-value strong,#viewMediator .amount,#viewMediator .mediator-amount{color:#dfc46c!important;font-weight:800!important}
+#viewMediator .total-box{margin-top:8px!important;padding:14px 16px!important;background:linear-gradient(135deg,rgba(214,182,90,.095),rgba(16,29,49,.88))!important;border:1px solid rgba(214,182,90,.20)!important;border-radius:11px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 8px 20px rgba(0,0,0,.10)}
+#viewMediator .total-box .total-label{color:#9eabc0!important;font-size:9px!important;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+#viewMediator .total-box .total-value{color:#e4c96e!important;font-size:14px!important;font-weight:850!important}
+#mediatorFormContainer{background:linear-gradient(145deg,#0d1a30,#091426)!important;border:1px solid rgba(148,163,184,.12)!important;border-radius:13px!important;padding:16px!important;box-shadow:0 10px 25px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.02)}
+#mediatorFormContainer .form-control,#mediatorFormContainer .form-select{background:#081426!important;border:1px solid rgba(148,163,184,.14)!important;color:#e5ebf4!important;border-radius:9px!important;min-height:38px;font-size:11px!important;box-shadow:none!important}
+#mediatorFormContainer .form-control:focus,#mediatorFormContainer .form-select:focus{background:#0a172b!important;border-color:rgba(214,182,90,.42)!important;color:#f8fafc!important;box-shadow:0 0 0 3px rgba(214,182,90,.07)!important;outline:none!important}
+#mediatorFormContainer .form-control::placeholder{color:#52627d!important}
+#mediatorFormContainer .form-label{color:#8e9bb1!important;font-size:9px!important;font-weight:700!important;text-transform:uppercase;letter-spacing:.65px}
+#viewMediator hr{border:0!important;border-top:1px solid rgba(148,163,184,.08)!important;opacity:1!important;margin:12px 0!important}
+@media(max-width:767px){#viewMediator{padding:13px!important;border-radius:12px!important}#viewMediator .result-item-header,#viewMediator .mediator-header{padding:10px 11px!important}#viewMediator .result-item-body{padding:12px!important}#viewMediator .info-value{font-size:10.5px!important;min-height:34px;padding:8px 9px!important}#viewMediator .info-label{font-size:8px!important}}
+@media(max-width:520px){#viewMediator{padding:10px!important}#viewMediator .result-item-card,#viewMediator .mediator-card{border-radius:11px!important}#viewMediator .result-item-header strong,#viewMediator .mediator-header strong{font-size:10px!important}#viewMediator .info-value{margin-bottom:10px!important;font-size:10px!important}}
+
+/* =========================================================
+   FINAL FIX — MEDIATOR CARD MUST MATCH DARK BACKGROUND
+   ========================================================= */
+#viewMediator .card.mb-3 {
+    background: linear-gradient(145deg, rgba(20,35,59,.96), rgba(10,21,40,.98)) !important;
+    border: 1px solid rgba(148,163,184,.13) !important;
+    border-radius: 13px !important;
+    color: #e7edf5 !important;
+    overflow: hidden !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.018) !important;
+}
+
+#viewMediator .card.mb-3 .card-header {
+    background: linear-gradient(135deg, rgba(214,182,90,.065), rgba(8,17,32,.55)) !important;
+    border-bottom: 1px solid rgba(214,182,90,.11) !important;
+    border-radius: 0 !important;
+    color: #f3f6fa !important;
+    padding: 12px 15px !important;
+}
+
+#viewMediator .card.mb-3 .card-header strong {
+    color: #f3f6fa !important;
+    font-size: 14px !important;
+    font-weight: 750 !important;
+}
+
+#viewMediator .card.mb-3 .card-header strong i {
+    color: #d6b65a !important;
+}
+
+#viewMediator .card.mb-3 .card-body {
+    background: transparent !important;
+    color: #dbe5f5 !important;
+    padding: 15px !important;
+}
+
+#viewMediator .card.mb-3 .info-label {
+    color: #8d9bb2 !important;
+}
+
+#viewMediator .card.mb-3 .info-value {
+    color: #e7edf5 !important;
+    background: rgba(255,255,255,.025) !important;
+    border: 1px solid rgba(148,163,184,.085) !important;
+    border-radius: 8px !important;
+    padding: 9px 11px !important;
+}
+
+#viewMediator .card.mb-3 .info-value strong {
+    color: #dfc46c !important;
+}
+
+</style>
     
     
 
