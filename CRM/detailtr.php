@@ -1019,6 +1019,60 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18;scrollbar-width:thin}html
 @media(max-width:991px){.main-content{padding-top:24px}.sidebar{top:72px}.page-header{margin-bottom:16px}.tab-nav{border-radius:13px}.tab-nav .nav-tabs .nav-link{padding:9px 11px}}
 @media(max-width:520px){.main-content{padding:17px 10px 34px}.tab-nav{margin-bottom:14px}.tab-nav .nav-tabs .nav-link{font-size:9px;padding:8px 10px}.info-value{font-size:11px}}
 </style>
+
+<style>
+/* FINAL DETAIL TR POLISH — KEEP SYSTEM/LOGIC UNCHANGED */
+.main-content{padding-top:28px}
+.page-header{margin-bottom:18px}
+.page-header h4{font-size:24px}
+.page-header h4 span{box-shadow:0 8px 24px rgba(59,130,246,.08)}
+.card-body-custom{padding:20px}
+.card-custom .card-body{padding:20px!important;background:transparent!important}
+.card-custom hr{border:0;border-top:1px solid rgba(148,163,184,.10);opacity:1;margin:6px 0 20px}
+.card-custom .row{--bs-gutter-x:24px;--bs-gutter-y:0}
+.info-label{margin-top:1px}
+.info-value{margin-bottom:16px;padding-bottom:1px}
+.info-value:last-child{margin-bottom:0}
+.tab-nav{margin-bottom:16px}
+.tab-nav .nav-tabs{align-items:stretch}
+.tab-nav .nav-tabs .nav-link{min-height:40px;justify-content:center}
+.tab-nav .nav-tabs .nav-link i{width:14px;text-align:center}
+.form-control,.form-select{min-height:38px}
+textarea.form-control{min-height:96px;resize:vertical}
+.form-control:disabled,.form-control[readonly]{opacity:.78}
+.btn{line-height:1.35}
+.btn-primary-custom,.btn-secondary-custom,.btn-success-custom,.btn-danger-custom{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.total-box{margin-top:8px}
+.support-row{box-shadow:0 8px 20px rgba(0,0,0,.08)}
+.cost-item-header,.mediator-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#editSummaryForm,#approvalForm,#costFormContainer,#mediatorFormContainer,#editSupport,#editCostCalc{margin:0 0 20px!important}
+#editSummaryForm .row,#approvalForm .row,#costFormContainer .row,#mediatorFormContainer .row,#editSupport .row,#editCostCalc .row{--bs-gutter-y:14px}
+.table-custom{border-collapse:separate;border-spacing:0}
+.table-custom td,.table-custom th{white-space:normal}
+.badge-status-tr{min-height:24px}
+.alert{margin-bottom:18px}
+@media(max-width:991px){
+ .main-content{padding:22px 18px 40px}
+ .card-body-custom,.card-custom .card-body{padding:17px!important}
+ .card-custom .row{--bs-gutter-x:18px}
+}
+@media(max-width:767px){
+ .page-header{gap:12px}
+ .page-header h4{font-size:20px}
+ .page-header>div:last-child{width:100%}
+ .page-header>div:last-child .btn{width:100%}
+ .tab-nav{padding:3px}
+ .tab-nav .nav-tabs .nav-link{min-height:38px;padding:9px 11px}
+ .info-value{margin-bottom:14px}
+}
+@media(max-width:520px){
+ .main-content{padding:16px 10px 32px}
+ .card-body-custom,.card-custom .card-body{padding:14px!important}
+ .card-header-custom{min-height:58px}
+ .card-header-custom h6{font-size:11px}
+ .tab-nav .nav-tabs .nav-link{font-size:9px;gap:5px;padding:8px 10px}
+}
+</style>
 </head>
 <body>\n    <!-- TOPBAR -->
     <header class="topbar">
