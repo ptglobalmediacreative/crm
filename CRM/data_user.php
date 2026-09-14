@@ -37,6 +37,63 @@ function getRoleLabel($role) {
     return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
 }
 
+// ============================================
+// EXPORT DATA USER KE EXCEL
+// ============================================
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="Data_User_' . date('Y-m-d') . '.xls"');
+    header('Cache-Control: max-age=0');
+
+    $exportSearch = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
+    $exportWhere = 'WHERE 1=1';
+    $exportParams = [];
+
+    if ($exportSearch !== '') {
+        $exportWhere .= ' AND (username LIKE ? OR email LIKE ? OR full_name LIKE ? OR phone LIKE ?)';
+        $exportParams = [
+            "%$exportSearch%",
+            "%$exportSearch%",
+            "%$exportSearch%",
+            "%$exportSearch%"
+        ];
+    }
+
+    $stmt = $db->prepare("SELECT id, username, email, full_name, phone, role, is_active, created_at FROM users $exportWhere ORDER BY created_at DESC");
+    $stmt->execute($exportParams);
+    $exportUsers = $stmt->fetchAll();
+
+    echo '<html><head><meta charset="UTF-8"></head><body>';
+    echo '<h2>Data User - PT Ganda Elang Tangguh</h2>';
+    echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . '</p>';
+    if ($exportSearch !== '') {
+        echo '<p>Filter Pencarian: ' . htmlspecialchars($exportSearch) . '</p>';
+    }
+    echo '<table border="1" cellpadding="6" cellspacing="0">';
+    echo '<thead><tr style="background-color:#0c1626;color:#ffffff;">';
+    echo '<th>No</th><th>Username</th><th>Nama Lengkap</th><th>Email</th><th>No HP</th><th>Divisi</th><th>Status</th><th>Tanggal Dibuat</th>';
+    echo '</tr></thead><tbody>';
+
+    $exportNo = 1;
+    foreach ($exportUsers as $exportUser) {
+        echo '<tr>';
+        echo '<td>' . $exportNo++ . '</td>';
+        echo '<td>' . htmlspecialchars($exportUser['username']) . '</td>';
+        echo '<td>' . htmlspecialchars($exportUser['full_name']) . '</td>';
+        echo '<td>' . htmlspecialchars($exportUser['email']) . '</td>';
+        echo '<td>' . htmlspecialchars($exportUser['phone'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars(getRoleLabel($exportUser['role'])) . '</td>';
+        echo '<td>' . ($exportUser['is_active'] ? 'Aktif' : 'Nonaktif') . '</td>';
+        echo '<td>' . date('d-m-Y H:i', strtotime($exportUser['created_at'])) . '</td>';
+        echo '</tr>';
+    }
+
+    echo '</tbody></table>';
+    echo '<p style="margin-top:20px;font-size:12px;color:#777;">* Data diekspor dari CRM PT Ganda Elang Tangguh.</p>';
+    echo '</body></html>';
+    exit;
+}
+
 // Pagination
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -223,55 +280,45 @@ body {
 }
 .content {
     margin-left: 245px;
+    width: calc(100% - 245px);
     min-height: calc(100vh - 72px);
-    padding: 28px 30px 22px;
+    padding: 28px 30px 52px;
     max-width: none;
 }
 
 .page-header{
+    min-height:48px;
+    margin-bottom:20px;
     display:flex;
-    align-items:flex-end;
+    align-items:center;
     justify-content:space-between;
-    gap:20px;
-    margin-bottom:24px;
-    padding-top:4px;
+    gap:18px;
 }
+.page-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
 .page-title{display:flex;align-items:center;gap:14px;min-width:0}
 .page-title-icon{
-    width:46px;height:46px;flex:0 0 46px;border-radius:13px;
+    width:38px;height:38px;flex:0 0 38px;border-radius:11px;
     display:flex;align-items:center;justify-content:center;
     color:#60a5fa;background:rgba(59,130,246,.10);
     border:1px solid rgba(96,165,250,.16);
     box-shadow:0 8px 24px rgba(0,0,0,.10);
 }
-.page-title-icon i{font-size:17px}
+.page-title-icon i{font-size:15px}
 .eyebrow{
     color:#64748b;font-size:9px;font-weight:800;letter-spacing:1.5px;
     text-transform:uppercase;margin-bottom:5px;
 }
-.page-title h1{margin:0;color:#eef4ff;font-size:25px;font-weight:800;letter-spacing:-.7px}
+.page-title h1{margin:0;color:#eef4ff;font-size:25px;font-weight:800;letter-spacing:-.6px}
 .page-title p{margin:4px 0 0;color:#687892;font-size:11px}
 
-.stat-grid{display:grid;grid-template-columns:minmax(210px,260px);gap:14px;margin-bottom:18px}
-.stat-card{
-    position:relative;overflow:hidden;background:linear-gradient(145deg,#0d1729,#0a1120);
-    border:1px solid rgba(148,163,184,.14);border-radius:15px;padding:17px 18px;
-    box-shadow:0 10px 28px rgba(0,0,0,.13);transition:.2s;
-}
-.stat-card::after{content:"";position:absolute;right:-30px;bottom:-45px;width:110px;height:110px;border-radius:50%;background:rgba(96,165,250,.06)}
-.stat-card:hover{transform:translateY(-2px);border-color:rgba(96,165,250,.28)}
-.stat-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:11px}
-.stat-icon.gold{background:rgba(251,191,36,.10);color:#fbbf24;border:1px solid rgba(251,191,36,.12)}
-.stat-number{font-size:24px;font-weight:800;color:#f2f6ff;line-height:1.1}
-.stat-label{font-size:10px;color:#6f7e96;margin-top:4px}
 
 .card-custom{
     background:#0a1220;border:1px solid rgba(148,163,184,.13);border-radius:15px;
     overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.12);
 }
 .card-header-custom{
-    min-height:68px;padding:14px 18px;border-bottom:1px solid rgba(148,163,184,.10);
+    min-height:62px;padding:13px 17px;border-bottom:1px solid rgba(148,163,184,.10);
     display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
     background:rgba(13,23,41,.55);
 }
@@ -284,21 +331,23 @@ body {
 
 .card-body-custom{padding:0;overflow-x:auto}
 .table-responsive{overflow-x:auto}
-.table-custom{margin:0!important;width:100%;font-size:11px;color:#aeb9cb}
+.table-custom{margin:0!important;width:100%;min-width:900px;font-size:10px;color:#cbd5e1;--bs-table-bg:transparent;--bs-table-color:#cbd5e1}
 .table-custom th{
-    padding:12px 14px!important;background:#0c1626!important;color:#61708a!important;
+    height:43px;padding:11px 16px!important;background:rgba(5,12,25,.48)!important;color:#66758f!important;
     border-bottom:1px solid rgba(148,163,184,.10)!important;border-top:0!important;
     font-size:9px!important;font-weight:800!important;letter-spacing:1px;text-transform:uppercase;
     white-space:nowrap;
 }
 .table-custom td{
-    padding:13px 14px!important;border-bottom:1px solid rgba(148,163,184,.07)!important;
+    height:56px;padding:12px 16px!important;border-bottom:1px solid rgba(148,163,184,.07)!important;
     color:#aeb9cb!important;vertical-align:middle;background:transparent!important;
 }
 .table-custom tbody tr{transition:.16s}
 .table-custom tbody tr:hover td{background:rgba(59,130,246,.035)!important;color:#d7e1ef!important}
 .table-custom tbody tr:last-child td{border-bottom:0!important}
 .table-custom td strong{color:#e5edf8;font-weight:700}
+.table-custom th:first-child,.table-custom td:first-child{width:58px;text-align:center;color:#7f8da5}
+.table-custom th:nth-child(2){width:14%}.table-custom th:nth-child(3){width:18%}.table-custom th:nth-child(4){width:21%}.table-custom th:nth-child(5){width:14%}.table-custom th:nth-child(6){width:15%}.table-custom th:nth-child(7){width:9%}.table-custom th:last-child,.table-custom td:last-child{width:112px;text-align:center}
 
 .badge-role,.badge-status{display:inline-flex;align-items:center;min-height:22px;padding:3px 9px;border-radius:999px;font-size:9px;font-weight:700;white-space:nowrap;border:1px solid transparent}
 .badge-role.it_support{background:rgba(167,139,250,.10);color:#b9a4ff;border-color:rgba(167,139,250,.14)}
@@ -318,9 +367,11 @@ body {
 .btn-action.delete{background:rgba(251,113,133,.08);color:#ff8297;border-color:rgba(251,113,133,.12)}
 .btn-action.permission{background:rgba(167,139,250,.09);color:#b39aff;border-color:rgba(167,139,250,.13)}
 
-.btn-primary-custom{background:#2563eb!important;color:#fff!important;border:1px solid #3b82f6!important;border-radius:9px!important;font-size:11px!important;font-weight:700!important;padding:9px 15px!important;transition:.18s!important}
+.btn-primary-custom{height:38px;background:linear-gradient(135deg,#3b82f6,#6366f1)!important;color:#fff!important;border:0!important;border-radius:11px!important;font-size:11px!important;font-weight:700!important;padding:0 15px!important;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.18s!important}
 .btn-primary-custom:hover{background:#1d4ed8!important;transform:translateY(-1px);box-shadow:0 8px 20px rgba(37,99,235,.20)}
-.btn-secondary-custom{background:#111b2d!important;color:#9aa8bd!important;border:1px solid rgba(148,163,184,.14)!important;border-radius:9px!important;font-size:11px!important;font-weight:700!important;padding:9px 15px!important}
+.btn-success-custom{height:38px;border:1px solid rgba(52,211,153,.25);border-radius:11px;background:rgba(52,211,153,.08);color:#6ee7b7;font-size:11px;font-weight:700;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}.btn-success-custom:hover{color:#a7f3d0;background:rgba(52,211,153,.14);transform:translateY(-1px)}
+
+.btn-secondary-custom{background:#111d31!important;color:#8f9db4!important;border:1px solid rgba(148,163,184,.13)!important;border-radius:9px!important;font-size:11px!important;font-weight:600!important;padding:9px 15px!important}
 .btn-secondary-custom:hover{background:#172238!important;color:#d6deea!important}
 
 .pagination{margin:0!important}
@@ -357,8 +408,11 @@ body {
         align-items: flex-start;
         flex-direction: column;
     }
-    .page-header > .btn {
-        width: 100%;
+    .page-actions {
+        width:100%;
+    }
+    .page-actions a, .page-actions button {
+        flex:1;
     }
     .card-header-custom {
         align-items: stretch;
@@ -378,9 +432,7 @@ body {
     .content { padding: 18px 12px; }
     .page-title h1 { font-size: 21px; }
     .page-title p { font-size: 10px; }
-    .page-title-icon { width: 40px; height: 40px; flex-basis: 40px; }
-    .stat-grid { grid-template-columns: 1fr; }
-    .stat-card { padding: 14px; }
+    .page-title-icon { width: 38px; height: 38px; flex-basis: 38px; }
     .table-custom { min-width: 780px; }
     .modal-dialog { margin: 10px; }
 }
@@ -405,19 +457,15 @@ body {
                     <p>Kelola akun, divisi, status pengguna, dan akses menu CRM.</p>
                 </div>
             </div>
-            <?php if (canAdd('data_user')): ?>
-                <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalUser">
-                    <i class="fas fa-plus"></i> Tambah User
-                </button>
-            <?php endif; ?>
-        </div>
-
-        <!-- STATISTIK -->
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-icon gold"><i class="fas fa-users"></i></div>
-                <div class="stat-number"><?= number_format($totalData) ?></div>
-                <div class="stat-label">Total User</div>
+            <div class="page-actions">
+                <a href="data_user.php?export=excel<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="btn btn-success-custom">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <?php if (canAdd('data_user')): ?>
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalUser">
+                        <i class="fas fa-plus"></i> Tambah User
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
 
