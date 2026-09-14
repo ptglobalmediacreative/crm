@@ -1,8 +1,18 @@
 <?php
 // Shared CRM navigation: topbar + sidebar.
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
-$menuNames = isset($menuNames) && is_array($menuNames) ? $menuNames : [];
-// Keep the dashboard navigation visible even when the permission list is empty/not loaded.
+
+// ============================================
+// MENU YANG BOLEH DIAKSES USER
+// Semua halaman cukup include navigation.php.
+// Navigation yang menentukan menu berdasarkan permission user.
+// ============================================
+if (!isset($userMenus) || !is_array($userMenus)) {
+    $userMenus = function_exists('getUserMenus') ? getUserMenus() : [];
+}
+$menuNames = array_values(array_unique(array_filter(array_column($userMenus, 'module_name'))));
+
+// Jika permission belum tersedia, jangan sembunyikan seluruh navigasi.
 $showMenu = static function($name) use ($menuNames) {
     return empty($menuNames) || in_array($name, $menuNames, true);
 };
