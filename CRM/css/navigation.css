@@ -245,106 +245,204 @@
   }
 }
 
-/* DARK CHAMPAGNE GOLD — PREMIUM CRM */
-:root {
-  --line: rgba(201, 168, 93, 0.16);
-}
+/* LIGHT ENTERPRISE CRM THEME */
 html,
 body {
-  background: #f6f4ef !important;
-  color: #1f2937;
+  background: #f8fbff !important;
+  color: #172033 !important;
 }
 .topbar {
-  background: linear-gradient(180deg, #211f1b 0%, #181714 100%) !important;
-  border-bottom: 1px solid rgba(201, 168, 93, 0.18) !important;
-  box-shadow: 0 5px 20px rgba(20, 16, 10, 0.16);
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
 }
 .brand {
-  color: #f8f4ea !important;
-}
-.brand strong {
-  color: #f8f4ea !important;
+  color: #172033 !important;
 }
 .brand small {
-  color: #b8ae9b !important;
+  color: #64748b !important;
 }
 .icon-btn {
-  background: rgba(255, 255, 255, 0.055) !important;
-  border-color: rgba(201, 168, 93, 0.18) !important;
-  color: #d8c9a9 !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
 }
 .icon-btn:hover {
-  color: #e2c77f !important;
-  border-color: rgba(201, 168, 93, 0.5) !important;
-  background: rgba(201, 168, 93, 0.08) !important;
+  color: #2563eb !important;
+  border-color: #bfdbfe !important;
 }
 .rail {
-  background: linear-gradient(180deg, #211f1b 0%, #171614 100%) !important;
-  border-right: 1px solid rgba(201, 168, 93, 0.15) !important;
-  box-shadow: 5px 0 22px rgba(20, 16, 10, 0.14);
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-right: 1px solid #e2e8f0 !important;
+  box-shadow: 4px 0 18px rgba(15, 23, 42, 0.035);
 }
 .rail-label {
-  color: #8f8778 !important;
+  color: #94a3b8 !important;
 }
 .rail a {
-  color: #b9b1a2 !important;
-  font-size: 12px;
+  color: #64748b !important;
 }
 .rail a i {
-  color: #81796b !important;
+  color: #94a3b8 !important;
 }
-.rail a:hover {
-  color: #f1e4c5 !important;
-  background: rgba(201, 168, 93, 0.075) !important;
-  box-shadow: inset 2px 0 0 rgba(201, 168, 93, 0.55) !important;
-}
-.rail a:hover i {
-  color: #d6bb78 !important;
-}
+.rail a:hover,
 .rail a.active {
-  color: #f5e7c5 !important;
+  color: #2563eb !important;
   background: linear-gradient(
     90deg,
-    rgba(201, 168, 93, 0.19),
-    rgba(201, 168, 93, 0.045)
+    rgba(219, 234, 254, 0.85),
+    rgba(239, 246, 255, 0.55)
   ) !important;
-  box-shadow: inset 3px 0 0 #c9a85d !important;
+  box-shadow: inset 2px 0 0 #2563eb !important;
 }
 .rail a.active i {
-  color: #d6b96d !important;
+  color: #2563eb !important;
 }
 .rail-user {
-  background: rgba(255, 255, 255, 0.045) !important;
-  border-color: rgba(201, 168, 93, 0.14) !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
 }
 .rail-user strong {
-  color: #f0eadf !important;
-  font-size: 11px;
+  color: #172033 !important;
 }
 .rail-user span {
-  color: #a39a8b !important;
-  font-size: 9px;
+  color: #64748b !important;
+}
+
+/* LIGHT ENTERPRISE CRM THEME */
+html,
+body {
+  background: #f4f7fb !important;
+  color: #172033;
+}
+.topbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid #dfe7ef !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+.brand {
+  color: #172033 !important;
+}
+.brand small {
+  color: #64748b !important;
+}
+.icon-btn {
+  background: #fff !important;
+  color: #64748b !important;
+  border-color: #dbe4ed !important;
+}
+.rail {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-right: 1px solid #dfe7ef !important;
+  box-shadow: 4px 0 18px rgba(15, 23, 42, 0.03);
+}
+.rail-label {
+  color: #94a3b8 !important;
+}
+.rail a {
+  color: #64748b !important;
+}
+.rail a i {
+  color: #94a3b8 !important;
+}
+.rail a:hover {
+  color: #2563eb !important;
+  background: #f4f8fd !important;
+}
+.rail a:hover i {
+  color: #2563eb !important;
+}
+.rail a.active {
+  color: #1d4ed8 !important;
+  background: linear-gradient(90deg, #eaf2ff, #f7faff) !important;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+.rail a.active i {
+  color: #2563eb !important;
+}
+.rail-user {
+  background: #f7f9fc !important;
+  border-color: #dfe7ef !important;
+}
+.rail-user strong {
+  color: #172033 !important;
+}
+.rail-user span {
+  color: #64748b !important;
 }
 .avatar,
-.rail-user .mini-avatar {
-  background: linear-gradient(135deg, #b28d42, #d7bd78) !important;
-  color: #241f16 !important;
-  border-color: rgba(244, 225, 171, 0.4) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-.rail .logout-link {
-  color: #aaa193 !important;
-}
-.rail .logout-link:hover {
-  color: #e7b5b5 !important;
-  background: rgba(190, 80, 80, 0.09) !important;
-  box-shadow: none !important;
-}
-.rail::-webkit-scrollbar-thumb {
-  background: rgba(201, 168, 93, 0.28) !important;
+.mini-avatar {
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.18);
 }
 @media (max-width: 800px) {
   .rail {
-    box-shadow: 10px 0 30px rgba(20, 16, 10, 0.28);
+    box-shadow: 10px 0 30px rgba(15, 23, 42, 0.12);
   }
+}
+
+/* Champagne Gold Premium Theme */
+html,
+body {
+  background: #fbfaf7 !important;
+  color: #252525 !important;
+}
+.topbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid #e8e1d5 !important;
+  box-shadow: 0 4px 18px rgba(90, 70, 35, 0.05);
+}
+.brand {
+  color: #252525 !important;
+}
+.brand small {
+  color: #8a8174 !important;
+}
+.icon-btn {
+  background: #fff !important;
+  color: #6f6659 !important;
+  border-color: #e8e1d5 !important;
+}
+.rail {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-right: 1px solid #e8e1d5 !important;
+}
+.rail-label {
+  color: #a09586 !important;
+}
+.rail a {
+  color: #71695e !important;
+}
+.rail a i {
+  color: #a09586 !important;
+}
+.rail a:hover {
+  color: #9a7b35 !important;
+  background: rgba(196, 163, 91, 0.08) !important;
+}
+.rail a.active {
+  color: #8d6d28 !important;
+  background: linear-gradient(
+    90deg,
+    rgba(210, 181, 119, 0.22),
+    rgba(247, 243, 234, 0.65)
+  ) !important;
+  box-shadow: inset 2px 0 0 #c9a85d;
+}
+.rail a.active i {
+  color: #b18b43 !important;
+}
+.rail-user {
+  background: #faf8f3 !important;
+  border-color: #e8e1d5 !important;
+}
+.rail-user strong {
+  color: #302d29 !important;
+}
+.rail-user span {
+  color: #8a8174 !important;
+}
+.avatar,
+.mini-avatar {
+  background: linear-gradient(135deg, #d8bc82, #b99750) !important;
+  color: #fff !important;
 }
