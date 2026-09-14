@@ -741,29 +741,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-control {
             width: 100%;
-
             height: 44px;
 
-            padding:
-                0
-                40px;
+            padding: 0 13px 0 39px;
 
-            border:
-                1px solid
-                rgba(148, 163, 184, .14);
-
+            border: 1px solid #d8dee8;
             border-radius: 9px;
 
             outline: none;
 
-            background:
-                rgba(15, 23, 42, .72);
-
-            color: #e8eef9;
+            background: #ffffff;
+            color: #172033;
 
             font-family: inherit;
-
-            font-size: 10px;
+            font-size: 9px;
 
             transition:
                 border-color .2s ease,
@@ -772,28 +763,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .form-control::placeholder {
-            color: #3f4d63;
+            color: #94a3b8;
         }
 
         .form-control:hover {
-            border-color:
-                rgba(148, 163, 184, .22);
+            border-color: #b8c4d4;
         }
 
         .form-control:focus {
-            border-color:
-                rgba(96, 165, 250, .55);
-
-            background:
-                rgba(15, 23, 42, .95);
+            border-color: #60a5fa;
+            background: #ffffff;
+            color: #172033;
 
             box-shadow:
-                0 0 0 3px
-                rgba(59, 130, 246, .08);
+                0 0 0 3px rgba(59, 130, 246, .10);
         }
 
         .input-wrap:focus-within .input-icon {
-            color: #60a5fa;
+            color: #2563eb;
         }
 
 
