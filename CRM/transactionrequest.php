@@ -296,7 +296,7 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18;scrollbar-width:thin}html
 
 .current-approver{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border-radius:8px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.14);color:#cbd5e1;font-size:9px;font-weight:700;white-space:nowrap}
 @media(max-width:800px){.table-custom{min-width:1080px}}
-</style>
+<style>.account-name{display:flex;align-items:center;gap:2px;min-width:0;white-space:nowrap}.account-name strong{font-size:10px;font-weight:700;color:#e8eef7}.account-name span{font-size:10px;font-weight:600;color:#8e9bb5}</style>
 </head>
 <body>
 <header class="topbar">
@@ -417,7 +417,7 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18;scrollbar-width:thin}html
                                 <th>Account</th>
                                 <th>Request Date</th>
                                 <th>Sales</th>
-                                <th>Current Approver</th>
+                                <th>Next Approver</th>
                                 <th>Status</th>
                                 <th style="text-align:center;">Action</th>
                             </tr>
@@ -438,7 +438,14 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18;scrollbar-width:thin}html
                                                 <?= htmlspecialchars($request['tr_number']) ?>
                                             </a>
                                         </td>
-                                        <td><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></td>
+                                        <td>
+    <div class="account-name">
+        <strong><?= htmlspecialchars($request['nama_pt'] ?? '-') ?></strong>
+        <?php if (!empty($request['badan_usaha'])): ?>
+            <span>, <?= htmlspecialchars($request['badan_usaha']) ?></span>
+        <?php endif; ?>
+    </div>
+</td>
                                         <td><?= date('d/m/Y', strtotime($request['request_date'])) ?></td>
                                         <td><?= htmlspecialchars($request['sales_name'] ?? '-') ?></td>
                                         <td><span class="current-approver"><?= htmlspecialchars(getCurrentApproverForTR($db, (string)($request['tr_number'] ?? ''), $approvalLevels, $totalApprovalLevels)) ?></span></td>
