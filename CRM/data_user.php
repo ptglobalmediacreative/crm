@@ -202,14 +202,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+
     <style>
 /* =========================================================
    DATA USER — CRM MODULE
-   Visual language aligned with dashboard + shared navigation.
+   Shared navigation is loaded from css/navigation.css.
+   This block contains page-specific styles only.
    ========================================================= */
 
-.content{
-    max-width: 100%;
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+    margin: 0;
+    background: #070d18;
+    color: #aeb9cb;
+    font-family: Inter, sans-serif;
+}
+.app {
+    min-height: 100vh;
+}
+.content {
+    margin-left: 245px;
+    min-height: calc(100vh - 72px);
+    padding: 28px 30px 22px;
+    max-width: none;
 }
 
 .page-header{
@@ -331,21 +347,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 #permissionBody .table{color:#aeb9cb}#permissionBody .table th{background:#0d1727;color:#71809a;border-color:rgba(148,163,184,.10);font-size:9px}#permissionBody .table td{background:transparent;color:#aeb9cb;border-color:rgba(148,163,184,.08);font-size:11px}
 #permissionBody .text-muted{color:#71809a!important}#permissionBody .text-warning{color:#f6c85f!important}
 
-@media(max-width:800px){
-    .page-header{align-items:flex-start;flex-direction:column}
-    .page-header>.btn{width:100%}
-    .card-header-custom{align-items:stretch}
-    .card-header-custom form{width:100%;margin:0;display:flex}
-    .search-input{width:100%!important;flex:1}
-}
-@media(max-width:560px){
-    .page-title h1{font-size:21px}.page-title p{font-size:10px}
-    .page-title-icon{width:40px;height:40px;flex-basis:40px}
-    .stat-grid{grid-template-columns:1fr}.stat-card{padding:14px}
-    .table-custom{min-width:780px}
-    .modal-dialog{margin:10px}
+@media (max-width: 800px) {
+    .content {
+        margin-left: 0;
+        min-height: calc(100vh - 64px);
+        padding: 22px 18px 20px;
+    }
+    .page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .page-header > .btn {
+        width: 100%;
+    }
+    .card-header-custom {
+        align-items: stretch;
+    }
+    .card-header-custom form {
+        width: 100%;
+        margin: 0;
+        display: flex;
+    }
+    .search-input {
+        width: 100% !important;
+        flex: 1;
+    }
 }
 
+@media (max-width: 560px) {
+    .content { padding: 18px 12px; }
+    .page-title h1 { font-size: 21px; }
+    .page-title p { font-size: 10px; }
+    .page-title-icon { width: 40px; height: 40px; flex-basis: 40px; }
+    .stat-grid { grid-template-columns: 1fr; }
+    .stat-card { padding: 14px; }
+    .table-custom { min-width: 780px; }
+    .modal-dialog { margin: 10px; }
+}
     </style>
 
 </head>
