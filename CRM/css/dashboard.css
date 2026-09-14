@@ -1,5 +1,7 @@
 /* =========================================================
    DASHBOARD — PT GANDA ELANG TANGGUH CRM
+   Page-specific styles only.
+   Navigation styles are handled by css/navigation.css.
    ========================================================= */
 
 .content {
@@ -12,9 +14,9 @@
   color: #e8eef9;
 }
 
-/* =========================================================
-   HERO / HEADER
-   ========================================================= */
+/* =========================
+   Hero / Header
+   ========================= */
 
 .hero-row {
   display: flex;
@@ -35,7 +37,6 @@
 
 .hero h1 {
   margin: 0;
-  color: #f1f5f9;
   font-size: 25px;
   font-weight: 800;
   letter-spacing: -0.7px;
@@ -47,10 +48,6 @@
   font-size: 11px;
 }
 
-/* =========================================================
-   FILTER
-   ========================================================= */
-
 .filters {
   display: flex;
   align-items: center;
@@ -61,15 +58,11 @@
 .filter {
   height: 36px;
   padding: 0 11px;
-
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 9px;
   outline: none;
-
   background: #0b1220;
   color: #cbd5e1;
-
-  font-family: inherit;
   font-size: 11px;
 }
 
@@ -78,47 +71,28 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 
-/* =========================================================
-   BUTTON ADD
-   ========================================================= */
-
 .btn-add {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
   height: 36px;
   padding: 0 13px;
-
   border: 0;
   border-radius: 9px;
-
   background: #2563eb;
-  color: #ffffff;
-
-  font-family: inherit;
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
-
-  text-decoration: none;
   cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: 0.2s ease;
 }
 
 .btn-add:hover {
   background: #1d4ed8;
-  color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
 }
 
-/* =========================================================
-   KPI CARDS
-   ========================================================= */
+/* =========================
+   KPI Cards
+   ========================= */
 
 .kpis {
   display: grid;
@@ -144,19 +118,13 @@
 
 .kpi::after {
   content: "";
-
   position: absolute;
-
   width: 80px;
   height: 80px;
-
   right: -38px;
   bottom: -42px;
-
   border-radius: 50%;
-
   background: rgba(59, 130, 246, 0.08);
-
   pointer-events: none;
 }
 
@@ -170,15 +138,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 32px;
   height: 32px;
-
   border-radius: 9px;
-
   background: rgba(96, 165, 250, 0.12);
   color: #60a5fa;
-
   font-size: 13px;
 }
 
@@ -216,12 +180,8 @@
 
 .number {
   margin-top: 13px;
-
-  color: #f1f5f9;
-
   font-size: 25px;
   font-weight: 800;
-
   letter-spacing: -0.5px;
   line-height: 1.1;
 }
@@ -232,18 +192,14 @@
   font-size: 9px;
 }
 
-/* =========================================================
-   MAIN DASHBOARD GRID
-   ========================================================= */
+/* =========================
+   Main Dashboard Grid
+   ========================= */
 
 .dashboard-grid,
 .lower {
   display: grid;
-
-  grid-template-columns:
-    minmax(0, 1.45fr)
-    minmax(320px, 0.85fr);
-
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -252,30 +208,19 @@
   overflow: hidden;
 }
 
-/* =========================================================
-   PANEL HEADER
-   ========================================================= */
-
 .panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 12px;
-
-  min-height: 55px;
   padding: 13px 15px;
-
   border-bottom: 1px solid rgba(148, 163, 184, 0.09);
 }
 
 .panel-title {
   color: #e8eef9;
-
   font-size: 11px;
   font-weight: 800;
-
-  line-height: 1.2;
 }
 
 .panel-title i {
@@ -285,147 +230,79 @@
 
 .panel-sub {
   margin-top: 3px;
-
   color: #60708b;
-
   font-size: 8px;
-  line-height: 1.2;
 }
 
-/* =========================================================
+/* =========================
    VIEW ALL
-   HOT OPPORTUNITIES + RECENT ACTIVITY
-   ========================================================= */
+   Recent Activity
+   Hot Opportunities
+   ========================= */
 
-/*
-   Sengaja dibuat sangat spesifik agar tidak kalah
-   oleh Bootstrap atau style global <a>.
-*/
-
-.panel-head > a.panel-link,
-.panel-head > a.panel-link:link,
-.panel-head > a.panel-link:visited,
-.panel-head > a.panel-link:hover,
-.panel-head > a.panel-link:focus,
-.panel-head > a.panel-link:active,
+.panel-head .panel-link,
 .panel-head a.panel-link {
-  display: inline-flex !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 
-  align-items: center !important;
-  justify-content: center !important;
-
-  flex: 0 0 auto !important;
-
-  width: auto !important;
-  min-width: 0 !important;
-  height: auto !important;
-
-  margin: 0 0 0 auto !important;
-  padding: 0 !important;
+  margin-left: auto;
+  padding: 2px 0;
 
   border: 0 !important;
-  border-width: 0 !important;
-  border-style: none !important;
-  border-color: transparent !important;
-  border-radius: 0 !important;
-
-  outline: 0 !important;
-
+  outline: none !important;
   background: transparent !important;
-  background-color: transparent !important;
-
   box-shadow: none !important;
 
-  color: #64748b !important;
-
-  font-family: inherit !important;
-  font-size: 8px !important;
-  font-weight: 600 !important;
-
-  line-height: 1.2 !important;
-  letter-spacing: 0 !important;
+  color: #66758d !important;
+  font-size: 7px;
+  font-weight: 600;
+  line-height: 1;
 
   text-decoration: none !important;
-  text-decoration-line: none !important;
-  text-decoration-style: none !important;
-  text-decoration-color: transparent !important;
+  white-space: nowrap;
 
-  white-space: nowrap !important;
-
-  cursor: pointer !important;
-
-  opacity: 1 !important;
+  cursor: pointer;
 
   transition:
     color 0.18s ease,
-    transform 0.18s ease !important;
+    transform 0.18s ease;
 }
 
-/* Hover */
-
-.panel-head > a.panel-link:hover,
+.panel-head .panel-link:hover,
 .panel-head a.panel-link:hover {
   color: #60a5fa !important;
 
   border: 0 !important;
   background: transparent !important;
-  background-color: transparent !important;
-
   box-shadow: none !important;
 
   text-decoration: none !important;
-  text-decoration-line: none !important;
 
-  transform: translateX(2px) !important;
+  transform: translateX(2px);
 }
 
-/* Focus */
-
-.panel-head > a.panel-link:focus,
-.panel-head > a.panel-link:focus-visible,
+.panel-head .panel-link:focus,
+.panel-head .panel-link:active,
 .panel-head a.panel-link:focus,
-.panel-head a.panel-link:focus-visible {
-  color: #60a5fa !important;
-
-  border: 0 !important;
-  outline: 0 !important;
-
-  background: transparent !important;
-  background-color: transparent !important;
-
-  box-shadow: none !important;
-
-  text-decoration: none !important;
-  text-decoration-line: none !important;
-}
-
-/* Active */
-
-.panel-head > a.panel-link:active,
 .panel-head a.panel-link:active {
   color: #60a5fa !important;
 
   border: 0 !important;
-
+  outline: none !important;
   background: transparent !important;
-  background-color: transparent !important;
-
   box-shadow: none !important;
 
   text-decoration: none !important;
 }
-
-/* =========================================================
-   PANEL BODY
-   ========================================================= */
 
 .panel-body {
   padding: 15px;
 }
 
-/* =========================================================
-   PIPELINE
-   ========================================================= */
+/* =========================
+   Pipeline
+   ========================= */
 
 .pipeline {
   display: grid;
@@ -435,84 +312,62 @@
 
 .stage {
   position: relative;
-
   padding: 11px;
-
   border: 1px solid rgba(148, 163, 184, 0.08);
   border-radius: 10px;
-
   background: #0d1628;
-
   overflow: hidden;
 }
 
 .stage::before {
   content: "";
-
   position: absolute;
-
   top: 0;
   right: 0;
   left: 0;
-
   height: 2px;
-
   background: var(--c);
-
   box-shadow: 0 0 12px var(--c);
 }
 
 .stage-name {
   color: #8190a8;
-
   font-size: 8px;
   font-weight: 700;
 }
 
 .stage-num {
   margin-top: 6px;
-
-  color: #f1f5f9;
-
   font-size: 21px;
   font-weight: 800;
 }
 
 .stage-meta {
   margin-top: 2px;
-
   color: #52627d;
-
   font-size: 7px;
 }
 
 .stage-bar,
 .scorebar {
   height: 3px;
-
   margin-top: 10px;
-
   border-radius: 5px;
-
   background: rgba(148, 163, 184, 0.1);
-
   overflow: hidden;
 }
 
 .stage-bar span {
   display: block;
-
   width: var(--w);
   height: 100%;
-
   border-radius: 5px;
-
   background: var(--c);
 }
 
-/* =========================================================
-   HOT OPPORTUNITIES
-   ========================================================= */
+/* =========================
+   Hot Opportunities
+   ========================= */
 
 .hot-list,
 .activity-list {
@@ -522,18 +377,10 @@
 .hot-item,
 .activity {
   display: grid;
-
-  grid-template-columns:
-    34px
-    minmax(0, 1fr)
-    auto;
-
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
-
   gap: 10px;
-
   padding: 11px 0;
-
   border-bottom: 1px solid rgba(148, 163, 184, 0.07);
 }
 
@@ -545,58 +392,40 @@
 .machine,
 .act-icon {
   display: flex;
-
   align-items: center;
   justify-content: center;
-
   width: 30px;
   height: 30px;
-
   border-radius: 8px;
-
   background: rgba(96, 165, 250, 0.09);
   color: #60a5fa;
-
   font-size: 12px;
 }
 
 .hot-name,
 .act-title {
   color: #dbe5f4;
-
   font-size: 9px;
   font-weight: 700;
-
-  line-height: 1.25;
 }
 
 .hot-desc,
 .act-desc {
   margin-top: 3px;
-
   color: #64748b;
-
   font-size: 8px;
-
-  line-height: 1.25;
 }
 
 .hot-value {
-  color: #e8eef9;
-
   font-size: 10px;
   font-weight: 800;
-
   text-align: right;
 }
 
 .score {
   margin-top: 2px;
-
   color: #fbbf24;
-
   font-size: 7px;
-
   text-align: right;
 }
 
@@ -607,16 +436,14 @@
 
 .scorebar span {
   display: block;
-
   width: var(--score);
   height: 100%;
-
   background: #fbbf24;
 }
 
-/* =========================================================
-   ACTIVITY / CHART
-   ========================================================= */
+/* =========================
+   Activity / Chart
+   ========================= */
 
 .chart-wrap {
   height: 250px;
@@ -624,123 +451,80 @@
 
 .act-time {
   color: #52627d;
-
   font-size: 7px;
-
   white-space: nowrap;
 }
 
 .empty {
   padding: 24px 0;
-
   color: #53627b;
-
   font-size: 9px;
-
   text-align: center;
 }
 
-/* =========================================================
-   QUICK ACTIONS
-   ========================================================= */
+/* =========================
+   Quick Actions
+   ========================= */
 
 .quick-grid {
   display: grid;
-
   grid-template-columns: repeat(4, minmax(0, 1fr));
-
   gap: 10px;
-
   padding: 15px;
 }
 
 .quick {
-  display: block;
-
   padding: 13px;
-
   border: 1px solid rgba(148, 163, 184, 0.09);
   border-radius: 10px;
-
   background: #0d1628;
-
   color: inherit;
-
   text-decoration: none;
-
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
+  transition: 0.2s ease;
 }
 
 .quick:hover {
   border-color: rgba(96, 165, 250, 0.28);
-
   background: #101a2e;
-
-  color: inherit;
-
-  text-decoration: none;
-
   transform: translateY(-2px);
 }
 
 .quick i {
   display: block;
-
   margin-bottom: 8px;
-
   color: #60a5fa;
-
   font-size: 15px;
 }
 
 .quick strong {
   display: block;
-
   color: #dbe5f4;
-
   font-size: 9px;
 }
 
 .quick span {
   display: block;
-
   margin-top: 3px;
-
   color: #60708b;
-
   font-size: 7px;
 }
 
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
 .footer {
   padding-top: 18px;
-
   color: #3f4d63;
-
   font-size: 8px;
-
   text-align: center;
 }
 
-/* =========================================================
-   RESPONSIVE — TABLET
-   ========================================================= */
+/* =========================
+   Responsive
+   ========================= */
 
 @media (max-width: 1200px) {
   .kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-
-/* =========================================================
-   RESPONSIVE — SMALL DESKTOP
-   ========================================================= */
 
 @media (max-width: 1050px) {
   .dashboard-grid,
@@ -753,21 +537,15 @@
   }
 }
 
-/* =========================================================
-   RESPONSIVE — TABLET / MOBILE
-   ========================================================= */
-
 @media (max-width: 800px) {
   .content {
     width: 100%;
     margin-left: 0;
-
     padding: 20px 15px 40px;
   }
 
   .hero-row {
     align-items: flex-start;
-
     flex-direction: column;
   }
 
@@ -784,10 +562,6 @@
   }
 }
 
-/* =========================================================
-   RESPONSIVE — MOBILE
-   ========================================================= */
-
 @media (max-width: 480px) {
   .content {
     padding: 16px 12px 30px;
@@ -799,38 +573,19 @@
     grid-template-columns: 1fr;
   }
 
-  .panel-head {
-    min-height: 52px;
-
-    padding: 12px 13px;
-  }
-
-  .panel-title {
-    font-size: 10px;
-  }
-
-  .panel-sub {
-    font-size: 7px;
-  }
-
-  .panel-head > a.panel-link,
-  .panel-head > a.panel-link:link,
-  .panel-head > a.panel-link:visited,
+  .panel-head .panel-link,
   .panel-head a.panel-link {
-    font-size: 7px !important;
+    font-size: 6.5px;
   }
 
   .hot-item,
   .activity {
-    grid-template-columns:
-      30px
-      minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr);
   }
 
   .hot-value,
   .act-time {
     grid-column: 2;
-
     text-align: left;
   }
 }
