@@ -308,3 +308,74 @@ body {
 .rail-user span {
   color: #64748b !important;
 }
+
+/* LIGHT ENTERPRISE CRM THEME */
+html,
+body {
+  background: #f4f7fb !important;
+  color: #172033;
+}
+.topbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid #dfe7ef !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+.brand {
+  color: #172033 !important;
+}
+.brand small {
+  color: #64748b !important;
+}
+.icon-btn {
+  background: #fff !important;
+  color: #64748b !important;
+  border-color: #dbe4ed !important;
+}
+.rail {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-right: 1px solid #dfe7ef !important;
+  box-shadow: 4px 0 18px rgba(15, 23, 42, 0.03);
+}
+.rail-label {
+  color: #94a3b8 !important;
+}
+.rail a {
+  color: #64748b !important;
+}
+.rail a i {
+  color: #94a3b8 !important;
+}
+.rail a:hover {
+  color: #2563eb !important;
+  background: #f4f8fd !important;
+}
+.rail a:hover i {
+  color: #2563eb !important;
+}
+.rail a.active {
+  color: #1d4ed8 !important;
+  background: linear-gradient(90deg, #eaf2ff, #f7faff) !important;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+.rail a.active i {
+  color: #2563eb !important;
+}
+.rail-user {
+  background: #f7f9fc !important;
+  border-color: #dfe7ef !important;
+}
+.rail-user strong {
+  color: #172033 !important;
+}
+.rail-user span {
+  color: #64748b !important;
+}
+.avatar,
+.mini-avatar {
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.18);
+}
+@media (max-width: 800px) {
+  .rail {
+    box-shadow: 10px 0 30px rgba(15, 23, 42, 0.12);
+  }
+}
