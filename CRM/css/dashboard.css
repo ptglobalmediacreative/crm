@@ -551,3 +551,41 @@
     text-align: left;
   }
 }
+
+/* Hot Opportunities — View All */
+.panel-head .panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.panel-head .panel-link:hover,
+.panel-head .panel-link:focus,
+.panel-head .panel-link:active {
+  color: #60a5fa;
+  text-decoration: none !important;
+  outline: none;
+}
+
+.panel-head .panel-link:hover {
+  transform: translateX(2px);
+}
+
+@media (max-width: 480px) {
+  .panel-head .panel-link {
+    font-size: 6.5px;
+  }
+}
