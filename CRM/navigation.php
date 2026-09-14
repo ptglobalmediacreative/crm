@@ -39,7 +39,7 @@ $showMenu = static function($name) use ($menuNames) {
         </a>
     <?php endif; ?>
     <?php if ($showMenu('account_management')): ?><a class="<?= $currentPage === 'account_management.php' ? 'active' : '' ?>" href="account_management.php"><i class="fas fa-building"></i><span>Account Management</span></a><?php endif; ?>
-    <?php if ($showMenu('transaction_request')): ?><a class="<?= $currentPage === 'transactionrequest.php' ? 'active' : '' ?>" href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a><?php endif; ?>
+    <?php if ($showMenu('transaction_request')): ?><a class="<?= in_array($currentPage, ['transactionrequest.php', 'detailtr.php'], true) ? 'active' : '' ?>" href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a><?php endif; ?>
     <?php if ($showMenu('produk')): ?><a class="<?= $currentPage === 'produk.php' ? 'active' : '' ?>" href="produk.php"><i class="fas fa-box"></i><span>Produk</span></a><?php endif; ?>
     <?php if ($showMenu('delivery_order')): ?><a class="<?= $currentPage === 'deliveryinstruction.php' ? 'active' : '' ?>" href="deliveryinstruction.php"><i class="fas fa-truck-moving"></i><span>Delivery Order</span></a><?php endif; ?>
     <div class="rail-label">Administration</div>
