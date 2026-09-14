@@ -563,56 +563,51 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18!important;scrollbar-width
 @media(max-width:800px){.topbar{padding:0 16px!important}.top-brand{min-width:0!important}.top-brand>div{display:none!important}.sidebar{display:flex!important;top:64px!important}.main-content{padding:20px 14px 40px!important}.page-header{align-items:flex-start!important;flex-direction:column!important;gap:14px!important}.page-header>div:last-child{width:100%!important}.page-header>div:last-child a,.page-header>div:last-child button{flex:1!important}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.table-custom{font-size:9px!important}.table-custom th,.table-custom td{padding:10px 9px!important}}
 @media(max-width:480px){.topbar{height:64px!important;padding:0 12px!important}.top-brand img{width:32px!important;height:32px!important}.top-brand strong{font-size:11px!important}.top-brand small{font-size:8px!important}.main-content{padding:18px 10px 35px!important}.page-header h4{font-size:20px!important}.page-header h4 span{width:34px!important;height:34px!important;border-radius:9px!important}.stat-grid{gap:9px!important}.stat-card{min-height:110px!important;padding:13px!important;border-radius:14px!important}.stat-card .stat-icon{width:34px!important;height:34px!important;border-radius:9px!important}.stat-card .stat-number{font-size:19px!important;margin-top:11px!important}.stat-card .stat-label{font-size:8px!important}.card-custom .card-header-custom{padding:13px!important}.card-custom .card-header-custom form{width:100%!important}.table-custom{min-width:1120px!important}.detail-item{flex-direction:column!important}.detail-item .detail-label{width:100%!important;margin-bottom:3px!important}.top-mobile-toggle{display:flex!important}}
 
+
+
+/* PRODUCT PAGE — same CRM visual system as Account Management */
+.currency-input{position:relative}.currency-input .currency-prefix{position:absolute;left:11px;top:50%;transform:translateY(-50%);z-index:2;color:#60a5fa;font-size:11px;font-weight:700}.currency-input .form-control{padding-left:38px!important}.form-control-file{cursor:pointer}.card-body-custom .table-responsive{border-radius:0}.table-custom td strong{color:#e8eef9}.product-price{color:#6ee7b7!important;font-weight:700}.product-empty{color:#64748b!important}.product-actions{display:flex;align-items:center;gap:4px}.mobile-toggle{display:none!important}
+@media(max-width:991px){.mobile-toggle{display:none!important}}
 </style>
 </head>
 <body>
 
-    <!-- SIDEBAR MODERN -->
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <button class="top-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
+        <a class="top-brand" href="dashboard.php"><img src="images/logo.webp" alt="GET"><div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div></a>
+        <div class="top-actions"><button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button><div class="top-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div></div>
+    </header>
+
+    <!-- SIDEBAR -->
     <nav class="sidebar" id="sidebar">
-        <a href="dashboard.php" class="brand">
-            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-            <div class="brand-text">
-                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-                <small>PT Ganda Elang Tangguh</small>
-            </div>
-        </a>
-
-        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
-        
+        <div class="rail-label">Main Menu</div>
+        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
         <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-bar"></i> Sales Activity</a>
+            <a href="salesactivity.php" class="nav-item"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
+            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i><span>Account Management</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('transaction_request', $menuNames)): ?>
-            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
+            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-item active"><i class="fas fa-box"></i> Produk</a>
+            <a href="produk.php" class="nav-item active"><i class="fas fa-box"></i><span>Produk</span></a>
         <?php endif; ?>
-        
         <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
+            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-truck-moving"></i><span>Delivery Order</span></a>
         <?php endif; ?>
-        
+        <div class="rail-label">Administration</div>
         <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
+            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i><span>Data User</span></a>
         <?php endif; ?>
-
-        <div class="user-profile">
-            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-            <div class="user-info">
-                <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= getRoleLabel($role) ?></div>
-            </div>
-        </div>
-        <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
+        <?php if (in_array('data_sales', $menuNames) && file_exists('data_sales.php')): ?>
+            <a href="data_sales.php" class="nav-item"><i class="fas fa-user-tie"></i><span>Data Sales</span></a>
+        <?php endif; ?>
+        <div class="sidebar-spacer"></div>
+        <div class="user-profile"><div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div><div class="user-info"><div class="name"><strong><?= htmlspecialchars($fullName) ?></strong></div><div class="role"><?= getRoleLabel($role) ?></div></div></div>
+        <a href="logout.php" class="logout-btn"><i class="fas fa-power-off"></i><span>Logout</span></a>
     </nav>
 
     <!-- MAIN CONTENT -->
@@ -621,11 +616,8 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18!important;scrollbar-width
         <!-- HEADER -->
         <div class="page-header">
             <div style="display:flex; gap:15px; align-items:center;">
-                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
-                    <i class="fas fa-bars"></i>
-                </button>
                 <div>
-                    <h4><span><i class="fas fa-box" style="color:#ffd700;"></i></span> Produk</h4>
+                    <h4><span><i class="fas fa-box"></i></span> Produk</h4>
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
@@ -673,7 +665,7 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18!important;scrollbar-width
                                     <tr>
                                         <td><?= $no++ ?></td>
                                         <td><strong><?= htmlspecialchars($product['nama_produk']) ?></strong></td>
-                                        <td>Rp <?= number_format($product['harga_jual_sales'], 0, ',', '.') ?></td>
+                                        <td class="product-price">Rp <?= number_format($product['harga_jual_sales'], 0, ',', '.') ?></td>
                                         <?php if ($hasFullAccess): ?>
                                             <td>
                                                 <div class="d-flex gap-1">
@@ -697,7 +689,7 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18!important;scrollbar-width
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="<?= $hasFullAccess ? 4 : 3 ?>" class="text-center py-4 text-muted">
+                                    <td colspan="<?= $hasFullAccess ? 4 : 3 ?>" class="text-center py-4 product-empty">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data produk
                                     </td>
                                 </tr>
