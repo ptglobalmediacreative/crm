@@ -440,12 +440,7 @@ $pipelineColors = [
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-chart-area"></i> Activity Performance</div><div class="panel-sub">Daily sales activity for <?= date('F Y',strtotime($filterMonth.'-01')) ?></div></div></div><div class="panel-body"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div></div>
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-bolt"></i> Recent Activity</div><div class="panel-sub">Latest CRM actions</div></div><a class="panel-link" href="salesactivity.php">View all →</a></div><div class="activity-list"><?php if($recentActivities): foreach($recentActivities as $act): ?><div class="activity"><div class="act-icon"><i class="fas fa-file-lines"></i></div><div><div class="act-title"><?= htmlspecialchars($act['subject']??'-') ?></div><div class="act-desc"><?= htmlspecialchars($act['nama_pt']??'-') ?> · <?= htmlspecialchars($act['jenis_tugas']??'-') ?></div></div><div class="act-time"><?= date('d M H:i',strtotime($act['created_at'])) ?></div></div><?php endforeach; else: ?><div class="empty">Belum ada aktivitas.</div><?php endif; ?></div></div>
 </section>
-<section class="panel quick-access-panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-bolt"></i> Quick Access</div><div class="panel-sub">Frequently used CRM modules</div></div></div><div class="quick-grid">
-<?php if(in_array('sales_activity',$menuNames)): ?><a class="quick" href="salesactivity.php"><i class="fas fa-chart-line"></i><strong>Sales Activity</strong><span>Manage leads & prospect actions</span></a><?php endif; ?>
-<?php if(in_array('account_management',$menuNames)): ?><a class="quick" href="account_management.php"><i class="fas fa-building"></i><strong>Accounts</strong><span>Customer & company database</span></a><?php endif; ?>
-<?php if(in_array('transaction_request',$menuNames)): ?><a class="quick" href="transactionrequest.php"><i class="fas fa-file-signature"></i><strong>Transaction Request</strong><span>Track approval & transactions</span></a><?php endif; ?>
-<?php if(in_array('delivery_order',$menuNames)): ?><a class="quick" href="deliveryinstruction.php"><i class="fas fa-truck-moving"></i><strong>Delivery</strong><span>Monitor delivery instructions</span></a><?php endif; ?>
-</div></section>
+
 <div class="footer">© <?= date('Y') ?> PT Ganda Elang Tangguh · Heavy Equipment Dealer CRM</div>
     </main>
 </div>
