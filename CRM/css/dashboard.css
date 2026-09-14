@@ -17,6 +17,7 @@
 /* =========================
    Hero / Header
    ========================= */
+
 .hero-row {
   display: flex;
   align-items: flex-end;
@@ -92,6 +93,7 @@
 /* =========================
    KPI Cards
    ========================= */
+
 .kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -193,6 +195,7 @@
 /* =========================
    Main Dashboard Grid
    ========================= */
+
 .dashboard-grid,
 .lower {
   display: grid;
@@ -231,36 +234,66 @@
   font-size: 8px;
 }
 
-/* Hot Opportunities — View All */
-.panel-head .panel-link {
+/* =========================
+   VIEW ALL
+   Recent Activity
+   Hot Opportunities
+   ========================= */
+
+.panel-head .panel-link,
+.panel-head a.panel-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+
   margin-left: auto;
-  padding: 5px 8px;
-  border: 1px solid rgba(96, 165, 250, 0.16);
-  border-radius: 7px;
-  background: rgba(96, 165, 250, 0.05);
-  color: #7ea9dc;
-  font-size: 8px;
-  font-weight: 700;
+  padding: 2px 0;
+
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: #66758d !important;
+  font-size: 7px;
+  font-weight: 600;
   line-height: 1;
-  text-decoration: none;
+
+  text-decoration: none !important;
   white-space: nowrap;
-  transition: all 0.2s ease;
+
+  cursor: pointer;
+
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
-.panel-head .panel-link:hover {
-  border-color: rgba(96, 165, 250, 0.32);
-  background: rgba(96, 165, 250, 0.1);
-  color: #93c5fd;
-  transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.1);
+.panel-head .panel-link:hover,
+.panel-head a.panel-link:hover {
+  color: #60a5fa !important;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  text-decoration: none !important;
+
+  transform: translateX(2px);
 }
 
-.panel-head .panel-link:focus-visible {
-  outline: 2px solid rgba(96, 165, 250, 0.45);
-  outline-offset: 2px;
+.panel-head .panel-link:focus,
+.panel-head .panel-link:active,
+.panel-head a.panel-link:focus,
+.panel-head a.panel-link:active {
+  color: #60a5fa !important;
+
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  text-decoration: none !important;
 }
 
 .panel-body {
@@ -270,6 +303,7 @@
 /* =========================
    Pipeline
    ========================= */
+
 .pipeline {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -334,6 +368,7 @@
 /* =========================
    Hot Opportunities
    ========================= */
+
 .hot-list,
 .activity-list {
   padding: 0 15px;
@@ -409,6 +444,7 @@
 /* =========================
    Activity / Chart
    ========================= */
+
 .chart-wrap {
   height: 250px;
 }
@@ -429,6 +465,7 @@
 /* =========================
    Quick Actions
    ========================= */
+
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -482,6 +519,7 @@
 /* =========================
    Responsive
    ========================= */
+
 @media (max-width: 1200px) {
   .kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -525,11 +563,6 @@
 }
 
 @media (max-width: 480px) {
-  .panel-head .panel-link {
-    padding: 5px 7px;
-    font-size: 7px;
-  }
-
   .content {
     padding: 16px 12px 30px;
   }
@@ -538,6 +571,11 @@
   .pipeline,
   .quick-grid {
     grid-template-columns: 1fr;
+  }
+
+  .panel-head .panel-link,
+  .panel-head a.panel-link {
+    font-size: 6.5px;
   }
 
   .hot-item,
@@ -549,43 +587,5 @@
   .act-time {
     grid-column: 2;
     text-align: left;
-  }
-}
-
-/* Hot Opportunities — View All */
-.panel-head .panel-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  padding: 2px 0;
-  border: 0;
-  background: transparent;
-  color: #64748b;
-  font-size: 7px;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none !important;
-  white-space: nowrap;
-  transition:
-    color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.panel-head .panel-link:hover,
-.panel-head .panel-link:focus,
-.panel-head .panel-link:active {
-  color: #60a5fa;
-  text-decoration: none !important;
-  outline: none;
-}
-
-.panel-head .panel-link:hover {
-  transform: translateX(2px);
-}
-
-@media (max-width: 480px) {
-  .panel-head .panel-link {
-    font-size: 6.5px;
   }
 }
