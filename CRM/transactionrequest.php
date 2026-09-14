@@ -333,9 +333,6 @@ a{color:inherit}
     <?php if (in_array('data_user', $menuNames)): ?>
         <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i><span>Data User</span></a>
     <?php endif; ?>
-    <?php if (in_array('data_sales', $menuNames)): ?>
-        <a href="data_sales.php" class="nav-item"><i class="fas fa-user-tie"></i><span>Data Sales</span></a>
-    <?php endif; ?>
 
     <div class="sidebar-bottom">
         <div class="user-profile">
