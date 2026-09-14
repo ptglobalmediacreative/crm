@@ -46,7 +46,18 @@ function getRoleLabel($role) {
 // ============================================
 // FUNGSI UNTUK RESET APPROVAL HISTORY
 // ============================================
-function resetApprovalHistory($db, $tr_number) {
+function resetApprovalHistory($db, $tr_number, $force = false) {
+    // Saat TR masih rejected, perubahan data revisi tidak langsung mengubah status.
+    // Status baru kembali pending hanya ketika user menekan "Ajukan TR Kembali".
+    if (!$force) {
+        $checkStatus = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
+        $checkStatus->execute([$tr_number]);
+        $currentStatus = $checkStatus->fetchColumn();
+        if ($currentStatus === 'rejected') {
+            return true;
+        }
+    }
+
     $deleteApproval = $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?");
     $deleteApproval->execute([$tr_number]);
 
@@ -210,10 +221,12 @@ $isReviewOnly = in_array($userRole, $reviewOnlyRoles, true);
 // ============================================
 $hasBeenApproved = false;
 try {
+    // TR rejected boleh direvisi kembali. Lock edit hanya jika masih berada
+    // dalam proses approval aktif atau sudah approved final.
     $checkApproved = $db->prepare("SELECT COUNT(*) as total FROM tr_approval_history WHERE trf_number = ? AND status = 'approved'");
     $checkApproved->execute([$tr_number]);
-    $approvedCount = $checkApproved->fetch()['total'];
-    if ($approvedCount > 0) {
+    $approvedCount = (int)$checkApproved->fetch()['total'];
+    if ($approvedCount > 0 && $statusTR !== 'rejected') {
         $hasBeenApproved = true;
     }
 } catch (Exception $e) {
@@ -249,6 +262,25 @@ try {
     $approvalHistory = $stmtApproval->fetchAll();
 } catch (Exception $e) {
     $approvalHistory = [];
+}
+
+// ============================================
+// AMBIL INFORMASI REJECTION TERAKHIR
+// ============================================
+$rejectionInfo = null;
+try {
+    $sqlRejection = "SELECT h.catatan, h.approved_at, h.approved_by, u.full_name AS rejected_by_name
+                     FROM tr_approval_history h
+                     LEFT JOIN users u ON h.approved_by = u.id
+                     WHERE h.trf_number = ?
+                       AND h.status = 'rejected'
+                     ORDER BY h.id DESC
+                     LIMIT 1";
+    $stmtRejection = $db->prepare($sqlRejection);
+    $stmtRejection->execute([$tr_number]);
+    $rejectionInfo = $stmtRejection->fetch() ?: null;
+} catch (Exception $e) {
+    $rejectionInfo = null;
 }
 
 // ============================================
@@ -441,6 +473,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
     }
     
+    // AJUKAN KEMBALI TR SETELAH REJECT
+    if ($action === 'resubmit_rejected') {
+        try {
+            if (!$canEditSalesSection) {
+                throw new Exception('Hanya Sales pemilik TR yang dapat mengajukan kembali TR ini.');
+            }
+
+            $db->beginTransaction();
+
+            $lockResubmit = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1 FOR UPDATE");
+            $lockResubmit->execute([$tr_number]);
+            $lockedResubmit = $lockResubmit->fetch();
+
+            if (!$lockedResubmit) {
+                throw new Exception('Detail Transaction Request tidak ditemukan.');
+            }
+            if (($lockedResubmit['status'] ?? '') !== 'rejected') {
+                throw new Exception('TR hanya dapat diajukan kembali jika berstatus rejected.');
+            }
+
+            // Hapus approval lama agar alur kembali ke Sales Manager.
+            resetApprovalHistory($db, $tr_number, true);
+
+            $db->commit();
+            setFlash('TR berhasil diajukan kembali dan kembali ke approval awal (Sales Manager).', 'success');
+        } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            setFlash('Gagal mengajukan kembali TR: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
+    }
+
     // SAVE SUMMARY
     if ($action === 'save_summary') {
         try {
@@ -473,6 +539,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
             $postedOrder = (int)($_POST['approval_order'] ?? 0);
+            $approvalComment = trim((string)($_POST['approval_comment'] ?? ''));
+
+            if ($approvalStatus === 'rejected' && $approvalComment === '') {
+                throw new Exception('Alasan reject wajib diisi.');
+            }
 
             // Ambil status + approval history TERBARU di dalam transaction.
             // Jangan mempercayai approval_order dari browser sebagai sumber kebenaran.
@@ -525,11 +596,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingApproval = $checkApproval->fetch();
                 
                 if ($existingApproval) {
-                    $updateApproval = $db->prepare("UPDATE tr_approval_history SET approval_role = ?, status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
-                    $updateApproval->execute([$approvalLevels[$serverCurrentOrder]['role'], $approvalStatus, $userId, $existingApproval['id']]);
+                    $updateApproval = $db->prepare("UPDATE tr_approval_history SET approval_role = ?, status = ?, catatan = ?, approved_by = ?, approved_at = NOW() WHERE id = ?");
+                    $updateApproval->execute([$approvalLevels[$serverCurrentOrder]['role'], $approvalStatus, $approvalComment, $userId, $existingApproval['id']]);
                 } else {
-                    $insertApproval = $db->prepare("INSERT INTO tr_approval_history (trf_number, approval_order, approval_role, status, catatan, approved_by, created_at) VALUES (?, ?, ?, ?, '', ?, NOW())");
-                    $insertApproval->execute([$tr_number, $serverCurrentOrder, $approvalLevels[$serverCurrentOrder]['role'], $approvalStatus, $userId]);
+                    $insertApproval = $db->prepare("INSERT INTO tr_approval_history (trf_number, approval_order, approval_role, status, catatan, approved_by, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+                    $insertApproval->execute([$tr_number, $serverCurrentOrder, $approvalLevels[$serverCurrentOrder]['role'], $approvalStatus, $approvalComment, $userId]);
                 }
                 
                 $newStatus = 'pending';
@@ -605,7 +676,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $unit_id, $qty, $price, $ppn, $grand_total, $specification, $additional_attachment, $waranty, $free_part_service, $machine_location, $delivery_terms, $delivery_schedule, $transaction_type]);
             }
             
-            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET updated_at = NOW() WHERE trf_number = ?");
             $updateDetail->execute([$tr_number]);
             
             if ($updateDetail->rowCount() == 0) {
@@ -692,7 +763,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([$tr_number, $nominal_po, $nominal_po_keterangan]);
             }
             
-            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET updated_at = NOW() WHERE trf_number = ?");
             $updateDetail->execute([$tr_number]);
             
             if ($updateDetail->rowCount() == 0) {
@@ -734,7 +805,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
-            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET status = 'pending', updated_at = NOW() WHERE trf_number = ?");
+            $updateDetail = $db->prepare("UPDATE detail_transaction_requests SET updated_at = NOW() WHERE trf_number = ?");
             $updateDetail->execute([$tr_number]);
             
             if ($updateDetail->rowCount() == 0) {
@@ -1051,6 +1122,9 @@ textarea.form-control{min-height:96px;resize:vertical}
 .table-custom td,.table-custom th{white-space:normal}
 .badge-status-tr{min-height:24px}
 .alert{margin-bottom:18px}
+.rejection-notice{margin:0 0 20px;padding:16px;border:1px solid rgba(251,113,133,.22);border-radius:13px;background:linear-gradient(145deg,rgba(74,18,35,.32),rgba(10,20,39,.72));box-shadow:0 10px 26px rgba(0,0,0,.10)}
+.rejection-notice-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:11px;margin-bottom:13px;border-bottom:1px solid rgba(251,113,133,.13);font-size:11px;font-weight:800;color:#fecdd3}.rejection-notice-head div{display:flex;align-items:center;gap:8px}.rejection-notice-head i{color:#fb7185}.rejection-notice-head span{font-size:9px;font-weight:600;color:#8e9bb5}.rejection-notice-body{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:16px}.rejection-item{min-width:0}.rejection-label{display:block;margin-bottom:6px;font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:#8e9bb5;font-weight:800}.rejection-comment{font-size:11px;line-height:1.65;color:#f1f5f9;white-space:normal;word-break:break-word}.rejection-item strong{font-size:11px;color:#e8eef7}.rejection-hint{margin-top:13px;padding-top:11px;border-top:1px solid rgba(148,163,184,.08);font-size:9px;line-height:1.55;color:#8e9bb5}.rejection-hint i{color:#fbbf24;margin-right:5px}.reject-modal{display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;padding:20px}.reject-modal.show{display:flex}.reject-modal-backdrop{position:absolute;inset:0;background:rgba(1,5,13,.78);backdrop-filter:blur(7px)}.reject-modal-dialog{position:relative;width:min(520px,100%);background:linear-gradient(145deg,#0c172b,#07101f);border:1px solid rgba(251,113,133,.22);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.48);overflow:hidden}.reject-modal-header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 18px;border-bottom:1px solid rgba(148,163,184,.10)}.reject-modal-header>div:first-child{display:flex;align-items:center;gap:11px}.reject-modal-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.16);color:#fb7185}.reject-modal-header h5{font-size:13px;font-weight:800;color:#f8fafc;margin:0}.reject-modal-header p{font-size:9px;color:#7f8da5;margin:3px 0 0;line-height:1.4}.reject-modal-close{width:32px;height:32px;border:1px solid rgba(148,163,184,.12);border-radius:8px;background:#0a1427;color:#8492aa;display:flex;align-items:center;justify-content:center}.reject-modal-body{padding:18px}.reject-modal-body>label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.55px;color:#aab7ca;font-weight:800;margin-bottom:7px}.reject-modal-body>label span{color:#fb7185}.reject-modal-body textarea{min-height:120px;background:#071223!important}.reject-modal-note{margin-top:9px;font-size:9px;color:#71809a;line-height:1.5}.reject-modal-note i{color:#60a5fa;margin-right:5px}.reject-modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid rgba(148,163,184,.10);background:rgba(5,12,25,.30)}
+@media(max-width:767px){.rejection-notice-body{grid-template-columns:1fr}.reject-modal{padding:12px}.reject-modal-dialog{border-radius:13px}}
 @media(max-width:991px){
  .main-content{padding:22px 18px 40px}
  .card-body-custom,.card-custom .card-body{padding:17px!important}
@@ -1195,6 +1269,14 @@ textarea.form-control{min-height:96px;resize:vertical}
                             <i class="fas fa-times-circle"></i> Rejected
                         <?php endif; ?>
                     </span>
+                    <?php if ($request['status'] === 'rejected' && $canEditSalesSection): ?>
+                    <form method="POST" style="display:inline;" onsubmit="return confirmResubmit()">
+                        <input type="hidden" name="action" value="resubmit_rejected">
+                        <button type="submit" class="btn btn-primary-custom btn-sm">
+                            <i class="fas fa-paper-plane"></i> Ajukan TR Kembali
+                        </button>
+                    </form>
+                    <?php endif; ?>
                     <?php if ($canEditSalesSection): ?>
                     <button class="btn btn-primary-custom btn-sm" onclick="showEditSummary()">
                         <i class="fas fa-edit"></i> Edit
@@ -1232,6 +1314,26 @@ textarea.form-control{min-height:96px;resize:vertical}
                     </form>
                 </div>
                 
+                <?php if ($request['status'] === 'rejected' && $rejectionInfo): ?>
+                <div class="rejection-notice">
+                    <div class="rejection-notice-head">
+                        <div><i class="fas fa-circle-exclamation"></i> TR Ditolak</div>
+                        <span><?= !empty($rejectionInfo['approved_at']) ? date('d/m/Y H:i', strtotime($rejectionInfo['approved_at'])) : '-' ?></span>
+                    </div>
+                    <div class="rejection-notice-body">
+                        <div class="rejection-item">
+                            <span class="rejection-label">Alasan / Komentar Reject</span>
+                            <div class="rejection-comment"><?= nl2br(htmlspecialchars($rejectionInfo['catatan'] ?? '-')) ?></div>
+                        </div>
+                        <div class="rejection-item">
+                            <span class="rejection-label">Rejected By</span>
+                            <strong><?= htmlspecialchars($rejectionInfo['rejected_by_name'] ?? '-') ?></strong>
+                        </div>
+                    </div>
+                    <div class="rejection-hint"><i class="fas fa-lightbulb"></i> Silakan revisi data TR terlebih dahulu, lalu klik <strong>Ajukan TR Kembali</strong> untuk memulai approval dari Sales Manager.</div>
+                </div>
+                <?php endif; ?>
+
                 <div id="viewSummary">
                     <div class="row">
                         <div class="col-md-6">
@@ -1325,6 +1427,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                         <form method="POST" id="approvalForm">
                             <input type="hidden" name="action" id="approvalAction" value="approve">
                             <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
+                            <input type="hidden" name="approval_comment" id="approvalComment" value="">
                             <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')" <?= !$isDataComplete ? 'disabled' : '' ?>>
                                 <i class="fas fa-check-circle"></i> Approve
                             </button>
@@ -1335,6 +1438,32 @@ textarea.form-control{min-height:96px;resize:vertical}
                     </div>
                     <?php endif; ?>
                 <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- MODAL ALASAN REJECT -->
+        <div id="rejectModal" class="reject-modal" aria-hidden="true">
+            <div class="reject-modal-backdrop" onclick="closeRejectModal()"></div>
+            <div class="reject-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
+                <div class="reject-modal-header">
+                    <div>
+                        <span class="reject-modal-icon"><i class="fas fa-times-circle"></i></span>
+                        <div>
+                            <h5 id="rejectModalTitle">Reject Transaction Request</h5>
+                            <p>Berikan alasan agar Sales dapat melakukan revisi dengan jelas.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="reject-modal-close" onclick="closeRejectModal()" aria-label="Tutup"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="reject-modal-body">
+                    <label for="rejectReason">Komentar / Alasan Reject <span>*</span></label>
+                    <textarea id="rejectReason" class="form-control" rows="5" maxlength="2000" placeholder="Contoh: Harga unit perlu direvisi dan Term of Payment belum sesuai."></textarea>
+                    <div class="reject-modal-note"><i class="fas fa-info-circle"></i> Alasan ini akan tampil di Summary TR beserta nama user yang melakukan reject.</div>
+                </div>
+                <div class="reject-modal-footer">
+                    <button type="button" class="btn btn-secondary-custom" onclick="closeRejectModal()">Batal</button>
+                    <button type="button" class="btn btn-danger-custom" onclick="confirmReject()"><i class="fas fa-times-circle"></i> Reject TR</button>
+                </div>
             </div>
         </div>
         <?php endif; ?>
@@ -2129,18 +2258,62 @@ textarea.form-control{min-height:96px;resize:vertical}
         
         function submitApproval(action) {
             if (action === 'reject') {
-                if (!confirm('Yakin ingin me-reject TR ini?')) {
-                    return;
-                }
+                openRejectModal();
+                return;
             }
             if (action === 'approve') {
                 if (!confirm('Yakin ingin meng-approve TR ini?')) {
                     return;
                 }
             }
+            document.getElementById('approvalComment').value = '';
             document.getElementById('approvalAction').value = action;
             document.getElementById('approvalForm').submit();
         }
+
+        function openRejectModal() {
+            const modal = document.getElementById('rejectModal');
+            const reason = document.getElementById('rejectReason');
+            if (!modal || !reason) return;
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            reason.value = '';
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => reason.focus(), 50);
+        }
+
+        function closeRejectModal() {
+            const modal = document.getElementById('rejectModal');
+            if (!modal) return;
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        function confirmReject() {
+            const reason = document.getElementById('rejectReason');
+            const comment = reason ? reason.value.trim() : '';
+            if (!comment) {
+                if (reason) reason.focus();
+                alert('Komentar / alasan reject wajib diisi.');
+                return;
+            }
+            if (!confirm('Yakin ingin me-reject TR ini dengan alasan tersebut?')) {
+                return;
+            }
+            document.getElementById('approvalComment').value = comment;
+            document.getElementById('approvalAction').value = 'reject';
+            closeRejectModal();
+            document.getElementById('approvalForm').submit();
+        }
+
+        function confirmResubmit() {
+            return confirm('Ajukan TR ini kembali? Status akan menjadi Pending dan approval dimulai lagi dari Sales Manager.');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') closeRejectModal();
+        });
 
         // ============================================
         // FUNGSI UMUM TOGGLE SECTION
