@@ -16,12 +16,6 @@ if (!isLoggedIn()) {
 requirePermission('sales_activity', 'view');
 
 // ============================================
-// AMBIL MENU YANG BOLEH DIAKSES USER
-// ============================================
-$userMenus = getUserMenus();
-$menuNames = array_column($userMenus, 'module_name');
-
-// ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
 function getRoleLabel($role) {
@@ -800,6 +794,7 @@ $role = $_SESSION['role'] ?? 'user';
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="css/navigation.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -948,27 +943,7 @@ a{color:inherit}
 </head>
 <body>
 <div class="app">
-<header class="topbar">
-    <button class="mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
-    <a class="brand" href="dashboard.php"><img src="images/logo.webp" alt="GET"><div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div></a>
-    <div class="top-actions"><button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button><div class="avatar"><?= strtoupper(substr($fullName,0,1)) ?></div></div>
-</header>
-<div class="shell">
-<aside class="rail" id="sidebar">
-    <div class="rail-label">Main Menu</div>
-    <a href="dashboard.php"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
-    <?php if(in_array('sales_activity',$menuNames)): ?><a class="active" href="salesactivity.php"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a><?php endif; ?>
-    <?php if(in_array('account_management',$menuNames)): ?><a href="account_management.php"><i class="fas fa-building"></i><span>Account Management</span></a><?php endif; ?>
-    <?php if(in_array('transaction_request',$menuNames)): ?><a href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a><?php endif; ?>
-    <?php if(in_array('produk',$menuNames)): ?><a href="produk.php"><i class="fas fa-box"></i><span>Produk</span></a><?php endif; ?>
-    <?php if(in_array('delivery_order',$menuNames)): ?><a href="deliveryinstruction.php"><i class="fas fa-truck-moving"></i><span>Delivery Order</span></a><?php endif; ?>
-    <div class="rail-label">Administration</div>
-    <?php if(in_array('data_user',$menuNames)): ?><a href="data_user.php"><i class="fas fa-users"></i><span>Data User</span></a><?php endif; ?>
-    <?php if(in_array('data_sales',$menuNames) && file_exists('data_sales.php')): ?><a href="data_sales.php"><i class="fas fa-user-tie"></i><span>Data Sales</span></a><?php endif; ?>
-    <div class="spacer"></div>
-    <div class="rail-user"><div class="mini-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div><div><strong><?= htmlspecialchars($fullName) ?></strong><span><?= htmlspecialchars(getRoleLabel($role)) ?></span></div></div>
-    <a class="logout-link" href="logout.php"><i class="fas fa-power-off"></i><span>Logout</span></a>
-</aside>
+<?php require_once 'navigation.php'; ?>
 <main class="content">
 <div class="page-header">
     <div style="display:flex; gap:15px; align-items:center;">
