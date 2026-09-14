@@ -31,8 +31,13 @@ $showMenu = static function($name) use ($menuNames) {
 <aside class="rail">
     <div class="rail-label">Main Menu</div>
     <a class="<?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
-    <?php if ($showMenu('salesactivity')): ?><a class="<?= ($currentPage === 'salesactivity.php') ? 'active' : '' ?>" href="salesactivity.php"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a><?php endif; ?>
-    <?php if ($showMenu('detailaktivitas')): ?><a class="<?= ($currentPage === 'detailaktivitas.php') ? 'active' : '' ?>" href="salesactivity.php"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a><?php endif; ?>
+    <?php if ($showMenu('sales_activity')): ?>
+        <a class="<?= in_array($currentPage, ['salesactivity.php', 'detailaktivitas.php'], true) ? 'active' : '' ?>"
+        href="salesactivity.php">
+            <i class="fas fa-chart-line"></i>
+            <span>Sales Activity</span>
+        </a>
+    <?php endif; ?>
     <?php if ($showMenu('account_management')): ?><a class="<?= $currentPage === 'account_management.php' ? 'active' : '' ?>" href="account_management.php"><i class="fas fa-building"></i><span>Account Management</span></a><?php endif; ?>
     <?php if ($showMenu('transaction_request')): ?><a class="<?= $currentPage === 'transactionrequest.php' ? 'active' : '' ?>" href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a><?php endif; ?>
     <?php if ($showMenu('produk')): ?><a class="<?= $currentPage === 'produk.php' ? 'active' : '' ?>" href="produk.php"><i class="fas fa-box"></i><span>Produk</span></a><?php endif; ?>
