@@ -813,9 +813,9 @@ html{background:#060b18}
 body{font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at 70% -10%,rgba(37,99,235,.20),transparent 30%),linear-gradient(145deg,#050914,#08111f 55%,#07162c);color:var(--text);min-height:100vh;overflow-x:hidden;padding-bottom:0}
 a{color:inherit}
 .app{min-height:100vh}
-.topbar{height:72px;border-bottom:1px solid var(--line);background:rgba(5,9,20,.88);backdrop-filter:blur(18px);display:flex;align-items:center;padding:0 26px;gap:24px;position:sticky;top:0;z-index:50}
-.brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:#fff;min-width:220px}.brand img{width:38px;height:38px;object-fit:contain}.brand strong{font-size:17px;letter-spacing:-.4px}.brand small{display:block;color:#65738e;font-size:9px;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px}
-.top-actions{display:flex;align-items:center;gap:10px;margin-left:auto}.icon-btn{width:38px;height:38px;border:1px solid var(--line);background:#0a1020;color:#aeb9ca;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}.notif{position:absolute;right:-2px;top:-3px;background:#ef4444;color:#fff;border-radius:10px;font-size:8px;padding:3px 5px;font-weight:700}.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:1px solid rgba(96,165,250,.5)}
+.topbar{height:72px!important;border-bottom:1px solid var(--line)!important;background:rgba(5,9,20,.88)!important;backdrop-filter:blur(18px)!important;display:flex!important;align-items:center!important;padding:0 26px!important;gap:24px!important;position:sticky!important;top:0!important;z-index:1100!important}
+.brand{display:flex!important;align-items:center!important;gap:11px!important;text-decoration:none!important;color:#fff!important;min-width:220px!important}.brand img{width:38px!important;height:38px!important;object-fit:contain!important}.brand strong{font-size:17px!important;font-weight:800!important;letter-spacing:-.4px!important}.brand small{display:block!important;color:#65738e!important;font-size:9px!important;text-transform:uppercase!important;letter-spacing:1.2px!important;margin-top:2px!important}
+.top-actions{display:flex!important;align-items:center!important;gap:10px!important;margin-left:auto!important}.icon-btn{width:38px!important;height:38px!important;border:1px solid var(--line)!important;background:#0a1020!important;color:#aeb9ca!important;border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important}.notif{position:absolute!important;right:-2px!important;top:-3px!important;background:#ef4444!important;color:#fff!important;border-radius:10px!important;font-size:8px!important;padding:3px 5px!important;font-weight:700!important}.avatar{width:38px!important;height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#1e3a8a,#2563eb)!important;display:flex!important;align-items:center!important;justify-content:center!important;font-weight:800!important;font-size:12px!important;border:1px solid rgba(96,165,250,.5)!important;color:#fff!important}
 .shell{display:flex;min-height:calc(100vh - 72px)}
 .rail{width:245px;position:fixed;top:72px;bottom:0;left:0;background:rgba(5,10,21,.92);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px;gap:6px;z-index:40;overflow-y:auto}.rail::-webkit-scrollbar{width:4px}.rail::-webkit-scrollbar-thumb{background:rgba(96,165,250,.25);border-radius:10px}.rail-label{font-size:9px;color:#52627d;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;padding:8px 12px 7px}.rail a{width:100%;height:43px;border-radius:11px;color:#8794aa;display:flex;align-items:center;gap:12px;text-decoration:none;transition:.2s;padding:0 13px;font-size:11px;font-weight:600}.rail a i{width:20px;text-align:center;font-size:14px;color:#6e7d97}.rail a:hover,.rail a.active{color:#fff;background:linear-gradient(90deg,rgba(59,130,246,.20),rgba(37,99,235,.06));box-shadow:inset 2px 0 0 #60a5fa}.rail a.active i{color:#60a5fa}.rail .spacer{flex:1;min-height:20px}.rail-user{margin:8px 4px 4px;padding:12px;border:1px solid rgba(148,163,184,.10);background:rgba(10,18,34,.7);border-radius:13px;display:flex;align-items:center;gap:10px}.rail-user .mini-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800}.rail-user strong{display:block;font-size:10px;color:#e8eef9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rail-user span{display:block;font-size:8px;color:#66758f;margin-top:2px}.rail .logout-link{color:#8794aa}.rail .logout-link:hover{color:#fb7185;background:rgba(251,113,133,.08);box-shadow:none}
 .content{margin-left:245px;width:calc(100% - 245px);padding:26px 28px 50px}
@@ -835,104 +835,155 @@ a{color:inherit}
 @media(max-width:480px){.topbar{height:64px}.shell{min-height:calc(100vh - 64px)}.content{padding:18px 10px 35px}.hero h1{font-size:22px}.hero p{font-size:10px}.chart-wrapper{height:235px;padding:8px}.chart-card h6{height:52px;padding:0 14px}.card-custom .card-header-custom{padding:13px}.form-control,.form-select{font-size:10px}.detail-item{flex-direction:column}.detail-item .detail-label{width:100%;margin-bottom:3px}.topbar .mobile-toggle{display:inline-flex}}
 
 /* =========================================================
-   DASHBOARD CHROME — SALES ACTIVITY
-   Match dashboard.php sidebar / brand / user / logout exactly.
-   Existing PHP, DB, activity logic and JS remain untouched.
+   SALES ACTIVITY PAGE HEADER — MATCH ACCOUNT MANAGEMENT
+   Presentation only; existing PHP/DB/JS logic untouched.
    ========================================================= */
-.sidebar{
-    width:260px!important;height:100vh!important;background:#0e1a2b!important;
-    position:fixed!important;top:0!important;left:0!important;bottom:0!important;
-    padding:30px 20px!important;overflow-y:auto!important;z-index:1000!important;
-    transition:all .3s ease!important;display:block!important;
+.page-header{
+    display:flex!important;
+    justify-content:space-between!important;
+    align-items:center!important;
+    gap:20px!important;
+    min-height:48px!important;
+    margin-bottom:20px!important;
+    flex-wrap:wrap!important;
 }
-.sidebar::-webkit-scrollbar{width:4px!important}
-.sidebar::-webkit-scrollbar-thumb{background:rgba(255,215,0,.3)!important;border-radius:10px!important}
-.sidebar .brand{display:flex!important;align-items:center!important;gap:12px!important;margin-bottom:40px!important;text-decoration:none!important;padding-bottom:20px!important;border-bottom:1px solid rgba(255,255,255,.05)!important;color:inherit!important}
-.sidebar .brand .logo-wrapper{width:42px!important;height:42px!important;flex-shrink:0!important}
-.sidebar .brand .logo-wrapper img{width:100%!important;height:100%!important;object-fit:contain!important}
-.sidebar .brand .brand-text h5{font-weight:800!important;margin:0!important;color:#fff!important;letter-spacing:.5px!important;font-size:16px!important}
-.sidebar .brand .brand-text h5 span{color:#ffd700!important}
-.sidebar .brand .brand-text small{font-size:10px!important;color:rgba(255,255,255,.4)!important;text-transform:uppercase!important;letter-spacing:1px!important}
-.sidebar .nav-item{display:flex!important;align-items:center!important;padding:12px 16px!important;color:rgba(255,255,255,.6)!important;text-decoration:none!important;border-radius:10px!important;margin-bottom:5px!important;transition:all .2s ease!important;font-weight:500!important;font-size:14px!important;position:relative!important;height:auto!important;gap:0!important}
-.sidebar .nav-item i{width:24px!important;font-size:16px!important;margin-right:12px!important;text-align:center!important}
-.sidebar .nav-item:hover{background:rgba(255,255,255,.05)!important;color:#fff!important}
-.sidebar .nav-item.active{background:rgba(255,215,0,.1)!important;color:#ffd700!important;box-shadow:inset 3px 0 0 #ffd700!important}
-.sidebar .user-profile{margin-top:30px!important;padding-top:20px!important;border-top:1px solid rgba(255,255,255,.05)!important;display:flex!important;align-items:center!important;gap:12px!important}
-.sidebar .user-profile .avatar{width:42px!important;height:42px!important;border-radius:50%!important;background:linear-gradient(135deg,#1a1a2e,#16213e)!important;color:#ffd700!important;display:flex!important;align-items:center!important;justify-content:center!important;font-weight:700!important;font-size:16px!important;border:2px solid rgba(255,215,0,.2)!important;flex-shrink:0!important}
-.sidebar .user-profile .user-info .name{font-size:14px!important;font-weight:600!important;color:#fff!important}
-.sidebar .user-profile .user-info .role{font-size:12px!important;color:rgba(255,255,255,.4)!important}
-.sidebar .logout-btn{display:block!important;text-align:center!important;margin-top:15px!important;padding:10px!important;border-radius:10px!important;color:#e74c3c!important;text-decoration:none!important;font-weight:600!important;font-size:14px!important;background:rgba(231,76,60,.1)!important;transition:all .2s!important}
-.sidebar .logout-btn:hover{background:rgba(231,76,60,.2)!important}
-.content{margin-left:260px!important;width:calc(100% - 260px)!important}
-@media(max-width:991px){
-    .sidebar{transform:translateX(-100%)!important}
-    .sidebar.open{transform:translateX(0)!important}
-    .content{margin-left:0!important;width:100%!important}
+.page-header>div:first-child{
+    display:flex!important;
+    align-items:center!important;
+    gap:12px!important;
 }
-@media(max-width:480px){.sidebar{padding:24px 16px!important}}
-.dashboard-mobile-toggle{display:none!important}
-@media(max-width:991px){.dashboard-mobile-toggle{display:flex!important;background:#0e1a2b!important;border:none!important;width:40px!important;height:40px!important;border-radius:8px!important;color:#ffd700!important;font-size:20px!important;align-items:center!important;justify-content:center!important;margin-bottom:14px!important}}
-''</style>
+.page-header h4{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    font-size:25px!important;
+    line-height:1.1!important;
+    letter-spacing:-1px!important;
+    font-weight:800!important;
+    margin:0!important;
+    color:#f7f9ff!important;
+}
+.page-header h4 span{
+    width:38px!important;
+    height:38px!important;
+    border-radius:11px!important;
+    background:rgba(96,165,250,.10)!important;
+    border:1px solid rgba(96,165,250,.15)!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    flex-shrink:0!important;
+}
+.page-header h4 span i{
+    font-size:15px!important;
+    color:#60a5fa!important;
+}
+.page-header .header-actions{
+    display:flex!important;
+    gap:8px!important;
+    align-items:center!important;
+    flex-wrap:wrap!important;
+}
+.page-header .mobile-toggle{display:none!important}
+
+@media(max-width:800px){
+    .page-header{
+        align-items:flex-start!important;
+        flex-direction:column!important;
+        gap:14px!important;
+    }
+    .page-header>div:last-child{
+        width:100%!important;
+    }
+    .page-header h4{font-size:22px!important}
+    .page-header .header-actions{width:100%!important;gap:7px!important}
+    .page-header .header-actions a,
+    .page-header .header-actions button{flex:1!important}
+}
+@media(max-width:480px){
+    .page-header{gap:12px!important;margin-bottom:16px!important}
+    .page-header h4{font-size:20px!important}
+    .page-header h4 span{width:34px!important;height:34px!important;border-radius:9px!important}
+    .page-header h4 span i{font-size:14px!important}
+}
+
+/* =========================================================
+   FINAL HEADBAR — MATCH ACCOUNT MANAGEMENT
+   Presentation only; existing PHP/DB/JS logic untouched.
+   ========================================================= */
+.topbar{
+    height:72px!important;
+    border-bottom:1px solid var(--line)!important;
+    background:rgba(5,9,20,.88)!important;
+    backdrop-filter:blur(18px)!important;
+    display:flex!important;
+    align-items:center!important;
+    padding:0 26px!important;
+    gap:24px!important;
+    position:sticky!important;
+    top:0!important;
+    z-index:1100!important;
+}
+.topbar .brand{
+    display:flex!important;
+    align-items:center!important;
+    gap:11px!important;
+    text-decoration:none!important;
+    color:#fff!important;
+    min-width:220px!important;
+}
+.topbar .brand img{width:38px!important;height:38px!important;object-fit:contain!important}
+.topbar .brand strong{font-size:17px!important;font-weight:800!important;letter-spacing:-.4px!important;line-height:1.2!important}
+.topbar .brand small{display:block!important;color:#65738e!important;font-size:9px!important;text-transform:uppercase!important;letter-spacing:1.2px!important;margin-top:2px!important;line-height:1.2!important}
+.topbar .top-actions{display:flex!important;align-items:center!important;gap:10px!important;margin-left:auto!important}
+.topbar .icon-btn{width:38px!important;height:38px!important;border:1px solid var(--line)!important;background:#0a1020!important;color:#aeb9ca!important;border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important}
+.topbar .notif{position:absolute!important;right:-2px!important;top:-3px!important;background:#ef4444!important;color:#fff!important;border-radius:10px!important;font-size:8px!important;padding:3px 5px!important;font-weight:700!important}
+.topbar .avatar{width:38px!important;height:38px!important;border-radius:50%!important;background:linear-gradient(135deg,#1e3a8a,#2563eb)!important;display:flex!important;align-items:center!important;justify-content:center!important;font-weight:800!important;font-size:12px!important;border:1px solid rgba(96,165,250,.5)!important;color:#fff!important}
+@media(max-width:800px){
+    .topbar{padding:0 16px!important}
+    .topbar .brand{min-width:0!important}
+    .topbar .brand div{display:none!important}
+}
+</style>
 </head>
 <body>
 <div class="app">
-<nav class="sidebar" id="sidebar">
-    <a href="dashboard.php" class="brand">
-        <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-        <div class="brand-text">
-            <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-            <small>PT Ganda Elang Tangguh</small>
-        </div>
-    </a>
-
-    <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
-    <?php if (in_array('sales_activity', $menuNames)): ?>
-        <a href="salesactivity.php" class="nav-item active"><i class="fas fa-chart-bar"></i> Sales Activity</a>
-    <?php endif; ?>
-    <?php if (in_array('account_management', $menuNames)): ?>
-        <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
-    <?php endif; ?>
-    <?php if (in_array('transaction_request', $menuNames)): ?>
-        <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
-    <?php endif; ?>
-    <?php if (in_array('produk', $menuNames)): ?>
-        <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
-    <?php endif; ?>
-    <?php if (in_array('delivery_order', $menuNames)): ?>
-        <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
-    <?php endif; ?>
-    <?php if (in_array('data_user', $menuNames)): ?>
-        <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
-    <?php endif; ?>
-    <?php if (in_array('data_sales', $menuNames) && file_exists('data_sales.php')): ?>
-        <a href="data_sales.php" class="nav-item"><i class="fas fa-user-tie"></i> Sales</a>
-    <?php endif; ?>
-
-    <div class="user-profile">
-        <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-        <div class="user-info">
-            <div class="name"><?= htmlspecialchars($fullName) ?></div>
-            <div class="role"><?= getRoleLabel($role) ?></div>
-        </div>
-    </div>
-    <a href="logout.php" class="logout-btn">
-        <i class="fas fa-sign-out-alt"></i> Logout
-    </a>
-</nav>
-
+<header class="topbar">
+    <button class="mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
+    <a class="brand" href="dashboard.php"><img src="images/logo.webp" alt="GET"><div><strong>PT Ganda Elang Tangguh</strong><small>Customer Relationship Management</small></div></a>
+    <div class="top-actions"><button class="icon-btn" type="button" aria-label="Notifications"><i class="far fa-bell"></i><span class="notif">!</span></button><div class="avatar"><?= strtoupper(substr($fullName,0,1)) ?></div></div>
+</header>
+<div class="shell">
+<aside class="rail" id="sidebar">
+    <div class="rail-label">Main Menu</div>
+    <a href="dashboard.php"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+    <?php if(in_array('sales_activity',$menuNames)): ?><a class="active" href="salesactivity.php"><i class="fas fa-chart-line"></i><span>Sales Activity</span></a><?php endif; ?>
+    <?php if(in_array('account_management',$menuNames)): ?><a href="account_management.php"><i class="fas fa-building"></i><span>Account Management</span></a><?php endif; ?>
+    <?php if(in_array('transaction_request',$menuNames)): ?><a href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a><?php endif; ?>
+    <?php if(in_array('produk',$menuNames)): ?><a href="produk.php"><i class="fas fa-box"></i><span>Produk</span></a><?php endif; ?>
+    <?php if(in_array('delivery_order',$menuNames)): ?><a href="deliveryinstruction.php"><i class="fas fa-truck-moving"></i><span>Delivery Order</span></a><?php endif; ?>
+    <div class="rail-label">Administration</div>
+    <?php if(in_array('data_user',$menuNames)): ?><a href="data_user.php"><i class="fas fa-users"></i><span>Data User</span></a><?php endif; ?>
+    <?php if(in_array('data_sales',$menuNames) && file_exists('data_sales.php')): ?><a href="data_sales.php"><i class="fas fa-user-tie"></i><span>Data Sales</span></a><?php endif; ?>
+    <div class="spacer"></div>
+    <div class="rail-user"><div class="mini-avatar"><?= strtoupper(substr($fullName,0,1)) ?></div><div><strong><?= htmlspecialchars($fullName) ?></strong><span><?= htmlspecialchars(getRoleLabel($role)) ?></span></div></div>
+    <a class="logout-link" href="logout.php"><i class="fas fa-power-off"></i><span>Logout</span></a>
+</aside>
 <main class="content">
-<section class="hero-row">
-    <div class="hero">
-        <button class="mobile-toggle dashboard-mobile-toggle" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
-        <div class="eyebrow">PT Ganda Elang Tangguh · Customer Relationship Management</div>
-        <h1>Sales Activity</h1>
-        <p>Monitor customer activities, prospect stages and sales performance.</p>
+<div class="page-header">
+    <div style="display:flex; gap:15px; align-items:center;">
+        <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div>
+            <h4><span><i class="fas fa-chart-line"></i></span> Sales Activity</h4>
+        </div>
     </div>
     <div class="header-actions">
         <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>&search=<?= urlencode($search) ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
         <?php if (canAdd('sales_activity')): ?><button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalActivity"><i class="fas fa-plus me-2"></i>Tambah Aktivitas</button><?php endif; ?>
     </div>
-</section>
+</div>
 <div class="chart-grid">
     <div class="chart-card"><h6><i class="fas fa-chart-pie"></i> Rekap Jenis Prospek</h6><div class="chart-wrapper"><canvas id="chartJenisProspek"></canvas></div></div>
     <div class="chart-card"><h6><i class="fas fa-tasks"></i> Rekap Status</h6><div class="chart-wrapper"><canvas id="chartStatus"></canvas></div></div>
