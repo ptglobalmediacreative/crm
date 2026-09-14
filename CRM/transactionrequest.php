@@ -417,7 +417,7 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18;scrollbar-width:thin}html
                                 <th>Account</th>
                                 <th>Request Date</th>
                                 <th>Sales</th>
-                                <th>Next Approver</th>
+                                <th>Current Approver</th>
                                 <th>Status</th>
                                 <th style="text-align:center;">Action</th>
                             </tr>
