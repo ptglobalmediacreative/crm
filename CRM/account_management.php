@@ -944,7 +944,7 @@ html,body{scrollbar-color:rgba(96,165,250,.32) #060b18!important;scrollbar-width
             <a href="data_sales.php" class="nav-item"><i class="fas fa-user-tie"></i><span>Data Sales</span></a>
         <?php endif; ?>
         <div class="sidebar-spacer"></div>
-        <div class="user-profile"><div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div><div class="user-info"><div class="name"><?= htmlspecialchars($fullName) ?></div><div class="role"><?= getRoleLabel($role) ?></div></div></div>
+        <div class="user-profile"><div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div><div class="user-info"><div class="name"><strong><?= htmlspecialchars($fullName) ?><strong></div><div class="role"><?= getRoleLabel($role) ?></div></div></div>
         <a href="logout.php" class="logout-btn"><i class="fas fa-power-off"></i><span>Logout</span></a>
     </nav>
 
