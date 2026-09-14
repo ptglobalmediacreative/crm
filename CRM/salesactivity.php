@@ -808,6 +808,7 @@ html{background:#060b18}
 body{font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at 70% -10%,rgba(37,99,235,.20),transparent 30%),linear-gradient(145deg,#050914,#08111f 55%,#07162c);color:var(--text);min-height:100vh;overflow-x:hidden;padding-bottom:0}
 a{color:inherit}
 .app{min-height:100vh}
+.content{margin-left:245px;width:calc(100% - 245px);padding:26px 28px 50px}
 .hero-row{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:22px}.eyebrow{font-size:10px;color:#6f80a0;text-transform:uppercase;letter-spacing:1.6px;font-weight:700;margin-bottom:7px}.hero h1{font-size:26px;letter-spacing:-1px;font-weight:800;margin:0}.hero p{font-size:12px;color:var(--muted);margin-top:7px}.filters{display:flex;gap:8px;align-items:center}.filter{height:38px;border:1px solid var(--line);background:rgba(10,17,33,.85);color:#cdd7e7;border-radius:11px;padding:0 12px;font-size:11px;outline:none}.filter option{background:#0b1222}.btn-add{height:38px;border:0;border-radius:11px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:11px;font-weight:700;padding:0 15px;box-shadow:0 0 24px rgba(59,130,246,.25);display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.btn-add:hover{color:#fff;transform:translateY(-1px);box-shadow:0 0 28px rgba(59,130,246,.35)}
 .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btn-export{height:38px;border:1px solid rgba(52,211,153,.25);border-radius:11px;background:rgba(52,211,153,.08);color:#6ee7b7;font-size:11px;font-weight:700;padding:0 14px;display:inline-flex;align-items:center;text-decoration:none}.btn-export:hover{color:#a7f3d0;background:rgba(52,211,153,.14);transform:translateY(-1px)}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}.chart-card{background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96));border:1px solid var(--line);border-radius:17px;box-shadow:0 18px 45px rgba(0,0,0,.18);overflow:hidden;transition:.25s}.chart-card:hover{border-color:rgba(96,165,250,.35);box-shadow:0 20px 48px rgba(0,0,0,.25)}.chart-card h6{height:58px;margin:0;padding:0 18px;display:flex;align-items:center;font-size:13px;font-weight:700;color:#f7f9ff;border-bottom:1px solid rgba(148,163,184,.10)}.chart-card h6 i{color:#60a5fa!important;margin-right:9px}.chart-wrapper{height:270px;width:100%;position:relative;padding:10px 16px 14px}
@@ -819,9 +820,16 @@ a{color:inherit}
 .form-label{font-weight:600;font-size:11px;color:#aebbd0}.form-control,.form-select{border-radius:9px;padding:9px 11px;border:1px solid rgba(148,163,184,.16);background:#0a1427;color:#dbe5f5;font-size:11px;transition:.2s}.form-control::placeholder{color:#52627d}.form-control:focus,.form-select:focus{border-color:rgba(96,165,250,.55);box-shadow:0 0 0 3px rgba(59,130,246,.10);background:#0b172d;color:#fff}.form-control[readonly]{background:#0a1325;color:#7f8da5;cursor:not-allowed}.form-select option{background:#0b1222;color:#dbe5f5}.btn-primary-custom{background:linear-gradient(135deg,#3b82f6,#6366f1);border:0;border-radius:9px;padding:9px 15px;font-weight:700;font-size:11px;transition:.2s;color:#fff}.btn-primary-custom:hover{background:linear-gradient(135deg,#4f8df7,#6d70f3);transform:translateY(-1px);box-shadow:0 8px 22px rgba(59,130,246,.2);color:#fff}.btn-primary-custom i{margin-right:6px}.btn-secondary-custom{background:#111d31;border:1px solid rgba(148,163,184,.13);border-radius:9px;padding:9px 15px;font-weight:600;font-size:11px;color:#8f9db4;transition:.2s}.btn-secondary-custom:hover{background:#17253d;color:#fff;border-color:rgba(148,163,184,.22)}.btn-danger{background:#dc3545!important;border:0;border-radius:9px;font-size:11px;font-weight:700}.alert{border-radius:10px;border:1px solid rgba(96,165,250,.14);padding:10px 13px;font-size:11px;background:#0c1830;color:#cbd5e1}.detail-item{display:flex;padding:10px 0;border-bottom:1px solid rgba(148,163,184,.08)}.detail-item:last-child{border-bottom:none}.detail-item .detail-label{font-weight:600;color:#6f7f98;width:160px;flex-shrink:0;font-size:10px}.detail-item .detail-value{color:#dbe5f5;font-size:10px;word-break:break-word}.leads-number-display{background:rgba(59,130,246,.08);border:1px solid rgba(96,165,250,.14);padding:10px 13px;border-radius:9px;font-weight:700;color:#60a5fa;text-align:center;font-size:14px;letter-spacing:.5px}
 .modal-content{background:linear-gradient(145deg,#0c172b,#07101f);border:1px solid var(--line);border-radius:15px;color:#dbe5f5;box-shadow:0 24px 70px rgba(0,0,0,.45)}.modal-header{border-bottom:1px solid rgba(148,163,184,.10);padding:16px 20px}.modal-header .modal-title{font-weight:700;font-size:14px;color:#f7f9ff}.modal-header .modal-title i{color:#60a5fa!important;margin-right:8px}.modal-footer{border-top:1px solid rgba(148,163,184,.10);padding:12px 20px}.modal-body{padding:18px 20px}.btn-close{filter:invert(1) grayscale(1);opacity:.55}.btn-close:hover{opacity:1}.select2-container--default .select2-selection--single{height:40px;border-radius:9px;border:1px solid rgba(148,163,184,.16);background:#0a1427;color:#dbe5f5;padding:6px 10px;font-size:11px}.select2-container--default .select2-selection--single .select2-selection__rendered{color:#dbe5f5;line-height:26px}.select2-container--default .select2-selection--single .select2-selection__arrow{height:38px}.select2-container--default .select2-selection--single:focus{border-color:rgba(96,165,250,.55)}.select2-dropdown{background:#0b1426;border:1px solid rgba(148,163,184,.18);color:#dbe5f5}.select2-container--default .select2-search--dropdown .select2-search__field{background:#07101f;border:1px solid rgba(148,163,184,.16);color:#fff}.select2-container--default .select2-results__option{font-size:11px}.select2-container--default .select2-results__option--highlighted[aria-selected]{background:#2563eb}.select2-container--default .select2-results__option[aria-selected=true]{background:#10203a;color:#fff}
 .footer-text,.footer{text-align:center;color:#44536c;font-size:9px;margin-top:20px}.footer-text a{color:#6b7a94;text-decoration:none}.footer-text a:hover{color:#60a5fa}
-@media(max-width:1050px){.chart-grid{grid-template-columns:1fr}}
-@media(max-width:800px){.hero-row{align-items:flex-start;flex-direction:column}.filters{width:100%;flex-wrap:wrap}.filter{flex:1;min-width:130px}.header-actions{width:100%}.header-actions a,.header-actions button{flex:1}.card-custom .card-header-custom{align-items:flex-start}.card-custom .card-header-custom form{width:100%}.table-custom{font-size:9px}.table-custom th,.table-custom th,.table-custom td{padding:10px 9px}}
-@media(max-width:480px){.hero h1{font-size:22px}.hero p{font-size:10px}.chart-wrapper{height:235px;padding:8px}.chart-card h6{height:52px;padding:0 14px}.card-custom .card-header-custom{padding:13px}.form-control,.form-select{font-size:10px}.detail-item{flex-direction:column}.detail-item .detail-label{width:100%;margin-bottom:3px}}
+@media(max-width:1050px){
+    .content{padding:22px 20px 45px}
+    .chart-grid{grid-template-columns:1fr}
+}
+@media(max-width:800px){
+    .content{margin-left:0;width:100%;padding:20px 14px 40px}
+    .hero-row{align-items:flex-start;flex-direction:column}.filters{width:100%;flex-wrap:wrap}.filter{flex:1;min-width:130px}.header-actions{width:100%}.header-actions a,.header-actions button{flex:1}.card-custom .card-header-custom{align-items:flex-start}.card-custom .card-header-custom form{width:100%}.table-custom{font-size:9px}.table-custom th,.table-custom td{padding:10px 9px}}
+@media(max-width:480px){
+    .content{padding:18px 10px 35px}
+    .hero h1{font-size:22px}.hero p{font-size:10px}.chart-wrapper{height:235px;padding:8px}.chart-card h6{height:52px;padding:0 14px}.card-custom .card-header-custom{padding:13px}.form-control,.form-select{font-size:10px}.detail-item{flex-direction:column}.detail-item .detail-label{width:100%;margin-bottom:3px}}
 
 /* =========================================================
    SALES ACTIVITY PAGE HEADER — MATCH ACCOUNT MANAGEMENT
@@ -836,7 +844,7 @@ a{color:inherit}
     margin-bottom:20px!important;
     flex-wrap:wrap!important;
 }
-.page-header>div:first-child{
+.page-header .page-title{
     display:flex!important;
     align-items:center!important;
     gap:12px!important;
@@ -901,13 +909,8 @@ a{color:inherit}
 <?php require_once 'navigation.php'; ?>
 <main class="content">
 <div class="page-header">
-    <div style="display:flex; gap:15px; align-items:center;">
-        <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div>
-            <h4><span><i class="fas fa-chart-line"></i></span> Sales Activity</h4>
-        </div>
+    <div class="page-title">
+        <h4><span><i class="fas fa-chart-line"></i></span> Sales Activity</h4>
     </div>
     <div class="header-actions">
         <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>&search=<?= urlencode($search) ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
