@@ -815,6 +815,42 @@ $details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id 
 $details->execute([$leadsId]);
 $detailsList = $details->fetchAll();
 
+// Jika Customer Deal pada Delivery Order = Deal, maka Jenis Prospek
+// Sales Activity ini otomatis menjadi Deal.
+$hasCustomerDeal = false;
+$hasCustomerLostDeal = false;
+foreach ($detailsList as $d) {
+    if (($d['jenis_tugas'] ?? '') !== 'Delivery Order') continue;
+    $trNumberForDeal = trim((string)($d['tr_number'] ?? ''));
+    if ($trNumberForDeal === '') continue;
+
+    $stmtDealSync = $db->prepare("SELECT dtr.customer_deal
+                                  FROM detail_transaction_requests dtr
+                                  INNER JOIN activity_details adtr ON adtr.tr_number = dtr.trf_number
+                                  WHERE dtr.trf_number = ?
+                                    AND adtr.sales_activity_id = ?
+                                    AND dtr.customer_deal IS NOT NULL
+                                    AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
+                                  ORDER BY dtr.id DESC, adtr.id DESC
+                                  LIMIT 1");
+    $stmtDealSync->execute([$trNumberForDeal, $leadsId]);
+    $dealSync = strtolower(trim((string)$stmtDealSync->fetchColumn()));
+
+    if ($dealSync === 'yes') {
+        $hasCustomerDeal = true;
+        break;
+    }
+    if ($dealSync === 'no') $hasCustomerLostDeal = true;
+}
+
+if ($hasCustomerDeal) {
+    $stmtUpdateProspek = $db->prepare("UPDATE sales_activities SET jenis_prospek = 'Deal' WHERE id = ?");
+    $stmtUpdateProspek->execute([$leadsId]);
+} elseif ($hasCustomerLostDeal) {
+    $stmtUpdateProspek = $db->prepare("UPDATE sales_activities SET jenis_prospek = 'Lost Deal' WHERE id = ?");
+    $stmtUpdateProspek->execute([$leadsId]);
+}
+
 // Customer Deal ditampilkan berdasarkan Detail TR (TR Number + Activity Number),
 // bukan lagi berdasarkan kolom legacy activity_details.customer_deal.
 $customerDealByDetailId = [];

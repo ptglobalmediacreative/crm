@@ -455,6 +455,23 @@ function getJenisProspek($db, $salesActivityId) {
     }
     
     $jenis_tugas = $lastActivity['jenis_tugas'];
+
+    // Customer Deal = Deal pada Delivery Order menjadi prioritas.
+    // Jadi Jenis Prospek tetap Deal walaupun ada aktivitas setelah Delivery Order.
+    $stmtDealPriority = $db->prepare("SELECT dtr.customer_deal
+                                      FROM detail_transaction_requests dtr
+                                      INNER JOIN activity_details ad ON ad.tr_number = dtr.trf_number
+                                      WHERE ad.sales_activity_id = ?
+                                        AND ad.jenis_tugas = 'Delivery Order'
+                                        AND dtr.customer_deal IS NOT NULL
+                                        AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
+                                      ORDER BY dtr.id DESC, ad.id DESC
+                                      LIMIT 1");
+    $stmtDealPriority->execute([$salesActivityId]);
+    $priorityDeal = strtolower(trim((string)$stmtDealPriority->fetchColumn()));
+
+    if ($priorityDeal === 'yes') return 'Deal';
+    if ($priorityDeal === 'no') return 'Lost Deal';
     
     // Delivery Order:
     // Jangan lagi membaca activity_details.customer_deal (legacy).
