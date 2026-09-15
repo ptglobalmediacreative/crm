@@ -1063,7 +1063,10 @@ a{color:inherit}
 
 .content{margin-left:245px;width:calc(100% - 245px);padding:26px 28px 50px;min-height:calc(100vh - 72px);max-width:none}.page-header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:20px;flex-wrap:wrap}.page-header>div:first-child{display:flex;gap:12px;align-items:center}.page-header h4{display:flex;align-items:center;gap:10px;font-size:25px;line-height:1.1;font-weight:800;letter-spacing:-.4px;color:#f7f9ff;margin:0}.page-header h4 span{width:38px;height:38px;border-radius:11px;background:rgba(96,165,250,.10);border:1px solid rgba(96,165,250,.15);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.page-header h4 span i{font-size:15px;color:#60a5fa;margin:0}.page-header p{font-size:12px;color:var(--muted);margin-top:7px}.eyebrow{font-size:10px;color:#6f80a0;text-transform:uppercase;letter-spacing:1.6px;font-weight:700;margin-bottom:7px}
 .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat-card{min-height:128px;background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96));border:1px solid var(--line);border-radius:17px;box-shadow:0 18px 45px rgba(0,0,0,.18);padding:18px 19px;transition:.25s;color:#eaf0f8}.stat-card:hover{border-color:rgba(96,165,250,.35);box-shadow:0 20px 48px rgba(0,0,0,.25);transform:translateY(-1px)}.stat-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:0}.stat-icon.gold{background:rgba(212,160,23,.12);color:#e0b53d}.stat-icon.blue{background:rgba(59,130,246,.12);color:#60a5fa}.stat-icon.green{background:rgba(52,211,153,.12);color:#34d399}.stat-icon.red{background:rgba(251,113,133,.10);color:#fb7185}.stat-number{color:#f7f9ff;font-size:24px;font-weight:800;line-height:1;margin-top:15px;margin-bottom:6px}.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;font-weight:700;color:#70809b}
-.card-custom{background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96));border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 45px rgba(0,0,0,.18);overflow:hidden;transition:.25s}.card-custom:hover{border-color:rgba(96,165,250,.35);box-shadow:0 20px 48px rgba(0,0,0,.25)}.card-header-custom{min-height:62px;padding:13px 17px;border-bottom:1px solid rgba(148,163,184,.10);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.card-header-custom h6{font-weight:700;color:#f7f9ff;margin:0;font-size:12px}.card-header-custom h6 i{color:#60a5fa;margin-right:8px}.card-header-custom form{display:flex;align-items:center;gap:7px}.card-header-custom input{height:36px;width:230px;background:#0a1427!important;border:1px solid rgba(148,163,184,.16)!important;color:#dbe5f5!important;border-radius:9px!important;font-size:11px}.card-header-custom input::placeholder{color:#52627d}.btn-primary-custom{background:linear-gradient(135deg,#3b82f6,#6366f1);border:0;border-radius:9px;padding:9px 15px;font-weight:700;font-size:11px;transition:.2s;color:#fff}.btn-primary-custom:hover{background:linear-gradient(135deg,#4f8df7,#6d70f3);transform:translateY(-1px);box-shadow:0 8px 22px rgba(59,130,246,.2);color:#fff}.btn-secondary-custom{background:#111d31;border:1px solid rgba(148,163,184,.13);border-radius:9px;padding:9px 15px;font-weight:600;font-size:11px;color:#8f9db4;transition:.2s}.btn-secondary-custom:hover{background:#17253d;color:#fff;border-color:rgba(148,163,184,.22)}
+.card-custom{background:linear-gradient(145deg,rgba(12,23,43,.94),rgba(7,14,28,.96));border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 45px rgba(0,0,0,.18);overflow:hidden;transition:.25s}.card-custom:hover{border-color:rgba(96,165,250,.35);box-shadow:0 20px 48px rgba(0,0,0,.25)}.card-header-custom{min-height:62px;padding:13px 17px;border-bottom:1px solid rgba(148,163,184,.10);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.card-header-custom h6{font-weight:700;color:#f7f9ff;margin:0;font-size:12px}.card-header-custom h6 i{color:#60a5fa;margin-right:8px}.card-header-custom form{display:flex;align-items:center;gap:7px}.card-header-custom input{height:36px;width:230px;background:#0a1427!important;border:1px solid rgba(148,163,184,.16)!important;color:#dbe5f5!important;border-radius:9px!important;font-size:11px}.card-header-custom input::placeholder{color:#52627d}.card-header-custom > div{position:relative;z-index:50;display:flex;align-items:center;gap:8px}
+.card-header-custom .btn{position:relative;z-index:51;pointer-events:auto!important;cursor:pointer!important}
+.card-custom .card-header-custom{position:relative;z-index:10}
+.btn-primary-custom{background:linear-gradient(135deg,#3b82f6,#6366f1);border:0;border-radius:9px;padding:9px 15px;font-weight:700;font-size:11px;transition:.2s;color:#fff}.btn-primary-custom:hover{background:linear-gradient(135deg,#4f8df7,#6d70f3);transform:translateY(-1px);box-shadow:0 8px 22px rgba(59,130,246,.2);color:#fff}.btn-secondary-custom{background:#111d31;border:1px solid rgba(148,163,184,.13);border-radius:9px;padding:9px 15px;font-weight:600;font-size:11px;color:#8f9db4;transition:.2s}.btn-secondary-custom:hover{background:#17253d;color:#fff;border-color:rgba(148,163,184,.22)}
 .border-bottom{border-color:rgba(148,163,184,.10)!important}.filter-buttons{display:flex;gap:8px;flex-wrap:wrap}.btn-filter{padding:7px 12px;border:1px solid rgba(148,163,184,.12);background:rgba(10,17,33,.85);border-radius:9px;color:#8492aa;text-decoration:none;font-size:10px;font-weight:600;transition:.2s}.btn-filter:hover{color:#fff;border-color:rgba(96,165,250,.25);background:#10203a}.btn-filter.active{background:rgba(37,99,235,.15);border-color:rgba(96,165,250,.3);color:#9fc5ff}.btn-filter .count{background:rgba(255,255,255,.05);padding:2px 6px;border-radius:10px;margin-left:4px}.card-body-custom{padding:0}.table-responsive{background:transparent;overflow-x:auto}.table-custom{margin-bottom:0!important;width:100%;min-width:1120px;font-size:10px;color:#cbd5e1;--bs-table-bg:transparent;--bs-table-color:#cbd5e1;--bs-table-border-color:transparent}.table-custom th{height:43px;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.6px;color:#66758f!important;border-bottom:1px solid rgba(148,163,184,.10)!important;padding:11px 13px!important;background:rgba(5,12,25,.48)!important;white-space:nowrap}.table-custom td{height:54px;padding:10px 13px!important;vertical-align:middle;border-bottom:1px solid rgba(148,163,184,.07)!important;color:#cbd5e1!important;background:transparent!important}.table-custom tbody tr{transition:.15s}.table-custom tbody tr:hover td{background:rgba(59,130,246,.035)!important;color:#e8eef7!important}.table-custom tr:last-child td{border-bottom:none!important}.table-custom a{color:#60a5fa!important;text-decoration:none;font-weight:700}.table-custom a:hover{color:#93c5fd!important}.table-custom th:first-child,.table-custom td:first-child{width:48px;text-align:center}.table-custom th:last-child,.table-custom td:last-child{width:92px;text-align:center}.text-muted{color:#64748b!important}
 .badge-status-tr{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;font-size:8px;font-weight:700;white-space:nowrap;border:1px solid transparent}.badge-status-tr.pending{background:rgba(251,191,36,.10);color:#fcd34d;border-color:rgba(251,191,36,.15)}.badge-status-tr.approved{background:rgba(52,211,153,.10);color:#6ee7b7;border-color:rgba(52,211,153,.15)}.badge-status-tr.rejected{background:rgba(251,113,133,.10);color:#fb7185;border-color:rgba(251,113,133,.15)}.btn-pdf{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.15);border-radius:8px;padding:6px 10px;color:#6ee7b7;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;transition:.2s}.btn-pdf:hover{color:#a7f3d0;background:rgba(52,211,153,.14);transform:translateY(-1px)}.btn-pdf-disabled{background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.12);border-radius:8px;padding:6px 10px;color:#59677d;display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;cursor:not-allowed}
 .card-footer{background:rgba(5,12,25,.35)!important;border-top:1px solid rgba(148,163,184,.08)!important}.pagination{gap:4px}.pagination .page-link{background:#0a1427;border:1px solid rgba(148,163,184,.12);color:#8492aa;border-radius:8px!important;font-size:9px;padding:6px 9px}.pagination .page-link:hover{background:#10203a;color:#fff;border-color:rgba(96,165,250,.25)}.pagination .page-item.active .page-link{background:#2563eb;border-color:#3b82f6;color:#fff;box-shadow:0 0 15px rgba(59,130,246,.22)}.alert{border-radius:10px;border:1px solid rgba(96,165,250,.14);padding:10px 13px;font-size:11px;background:#0c1830;color:#cbd5e1}.footer-text{text-align:center;color:#44536c;font-size:9px;margin-top:20px}.footer-text a{color:#6b7a94;text-decoration:none}.footer-text a:hover{color:#60a5fa}
@@ -1414,7 +1417,7 @@ textarea.form-control{min-height:96px;resize:vertical}
                     </form>
                     <?php endif; ?>
                     <?php if ($canEditSalesSection): ?>
-                    <button class="btn btn-primary-custom btn-sm" onclick="showEditSummary()">
+                    <button type="button" class="btn btn-primary-custom btn-sm" onclick="showEditSummary(event); return false;">
                         <i class="fas fa-edit"></i> Edit
                     </button>
                     <?php endif; ?>
@@ -1672,7 +1675,7 @@ textarea.form-control{min-height:96px;resize:vertical}
             <div class="card-header-custom">
                 <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
                 <?php if ($canEditSalesSection): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm()">
+                <button type="button" class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm(event); return false;">
                     <i class="fas fa-edit"></i> <?= count($detailUnits) > 0 ? 'Edit Unit' : 'Tambah Unit' ?>
                 </button>
                 <?php endif; ?>
@@ -1885,7 +1888,7 @@ textarea.form-control{min-height:96px;resize:vertical}
             <div class="card-header-custom">
                 <h6><i class="fas fa-money-bill-wave"></i> Term Of Payment</h6>
                 <?php if ($canEditSalesSection): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="showTOPSection()">
+                <button type="button" class="btn btn-primary-custom btn-sm" onclick="showTOPSection(event); return false;">
                     <i class="fas fa-edit"></i> Edit TOP
                 </button>
                 <?php endif; ?>
@@ -2088,7 +2091,7 @@ textarea.form-control{min-height:96px;resize:vertical}
             <div class="card-header-custom">
                 <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
                 <?php if ($canEditSalesSection): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleMediatorForm()">
+                <button type="button" class="btn btn-primary-custom btn-sm" onclick="toggleMediatorForm(event); return false;">
                     <i class="fas fa-edit"></i> <?= count($mediators) > 0 ? 'Edit Mediator' : 'Tambah Mediator' ?>
                 </button>
                 <?php endif; ?>
@@ -2461,9 +2464,17 @@ textarea.form-control{min-height:96px;resize:vertical}
         // ============================================
         // FUNGSI UNTUK SUMMARY
         // ============================================
-        function showEditSummary() {
-            document.getElementById('editSummaryForm').style.display = 'block';
-            document.getElementById('viewSummary').style.display = 'none';
+        function showEditSummary(event) {
+            if (event) event.preventDefault();
+            const editForm = document.getElementById('editSummaryForm');
+            const viewSummary = document.getElementById('viewSummary');
+            if (!editForm) {
+                console.error('Element #editSummaryForm tidak ditemukan.');
+                return false;
+            }
+            editForm.style.display = 'block';
+            if (viewSummary) viewSummary.style.display = 'none';
+            return false;
         }
         
         function hideEditSummary() {
@@ -2633,9 +2644,16 @@ textarea.form-control{min-height:96px;resize:vertical}
         // ============================================
         // FUNGSI UNTUK DETAIL UNIT
         // ============================================
-        function showAddUnitForm() {
-            document.getElementById('addUnitForm').style.display = 'block';
-            document.getElementById('unitForm').reset();
+        function showAddUnitForm(event) {
+            if (event) event.preventDefault();
+            const formContainer = document.getElementById('addUnitForm');
+            if (!formContainer) {
+                console.error('Element #addUnitForm tidak ditemukan.');
+                return false;
+            }
+            formContainer.style.display = 'block';
+            const unitForm = document.getElementById('unitForm');
+            if (unitForm) unitForm.reset();
             resetUnitSearch();
             document.getElementById('unit_id_hidden').value = '0';
             document.getElementById('deleteUnitBtn').style.display = 'none';
@@ -2728,8 +2746,15 @@ textarea.form-control{min-height:96px;resize:vertical}
         // ============================================
         // FUNGSI UNTUK TERM OF PAYMENT
         // ============================================
-        function showTOPSection() {
-            document.getElementById('topForm').style.display = 'block';
+        function showTOPSection(event) {
+            if (event) event.preventDefault();
+            const topForm = document.getElementById('topForm');
+            if (!topForm) {
+                console.error('Element #topForm tidak ditemukan.');
+                return false;
+            }
+            topForm.style.display = 'block';
+            return false;
         }
         
         function hideTOPSection() {
@@ -2883,7 +2908,8 @@ textarea.form-control{min-height:96px;resize:vertical}
         // ============================================
         let mediatorRowCount = 0;
         
-        function toggleMediatorForm() {
+        function toggleMediatorForm(event) {
+            if (event) event.preventDefault();
             const formContainer = document.getElementById('mediatorFormContainer');
             if (formContainer.style.display === 'none') {
                 formContainer.style.display = 'block';
