@@ -399,6 +399,48 @@ function deleteSalesActivityAndRelatedData($db, $salesActivityId) {
 }
 
 // ============================================
+// AMBIL CUSTOMER DEAL DARI DETAIL TR
+// Sumber data: detail_transaction_requests
+// Pencocokan wajib berdasarkan TR Number + Activity Number
+// (sales_activity_id) agar tidak tertukar antar activity.
+// ============================================
+function getCustomerDealFromTR($db, $trNumber, $salesActivityId) {
+    $trNumber = trim((string)$trNumber);
+    $salesActivityId = (int)$salesActivityId;
+
+    if ($trNumber === '' || $salesActivityId <= 0) {
+        return null;
+    }
+
+    $stmt = $db->prepare("
+        SELECT dtr.customer_deal, dtr.customer_deal_keterangan
+        FROM detail_transaction_requests dtr
+        INNER JOIN activity_details ad
+            ON ad.tr_number = dtr.trf_number
+        WHERE dtr.trf_number = ?
+          AND ad.sales_activity_id = ?
+          AND dtr.customer_deal IS NOT NULL
+          AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
+        ORDER BY dtr.id DESC, ad.id DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$trNumber, $salesActivityId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        return null;
+    }
+
+    $deal = strtolower(trim((string)$row['customer_deal']));
+
+    return [
+        'customer_deal' => $deal === 'yes' ? 'yes' : 'no',
+        'customer_deal_label' => $deal === 'yes' ? 'Deal' : 'No',
+        'customer_deal_keterangan' => trim((string)($row['customer_deal_keterangan'] ?? ''))
+    ];
+}
+
+// ============================================
 // FUNGSI MENENTUKAN JENIS PROSPEK
 // ============================================
 function getJenisProspek($db, $salesActivityId) {
@@ -406,22 +448,37 @@ function getJenisProspek($db, $salesActivityId) {
                           WHERE ad.sales_activity_id = ? 
                           ORDER BY ad.id DESC LIMIT 1");
     $stmt->execute([$salesActivityId]);
-    $lastActivity = $stmt->fetch();
+    $lastActivity = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$lastActivity) {
         return null;
     }
     
     $jenis_tugas = $lastActivity['jenis_tugas'];
-    $customer_deal = $lastActivity['customer_deal'];
     
-    // Delivery Order: Cek Customer Deal (Yes = Deal, No = Lost Deal)
+    // Delivery Order:
+    // Jangan lagi membaca activity_details.customer_deal (legacy).
+    // Customer Deal harus berasal dari detail_transaction_requests
+    // yang cocok dengan TR Number dan Activity Number.
     if ($jenis_tugas === 'Delivery Order') {
-        if ($customer_deal === 'Yes') {
+        $dealInfo = getCustomerDealFromTR(
+            $db,
+            $lastActivity['tr_number'] ?? '',
+            $salesActivityId
+        );
+
+        if (!$dealInfo) {
+            return null;
+        }
+
+        if ($dealInfo['customer_deal'] === 'yes') {
             return 'Deal';
-        } elseif ($customer_deal === 'No') {
+        }
+
+        if ($dealInfo['customer_deal'] === 'no') {
             return 'Lost Deal';
         }
+
         return null;
     }
     
