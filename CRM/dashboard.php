@@ -116,10 +116,10 @@ $pipelineCounts = [
 ];
 
 // Pipeline stage counts
-// Klasifikasi mengikuti Sales Activity:
-// Perkenalan/Visit = Suspect, Prospecting = Prospect,
-// Negosiasi/Kontrak = Hot Prospect,
-// Delivery Order Yes = Deal, Delivery Order No = Lost Deal.
+// Klasifikasi mengikuti Sales Activity.
+// Customer Deal menjadi prioritas utama untuk semua Jenis Tugas:
+// Yes = Deal, No = Lost Deal.
+// Jika belum ada Customer Deal, gunakan klasifikasi Jenis Tugas.
 $pipelineCounts = [
     'Suspect' => 0,
     'Prospect' => 0,
@@ -129,15 +129,19 @@ $pipelineCounts = [
 ];
 
 $sqlPipeline = "
-    SELECT latest.account_id, latest.jenis_tugas, latest.customer_deal
+    SELECT latest.account_id, latest.jenis_tugas, latest.tr_number,
+           latest.customer_deal, latest.customer_deal_keterangan
     FROM (
-        SELECT sa.account_id, ad.jenis_tugas, ad.customer_deal, ad.id,
+        SELECT sa.account_id, ad.jenis_tugas, ad.tr_number,
+               dtr.customer_deal, dtr.customer_deal_keterangan, ad.id,
                ROW_NUMBER() OVER (
                    PARTITION BY sa.account_id
                    ORDER BY ad.id DESC
                ) AS rn
         FROM sales_activities sa
         INNER JOIN activity_details ad ON ad.sales_activity_id = sa.id
+        LEFT JOIN detail_transaction_requests dtr
+            ON dtr.trf_number = ad.tr_number
         WHERE sa.account_id IS NOT NULL
           AND ad.jenis_tugas IS NOT NULL
           AND TRIM(ad.jenis_tugas) <> ''
@@ -149,9 +153,12 @@ try {
     $pipelineRows = $db->query($sqlPipeline)->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $sqlPipeline = "
-        SELECT sa.account_id, ad.jenis_tugas, ad.customer_deal
+        SELECT sa.account_id, ad.jenis_tugas, ad.tr_number,
+               dtr.customer_deal, dtr.customer_deal_keterangan
         FROM sales_activities sa
         INNER JOIN activity_details ad ON ad.sales_activity_id = sa.id
+        LEFT JOIN detail_transaction_requests dtr
+            ON dtr.trf_number = ad.tr_number
         INNER JOIN (
             SELECT sa2.account_id, MAX(ad2.id) AS max_detail_id
             FROM sales_activities sa2
@@ -167,14 +174,14 @@ try {
 
 foreach ($pipelineRows as $row) {
     $jenisTugas = $row['jenis_tugas'];
-    $customerDeal = $row['customer_deal'];
+    $customerDeal = strtolower(trim((string)($row['customer_deal'] ?? '')));
 
-    if ($jenisTugas === 'Delivery Order') {
-        if ($customerDeal === 'Yes') {
-            $pipelineCounts['Deal']++;
-        } elseif ($customerDeal === 'No') {
-            $pipelineCounts['Lost Deal']++;
-        }
+    // Customer Deal menjadi prioritas utama untuk semua Jenis Tugas.
+    // Yes/Deal -> Deal, No -> Lost Deal.
+    if ($customerDeal === 'yes') {
+        $pipelineCounts['Deal']++;
+    } elseif ($customerDeal === 'no') {
+        $pipelineCounts['Lost Deal']++;
     } elseif ($jenisTugas === 'Negosiasi' || $jenisTugas === 'Kontrak') {
         $pipelineCounts['Hot Prospect']++;
     } elseif ($jenisTugas === 'Prospecting') {
