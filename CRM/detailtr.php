@@ -2660,11 +2660,11 @@ textarea.form-control{min-height:96px;resize:vertical}
             
             <?php if (count($detailUnits) > 0): ?>
                 <?php $firstUnit = $detailUnits[0]; ?>
-                document.getElementById('unit_id_hidden').value = '<?= $firstUnit['id'] ?>';
-                document.getElementById('unit_id').value = '<?= $firstUnit['unit_id'] ?>';
+                document.getElementById('unit_id_hidden').value = <?= json_encode((string)($firstUnit['id'] ?? '')) ?>;
+                document.getElementById('unit_id').value = <?= json_encode((string)($firstUnit['unit_id'] ?? '')) ?>;
                 syncUnitSearchFromSelect();
-                document.getElementById('qty').value = '<?= $firstUnit['qty'] ?>';
-                document.getElementById('price').value = '<?= $firstUnit['price'] ?>';
+                document.getElementById('qty').value = <?= json_encode((string)($firstUnit['qty'] ?? '')) ?>;
+                document.getElementById('price').value = <?= json_encode((string)($firstUnit['price'] ?? '')) ?>;
                 
                 const specInput = document.querySelector('input[name="specification"]');
                 const attachmentInput = document.querySelector('input[name="additional_attachment"]');
@@ -2675,14 +2675,14 @@ textarea.form-control{min-height:96px;resize:vertical}
                 const deliveryScheduleInput = document.querySelector('input[name="delivery_schedule"]');
                 const transTypeInput = document.querySelector('select[name="transaction_type"]');
                 
-                specInput.value = '<?= addslashes($firstUnit['specification']) ?>';
-                attachmentInput.value = '<?= addslashes($firstUnit['additional_attachment']) ?>';
-                warantyInput.value = '<?= addslashes($firstUnit['waranty']) ?>';
-                freePartServiceInput.value = '<?= addslashes($firstUnit['free_part_service']) ?>';
-                locationInput.value = '<?= addslashes($firstUnit['machine_location']) ?>';
-                deliveryTermsInput.value = '<?= addslashes($firstUnit['delivery_terms']) ?>';
-                deliveryScheduleInput.value = '<?= $firstUnit['delivery_schedule'] ?>';
-                transTypeInput.value = '<?= addslashes($firstUnit['transaction_type']) ?>';
+                specInput.value = <?= json_encode((string)($firstUnit['specification'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+                attachmentInput.value = <?= json_encode((string)($firstUnit['additional_attachment'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+                warantyInput.value = <?= json_encode((string)($firstUnit['waranty'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+                freePartServiceInput.value = <?= json_encode((string)($firstUnit['free_part_service'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+                locationInput.value = <?= json_encode((string)($firstUnit['machine_location'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+                deliveryTermsInput.value = <?= json_encode((string)($firstUnit['delivery_terms'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+                deliveryScheduleInput.value = <?= json_encode((string)($firstUnit['delivery_schedule'] ?? '')) ?>;
+                transTypeInput.value = <?= json_encode((string)($firstUnit['transaction_type'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
                 
                 calculateTotal();
                 toggleOtherTransaction();
@@ -2694,7 +2694,8 @@ textarea.form-control{min-height:96px;resize:vertical}
         }
         
         function showNewUnitForm() {
-            document.getElementById('addUnitForm').style.display = 'block';
+            if (!addUnitForm) return;
+            addUnitForm.style.display = 'block';
             document.getElementById('unitForm').reset();
             resetUnitSearch();
             document.getElementById('unit_id_hidden').value = '0';
@@ -2996,12 +2997,12 @@ textarea.form-control{min-height:96px;resize:vertical}
             <?php if (count($mediators) > 0): ?>
                 <?php foreach ($mediators as $med): ?>
                     addMediatorRow({
-                        name: '<?= addslashes($med['name']) ?>',
-                        id_card_no: '<?= addslashes($med['id_card_no']) ?>',
-                        npwp_no: '<?= addslashes($med['npwp_no']) ?>',
-                        bank_name: '<?= addslashes($med['bank_name']) ?>',
-                        bank_account: '<?= addslashes($med['bank_account']) ?>',
-                        amount: '<?= $med['amount'] ?>'
+                        name: <?= json_encode((string)($med['name'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        id_card_no: <?= json_encode((string)($med['id_card_no'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        npwp_no: <?= json_encode((string)($med['npwp_no'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        bank_name: <?= json_encode((string)($med['bank_name'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        bank_account: <?= json_encode((string)($med['bank_account'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        amount: <?= json_encode((string)($med['amount'] ?? '0')) ?>
                     });
                 <?php endforeach; ?>
             <?php else: ?>
