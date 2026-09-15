@@ -820,7 +820,6 @@ $detailsList = $details->fetchAll();
 $hasCustomerDeal = false;
 $hasCustomerLostDeal = false;
 foreach ($detailsList as $d) {
-    if (($d['jenis_tugas'] ?? '') !== 'Delivery Order') continue;
     $trNumberForDeal = trim((string)($d['tr_number'] ?? ''));
     if ($trNumberForDeal === '') continue;
 

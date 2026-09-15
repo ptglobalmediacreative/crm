@@ -462,8 +462,7 @@ function getJenisProspek($db, $salesActivityId) {
                                       FROM detail_transaction_requests dtr
                                       INNER JOIN activity_details ad ON ad.tr_number = dtr.trf_number
                                       WHERE ad.sales_activity_id = ?
-                                        AND ad.jenis_tugas = 'Delivery Order'
-                                        AND dtr.customer_deal IS NOT NULL
+                                            AND dtr.customer_deal IS NOT NULL
                                         AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
                                       ORDER BY dtr.id DESC, ad.id DESC
                                       LIMIT 1");
