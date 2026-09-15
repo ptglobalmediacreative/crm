@@ -211,12 +211,16 @@ $reviewOnlyRoles = ['sales_manager', 'direktur_sales', 'direktur_operasional', '
 $isReviewOnly = in_array($userRole, $reviewOnlyRoles, true);
 
 // ============================================
-// ATUR HAK EDIT BERDASARKAN STATUS TR SAAT INI
+// ATUR HAK EDIT BERDASARKAN STATUS TR TERKINI
 // ============================================
-// Penting: approval history adalah riwayat, bukan penentu lock.
-// TR yang masih pending tetap boleh diedit oleh pemiliknya.
-// TR rejected juga boleh direvisi. Hanya approved FINAL yang dikunci.
-$isFinalApproved = ($statusTR === 'approved');
+// Pending  = boleh diedit oleh Sales pemilik TR
+// Rejected = boleh diedit oleh Sales pemilik TR
+// Approved = dikunci (final)
+//
+// Jangan menggunakan riwayat approval sebagai lock edit karena sebuah TR
+// dapat pernah melewati approval lalu kembali menjadi pending/rejected.
+$statusTRNormalized = strtolower(trim((string)$statusTR));
+$isFinalApproved = ($statusTRNormalized === 'approved');
 
 if ($isFinalApproved) {
     $canEditSalesSection = false;
@@ -480,18 +484,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (in_array($action, $salesEditActions, true) && !$canEditSalesSection) {
         if ($isFinalApproved) {
-            setFlash('TR ini sudah Approved Final, data tidak bisa diedit lagi!', 'danger');
+            setFlash('TR sudah Approved final sehingga data tidak dapat diedit lagi.', 'danger');
         } else {
-            setFlash('Hanya Sales pemilik TR yang dapat menambah atau mengedit bagian ini!', 'danger');
+            setFlash('Hanya Sales pemilik TR yang dapat menambah atau mengedit bagian ini.', 'danger');
         }
         redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
     }
 
     if (in_array($action, $businessEditActions, true) && !$canEditBusinessSection) {
         if ($isFinalApproved) {
-            setFlash('TR ini sudah Approved Final, data tidak bisa diedit lagi!', 'danger');
+            setFlash('TR sudah Approved final sehingga data tidak dapat diedit lagi.', 'danger');
         } else {
-            setFlash('Hanya Divisi Business yang dapat menambah atau mengedit bagian ini!', 'danger');
+            setFlash('Hanya Divisi Business yang dapat menambah atau mengedit bagian ini.', 'danger');
         }
         redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
     }
