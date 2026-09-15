@@ -497,10 +497,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
         
-        $result = trim($_POST['result']);
+        $result = trim($_POST['result'] ?? '');
         $di_number = NULL;
         $tr_number = NULL;
-        $customer_deal = '';
+        $customer_deal = NULL;
+        $customer_deal_keterangan = NULL;
         
         $errors = [];
         if (strlen($result) < 50) $errors[] = 'Result minimal 50 karakter!';
@@ -514,37 +515,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $errors[] = 'Data detail tidak ditemukan!';
         }
         
-        // Delivery Order tidak lagi meminta Customer Deal dari form aktivitas.
-        // Status Deal/No mengikuti Customer Deal yang diisi di detailtr.php,
-        // berdasarkan TR Number + Activity Number (sales_activity_id) yang sama.
+        // Delivery Order: Customer Deal diambil otomatis dari detail_transaction_requests
+        // berdasarkan TR Number + Activity Number (sales_activity_id).
         if ($detail && $detail['jenis_tugas'] === 'Delivery Order') {
-            if (empty($detail['tr_number'])) {
-                $errors[] = 'TR Number untuk Delivery Order tidak ditemukan.';
-            } else {
-                try {
-                    $stmtDeal = $db->prepare("
-                        SELECT dtr.customer_deal
-                        FROM detail_transaction_requests dtr
-                        INNER JOIN activity_details adtr ON adtr.tr_number = dtr.trf_number
-                        WHERE dtr.trf_number = ?
-                          AND adtr.sales_activity_id = ?
-                          AND dtr.customer_deal IN ('yes', 'no')
-                        ORDER BY dtr.id DESC, adtr.id DESC
-                        LIMIT 1
-                    ");
-                    $stmtDeal->execute([$detail['tr_number'], $detail['sales_activity_id']]);
-                    $customerDealFromTR = strtolower(trim((string)$stmtDeal->fetchColumn()));
+            $tr_number = trim((string)($detail['tr_number'] ?? ''));
 
-                    if ($customerDealFromTR === 'yes') {
-                        $customer_deal = 'Yes';
+            if ($tr_number === '') {
+                $errors[] = 'TR Number untuk Delivery Order tidak ditemukan!';
+            } else {
+                $dealStmt = $db->prepare("SELECT dtr.customer_deal, dtr.customer_deal_keterangan
+                                           FROM detail_transaction_requests dtr
+                                           INNER JOIN activity_details ad
+                                               ON ad.tr_number = dtr.trf_number
+                                           WHERE dtr.trf_number = ?
+                                             AND ad.sales_activity_id = ?
+                                             AND dtr.customer_deal IN ('yes', 'no', 'Yes', 'No')
+                                           ORDER BY dtr.id DESC, ad.id DESC
+                                           LIMIT 1");
+                $dealStmt->execute([$tr_number, (int)$detail['sales_activity_id']]);
+                $dealData = $dealStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$dealData) {
+                    $errors[] = 'Customer Deal pada Detail TR belum diisi untuk TR Number dan Activity Number ini.';
+                } else {
+                    $customer_deal = strtolower(trim((string)$dealData['customer_deal']));
+                    $customer_deal_keterangan = trim((string)($dealData['customer_deal_keterangan'] ?? ''));
+
+                    if ($customer_deal === 'yes') {
                         $di_number = generateDINumber($db);
-                    } elseif ($customerDealFromTR === 'no') {
-                        $customer_deal = 'No';
-                    } else {
-                        $errors[] = 'Customer Deal pada detail TR belum diisi. Silakan isi Customer Deal di detailtr.php terlebih dahulu.';
                     }
-                } catch (Exception $e) {
-                    $errors[] = 'Gagal mengambil Customer Deal dari detail TR: ' . $e->getMessage();
                 }
             }
         }
@@ -617,9 +616,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $db->beginTransaction();
             
             try {
-                // Update activity_details
-                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
-                $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
+                // Update activity_details. Customer Deal tidak lagi disimpan di sini;
+                // sumber utamanya adalah detail_transaction_requests.
+                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
+                $stmt->execute([$result, $attachment_file, $di_number, $tr_number, $detail_id]);
                 
                 // AUTO CREATE DETAIL DELIVERY INSTRUCTION
                 if (!empty($di_number)) {
@@ -773,11 +773,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // ============================================
+// HELPER: AMBIL CUSTOMER DEAL DARI DETAIL TR
+// ============================================
+function getCustomerDealFromTR($db, $trNumber, $salesActivityId) {
+    $trNumber = trim((string)$trNumber);
+    $salesActivityId = (int)$salesActivityId;
+
+    if ($trNumber === '' || $salesActivityId <= 0) {
+        return null;
+    }
+
+    // activity_details menjadi bridge untuk memastikan TR memang milik Activity Number ini.
+    $stmt = $db->prepare("SELECT dtr.customer_deal, dtr.customer_deal_keterangan
+                          FROM detail_transaction_requests dtr
+                          INNER JOIN activity_details ad
+                              ON ad.tr_number = dtr.trf_number
+                          WHERE dtr.trf_number = ?
+                            AND ad.sales_activity_id = ?
+                            AND dtr.customer_deal IN ('yes', 'no', 'Yes', 'No')
+                          ORDER BY dtr.id DESC, ad.id DESC
+                          LIMIT 1");
+    $stmt->execute([$trNumber, $salesActivityId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        return null;
+    }
+
+    $deal = strtolower(trim((string)$row['customer_deal']));
+    return [
+        'customer_deal' => $deal === 'yes' ? 'yes' : 'no',
+        'customer_deal_label' => $deal === 'yes' ? 'Deal' : 'No',
+        'customer_deal_keterangan' => trim((string)($row['customer_deal_keterangan'] ?? ''))
+    ];
+}
+
+// ============================================
 // AMBIL DATA DETAIL AKTIVITAS
 // ============================================
 $details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id = ? ORDER BY created_at DESC");
 $details->execute([$leadsId]);
 $detailsList = $details->fetchAll();
+
+// Customer Deal ditampilkan berdasarkan Detail TR (TR Number + Activity Number),
+// bukan lagi berdasarkan kolom legacy activity_details.customer_deal.
+$customerDealByDetailId = [];
+foreach ($detailsList as $idx => $d) {
+    $dealInfo = getCustomerDealFromTR($db, $d['tr_number'] ?? '', $leadsId);
+    $detailsList[$idx]['customer_deal_from_tr'] = $dealInfo['customer_deal'] ?? null;
+    $detailsList[$idx]['customer_deal_label_from_tr'] = $dealInfo['customer_deal_label'] ?? null;
+    $detailsList[$idx]['customer_deal_keterangan_from_tr'] = $dealInfo['customer_deal_keterangan'] ?? '';
+    $customerDealByDetailId[(int)$d['id']] = $dealInfo;
+}
 
 $deliveryOrderCompleted = [];
 foreach ($detailsList as $d) {
@@ -1426,32 +1473,10 @@ foreach ($detailsList as $d) {
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php
-                                            // Customer Deal diambil langsung dari detail TR yang
-                                            // memiliki TR Number DAN Activity Number (sales_activity_id) yang sama.
-                                            $activityCustomerDeal = '';
-                                            if (!empty($detail['tr_number'])) {
-                                                try {
-                                                    $stmtCustomerDeal = $db->prepare("
-                                                        SELECT dtr.customer_deal
-                                                        FROM detail_transaction_requests dtr
-                                                        INNER JOIN activity_details adtr ON adtr.tr_number = dtr.trf_number
-                                                        WHERE dtr.trf_number = ?
-                                                          AND adtr.sales_activity_id = ?
-                                                          AND dtr.customer_deal IN ('yes', 'no')
-                                                        ORDER BY dtr.id DESC, adtr.id DESC
-                                                        LIMIT 1
-                                                    ");
-                                                    $stmtCustomerDeal->execute([$detail['tr_number'], $detail['sales_activity_id']]);
-                                                    $activityCustomerDeal = strtolower(trim((string)$stmtCustomerDeal->fetchColumn()));
-                                                } catch (Exception $e) {
-                                                    $activityCustomerDeal = '';
-                                                }
-                                            }
-                                            ?>
-                                            <?php if ($activityCustomerDeal === 'yes'): ?>
+                                            <?php $dealInfo = $customerDealByDetailId[(int)$detail['id']] ?? null; ?>
+                                            <?php if ($dealInfo && $dealInfo['customer_deal'] === 'yes'): ?>
                                                 <span class="badge-status completed">Deal</span>
-                                            <?php elseif ($activityCustomerDeal === 'no'): ?>
+                                            <?php elseif ($dealInfo && $dealInfo['customer_deal'] === 'no'): ?>
                                                 <span class="badge-status overdue">No</span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
@@ -1606,23 +1631,7 @@ foreach ($detailsList as $d) {
                             <small class="text-muted">Tahan tombol Ctrl untuk memilih banyak file (JPG, PNG, PDF, DOC, XLS) - Maksimal 5MB per file</small>
                         </div>
                         
-                        <div id="customerDealFieldComplete" style="display: none;">
-                            <div class="mb-3">
-                                <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
-                                <select name="customer_deal" id="customer_deal_complete" class="form-select">
-                                    <option value="">-- Pilih --</option>
-                                    <option value="Yes">YES</option>
-                                    <option value="No">NO</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3" id="diNumberFieldComplete" style="display: none;">
-                                <label class="form-label">Delivery Instruction Number</label>
-                                <div class="di-number-display">
-                                    <?= htmlspecialchars(generateDINumber($db)) ?>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
@@ -1739,14 +1748,6 @@ foreach ($detailsList as $d) {
             }
         });
         
-        document.getElementById('customer_deal_complete').addEventListener('change', function() {
-            if (this.value === 'Yes') {
-                document.getElementById('diNumberFieldComplete').style.display = 'block';
-            } else {
-                document.getElementById('diNumberFieldComplete').style.display = 'none';
-            }
-        });
-        
         function viewDetail(data) {
             var html = `
                 <div class="info-card" style="margin-bottom: 0;">
@@ -1775,6 +1776,11 @@ foreach ($detailsList as $d) {
                     <div class="info-item">
                         <div class="info-label">DI Number</div>
                         <div class="info-value"><a href="detaildi.php?di_number=${encodeURIComponent(data.di_number)}" style="color: #27ae60; font-weight: 600;" target="_blank">${data.di_number}</a></div>
+                    </div>` : ''}
+                    ${data.customer_deal_label_from_tr ? `
+                    <div class="info-item">
+                        <div class="info-label">Keterangan</div>
+                        <div class="info-value">${data.customer_deal_label_from_tr}${data.customer_deal_keterangan_from_tr ? ' - ' + data.customer_deal_keterangan_from_tr : ''}</div>
                     </div>` : ''}
                     ${data.result ? `
                     <div class="info-item">
@@ -1811,12 +1817,6 @@ foreach ($detailsList as $d) {
                 existingContainer.remove();
             }
             
-            // HANYA Delivery Order yang menampilkan Customer Deal
-            if (data.jenis_tugas === 'Delivery Order') {
-                document.getElementById('customerDealFieldComplete').style.display = 'block';
-                document.getElementById('customer_deal_complete').required = true;
-            }
-            
             if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
                 var infoHtml = '';
                 
@@ -1838,9 +1838,10 @@ foreach ($detailsList as $d) {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
                     }
                     
-                    // Customer Deal berasal dari detail TR, bukan dari form aktivitas.
-                    if (lastDO.tr_number) {
-                        infoHtml += '<div class="mb-0"><strong>Keterangan:</strong> mengikuti Customer Deal pada detail TR.</div>';
+                    if (lastDO.customer_deal_label_from_tr) {
+                        infoHtml += '<div class="mb-0"><strong>Keterangan:</strong> ' + lastDO.customer_deal_label_from_tr + (lastDO.customer_deal_keterangan_from_tr ? ' - ' + lastDO.customer_deal_keterangan_from_tr : '') + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-0"><strong>Keterangan:</strong> -</div>';
                     }
                     
                     infoHtml += '</div>';
