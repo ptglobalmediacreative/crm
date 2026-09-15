@@ -211,21 +211,17 @@ $reviewOnlyRoles = ['sales_manager', 'direktur_sales', 'direktur_operasional', '
 $isReviewOnly = in_array($userRole, $reviewOnlyRoles, true);
 
 // ============================================
-// CEK APAKAH TR SUDAH PERNAH DI-APPROVE
+// ATURAN EDIT DATA TR
 // ============================================
-$hasBeenApproved = false;
-try {
-    // TR rejected boleh direvisi kembali. Lock edit hanya jika masih berada
-    // dalam proses approval aktif atau sudah approved final.
-    $checkApproved = $db->prepare("SELECT COUNT(*) as total FROM tr_approval_history WHERE trf_number = ? AND status = 'approved'");
-    $checkApproved->execute([$tr_number]);
-    $approvedCount = (int)$checkApproved->fetch()['total'];
-    if ($approvedCount > 0 && $statusTR !== 'rejected') {
-        $hasBeenApproved = true;
-    }
-} catch (Exception $e) {
-    $hasBeenApproved = false;
-}
+// PERBAIKAN:
+// - History approval lama/stale tidak lagi otomatis mengunci TR.
+// - TR berstatus pending  : masih boleh diedit.
+// - TR berstatus rejected : masih boleh direvisi.
+// - TR berstatus approved : data utama dikunci karena sudah final.
+//
+// Dengan aturan ini, TR lama yang masih pending tidak akan kehilangan
+// tombol Edit/Tambah hanya karena mempunyai record approval history lama.
+$hasBeenApproved = ($statusTR === 'approved');
 
 if ($hasBeenApproved) {
     $canEditSalesSection = false;
@@ -445,51 +441,13 @@ try {
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-
-    // ============================================
-    // SAVE CUSTOMER DEAL (SETELAH FINAL APPROVAL)
-    // ============================================
-    if ($action === 'save_customer_deal') {
-        try {
-            if ($userRole !== 'sales' || !isset($request['sales_user_id']) || (int)$request['sales_user_id'] !== (int)$userId) {
-                throw new Exception('Hanya Sales pemilik TR yang dapat mengisi Customer Deal.');
-            }
-
-            $deal = strtolower(trim((string)($_POST['customer_deal'] ?? '')));
-            $dealKeterangan = trim((string)($_POST['customer_deal_keterangan'] ?? ''));
-
-            if (!in_array($deal, ['yes', 'no'], true)) {
-                throw new Exception('Pilihan Customer Deal tidak valid.');
-            }
-
-            $checkFinal = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-            $checkFinal->execute([$tr_number]);
-            $finalStatus = $checkFinal->fetchColumn();
-
-            if ($finalStatus !== 'approved') {
-                throw new Exception('Customer Deal hanya dapat diisi setelah seluruh approval selesai.');
-            }
-
-            if ($deal === 'no' && $dealKeterangan === '') {
-                throw new Exception('Keterangan wajib diisi jika Customer Deal = No.');
-            }
-
-            $saveDeal = $db->prepare("UPDATE detail_transaction_requests SET customer_deal = ?, customer_deal_keterangan = ?, updated_at = NOW() WHERE trf_number = ?");
-            $saveDeal->execute([$deal, $deal === 'no' ? $dealKeterangan : null, $tr_number]);
-
-            setFlash('Status Customer Deal berhasil disimpan!', 'success');
-        } catch (Exception $e) {
-            setFlash('Gagal menyimpan Customer Deal: ' . $e->getMessage(), 'danger');
-        }
-        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
-    }
     
     $salesEditActions = ['save_summary', 'save_unit', 'delete_unit', 'save_top', 'save_mediator'];
     $businessEditActions = ['save_cost', 'save_product_support', 'save_cost_calculation'];
 
     if (in_array($action, $salesEditActions, true) && !$canEditSalesSection) {
         if ($hasBeenApproved) {
-            setFlash('TR ini sudah masuk proses approval, data tidak bisa diedit lagi!', 'danger');
+            setFlash('TR ini sudah Approved Final, data utama tidak bisa diedit lagi!', 'danger');
         } else {
             setFlash('Hanya Sales pemilik TR yang dapat menambah atau mengedit bagian ini!', 'danger');
         }
@@ -498,7 +456,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (in_array($action, $businessEditActions, true) && !$canEditBusinessSection) {
         if ($hasBeenApproved) {
-            setFlash('TR ini sudah masuk proses approval, data tidak bisa diedit lagi!', 'danger');
+            setFlash('TR ini sudah Approved Final, data utama tidak bisa diedit lagi!', 'danger');
         } else {
             setFlash('Hanya Divisi Business yang dapat menambah atau mengedit bagian ini!', 'danger');
         }
@@ -1152,27 +1110,6 @@ textarea.form-control{min-height:96px;resize:vertical}
 .result-item-card{margin:0 0 12px;background:linear-gradient(145deg,rgba(10,20,39,.92),rgba(7,14,28,.96));border:1px solid rgba(148,163,184,.11);border-radius:12px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.10);transition:.2s}.result-item-card:hover{border-color:rgba(96,165,250,.22);box-shadow:0 14px 30px rgba(0,0,0,.16)}.result-item-header{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:10px 14px;background:rgba(5,12,25,.42);border-bottom:1px solid rgba(148,163,184,.09)}.result-item-header strong{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:750;color:#e8eef8}.result-item-header strong i{color:#60a5fa;font-size:12px}.result-item-body{padding:14px}.result-item-body .row{--bs-gutter-x:18px}.result-item-body .info-label{margin-bottom:5px}.result-item-body .info-value{margin-bottom:13px;color:#dbe5f5}.cost-result-card .result-item-header strong i{color:#e0b53d}.support-result-card .result-item-header strong i{color:#60a5fa}.result-item-card:last-child{margin-bottom:0}
 .rejection-notice{margin:0 0 20px;padding:16px;border:1px solid rgba(251,113,133,.22);border-radius:13px;background:linear-gradient(145deg,rgba(74,18,35,.32),rgba(10,20,39,.72));box-shadow:0 10px 26px rgba(0,0,0,.10)}
 .rejection-notice-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:11px;margin-bottom:13px;border-bottom:1px solid rgba(251,113,133,.13);font-size:11px;font-weight:800;color:#fecdd3}.rejection-notice-head div{display:flex;align-items:center;gap:8px}.rejection-notice-head i{color:#fb7185}.rejection-notice-head span{font-size:9px;font-weight:600;color:#8e9bb5}.rejection-notice-body{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:16px}.rejection-item{min-width:0}.rejection-label{display:block;margin-bottom:6px;font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:#8e9bb5;font-weight:800}.rejection-comment{font-size:11px;line-height:1.65;color:#f1f5f9;white-space:normal;word-break:break-word}.rejection-item strong{font-size:11px;color:#e8eef7}.rejection-hint{margin-top:13px;padding-top:11px;border-top:1px solid rgba(148,163,184,.08);font-size:9px;line-height:1.55;color:#8e9bb5}.rejection-hint i{color:#fbbf24;margin-right:5px}.reject-modal{display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;padding:20px}.reject-modal.show{display:flex}.reject-modal-backdrop{position:absolute;inset:0;background:rgba(1,5,13,.78);backdrop-filter:blur(7px)}.reject-modal-dialog{position:relative;width:min(520px,100%);background:linear-gradient(145deg,#0c172b,#07101f);border:1px solid rgba(251,113,133,.22);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.48);overflow:hidden}.reject-modal-header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 18px;border-bottom:1px solid rgba(148,163,184,.10)}.reject-modal-header>div:first-child{display:flex;align-items:center;gap:11px}.reject-modal-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.16);color:#fb7185}.reject-modal-header h5{font-size:13px;font-weight:800;color:#f8fafc;margin:0}.reject-modal-header p{font-size:9px;color:#7f8da5;margin:3px 0 0;line-height:1.4}.reject-modal-close{width:32px;height:32px;border:1px solid rgba(148,163,184,.12);border-radius:8px;background:#0a1427;color:#8492aa;display:flex;align-items:center;justify-content:center}.reject-modal-body{padding:18px}.reject-modal-body>label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.55px;color:#aab7ca;font-weight:800;margin-bottom:7px}.reject-modal-body>label span{color:#fb7185}.reject-modal-body textarea{min-height:120px;background:#071223!important}.reject-modal-note{margin-top:9px;font-size:9px;color:#71809a;line-height:1.5}.reject-modal-note i{color:#60a5fa;margin-right:5px}.reject-modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid rgba(148,163,184,.10);background:rgba(5,12,25,.30)}
-
-/* CUSTOMER DEAL — FINAL APPROVAL */
-.customer-deal-card{margin-top:20px;padding:18px;border:1px solid rgba(214,182,90,.18);border-radius:14px;background:linear-gradient(145deg,rgba(20,35,59,.92),rgba(8,17,32,.96));box-shadow:0 12px 30px rgba(0,0,0,.14)}
-.customer-deal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(214,182,90,.10)}
-.customer-deal-title{display:flex;align-items:center;gap:9px;color:#f3f6fa;font-size:12px;font-weight:800}
-.customer-deal-title i{color:#d6b65a}
-.customer-deal-subtitle{font-size:9px;color:#7f8da5;margin-top:3px}
-.customer-deal-status{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:9px;font-weight:800;border:1px solid transparent}
-.customer-deal-status.yes{background:rgba(52,211,153,.10);color:#6ee7b7;border-color:rgba(52,211,153,.18)}
-.customer-deal-status.no{background:rgba(251,113,133,.10);color:#fb7185;border-color:rgba(251,113,133,.18)}
-.customer-deal-actions{display:flex;gap:9px;flex-wrap:wrap}
-.customer-deal-btn{min-width:125px;border-radius:9px;padding:10px 15px;border:1px solid transparent;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:.2s}
-.customer-deal-btn.yes{background:linear-gradient(135deg,#059669,#10b981);color:#fff;border-color:rgba(52,211,153,.20)}
-.customer-deal-btn.yes:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(16,185,129,.16)}
-.customer-deal-btn.no{background:linear-gradient(135deg,#be123c,#e11d48);color:#fff;border-color:rgba(251,113,133,.20)}
-.customer-deal-btn.no:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(225,29,72,.16)}
-.customer-deal-form{margin-top:13px;padding:14px;border-radius:11px;background:rgba(5,12,25,.42);border:1px solid rgba(148,163,184,.10)}
-.customer-deal-form .form-label{color:#9aa8bd!important}
-.customer-deal-form textarea{min-height:90px;background:#071223!important}
-.customer-deal-readonly{padding:11px 12px;border-radius:9px;background:rgba(255,255,255,.025);border:1px solid rgba(148,163,184,.08);color:#dbe5f5;font-size:11px;line-height:1.55}
-@media(max-width:767px){.customer-deal-head{align-items:flex-start;flex-direction:column}.customer-deal-actions{width:100%}.customer-deal-btn{flex:1;min-width:0}}
 @media(max-width:767px){.rejection-notice-body{grid-template-columns:1fr}.reject-modal{padding:12px}.reject-modal-dialog{border-radius:13px}}
 @media(max-width:991px){
  .content{padding:22px 18px 40px}
@@ -1532,66 +1469,6 @@ textarea.form-control{min-height:96px;resize:vertical}
                     </div>
                     
                 </div>
-
-                <?php if ($request['status'] === 'approved'): ?>
-                <?php
-                    $customerDeal = strtolower(trim((string)($detailTR['customer_deal'] ?? '')));
-                    $customerDealKeterangan = (string)($detailTR['customer_deal_keterangan'] ?? '');
-                    $canSetCustomerDeal = (
-                        $userRole === 'sales' &&
-                        isset($request['sales_user_id']) &&
-                        (int)$request['sales_user_id'] === (int)$userId
-                    );
-                ?>
-                <div class="customer-deal-card">
-                    <div class="customer-deal-head">
-                        <div>
-                            <div class="customer-deal-title"><i class="fas fa-handshake"></i> Customer Deal</div>
-                            <div class="customer-deal-subtitle">Diisi setelah seluruh approval TR selesai.</div>
-                        </div>
-                        <?php if ($customerDeal === 'yes'): ?>
-                            <span class="customer-deal-status yes"><i class="fas fa-check-circle"></i> Deal: Yes</span>
-                        <?php elseif ($customerDeal === 'no'): ?>
-                            <span class="customer-deal-status no"><i class="fas fa-times-circle"></i> Deal: No</span>
-                        <?php else: ?>
-                            <span class="customer-deal-status" style="background:rgba(251,191,36,.10);color:#fcd34d;border-color:rgba(251,191,36,.18);"><i class="fas fa-clock"></i> Belum diisi</span>
-                        <?php endif; ?>
-                    </div>
-
-                    <?php if ($customerDeal === 'no' && $customerDealKeterangan !== ''): ?>
-                    <div class="mb-3">
-                        <div class="info-label">Keterangan Customer Tidak Deal</div>
-                        <div class="customer-deal-readonly"><?= nl2br(htmlspecialchars($customerDealKeterangan)) ?></div>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if ($canSetCustomerDeal): ?>
-                    <div class="customer-deal-actions">
-                        <form method="POST" onsubmit="return confirmCustomerDeal('yes')">
-                            <input type="hidden" name="action" value="save_customer_deal">
-                            <input type="hidden" name="customer_deal" value="yes">
-                            <button type="submit" class="customer-deal-btn yes"><i class="fas fa-check"></i> Customer Deal: Yes</button>
-                        </form>
-                        <button type="button" class="customer-deal-btn no" onclick="toggleCustomerDealNo()"><i class="fas fa-times"></i> Customer Deal: No</button>
-                    </div>
-
-                    <div id="customerDealNoForm" class="customer-deal-form" style="display:none;">
-                        <form method="POST" onsubmit="return validateCustomerDealNo()">
-                            <input type="hidden" name="action" value="save_customer_deal">
-                            <input type="hidden" name="customer_deal" value="no">
-                            <label class="form-label" for="customerDealKeterangan">Keterangan Kenapa Customer Tidak Deal <span style="color:#fb7185;">*</span></label>
-                            <textarea id="customerDealKeterangan" name="customer_deal_keterangan" class="form-control" maxlength="2000" placeholder="Contoh: Customer menunda pembelian, harga belum sesuai, memilih kompetitor, budget belum tersedia, dll."><?= htmlspecialchars($customerDealKeterangan) ?></textarea>
-                            <div class="mt-3">
-                                <button type="submit" class="btn btn-danger-custom"><i class="fas fa-save"></i> Simpan Customer Deal: No</button>
-                                <button type="button" class="btn btn-secondary-custom" onclick="toggleCustomerDealNo()"><i class="fas fa-times"></i> Batal</button>
-                            </div>
-                        </form>
-                    </div>
-                    <?php elseif ($userRole !== 'sales'): ?>
-                    <div class="customer-deal-subtitle"><i class="fas fa-info-circle"></i> Customer Deal hanya dapat diisi oleh Sales pemilik TR.</div>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>
                 
                 <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= $totalApprovalLevels && $request['status'] == 'pending'): ?>
                     <?php 
@@ -3060,36 +2937,6 @@ textarea.form-control{min-height:96px;resize:vertical}
                 addSupportRow();
             <?php endif; ?>
         }
-        // ============================================
-        // CUSTOMER DEAL
-        // ============================================
-        function toggleCustomerDealNo() {
-            const form = document.getElementById('customerDealNoForm');
-            const reason = document.getElementById('customerDealKeterangan');
-            if (!form) return;
-            const isHidden = form.style.display === 'none' || form.style.display === '';
-            form.style.display = isHidden ? 'block' : 'none';
-            if (isHidden && reason) setTimeout(() => reason.focus(), 50);
-        }
-
-        function validateCustomerDealNo() {
-            const reason = document.getElementById('customerDealKeterangan');
-            const value = reason ? reason.value.trim() : '';
-            if (!value) {
-                alert('Keterangan wajib diisi jika Customer Deal = No.');
-                if (reason) reason.focus();
-                return false;
-            }
-            return confirm('Simpan Customer Deal = No dengan keterangan tersebut?');
-        }
-
-        function confirmCustomerDeal(choice) {
-            if (choice === 'yes') {
-                return confirm('Yakin customer dinyatakan DEAL (Yes)?');
-            }
-            return true;
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             const unitSearch = document.getElementById('unitSearch');
             const unitControl = document.getElementById('unitComboControl');
