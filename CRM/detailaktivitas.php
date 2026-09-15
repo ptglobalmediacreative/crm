@@ -50,74 +50,35 @@ function getBulanRomawi($month) {
 function generateTRNumber($db) {
     $tahun = date('Y');
     $bulanRomawi = getBulanRomawi(date('n'));
-    $pattern = "%/GET-TR/JKT/{$bulanRomawi}/{$tahun}%";
-    $stmt = $db->prepare("SELECT tr_number FROM activity_details WHERE tr_number LIKE ? ORDER BY id DESC LIMIT 1");
-    $stmt->execute([$pattern]);
-    $lastNumber = $stmt->fetchColumn();
-    
-    if ($lastNumber) {
-        $parts = explode('/', $lastNumber);
-        $nextSequence = (int)$parts[0] + 1;
-        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-    } else {
-        $sequence = '0001';
-    }
-    
-    return "{$sequence}/GET-TR/JKT/{$bulanRomawi}/{$tahun}";
+    $prefix = "/GET-TR/JKT/{$bulanRomawi}/{$tahun}";
+
+    $stmt = $db->prepare("
+        SELECT MAX(CAST(SUBSTRING_INDEX(tr_number, '/', 1) AS UNSIGNED))
+        FROM activity_details
+        WHERE tr_number LIKE ?
+    ");
+    $stmt->execute(['%' . $prefix]);
+    $maxSequence = (int)$stmt->fetchColumn();
+
+    return str_pad((string)($maxSequence + 1), 4, '0', STR_PAD_LEFT)
+        . $prefix;
 }
 
 function generateDINumber($db) {
     $tahun = date('Y');
     $bulanRomawi = getBulanRomawi(date('n'));
-    $pattern = "%/GET-DI/JKT/{$bulanRomawi}/{$tahun}%";
-    $stmt = $db->prepare("SELECT di_number FROM activity_details WHERE di_number LIKE ? ORDER BY id DESC LIMIT 1");
-    $stmt->execute([$pattern]);
-    $lastNumber = $stmt->fetchColumn();
-    
-    if ($lastNumber) {
-        $parts = explode('/', $lastNumber);
-        $nextSequence = (int)$parts[0] + 1;
-        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-    } else {
-        $sequence = '0001';
-    }
-    
-    return "{$sequence}/GET-DI/JKT/{$bulanRomawi}/{$tahun}";
-}
-
-// ============================================
-// AMBIL CUSTOMER DEAL DARI DETAIL TR
-// Sumber Customer Deal hanya dari detail_transaction_requests.
-// Pencocokan menggunakan TR Number + Activity Number (sales_activity_id).
-// ============================================
-function getCustomerDealByActivityAndTR($db, $trNumber, $salesActivityId) {
-    if (empty($trNumber) || empty($salesActivityId)) {
-        return null;
-    }
+    $prefix = "/GET-DI/JKT/{$bulanRomawi}/{$tahun}";
 
     $stmt = $db->prepare("
-        SELECT dtr.customer_deal, dtr.customer_deal_keterangan
-        FROM detail_transaction_requests dtr
-        INNER JOIN activity_details adtr
-            ON adtr.tr_number = dtr.trf_number
-        WHERE dtr.trf_number = ?
-          AND adtr.sales_activity_id = ?
-          AND dtr.customer_deal IN ('yes', 'no')
-        ORDER BY dtr.id DESC, adtr.id DESC
-        LIMIT 1
+        SELECT MAX(CAST(SUBSTRING_INDEX(di_number, '/', 1) AS UNSIGNED))
+        FROM activity_details
+        WHERE di_number LIKE ?
     ");
-    $stmt->execute([$trNumber, $salesActivityId]);
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute(['%' . $prefix]);
+    $maxSequence = (int)$stmt->fetchColumn();
 
-    if (!$data) {
-        return null;
-    }
-
-    $deal = strtolower(trim((string)$data['customer_deal']));
-    return [
-        'customer_deal' => $deal === 'yes' ? 'Yes' : ($deal === 'no' ? 'No' : null),
-        'customer_deal_keterangan' => $data['customer_deal_keterangan'] ?? null
-    ];
+    return str_pad((string)($maxSequence + 1), 4, '0', STR_PAD_LEFT)
+        . $prefix;
 }
 
 // ============================================
@@ -159,6 +120,281 @@ $stmt = $db->prepare("UPDATE activity_details SET status = 'overdue'
                       AND due_date IS NOT NULL 
                       AND due_date < DATE_ADD(NOW(), INTERVAL 7 HOUR)");
 $stmt->execute([$leadsId]);
+
+// ============================================
+// HELPER: HAPUS DATA TR YANG SUDAH TIDAK TERPAKAI
+// ============================================
+function deleteUnusedTransactionRequestData($db, $trNumber) {
+    if (empty($trNumber)) return;
+
+    $check = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE tr_number = ?");
+    $check->execute([$trNumber]);
+
+    if ((int)$check->fetchColumn() > 0) return;
+
+    $tableColumns = [
+        'detail_transaction_requests' => 'trf_number',
+        'transaction_requests' => 'trf_number',
+        'tr_additional_costs' => 'trf_number',
+        'tr_additional_cost_items' => 'trf_number',
+        'tr_approval_history' => 'trf_number',
+        'tr_cost_calculations' => 'trf_number',
+        'tr_detail_units' => 'trf_number',
+        'tr_mediators' => 'trf_number',
+        'tr_product_supports' => 'trf_number',
+        'tr_term_of_payments' => 'trf_number'
+    ];
+
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("DELETE FROM `{$table}` WHERE `{$column}` = ?");
+        $stmt->execute([$trNumber]);
+    }
+}
+
+// ============================================
+// HELPER: HAPUS DATA DI YANG SUDAH TIDAK TERPAKAI
+// ============================================
+function deleteUnusedDeliveryInstructionData($db, $diNumber) {
+    if (empty($diNumber)) return;
+
+    $check = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE di_number = ?");
+    $check->execute([$diNumber]);
+
+    if ((int)$check->fetchColumn() > 0) return;
+
+    $tableColumns = [
+        'di_approval_history' => 'di_number',
+        'di_units' => 'di_number',
+        'di_accessories' => 'di_number',
+        'di_logistics' => 'di_number',
+        'di_product_supports' => 'di_number',
+        'detail_delivery_instructions' => 'di_number'
+    ];
+
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("DELETE FROM `{$table}` WHERE `{$column}` = ?");
+        $stmt->execute([$diNumber]);
+    }
+}
+
+// ============================================
+// HELPER: RENUMBER TR SELURUH DATABASE
+// ============================================
+function renumberAllTransactionRequestsFromActivities($db, $period = null) {
+    // Hanya renumber periode yang memang berubah. Jangan menyentuh TR bulan lain.
+    if ($period !== null) {
+        $period = trim((string)$period);
+        if (!preg_match('/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)\/\d{4}$/', $period)) {
+            throw new RuntimeException('Periode TR tidak valid untuk renumber: ' . $period);
+        }
+    }
+
+    $sql = "
+        SELECT
+            tr_number AS old_tr,
+            MIN(created_at) AS first_created_at
+        FROM activity_details
+        WHERE tr_number IS NOT NULL
+          AND TRIM(tr_number) <> ''
+    ";
+    $params = [];
+
+    if ($period !== null) {
+        $sql .= " AND tr_number LIKE ? ";
+        $params[] = '%/GET-TR/JKT/' . $period;
+    }
+
+    $sql .= " GROUP BY tr_number ORDER BY first_created_at ASC, old_tr ASC";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!$rows) return 0;
+
+    if ($period === null) {
+        foreach ($rows as &$row) {
+            if (preg_match('#^\d{4}/GET-TR/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($row['old_tr']), $m)) {
+                $row['period'] = $m[1];
+            } else {
+                throw new RuntimeException('Periode TR tidak dapat ditentukan untuk: ' . $row['old_tr']);
+            }
+        }
+        unset($row);
+        usort($rows, static function ($a, $b) {
+            return [$a['period'], $a['first_created_at'], $a['old_tr']] <=>
+                   [$b['period'], $b['first_created_at'], $b['old_tr']];
+        });
+    } else {
+        foreach ($rows as &$row) $row['period'] = $period;
+        unset($row);
+    }
+
+    $mapping = [];
+    $sequence = 0;
+    foreach ($rows as $row) {
+        $sequence++;
+        $mapping[$row['old_tr']] =
+            str_pad((string)$sequence, 4, '0', STR_PAD_LEFT) .
+            '/GET-TR/JKT/' . $row['period'];
+    }
+
+    $tableColumns = [
+        'activity_details' => 'tr_number',
+        'detail_transaction_requests' => 'trf_number',
+        'transaction_requests' => 'trf_number',
+        'tr_additional_costs' => 'trf_number',
+        'tr_additional_cost_items' => 'trf_number',
+        'tr_approval_history' => 'trf_number',
+        'tr_cost_calculations' => 'trf_number',
+        'tr_detail_units' => 'trf_number',
+        'tr_mediators' => 'trf_number',
+        'tr_product_supports' => 'trf_number',
+        'tr_term_of_payments' => 'trf_number'
+    ];
+
+    // Temporary key dijamin <= 50 karakter.
+    $token = '__TRTMP_' . bin2hex(random_bytes(8));
+    $temporaryMap = [];
+
+    // Tahap 1: semua old number -> temporary number.
+    foreach ($mapping as $oldTr => $newTr) {
+        $temporaryTr = $token . '_' . substr(hash('sha256', $oldTr), 0, 24);
+        if (strlen($temporaryTr) > 50) {
+            throw new RuntimeException('Temporary TR number melebihi 50 karakter.');
+        }
+        $temporaryMap[$oldTr] = $temporaryTr;
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
+            $stmt->execute([$temporaryTr, $oldTr]);
+        }
+    }
+
+    // Tahap 2: temporary number -> nomor final.
+    foreach ($mapping as $oldTr => $newTr) {
+        $temporaryTr = $temporaryMap[$oldTr];
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
+            $stmt->execute([$newTr, $temporaryTr]);
+        }
+    }
+
+    // Safety check: tidak boleh ada temporary TR yang tertinggal.
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` LIKE ?");
+        $stmt->execute([$token . '%']);
+        if ((int)$stmt->fetchColumn() > 0) {
+            throw new RuntimeException('Temporary TR masih tersisa di tabel ' . $table . '. Transaction dibatalkan.');
+        }
+    }
+
+    return count($mapping);
+}
+
+// ============================================
+// HELPER: RENUMBER DI SELURUH DATABASE
+// ============================================
+function renumberAllDeliveryInstructions($db, $period = null) {
+    if ($period !== null) {
+        $period = trim((string)$period);
+        if (!preg_match('/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)\/\d{4}$/', $period)) {
+            throw new RuntimeException('Periode DI tidak valid untuk renumber: ' . $period);
+        }
+    }
+
+    $sql = "
+        SELECT
+            di_number AS old_di,
+            MIN(created_at) AS first_created_at
+        FROM activity_details
+        WHERE di_number IS NOT NULL
+          AND TRIM(di_number) <> ''
+    ";
+    $params = [];
+    if ($period !== null) {
+        $sql .= " AND di_number LIKE ? ";
+        $params[] = '%/GET-DI/JKT/' . $period;
+    }
+    $sql .= " GROUP BY di_number ORDER BY first_created_at ASC, old_di ASC";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!$rows) return 0;
+
+    if ($period === null) {
+        foreach ($rows as &$row) {
+            if (preg_match('#^\d{4}/GET-DI/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($row['old_di']), $m)) {
+                $row['period'] = $m[1];
+            } else {
+                throw new RuntimeException('Periode DI tidak dapat ditentukan untuk: ' . $row['old_di']);
+            }
+        }
+        unset($row);
+        usort($rows, static function ($a, $b) {
+            return [$a['period'], $a['first_created_at'], $a['old_di']] <=>
+                   [$b['period'], $b['first_created_at'], $b['old_di']];
+        });
+    } else {
+        foreach ($rows as &$row) $row['period'] = $period;
+        unset($row);
+    }
+
+    $mapping = [];
+    $sequence = 0;
+    foreach ($rows as $row) {
+        $sequence++;
+        $mapping[$row['old_di']] =
+            str_pad((string)$sequence, 4, '0', STR_PAD_LEFT) .
+            '/GET-DI/JKT/' . $row['period'];
+    }
+
+    $tableColumns = [
+        'activity_details' => 'di_number',
+        'detail_delivery_instructions' => 'di_number',
+        'di_approval_history' => 'di_number',
+        'di_units' => 'di_number',
+        'di_accessories' => 'di_number',
+        'di_logistics' => 'di_number',
+        'di_product_supports' => 'di_number'
+    ];
+
+    $token = '__DITMP_' . bin2hex(random_bytes(8));
+    $temporaryMap = [];
+
+    foreach ($mapping as $oldDi => $newDi) {
+        $temporaryDi = $token . '_' . substr(hash('sha256', $oldDi), 0, 24);
+        if (strlen($temporaryDi) > 50) {
+            throw new RuntimeException('Temporary DI number melebihi 50 karakter.');
+        }
+        $temporaryMap[$oldDi] = $temporaryDi;
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
+            $stmt->execute([$temporaryDi, $oldDi]);
+        }
+    }
+
+    foreach ($mapping as $oldDi => $newDi) {
+        $temporaryDi = $temporaryMap[$oldDi];
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
+            $stmt->execute([$newDi, $temporaryDi]);
+        }
+    }
+
+    // Safety check: tidak boleh ada temporary DI yang tertinggal.
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` LIKE ?");
+        $stmt->execute([$token . '%']);
+        if ((int)$stmt->fetchColumn() > 0) {
+            throw new RuntimeException('Temporary DI masih tersisa di tabel ' . $table . '. Transaction dibatalkan.');
+        }
+    }
+
+    return count($mapping);
+}
 
 // ============================================
 // PROSES TAMBAH DETAIL AKTIVITAS
@@ -262,11 +498,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         $result = trim($_POST['result']);
-        // Customer Deal TIDAK lagi diambil dari form detail aktivitas.
-        // Nilainya hanya dibaca dari detail_transaction_requests melalui TR Number + Activity Number.
-        $customer_deal = '';
         $di_number = NULL;
         $tr_number = NULL;
+        $customer_deal = '';
         
         $errors = [];
         if (strlen($result) < 50) $errors[] = 'Result minimal 50 karakter!';
@@ -280,20 +514,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $errors[] = 'Data detail tidak ditemukan!';
         }
         
-        // Delivery Order membaca Customer Deal dari detail_transaction_requests.
-        // Tidak ada lagi input Customer Deal di form detail aktivitas.
+        // Delivery Order tidak lagi meminta Customer Deal dari form aktivitas.
+        // Status Deal/No mengikuti Customer Deal yang diisi di detailtr.php,
+        // berdasarkan TR Number + Activity Number (sales_activity_id) yang sama.
         if ($detail && $detail['jenis_tugas'] === 'Delivery Order') {
-            $tr_number = $detail['tr_number'] ?? null;
-            $dealData = getCustomerDealByActivityAndTR($db, $tr_number, $detail['sales_activity_id']);
-
-            if (!$dealData || empty($dealData['customer_deal'])) {
-                $errors[] = 'Customer Deal pada Detail TR belum diisi untuk TR Number dan Activity Number ini.';
+            if (empty($detail['tr_number'])) {
+                $errors[] = 'TR Number untuk Delivery Order tidak ditemukan.';
             } else {
-                $customer_deal = $dealData['customer_deal'];
+                try {
+                    $stmtDeal = $db->prepare("
+                        SELECT dtr.customer_deal
+                        FROM detail_transaction_requests dtr
+                        INNER JOIN activity_details adtr ON adtr.tr_number = dtr.trf_number
+                        WHERE dtr.trf_number = ?
+                          AND adtr.sales_activity_id = ?
+                          AND dtr.customer_deal IN ('yes', 'no')
+                        ORDER BY dtr.id DESC, adtr.id DESC
+                        LIMIT 1
+                    ");
+                    $stmtDeal->execute([$detail['tr_number'], $detail['sales_activity_id']]);
+                    $customerDealFromTR = strtolower(trim((string)$stmtDeal->fetchColumn()));
 
-                // Hanya Customer Deal = Yes yang membuat Delivery Instruction Number.
-                if ($customer_deal === 'Yes') {
-                    $di_number = generateDINumber($db);
+                    if ($customerDealFromTR === 'yes') {
+                        $customer_deal = 'Yes';
+                        $di_number = generateDINumber($db);
+                    } elseif ($customerDealFromTR === 'no') {
+                        $customer_deal = 'No';
+                    } else {
+                        $errors[] = 'Customer Deal pada detail TR belum diisi. Silakan isi Customer Deal di detailtr.php terlebih dahulu.';
+                    }
+                } catch (Exception $e) {
+                    $errors[] = 'Gagal mengambil Customer Deal dari detail TR: ' . $e->getMessage();
                 }
             }
         }
@@ -366,9 +617,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $db->beginTransaction();
             
             try {
-                // Update activity_details. Customer Deal tidak lagi disimpan di activity_details.
-                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
-                $stmt->execute([$result, $attachment_file, $di_number, $tr_number, $detail_id]);
+                // Update activity_details
+                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, customer_deal = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
+                $stmt->execute([$result, $attachment_file, $customer_deal, $di_number, $tr_number, $detail_id]);
                 
                 // AUTO CREATE DETAIL DELIVERY INSTRUCTION
                 if (!empty($di_number)) {
@@ -421,55 +672,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             setFlash('Anda tidak memiliki akses!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
-        
-        $detail_id = (int)$_POST['detail_id'];
-        
-        $db->beginTransaction();
-        
-        try {
-            $stmt = $db->prepare("SELECT * FROM activity_details WHERE id = ?");
-            $stmt->execute([$detail_id]);
-            $detailToDelete = $stmt->fetch();
-            
-            $stmt = $db->prepare("DELETE FROM activity_details WHERE id = ?");
-            $stmt->execute([$detail_id]);
-            
-            if ($detailToDelete && !empty($detailToDelete['di_number'])) {
-                $diNumber = $detailToDelete['di_number'];
-                
-                $checkOtherDI = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE di_number = ? AND id != ?");
-                $checkOtherDI->execute([$diNumber, $detail_id]);
-                $otherDICount = $checkOtherDI->fetchColumn();
-                
-                if ($otherDICount == 0) {
-                    $db->prepare("DELETE FROM di_approval_history WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_units WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_accessories WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_logistics WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM di_product_supports WHERE di_number = ?")->execute([$diNumber]);
-                    $db->prepare("DELETE FROM detail_delivery_instructions WHERE di_number = ?")->execute([$diNumber]);
-                }
-            }
-            
-            if ($detailToDelete && !empty($detailToDelete['tr_number'])) {
-                $trNumber = $detailToDelete['tr_number'];
-                
-                $checkOtherTR = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE tr_number = ? AND id != ?");
-                $checkOtherTR->execute([$trNumber, $detail_id]);
-                $otherTRCount = $checkOtherTR->fetchColumn();
-                
-                if ($otherTRCount == 0) {
-                    $db->prepare("DELETE FROM tr_approval_history WHERE trf_number = ?")->execute([$trNumber]);
-                    $db->prepare("DELETE FROM detail_transaction_requests WHERE trf_number = ?")->execute([$trNumber]);
-                }
-            }
-            
-            $db->commit();
-            
-            setFlash('Aktivitas berhasil dihapus!', 'success');
+
+        $detail_id = (int)($_POST['detail_id'] ?? 0);
+
+        if ($detail_id <= 0) {
+            setFlash('Detail aktivitas tidak valid!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
-        } catch (Exception $e) {
-            $db->rollBack();
+        }
+
+        $db->beginTransaction();
+
+        try {
+            // Lock dan pastikan detail benar-benar milik leads ini.
+            $stmt = $db->prepare("
+                SELECT ad.*
+                FROM activity_details ad
+                WHERE ad.id = ?
+                  AND ad.sales_activity_id = ?
+                FOR UPDATE
+            ");
+            $stmt->execute([$detail_id, $leadsId]);
+            $detailToDelete = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$detailToDelete) {
+                throw new RuntimeException('Detail aktivitas tidak ditemukan.');
+            }
+
+            $trNumber = $detailToDelete['tr_number'] ?? null;
+            $diNumber = $detailToDelete['di_number'] ?? null;
+
+            $attachmentFiles = [];
+            if (!empty($detailToDelete['attachment_file'])) {
+                $attachmentFiles = array_filter(
+                    array_map('trim', explode(',', $detailToDelete['attachment_file']))
+                );
+            }
+
+            // Hapus detail aktivitas.
+            $stmt = $db->prepare("
+                DELETE FROM activity_details
+                WHERE id = ?
+                  AND sales_activity_id = ?
+            ");
+            $stmt->execute([$detail_id, $leadsId]);
+
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('Detail aktivitas gagal dihapus.');
+            }
+
+            // Hapus DI/TR hanya bila sudah tidak direferensikan detail lain.
+            deleteUnusedDeliveryInstructionData($db, $diNumber);
+            deleteUnusedTransactionRequestData($db, $trNumber);
+
+            // Rapikan hanya periode yang terdampak, dalam transaction yang sama.
+            $trPeriod = null;
+            if (!empty($trNumber) && preg_match('#^\d{4}/GET-TR/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($trNumber), $m)) {
+                $trPeriod = $m[1] . '/' . substr(trim($trNumber), -4);
+            }
+
+            $diPeriod = null;
+            if (!empty($diNumber) && preg_match('#^\d{4}/GET-DI/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($diNumber), $m)) {
+                $diPeriod = $m[1] . '/' . substr(trim($diNumber), -4);
+            }
+
+            if ($trPeriod !== null) {
+                renumberAllTransactionRequestsFromActivities($db, $trPeriod);
+            }
+            if ($diPeriod !== null) {
+                renumberAllDeliveryInstructions($db, $diPeriod);
+            }
+
+            $db->commit();
+
+            // File fisik dihapus setelah commit.
+            foreach ($attachmentFiles as $attachmentPath) {
+                $safePath = str_replace(['..', '\\'], '', $attachmentPath);
+                if (
+                    strpos($safePath, 'uploads/attachments/') === 0 &&
+                    is_file($safePath)
+                ) {
+                    @unlink($safePath);
+                }
+            }
+
+            setFlash(
+                'Aktivitas berhasil dihapus dan nomor TR/DI telah dirapikan!',
+                'success'
+            );
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
             setFlash('Gagal menghapus data: ' . $e->getMessage(), 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
@@ -482,34 +778,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id = ? ORDER BY created_at DESC");
 $details->execute([$leadsId]);
 $detailsList = $details->fetchAll();
-
-// Customer Deal untuk tampilan tabel/modal diambil dari detail_transaction_requests.
-$customerDealByDetailId = [];
-$dealLookup = $db->prepare("
-    SELECT dtr.customer_deal, dtr.customer_deal_keterangan
-    FROM detail_transaction_requests dtr
-    INNER JOIN activity_details adtr
-        ON adtr.tr_number = dtr.trf_number
-    WHERE adtr.id = ?
-      AND adtr.sales_activity_id = ?
-      AND dtr.customer_deal IN ('yes', 'no')
-    ORDER BY dtr.id DESC
-    LIMIT 1
-");
-
-foreach ($detailsList as $detailRow) {
-    if (!empty($detailRow['tr_number'])) {
-        $dealLookup->execute([$detailRow['id'], $detailRow['sales_activity_id']]);
-        $dealRow = $dealLookup->fetch(PDO::FETCH_ASSOC);
-        if ($dealRow) {
-            $dealValue = strtolower(trim((string)$dealRow['customer_deal']));
-            $customerDealByDetailId[(int)$detailRow['id']] = [
-                'customer_deal' => $dealValue === 'yes' ? 'Yes' : ($dealValue === 'no' ? 'No' : null),
-                'customer_deal_keterangan' => $dealRow['customer_deal_keterangan'] ?? null
-            ];
-        }
-    }
-}
 
 $deliveryOrderCompleted = [];
 foreach ($detailsList as $d) {
@@ -537,377 +805,524 @@ foreach ($detailsList as $d) {
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/navigation.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            padding-bottom: 70px;
-        }
-        
-        .sidebar {
-            width: 260px;
-            height: 100vh;
-            background: #0e1a2b;
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            padding: 30px 20px;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        .sidebar::-webkit-scrollbar { width: 4px; }
-        .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.3); border-radius: 10px; }
+    * { box-sizing: border-box; }
 
-        .sidebar .brand { 
-            display: flex; align-items: center; gap: 12px; margin-bottom: 40px; text-decoration: none; 
-            padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .sidebar .brand .logo-wrapper { width: 42px; height: 42px; }
-        .sidebar .brand .logo-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .sidebar .brand .brand-text h5 { font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px; font-size: 16px; }
-        .sidebar .brand .brand-text h5 span { color: #ffd700; }
-        .sidebar .brand .brand-text small { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    :root {
+        --page-bg: #060b18;
+        --panel: #0b1222;
+        --panel-2: #0d1730;
+        --line: rgba(148, 163, 184, 0.16);
+        --text: #f7f9ff;
+        --muted: #8e9bb5;
+        --blue: #3b82f6;
+        --blue-light: #60a5fa;
+        --green: #34d399;
+        --red: #fb7185;
+        --amber: #fbbf24;
+    }
 
-        .sidebar .nav-item { 
-            display: flex; align-items: center; padding: 12px 16px; 
-            color: rgba(255,255,255,0.6); text-decoration: none; 
-            border-radius: 10px; margin-bottom: 5px; transition: all 0.2s ease; font-weight: 500; 
-            font-size: 14px; position: relative;
-        }
-        .sidebar .nav-item i { width: 24px; font-size: 16px; margin-right: 12px; text-align: center; }
-        .sidebar .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .sidebar .nav-item.active { 
-            background: rgba(255, 215, 0, 0.1); 
-            color: #ffd700; 
-            box-shadow: inset 3px 0 0 #ffd700;
-        }
-        
-        .sidebar .user-profile { 
-            margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); 
-            display: flex; align-items: center; gap: 12px; 
-        }
-        .sidebar .user-profile .avatar { 
-            width: 42px; height: 42px; border-radius: 50%; 
-            background: linear-gradient(135deg, #1a1a2e, #16213e); 
-            color: #ffd700; display: flex; align-items: center; justify-content: center; 
-            font-weight: 700; font-size: 16px; border: 2px solid rgba(255,215,0,0.2);
-        }
-        .sidebar .user-profile .user-info .name { font-size: 14px; font-weight: 600; color: #fff; }
-        .sidebar .user-profile .user-info .role { font-size: 12px; color: rgba(255,255,255,0.4); }
+    html,
+    body {
+        min-height: 100%;
+        background: var(--page-bg);
+    }
 
-        .sidebar .logout-btn {
-            display: block; text-align: center; margin-top: 15px; 
-            padding: 10px; border-radius: 10px; color: #e74c3c; text-decoration: none; 
-            font-weight: 600; font-size: 14px; background: rgba(231, 76, 60, 0.1); 
-            transition: all 0.2s;
-        }
-        .sidebar .logout-btn:hover { background: rgba(231, 76, 60, 0.2); }
+    body {
+        margin: 0;
+        font-family: 'Inter', Arial, sans-serif;
+        background:
+            radial-gradient(circle at 70% -10%, rgba(37, 99, 235, 0.20), transparent 30%),
+            linear-gradient(145deg, #050914, #08111f 55%, #07162c);
+        color: var(--text);
+        overflow-x: hidden;
+    }
 
-        .main-content { margin-left: 260px; padding: 30px; width: 100%; }
+    .content {
+        margin-left: 245px;
+        width: calc(100% - 245px);
+        min-width: 0;
+        padding: 26px 28px 50px;
+    }
 
-        .page-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 30px; flex-wrap: wrap; gap: 15px; 
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+    }
+
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .page-title h4 {
+        margin: 0;
+        color: var(--text);
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+
+    .page-title h4 span,
+    .page-title h4 span i {
+        color: var(--blue-light);
+    }
+
+    .page-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .info-card,
+    .card-custom {
+        background: linear-gradient(145deg, rgba(12, 23, 43, 0.94), rgba(7, 14, 28, 0.96));
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+        color: #dce5f5;
+    }
+
+    .info-card {
+        padding: 17px 18px;
+        margin-bottom: 14px;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 18px;
+        padding: 11px 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    }
+
+    .info-item:last-child {
+        border-bottom: 0;
+    }
+
+    .info-label {
+        width: 180px;
+        flex-shrink: 0;
+        color: #687791;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .info-value {
+        color: #dce5f5;
+        font-size: 11px;
+        line-height: 1.6;
+        word-break: break-word;
+    }
+
+    .info-value strong {
+        color: #fff;
+    }
+
+    .card-custom {
+        overflow: hidden;
+    }
+
+    .card-header-custom {
+        min-height: 58px;
+        padding: 0 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.10);
+    }
+
+    .card-header-custom h6 {
+        margin: 0;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .card-header-custom h6 i {
+        margin-right: 8px;
+        color: var(--blue-light);
+    }
+
+    .card-body-custom {
+        padding: 0;
+        background: transparent;
+        overflow-x: auto;
+    }
+
+    .table-custom {
+        margin-bottom: 0;
+        font-size: 11px;
+        color: #cdd7e7;
+        white-space: nowrap;
+    }
+
+    .table-custom th {
+        padding: 12px 14px;
+        color: #71809b;
+        background: rgba(6, 13, 27, 0.65);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.10);
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .table-custom td {
+        padding: 12px 14px;
+        color: #cdd7e7;
+        background: transparent;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+        vertical-align: middle;
+    }
+
+    .table-custom tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .table-custom tbody tr:hover td {
+        background: rgba(59, 130, 246, 0.035);
+    }
+
+    .table-custom a {
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .table-custom a.tr-link {
+        color: var(--blue-light);
+    }
+
+    .table-custom a.di-link {
+        color: var(--green);
+    }
+
+    .badge-tugas,
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 24px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #60a5fa; }
+    .badge-tugas.Visit\/Meeting { background: rgba(155, 89, 182, 0.12); color: #c084fc; }
+    .badge-tugas.Prospecting { background: rgba(241, 196, 15, 0.12); color: #fbbf24; }
+    .badge-tugas.Negosiasi { background: rgba(231, 76, 60, 0.12); color: #fb7185; }
+    .badge-tugas.Kontrak { background: rgba(46, 204, 113, 0.12); color: #34d399; }
+    .badge-tugas.Delivery\.Order { background: rgba(52, 152, 219, 0.12); color: #60a5fa; }
+    .badge-tugas.After\.Sales { background: rgba(26, 188, 156, 0.12); color: #2dd4bf; }
+
+    .badge-status.in_progress { background: rgba(59, 130, 246, 0.12); color: var(--blue-light); }
+    .badge-status.completed { background: rgba(52, 211, 153, 0.12); color: var(--green); }
+    .badge-status.overdue { background: rgba(251, 113, 133, 0.12); color: var(--red); }
+
+    .btn-action {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(148, 163, 184, 0.10);
+        border-radius: 8px;
+        background: rgba(10, 18, 34, 0.75);
+        font-size: 12px;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-action.detail { color: var(--blue-light); }
+    .btn-action.detail:hover { background: rgba(59, 130, 246, 0.12); }
+    .btn-action.complete { color: var(--green); }
+    .btn-action.complete:hover { background: rgba(52, 211, 153, 0.12); }
+    .btn-action.delete { color: var(--red); }
+    .btn-action.delete:hover { background: rgba(251, 113, 133, 0.12); }
+
+    .btn-primary-custom,
+    .btn-secondary-custom {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 11px;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        text-decoration: none;
+        transition: all 0.25s ease;
+        white-space: nowrap;
+    }
+
+    .btn-primary-custom {
+        color: #fff;
+        background: linear-gradient(135deg, var(--blue), #6366f1);
+        border: 0;
+        box-shadow: 0 0 24px rgba(59, 130, 246, 0.18);
+    }
+
+    .btn-primary-custom:hover {
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.22);
+    }
+
+    .btn-secondary-custom {
+        color: #aeb9ca;
+        background: rgba(10, 17, 33, 0.85);
+        border: 1px solid var(--line);
+    }
+
+    .btn-secondary-custom:hover {
+        color: #fff;
+        background: #0d1730;
+        border-color: rgba(96, 165, 250, 0.45);
+        transform: translateY(-1px);
+    }
+
+    .alert {
+        margin: 0;
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #0d1730;
+        color: #dce5f5;
+        font-size: 13px;
+    }
+
+    .modal-content {
+        color: #dce5f5;
+        background: #0b1222;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
+    }
+
+    .modal-header,
+    .modal-footer {
+        border-color: rgba(148, 163, 184, 0.10);
+    }
+
+    .modal-header {
+        padding: 18px 24px;
+    }
+
+    .modal-header .modal-title {
+        color: var(--text);
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .modal-header .modal-title i {
+        margin-right: 8px;
+        color: var(--blue-light);
+    }
+
+    .modal-body {
+        padding: 20px 24px;
+    }
+
+    .modal-footer {
+        padding: 14px 24px;
+    }
+
+    .form-label {
+        color: #9aa8bf;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 40px;
+        color: #dce5f5;
+        background: #070e1c;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 10px;
+        font-size: 12px;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        color: #dce5f5;
+        background: #070e1c;
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+
+    .form-control[readonly] {
+        color: var(--muted);
+        background: #0d1730;
+    }
+
+    .form-control::placeholder {
+        color: #52627d;
+    }
+
+    .tr-number-display,
+    .di-number-display {
+        margin-bottom: 15px;
+        padding: 10px 15px;
+        color: var(--blue-light);
+        background: rgba(59, 130, 246, 0.10);
+        border: 1px solid rgba(59, 130, 246, 0.20);
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-align: center;
+    }
+
+    .info-negosiasi-container {
+        margin-bottom: 15px;
+        padding: 15px;
+        color: #dce5f5;
+        background: rgba(10, 18, 34, 0.75);
+        border: 1px solid rgba(96, 165, 250, 0.25);
+        border-radius: 10px;
+    }
+
+    .info-negosiasi-container h6 {
+        margin-bottom: 10px;
+        color: var(--blue-light);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .info-negosiasi-container h6 i {
+        margin-right: 8px;
+    }
+
+    .footer-text {
+        padding: 16px 0 8px;
+        color: #44536c;
+        font-size: 11px;
+        text-align: center;
+    }
+
+    .footer-text a {
+        color: var(--blue-light);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .mobile-toggle {
+        display: none;
+    }
+
+    @media (max-width: 800px) {
+        .content {
+            margin-left: 0;
+            width: 100%;
+            padding: 20px 14px 40px;
         }
-        .page-header h4 { 
-            font-weight: 800; color: #0e1a2b; font-size: 24px; margin:0; 
-            letter-spacing: -0.5px;
+
+        .page-header {
+            align-items: flex-start;
         }
-        .page-header h4 span { color: #ffd700; }
+    }
+
+    @media (max-width: 650px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .page-actions {
+            width: 100%;
+        }
+
+        .page-actions .btn {
+            flex: 1 1 auto;
+        }
+
+        .info-item {
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .info-label {
+            width: 100%;
+            font-size: 9px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .content {
+            padding: 18px 10px 35px;
+        }
+
+        .page-title h4 {
+            font-size: 22px;
+        }
 
         .info-card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 20px 24px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            border: 1px solid #e0e4ea;
-            margin-bottom: 24px;
+            padding: 14px;
         }
-        .info-card .info-item {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f2f5;
-        }
-        .info-card .info-item:last-child { border-bottom: none; }
-        .info-card .info-label { font-weight: 600; color: #555; width: 180px; flex-shrink: 0; font-size: 13px; }
-        .info-card .info-value { color: #0e1a2b; font-size: 13px; }
 
-        .card-custom {
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            border: 1px solid #e0e4ea;
-            transition: all 0.3s ease;
+        .table-custom {
+            font-size: 10px;
         }
-        .card-custom:hover { box-shadow: 0 8px 25px rgba(14,26,43,0.08); border-color: #ffd700; }
-        
-        .card-custom .card-header-custom {
-            padding: 20px 24px;
-            border-bottom: 1px solid #f0f2f5;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .card-custom .card-header-custom h6 {
-            font-weight: 600;
-            color: #0e1a2b;
-            margin: 0;
-            font-size: 16px;
-        }
-        .card-custom .card-header-custom h6 i {
-            color: #ffd700;
-            margin-right: 8px;
-        }
-        .card-custom .card-body-custom { padding: 0; overflow-x: auto; }
-        
-        .table-custom { margin-bottom: 0; font-size: 13px; }
-        .table-custom th {
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            color: #7f8c8d;
-            border-bottom: 1px solid #f0f2f5;
-            padding: 12px 16px;
-            background: #fafafa;
-            white-space: nowrap;
-        }
+
+        .table-custom th,
         .table-custom td {
-            padding: 12px 16px;
-            vertical-align: middle;
-            border-bottom: 1px solid #f0f2f5;
+            padding: 8px 9px;
         }
-        .table-custom tr:last-child td { border-bottom: none; }
-        .table-custom tr:hover { background: #f8f9fa; }
-
-        .badge-tugas {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        .badge-tugas.Perkenalan { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-tugas.Visit\/Meeting { background: rgba(155, 89, 182, 0.12); color: #8e44ad; }
-        .badge-tugas.Prospecting { background: rgba(241, 196, 15, 0.12); color: #d4a017; }
-        .badge-tugas.Negosiasi { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
-        .badge-tugas.Kontrak { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-tugas.Delivery.Order { background: rgba(52, 152, 219, 0.15); color: #2471a3; }
-        .badge-tugas.After.Sales { background: rgba(26, 188, 156, 0.12); color: #16a085; }
-
-        .badge-status {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        .badge-status.in_progress { background: rgba(52, 152, 219, 0.12); color: #2980b9; }
-        .badge-status.completed { background: rgba(46, 204, 113, 0.12); color: #27ae60; }
-        .badge-status.overdue { background: rgba(231, 76, 60, 0.12); color: #c0392b; }
 
         .btn-action {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            transition: all 0.3s ease;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .btn-action:hover { transform: scale(1.1); }
-        .btn-action.detail { background: rgba(46, 204, 113, 0.1); color: #27ae60; }
-        .btn-action.detail:hover { background: rgba(46, 204, 113, 0.2); }
-        .btn-action.delete { background: rgba(231, 76, 60, 0.1); color: #c0392b; }
-        .btn-action.delete:hover { background: rgba(231, 76, 60, 0.2); }
-        .btn-action.complete { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
-        .btn-action.complete:hover { background: rgba(46, 204, 113, 0.25); }
-
-        .modal-content { border: none; border-radius: 12px; }
-        .modal-header { border-bottom: 1px solid #f0f2f5; padding: 18px 24px; }
-        .modal-header .modal-title { font-weight: 700; font-size: 18px; color: #0e1a2b; }
-        .modal-header .modal-title i { color: #ffd700; margin-right: 8px; }
-        .modal-body { padding: 20px 24px; }
-        .modal-footer { border-top: 1px solid #f0f2f5; padding: 14px 24px; }
-
-        .form-label { font-weight: 600; font-size: 13px; color: #333; }
-        .form-control, .form-select {
-            border-radius: 8px;
-            padding: 10px 14px;
-            border: 2px solid #e8edf2;
-            transition: all 0.3s ease;
-            font-size: 13px;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #ffd700;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-        }
-        .form-control[readonly] { background: #f8f9fa; cursor: not-allowed; }
-
-        .btn-primary-custom {
-            background: #0e1a2b;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #fff;
-        }
-        .btn-primary-custom:hover {
-            background: #1a2d4a;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(14, 26, 43, 0.3);
-            color: #fff;
-        }
-        .btn-primary-custom i { margin-right: 6px; }
-
-        .btn-secondary-custom {
-            background: #f0f2f5;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            color: #555;
-        }
-        .btn-secondary-custom:hover { background: #e8edf2; color: #333; }
-
-        .alert { border-radius: 10px; border: none; padding: 12px 16px; font-size: 14px; }
-
-        .tr-number-display, .di-number-display {
-            background: rgba(255, 215, 0, 0.1);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: 700;
-            color: #d4a017;
-            text-align: center;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            margin-bottom: 15px;
+            width: 27px;
+            height: 27px;
+            font-size: 11px;
         }
 
-        .info-negosiasi-container {
-            background: #f8f9fa;
-            border: 2px solid #ffd700;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .info-negosiasi-container h6 {
-            color: #d4a017;
-            font-weight: 700;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        .info-negosiasi-container h6 i {
-            margin-right: 8px;
+        .modal-body {
+            padding: 14px 16px;
         }
 
-        .di-number-field { display: none; }
-        .di-number-field.show { display: block; }
-
-        .mobile-toggle { display: none; }
-        .footer-text { text-align: center; padding: 16px 0 8px; color: #999; font-size: 11px; }
-        .footer-text a { color: #16213e; text-decoration: none; font-weight: 500; }
-        .footer-text a:hover { color: #ffd700; }
-
-        @media (max-width: 991px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 20px; }
-            .mobile-toggle { 
-                display: flex !important; background: #0e1a2b; border: none; 
-                width: 40px; height: 40px; border-radius: 8px; 
-                color: #ffd700; font-size: 20px; align-items: center; justify-content: center;
-            }
+        .modal-header {
+            padding: 14px 16px;
         }
-
-        @media (max-width: 480px) {
-            .modal-body { padding: 14px 16px; }
-            .modal-header { padding: 14px 16px; }
-            .table-custom { font-size: 11px; }
-            .table-custom th, .table-custom td { padding: 6px 8px; }
-            .btn-action { width: 26px; height: 26px; font-size: 11px; }
-            .info-card .info-item { flex-direction: column; }
-            .info-card .info-label { width: 100%; font-size: 11px; color: #999; margin-bottom: 2px; }
-            .info-card .info-value { font-size: 12px; }
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
 
-    <!-- SIDEBAR MODERN -->
-    <nav class="sidebar" id="sidebar">
-        <a href="dashboard.php" class="brand">
-            <div class="logo-wrapper"><img src="images/logo.webp" alt="GET"></div>
-            <div class="brand-text">
-                <h5>CUSTOMER <span>RELATIONSHIP</span></h5>
-                <small>PT Ganda Elang Tangguh</small>
-            </div>
-        </a>
+    <?php require_once 'navigation.php'; ?>
 
-        <a href="dashboard.php" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
-        
-        <?php if (in_array('sales_activity', $menuNames)): ?>
-            <a href="salesactivity.php" class="nav-item active"><i class="fas fa-chart-bar"></i> Sales Activity</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('account_management', $menuNames)): ?>
-            <a href="account_management.php" class="nav-item"><i class="fas fa-building"></i> Account</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('transaction_request', $menuNames)): ?>
-            <a href="transactionrequest.php" class="nav-item"><i class="fas fa-file-signature"></i> TR Request</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('produk', $menuNames)): ?>
-            <a href="produk.php" class="nav-item"><i class="fas fa-box"></i> Produk</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('delivery_order', $menuNames)): ?>
-            <a href="deliveryinstruction.php" class="nav-item"><i class="fas fa-tractor"></i> Delivery</a>
-        <?php endif; ?>
-        
-        <?php if (in_array('data_user', $menuNames)): ?>
-            <a href="data_user.php" class="nav-item"><i class="fas fa-users"></i> User</a>
-        <?php endif; ?>
-
-        <div class="user-profile">
-            <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
-            <div class="user-info">
-                <div class="name"><?= htmlspecialchars($fullName) ?></div>
-                <div class="role"><?= getRoleLabel($role) ?></div>
-            </div>
-        </div>
-        <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
-    </nav>
-
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
+    <main class="content">
         
         <!-- HEADER -->
         <div class="page-header">
-            <div style="display:flex; gap:15px; align-items:center;">
-                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div>
-                    <h4><span><i class="fas fa-chart-bar" style="color:#ffd700;"></i></span> Detail Aktivitas</h4>
-                </div>
+            <div class="page-title">
+                <h4><span><i class="fas fa-chart-bar"></i></span> Detail Aktivitas</h4>
             </div>
-            <div class="d-flex gap-2">
+            <div class="page-actions">
                 <a href="salesactivity.php" class="btn btn-secondary-custom">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
@@ -1012,15 +1427,31 @@ foreach ($detailsList as $d) {
                                         </td>
                                         <td>
                                             <?php
-                                                $dealInfo = $customerDealByDetailId[(int)$detail['id']] ?? null;
-                                                $dealValue = $dealInfo['customer_deal'] ?? null;
-                                                $detailViewData = $detail;
-                                                $detailViewData['customer_deal_from_tr'] = $dealValue;
-                                                $detailViewData['customer_deal_keterangan_from_tr'] = $dealInfo['customer_deal_keterangan'] ?? null;
+                                            // Customer Deal diambil langsung dari detail TR yang
+                                            // memiliki TR Number DAN Activity Number (sales_activity_id) yang sama.
+                                            $activityCustomerDeal = '';
+                                            if (!empty($detail['tr_number'])) {
+                                                try {
+                                                    $stmtCustomerDeal = $db->prepare("
+                                                        SELECT dtr.customer_deal
+                                                        FROM detail_transaction_requests dtr
+                                                        INNER JOIN activity_details adtr ON adtr.tr_number = dtr.trf_number
+                                                        WHERE dtr.trf_number = ?
+                                                          AND adtr.sales_activity_id = ?
+                                                          AND dtr.customer_deal IN ('yes', 'no')
+                                                        ORDER BY dtr.id DESC, adtr.id DESC
+                                                        LIMIT 1
+                                                    ");
+                                                    $stmtCustomerDeal->execute([$detail['tr_number'], $detail['sales_activity_id']]);
+                                                    $activityCustomerDeal = strtolower(trim((string)$stmtCustomerDeal->fetchColumn()));
+                                                } catch (Exception $e) {
+                                                    $activityCustomerDeal = '';
+                                                }
+                                            }
                                             ?>
-                                            <?php if ($dealValue === 'Yes'): ?>
+                                            <?php if ($activityCustomerDeal === 'yes'): ?>
                                                 <span class="badge-status completed">Deal</span>
-                                            <?php elseif ($dealValue === 'No'): ?>
+                                            <?php elseif ($activityCustomerDeal === 'no'): ?>
                                                 <span class="badge-status overdue">No</span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
@@ -1043,7 +1474,7 @@ foreach ($detailsList as $d) {
                                         <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <button class="btn-action detail" onclick="viewDetail(<?= htmlspecialchars(json_encode($detailViewData), ENT_QUOTES, 'UTF-8') ?>)">
+                                                <button class="btn-action detail" onclick="viewDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <?php if ($detail['status'] === 'in_progress' || $detail['status'] === 'overdue'): ?>
@@ -1130,7 +1561,7 @@ foreach ($detailsList as $d) {
                         <div class="mb-3" id="trNumberFieldAdd" style="display: none;">
                             <label class="form-label">Transaction Request Form</label>
                             <div class="tr-number-display">
-                                <?= generateTRNumber($db) ?>
+                                <?= htmlspecialchars(generateTRNumber($db)) ?>
                             </div>
                         </div>
                         
@@ -1175,6 +1606,23 @@ foreach ($detailsList as $d) {
                             <small class="text-muted">Tahan tombol Ctrl untuk memilih banyak file (JPG, PNG, PDF, DOC, XLS) - Maksimal 5MB per file</small>
                         </div>
                         
+                        <div id="customerDealFieldComplete" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Customer Deal <span class="text-danger">*</span></label>
+                                <select name="customer_deal" id="customer_deal_complete" class="form-select">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Yes">YES</option>
+                                    <option value="No">NO</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3" id="diNumberFieldComplete" style="display: none;">
+                                <label class="form-label">Delivery Instruction Number</label>
+                                <div class="di-number-display">
+                                    <?= htmlspecialchars(generateDINumber($db)) ?>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
@@ -1222,7 +1670,7 @@ foreach ($detailsList as $d) {
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -1291,6 +1739,14 @@ foreach ($detailsList as $d) {
             }
         });
         
+        document.getElementById('customer_deal_complete').addEventListener('change', function() {
+            if (this.value === 'Yes') {
+                document.getElementById('diNumberFieldComplete').style.display = 'block';
+            } else {
+                document.getElementById('diNumberFieldComplete').style.display = 'none';
+            }
+        });
+        
         function viewDetail(data) {
             var html = `
                 <div class="info-card" style="margin-bottom: 0;">
@@ -1319,11 +1775,6 @@ foreach ($detailsList as $d) {
                     <div class="info-item">
                         <div class="info-label">DI Number</div>
                         <div class="info-value"><a href="detaildi.php?di_number=${encodeURIComponent(data.di_number)}" style="color: #27ae60; font-weight: 600;" target="_blank">${data.di_number}</a></div>
-                    </div>` : ''}
-                    ${data.customer_deal_from_tr ? `
-                    <div class="info-item">
-                        <div class="info-label">Keterangan</div>
-                        <div class="info-value">${data.customer_deal_from_tr === 'Yes' ? 'Deal' : 'No'}${data.customer_deal_from_tr === 'No' && data.customer_deal_keterangan_from_tr ? ' - ' + data.customer_deal_keterangan_from_tr : ''}</div>
                     </div>` : ''}
                     ${data.result ? `
                     <div class="info-item">
@@ -1360,6 +1811,12 @@ foreach ($detailsList as $d) {
                 existingContainer.remove();
             }
             
+            // HANYA Delivery Order yang menampilkan Customer Deal
+            if (data.jenis_tugas === 'Delivery Order') {
+                document.getElementById('customerDealFieldComplete').style.display = 'block';
+                document.getElementById('customer_deal_complete').required = true;
+            }
+            
             if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
                 var infoHtml = '';
                 
@@ -1381,7 +1838,10 @@ foreach ($detailsList as $d) {
                         infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
                     }
                     
-                    infoHtml += '<div class="mb-0"><strong>Keterangan:</strong> mengikuti Customer Deal pada Detail TR.</div>';
+                    // Customer Deal berasal dari detail TR, bukan dari form aktivitas.
+                    if (lastDO.tr_number) {
+                        infoHtml += '<div class="mb-0"><strong>Keterangan:</strong> mengikuti Customer Deal pada detail TR.</div>';
+                    }
                     
                     infoHtml += '</div>';
                 } else {

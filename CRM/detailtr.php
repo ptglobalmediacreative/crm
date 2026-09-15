@@ -443,6 +443,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ============================================
     // SAVE CUSTOMER DEAL (SETELAH FINAL APPROVAL)
+    // SUMBER CUSTOMER DEAL: detail_transaction_requests
+    // Aktivitas terkait diverifikasi melalui TR Number + sales_activity_id.
     // ============================================
     if ($action === 'save_customer_deal') {
         try {
@@ -457,23 +459,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Pilihan Customer Deal tidak valid.');
             }
 
-            $checkFinal = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
-            $checkFinal->execute([$tr_number]);
-            $finalStatus = $checkFinal->fetchColumn();
-
-            if ($finalStatus !== 'approved') {
-                throw new Exception('Customer Deal hanya dapat diisi setelah seluruh approval selesai.');
-            }
-
             if ($deal === 'no' && $dealKeterangan === '') {
                 throw new Exception('Keterangan wajib diisi jika Customer Deal = No.');
             }
 
-            $saveDeal = $db->prepare("UPDATE detail_transaction_requests SET customer_deal = ?, customer_deal_keterangan = ?, updated_at = NOW() WHERE trf_number = ?");
-            $saveDeal->execute([$deal, $deal === 'no' ? $dealKeterangan : null, $tr_number]);
+            if (empty($request['sales_activity_id'])) {
+                throw new Exception('Activity Number untuk TR ini tidak ditemukan. Customer Deal tidak dapat disimpan.');
+            }
 
+            $db->beginTransaction();
+
+            // Kunci record Detail TR TERBARU agar tidak terjadi update ke record historis.
+            $lockDetail = $db->prepare("
+                SELECT id, status, trf_number, customer_deal, customer_deal_keterangan
+                FROM detail_transaction_requests
+                WHERE trf_number = ?
+                ORDER BY id DESC
+                LIMIT 1
+                FOR UPDATE
+            ");
+            $lockDetail->execute([$tr_number]);
+            $lockedDetail = $lockDetail->fetch(PDO::FETCH_ASSOC);
+
+            if (!$lockedDetail) {
+                throw new Exception('Detail Transaction Request tidak ditemukan.');
+            }
+
+            if (strtolower(trim((string)($lockedDetail['status'] ?? ''))) !== 'approved') {
+                throw new Exception('Customer Deal hanya dapat diisi setelah seluruh approval selesai.');
+            }
+
+            // Pastikan TR Number memang terhubung dengan Activity Number yang sedang dibuka.
+            $checkActivity = $db->prepare("
+                SELECT id
+                FROM activity_details
+                WHERE tr_number = ?
+                  AND sales_activity_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+            ");
+            $checkActivity->execute([$tr_number, (int)$request['sales_activity_id']]);
+
+            if (!$checkActivity->fetchColumn()) {
+                throw new Exception('TR Number dan Activity Number tidak cocok. Customer Deal tidak dapat disimpan.');
+            }
+
+            // Update HANYA Detail TR terbaru, bukan seluruh histori dengan TR Number yang sama.
+            $saveDeal = $db->prepare("
+                UPDATE detail_transaction_requests
+                SET customer_deal = ?,
+                    customer_deal_keterangan = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $saveDeal->execute([
+                $deal,
+                $deal === 'no' ? $dealKeterangan : null,
+                (int)$lockedDetail['id']
+            ]);
+
+            $db->commit();
             setFlash('Status Customer Deal berhasil disimpan!', 'success');
         } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             setFlash('Gagal menyimpan Customer Deal: ' . $e->getMessage(), 'danger');
         }
         redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
