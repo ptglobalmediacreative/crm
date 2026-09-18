@@ -663,6 +663,7 @@ textarea {
 .page-account-management .pagination .page-item:first-child .page-link,
 .page-account-management .pagination .page-item:last-child .page-link {
   min-width: 68px;
+  align-items: center;
 }
 
 /* ---------- Large monitor ---------- */
