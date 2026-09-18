@@ -597,6 +597,7 @@ function canSalesEdit($db, $account_id, $userId) {
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/account_management.css">
+    <link rel="stylesheet" href="css/footer.css">
 
 </head>
 <body>
@@ -829,9 +830,7 @@ function canSalesEdit($db, $account_id, $userId) {
         </div>
 
         <!-- FOOTER -->
-        <div class="footer-text">
-            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
-        </div>
+        <?php require_once 'footer.php'; ?>
 
     </div>
 
