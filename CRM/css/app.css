@@ -201,3 +201,354 @@ img {
     align-items: flex-start;
   }
 }
+
+
+/* =========================================================
+   CRM CONSISTENCY LAYER — RESPONSIVE TYPOGRAPHY & LAYOUT
+   Load this file LAST.
+   Breakpoints:
+   - Large monitor / desktop : >= 1440px
+   - Laptop                  : 1025px–1439px
+   - Tablet                  : 769px–1024px
+   - Handphone               : <= 768px
+   ========================================================= */
+
+:root {
+  --ui-font-xs: 10px;
+  --ui-font-sm: 12px;
+  --ui-font-md: 13px;
+  --ui-font-lg: 15px;
+  --ui-title: 26px;
+  --ui-sidebar: 245px;
+  --ui-topbar: 72px;
+}
+
+body {
+  font-size: var(--ui-font-sm);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.content {
+  margin-left: var(--ui-sidebar);
+  width: calc(100% - var(--ui-sidebar));
+  min-width: 0;
+  padding: 30px 32px 52px;
+}
+
+.page-header,
+.hero-row {
+  min-width: 0;
+}
+
+.page-header h1,
+.page-header h4,
+.hero h1,
+.page-title h1,
+.page-title h4 {
+  font-size: var(--ui-title);
+  line-height: 1.2;
+  letter-spacing: -0.55px;
+}
+
+.page-header p,
+.hero p,
+.page-title p {
+  font-size: var(--ui-font-sm);
+  line-height: 1.55;
+}
+
+.card-header-custom h6,
+.panel-head h6 {
+  font-size: var(--ui-font-md);
+  line-height: 1.4;
+}
+
+.card-body-custom {
+  font-size: var(--ui-font-sm);
+}
+
+.form-control,
+.form-select,
+input,
+select,
+textarea {
+  font-size: var(--ui-font-sm);
+  line-height: 1.45;
+}
+
+.table-custom {
+  font-size: var(--ui-font-sm) !important;
+}
+
+.table-custom th {
+  font-size: var(--ui-font-xs) !important;
+  line-height: 1.35;
+  letter-spacing: .55px;
+}
+
+.table-custom td {
+  font-size: var(--ui-font-sm) !important;
+  line-height: 1.45;
+}
+
+.badge,
+.badge-status,
+[class*="badge-status-"],
+[class*="badge-"] {
+  font-size: 10px !important;
+  line-height: 1.25;
+}
+
+.pagination .page-link {
+  font-size: 11px !important;
+  min-width: 34px;
+  min-height: 34px;
+}
+
+button,
+.btn,
+.btn-add,
+.btn-export,
+.btn-search {
+  font-size: var(--ui-font-sm);
+  line-height: 1.2;
+}
+
+.stat-number,
+.kpi-value {
+  line-height: 1.15;
+}
+
+.stat-label,
+.kpi-label {
+  font-size: var(--ui-font-xs) !important;
+  line-height: 1.35;
+}
+
+.footer,
+.footer-text {
+  font-size: 10px !important;
+  line-height: 1.45;
+}
+
+/* ---------- Large monitor ---------- */
+@media (min-width: 1440px) {
+  .content {
+    padding: 34px 44px 60px;
+  }
+
+  .page-header h1,
+  .page-header h4,
+  .hero h1,
+  .page-title h1,
+  .page-title h4 {
+    font-size: 28px;
+  }
+
+  .card-custom,
+  .panel,
+  .chart-card,
+  .stat-card,
+  .kpi {
+    border-radius: 16px;
+  }
+}
+
+/* ---------- Laptop ---------- */
+@media (min-width: 1025px) and (max-width: 1439px) {
+  .content {
+    padding: 28px 30px 52px;
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root {
+    --ui-sidebar: 220px;
+  }
+
+  .content {
+    margin-left: var(--ui-sidebar);
+    width: calc(100% - var(--ui-sidebar));
+    padding: 24px 22px 44px;
+  }
+
+  .page-header h1,
+  .page-header h4,
+  .hero h1,
+  .page-title h1,
+  .page-title h4 {
+    font-size: 23px;
+  }
+
+  .card-header-custom {
+    padding: 12px 15px;
+  }
+
+  .card-body-custom {
+    padding: 15px;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ---------- Handphone ---------- */
+@media (max-width: 768px) {
+  :root {
+    --ui-topbar: 64px;
+  }
+
+  .content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 20px 16px 36px !important;
+  }
+
+  .page-header,
+  .hero-row {
+    align-items: flex-start !important;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .page-header h1,
+  .page-header h4,
+  .hero h1,
+  .page-title h1,
+  .page-title h4 {
+    font-size: 21px !important;
+    line-height: 1.25;
+  }
+
+  .page-header p,
+  .hero p,
+  .page-title p {
+    font-size: 12px !important;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters,
+  .hero-row > div:last-child,
+  .page-header > div:last-child {
+    width: 100%;
+  }
+
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    flex: 1 1 auto;
+  }
+
+  .card-header-custom {
+    min-height: 56px;
+    padding: 11px 13px;
+    gap: 10px;
+  }
+
+  .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .card-header-custom form input,
+  .search-input {
+    width: 100% !important;
+  }
+
+  .card-body-custom {
+    padding: 13px;
+  }
+
+  .table-responsive,
+  .card-body-custom {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-custom {
+    min-width: 680px;
+  }
+
+  .table-custom th {
+    font-size: 10px !important;
+    padding: 10px 12px !important;
+  }
+
+  .table-custom td {
+    font-size: 12px !important;
+    padding: 10px 12px !important;
+  }
+
+  .stat-grid,
+  .kpis,
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .stat-card,
+  .kpi {
+    min-height: 105px;
+  }
+
+  .notification-panel {
+    position: fixed !important;
+    top: 72px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+/* ---------- Small handphone ---------- */
+@media (max-width: 480px) {
+  .content {
+    padding: 16px 12px 30px !important;
+  }
+
+  .page-header h1,
+  .page-header h4,
+  .hero h1,
+  .page-title h1,
+  .page-title h4 {
+    font-size: 19px !important;
+  }
+
+  .page-header p,
+  .hero p,
+  .page-title p {
+    font-size: 11px !important;
+  }
+
+  .page-title-icon,
+  .page-header h4 span {
+    width: 34px !important;
+    height: 34px !important;
+    flex-basis: 34px;
+  }
+
+  .btn,
+  .btn-add,
+  .btn-export,
+  .btn-search,
+  .filter {
+    min-height: 36px;
+    font-size: 11px !important;
+  }
+
+  .card-header-custom h6,
+  .panel-head h6 {
+    font-size: 12px !important;
+  }
+
+  .card-body-custom {
+    padding: 11px;
+  }
+}

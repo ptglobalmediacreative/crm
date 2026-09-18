@@ -589,3 +589,73 @@
     text-align: left;
   }
 }
+
+
+/* =========================================================
+   DASHBOARD TYPOGRAPHY + RESPONSIVE CONSISTENCY — LOAD LAST
+   ========================================================= */
+
+.dashboard-page .hero .eyebrow,
+.hero .eyebrow { font-size: 10px !important; }
+
+.dashboard-page .trend,
+.dashboard-page .label,
+.dashboard-page .panel-sub,
+.dashboard-page .stage-name,
+.dashboard-page .stage-meta,
+.dashboard-page .act-title,
+.dashboard-page .act-desc,
+.dashboard-page .score,
+.dashboard-page .act-time,
+.dashboard-page .empty,
+.dashboard-page .quick strong,
+.dashboard-page .quick span,
+.dashboard-page .footer,
+.trend, .label, .panel-sub, .stage-name, .stage-meta,
+.act-title, .act-desc, .score, .act-time, .empty,
+.quick strong, .quick span, .footer {
+  line-height: 1.4;
+}
+
+.trend { font-size: 10px !important; }
+.label { font-size: 10px !important; }
+.panel-sub { font-size: 10px !important; }
+.panel-head a.panel-link { font-size: 10px !important; }
+.stage-name { font-size: 10px !important; }
+.stage-meta { font-size: 10px !important; }
+.act-title { font-size: 11px !important; }
+.act-desc { font-size: 10px !important; }
+.score { font-size: 10px !important; }
+.act-time { font-size: 10px !important; }
+.empty { font-size: 10px !important; }
+.quick strong { font-size: 10px !important; }
+.quick span { font-size: 10px !important; }
+.footer { font-size: 10px !important; }
+
+@media (min-width: 1440px) {
+  .content { padding: 34px 44px 60px; }
+  .hero h1 { font-size: 28px; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .content {
+    margin-left: 220px;
+    width: calc(100% - 220px);
+    padding: 24px 22px 44px;
+  }
+  .kpis { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+}
+
+@media (max-width: 768px) {
+  .content { margin-left: 0 !important; width: 100% !important; padding: 20px 16px 36px !important; }
+  .hero-row { flex-direction: column; align-items: flex-start; }
+  .hero h1 { font-size: 21px !important; }
+  .filters { width: 100%; }
+  .filters > * { flex: 1 1 auto; min-width: 0; }
+  .kpis { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+  .content { padding: 16px 12px 30px !important; }
+  .hero h1 { font-size: 19px !important; }
+}

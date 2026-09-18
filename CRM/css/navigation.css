@@ -240,3 +240,72 @@
     height: 36px;
   }
 }
+
+
+/* =========================================================
+   NAVIGATION RESPONSIVE CONSISTENCY — LOAD LAST
+   ========================================================= */
+
+.brand strong { font-size: 17px; }
+.brand small { font-size: 10px; }
+.rail-label { font-size: 10px; }
+.rail a { font-size: 12px; min-height: 44px; }
+.rail-user strong { font-size: 11px; }
+.rail-user span { font-size: 9px; }
+
+@media (min-width: 1440px) {
+  .rail { width: 245px; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .rail { width: 220px; }
+  .rail a { font-size: 11px; }
+  .brand { min-width: 180px; }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    height: 64px;
+    padding: 0 14px;
+    gap: 12px;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
+  .brand strong {
+    font-size: 15px;
+  }
+
+  .brand small {
+    font-size: 9px;
+  }
+
+  .brand div {
+    display: none;
+  }
+
+  .rail {
+    display: none;
+  }
+
+  .rail.open {
+    display: flex;
+    position: fixed;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 86vw);
+  }
+
+  .top-actions {
+    gap: 7px;
+  }
+
+  .icon-btn,
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+}

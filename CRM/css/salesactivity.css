@@ -732,3 +732,333 @@
     font-size: 14px !important;
   }
 }
+
+
+/* =========================================================
+   PAGE TYPOGRAPHY CONSISTENCY — RESPONSIVE OVERRIDE
+   This layer intentionally keeps labels compact but readable.
+   ========================================================= */
+
+.page-data-user .table-custom {
+  font-size: 12px !important;
+}
+.page-data-user .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-data-user .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-data-user .info-label {
+  font-size: 10px !important;
+}
+.page-data-user .info-value {
+  font-size: 12px !important;
+}
+.page-data-user .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-data-user .footer-text,
+.page-data-user .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-data-user .table-custom {
+    min-width: 680px;
+  }
+  .page-data-user .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-data-user .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-deliveryinstruction .table-custom {
+  font-size: 12px !important;
+}
+.page-deliveryinstruction .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-deliveryinstruction .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-deliveryinstruction .info-label {
+  font-size: 10px !important;
+}
+.page-deliveryinstruction .info-value {
+  font-size: 12px !important;
+}
+.page-deliveryinstruction .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-deliveryinstruction .footer-text,
+.page-deliveryinstruction .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-deliveryinstruction .table-custom {
+    min-width: 680px;
+  }
+  .page-deliveryinstruction .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-deliveryinstruction .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-detailaktivitas .table-custom {
+  font-size: 12px !important;
+}
+.page-detailaktivitas .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-detailaktivitas .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-detailaktivitas .info-label {
+  font-size: 10px !important;
+}
+.page-detailaktivitas .info-value {
+  font-size: 12px !important;
+}
+.page-detailaktivitas .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-detailaktivitas .footer-text,
+.page-detailaktivitas .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-detailaktivitas .table-custom {
+    min-width: 680px;
+  }
+  .page-detailaktivitas .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-detailaktivitas .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-detaildi .table-custom {
+  font-size: 12px !important;
+}
+.page-detaildi .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-detaildi .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-detaildi .info-label {
+  font-size: 10px !important;
+}
+.page-detaildi .info-value {
+  font-size: 12px !important;
+}
+.page-detaildi .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-detaildi .footer-text,
+.page-detaildi .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-detaildi .table-custom {
+    min-width: 680px;
+  }
+  .page-detaildi .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-detaildi .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-detailtr .table-custom {
+  font-size: 12px !important;
+}
+.page-detailtr .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-detailtr .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-detailtr .info-label {
+  font-size: 10px !important;
+}
+.page-detailtr .info-value {
+  font-size: 12px !important;
+}
+.page-detailtr .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-detailtr .footer-text,
+.page-detailtr .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-detailtr .table-custom {
+    min-width: 680px;
+  }
+  .page-detailtr .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-detailtr .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-produk .table-custom {
+  font-size: 12px !important;
+}
+.page-produk .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-produk .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-produk .info-label {
+  font-size: 10px !important;
+}
+.page-produk .info-value {
+  font-size: 12px !important;
+}
+.page-produk .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-produk .footer-text,
+.page-produk .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-produk .table-custom {
+    min-width: 680px;
+  }
+  .page-produk .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-produk .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-salesactivity .table-custom {
+  font-size: 12px !important;
+}
+.page-salesactivity .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-salesactivity .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-salesactivity .info-label {
+  font-size: 10px !important;
+}
+.page-salesactivity .info-value {
+  font-size: 12px !important;
+}
+.page-salesactivity .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-salesactivity .footer-text,
+.page-salesactivity .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-salesactivity .table-custom {
+    min-width: 680px;
+  }
+  .page-salesactivity .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-salesactivity .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-transactionrequest .table-custom {
+  font-size: 12px !important;
+}
+.page-transactionrequest .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-transactionrequest .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-transactionrequest .info-label {
+  font-size: 10px !important;
+}
+.page-transactionrequest .info-value {
+  font-size: 12px !important;
+}
+.page-transactionrequest .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-transactionrequest .footer-text,
+.page-transactionrequest .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-transactionrequest .table-custom {
+    min-width: 680px;
+  }
+  .page-transactionrequest .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-transactionrequest .table-custom td {
+    font-size: 12px !important;
+  }
+}
+
+.page-account-management .table-custom {
+  font-size: 12px !important;
+}
+.page-account-management .table-custom th {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+.page-account-management .table-custom td {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.page-account-management .info-label {
+  font-size: 10px !important;
+}
+.page-account-management .info-value {
+  font-size: 12px !important;
+}
+.page-account-management .pagination .page-link {
+  font-size: 11px !important;
+}
+.page-account-management .footer-text,
+.page-account-management .footer {
+  font-size: 10px !important;
+}
+@media (max-width: 768px) {
+  .page-account-management .table-custom {
+    min-width: 680px;
+  }
+  .page-account-management .table-custom th {
+    font-size: 10px !important;
+  }
+  .page-account-management .table-custom td {
+    font-size: 12px !important;
+  }
+}
