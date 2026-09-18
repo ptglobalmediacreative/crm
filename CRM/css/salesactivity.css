@@ -1664,3 +1664,494 @@ textarea {
   .page-salesactivity .hero-row { align-items: stretch; }
   .page-salesactivity .filters { justify-content: flex-start; }
 }
+
+
+/* =========================================================
+   CRM RESPONSIVE SYSTEM — FINAL OVERRIDE
+   Breakpoints:
+   1440+  : large desktop / PC
+   1201-1439 : laptop
+   769-1200 : tablet / small laptop
+   481-768 : tablet / large phone
+   361-480 : mobile
+   <=360 : very small mobile
+
+   IMPORTANT:
+   - Navigation is fixed so it never gets clipped during page scroll.
+   - Content always stays inside the available viewport.
+   - Tables remain horizontally scrollable instead of breaking layout.
+   ========================================================= */
+
+/* ---------- GLOBAL SAFETY ---------- */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+/* ---------- LARGE DESKTOP / PC: 1440px+ ---------- */
+@media (min-width: 1440px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: calc(100% - 245px) !important;
+    margin-left: 245px !important;
+    padding-left: 34px !important;
+    padding-right: 34px !important;
+  }
+
+  .page-header,
+  .hero-row {
+    max-width: 100%;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- LAPTOP: 1201px - 1439px ---------- */
+@media (min-width: 1201px) and (max-width: 1439px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: calc(100% - 245px) !important;
+    margin-left: 245px !important;
+    padding: 24px 28px 46px !important;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-header,
+  .hero-row {
+    gap: 16px;
+  }
+}
+
+/* ---------- TABLET / SMALL LAPTOP: 769px - 1200px ---------- */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: calc(100% - 220px) !important;
+    margin-left: 220px !important;
+    padding: 22px 22px 44px !important;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .page-header,
+  .hero-row {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters,
+  .top-actions {
+    flex-wrap: wrap;
+  }
+
+  .card-header-custom {
+    flex-wrap: wrap;
+  }
+
+  .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .card-header-custom form input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ---------- TABLET: 481px - 768px ---------- */
+@media (min-width: 481px) and (max-width: 768px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 20px 16px 40px !important;
+  }
+
+  .page-header,
+  .hero-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .page-title,
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters {
+    flex-wrap: wrap;
+  }
+
+  .page-actions > *,
+  .header-actions > * {
+    flex: 0 1 auto;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .card-header-custom {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .card-header-custom form input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+
+  .table-responsive,
+  .card-body-custom {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-custom {
+    white-space: nowrap;
+  }
+
+  .pagination {
+    max-width: 100%;
+    overflow-x: auto;
+    justify-content: flex-start !important;
+    padding-bottom: 2px;
+  }
+}
+
+/* ---------- MOBILE: 361px - 480px ---------- */
+@media (min-width: 361px) and (max-width: 480px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 16px 12px 32px !important;
+  }
+
+  .page-header,
+  .hero-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 19px !important;
+    line-height: 1.25;
+  }
+
+  .page-header h4 span,
+  .page-title h4 span {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 7px;
+  }
+
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .stat-card,
+  .kpi {
+    min-height: 104px;
+    padding: 14px;
+  }
+
+  .card-custom,
+  .chart-card,
+  .info-card,
+  .stat-card,
+  .kpi,
+  .panel {
+    border-radius: 13px;
+  }
+
+  .card-header-custom {
+    padding: 11px 12px !important;
+    gap: 9px;
+    align-items: flex-start;
+  }
+
+  .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: nowrap;
+  }
+
+  .card-header-custom form input {
+    width: auto !important;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .table-responsive,
+  .card-body-custom {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-custom {
+    white-space: nowrap;
+  }
+
+  .pagination {
+    gap: 3px !important;
+    max-width: 100%;
+    overflow-x: auto;
+    justify-content: flex-start !important;
+  }
+
+  .pagination .page-link {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 7px !important;
+    font-size: 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .pagination .page-item:first-child .page-link,
+  .pagination .page-item:last-child .page-link {
+    width: auto !important;
+    min-width: 50px !important;
+  }
+}
+
+/* ---------- VERY SMALL MOBILE: <=360px ---------- */
+@media (max-width: 360px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 14px 8px 28px !important;
+  }
+
+  .page-header,
+  .hero-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 18px !important;
+  }
+
+  .page-header h4 span,
+  .page-title h4 span {
+    width: 32px;
+    height: 32px;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    width: 100% !important;
+  }
+
+  .stat-grid,
+  .kpis,
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+    gap: 9px;
+  }
+
+  .stat-card,
+  .kpi {
+    min-height: 96px;
+    padding: 12px;
+  }
+
+  .card-header-custom {
+    padding: 10px !important;
+  }
+
+  .card-header-custom form {
+    width: 100%;
+  }
+
+  .table-responsive,
+  .card-body-custom {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pagination {
+    gap: 2px !important;
+    overflow-x: auto;
+    justify-content: flex-start !important;
+  }
+
+  .pagination .page-link {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px;
+    min-height: 30px;
+    font-size: 9px !important;
+    padding: 0 5px !important;
+  }
+
+  .pagination .page-item:first-child .page-link,
+  .pagination .page-item:last-child .page-link {
+    min-width: 46px !important;
+    width: auto !important;
+  }
+}
