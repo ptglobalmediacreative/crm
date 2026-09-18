@@ -1,3 +1,9 @@
+/*
+ * DATA USER — PT GANDA ELANG TANGGUH
+ * Page-specific stylesheet
+ * Bootstrap + navigation.css tetap menjadi stylesheet global.
+ */
+
 /* =========================================================
    DATA USER — CRM MODULE
    Shared navigation is loaded from css/navigation.css.
@@ -108,7 +114,7 @@ body {
   margin: 0;
   color: #eaf1fc;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.1px;
 }
 .card-header-custom h6 i {
@@ -434,7 +440,7 @@ body {
 }
 .modal-header .modal-title {
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 700;
   color: #eaf1fc;
 }
 .modal-header .modal-title i {
