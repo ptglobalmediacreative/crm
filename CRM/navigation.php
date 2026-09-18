@@ -42,6 +42,149 @@ if (!$notifDb && function_exists('getPDO')) {
     try { $notifDb = getPDO(); } catch (Throwable $e) {}
 }
 
+/* ==========================================================
+   USER PROFILE SYSTEM
+   Profile dibuka dari avatar di topbar.
+   Data tersimpan ke tabel users.
+   Kolom profile_photo dibuat otomatis bila belum ada.
+   ========================================================== */
+$profileUserId = (int)($_SESSION['user_id'] ?? 0);
+$profileDb = $notifDb instanceof PDO ? $notifDb : null;
+$profileMessage = '';
+$profileMessageType = 'success';
+
+if ($profileDb instanceof PDO && $profileUserId > 0) {
+    try {
+        // Tambahkan kolom foto profil jika database versi lama belum memilikinya.
+        $profileDb->exec("
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) NULL
+            AFTER phone
+        ");
+
+        // Simpan perubahan profile.
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_profile') {
+            $profileName  = trim((string)($_POST['profile_full_name'] ?? ''));
+            $profileEmail = trim((string)($_POST['profile_email'] ?? ''));
+            $profilePhone = trim((string)($_POST['profile_phone'] ?? ''));
+
+            if ($profileName === '') {
+                throw new RuntimeException('Nama lengkap wajib diisi.');
+            }
+
+            if ($profileEmail !== '' && !filter_var($profileEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Format email tidak valid.');
+            }
+
+            // Pastikan email tidak dipakai user lain.
+            if ($profileEmail !== '') {
+                $checkEmail = $profileDb->prepare("SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1");
+                $checkEmail->execute([$profileEmail, $profileUserId]);
+                if ($checkEmail->fetchColumn()) {
+                    throw new RuntimeException('Email sudah digunakan oleh user lain.');
+                }
+            }
+
+            $photoPath = null;
+            if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                if ($_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
+                    throw new RuntimeException('Upload foto profil gagal.');
+                }
+
+                if ((int)$_FILES['profile_photo']['size'] > 2 * 1024 * 1024) {
+                    throw new RuntimeException('Ukuran foto maksimal 2 MB.');
+                }
+
+                $tmp = $_FILES['profile_photo']['tmp_name'];
+                $mime = function_exists('mime_content_type') ? mime_content_type($tmp) : '';
+                $allowed = [
+                    'image/jpeg' => 'jpg',
+                    'image/png'  => 'png',
+                    'image/webp' => 'webp'
+                ];
+
+                if (!isset($allowed[$mime])) {
+                    throw new RuntimeException('Foto harus JPG, PNG, atau WEBP.');
+                }
+
+                $uploadDir = __DIR__ . '/images/uploads/profile/';
+                if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+                    throw new RuntimeException('Folder upload foto profil tidak dapat dibuat.');
+                }
+
+                $extension = $allowed[$mime];
+                $filename = 'profile_' . $profileUserId . '_' . time() . '.' . $extension;
+                $destination = $uploadDir . $filename;
+
+                if (!move_uploaded_file($tmp, $destination)) {
+                    throw new RuntimeException('Foto profil tidak dapat disimpan.');
+                }
+
+                $photoPath = 'images/uploads/profile/' . $filename;
+            }
+
+            if ($photoPath !== null) {
+                $updateProfile = $profileDb->prepare("
+                    UPDATE users
+                    SET full_name = ?, email = ?, phone = ?, profile_photo = ?
+                    WHERE id = ?
+                ");
+                $updateProfile->execute([
+                    $profileName,
+                    $profileEmail !== '' ? $profileEmail : null,
+                    $profilePhone !== '' ? $profilePhone : null,
+                    $photoPath,
+                    $profileUserId
+                ]);
+            } else {
+                $updateProfile = $profileDb->prepare("
+                    UPDATE users
+                    SET full_name = ?, email = ?, phone = ?
+                    WHERE id = ?
+                ");
+                $updateProfile->execute([
+                    $profileName,
+                    $profileEmail !== '' ? $profileEmail : null,
+                    $profilePhone !== '' ? $profilePhone : null,
+                    $profileUserId
+                ]);
+            }
+
+            // Update session supaya nama/avatar langsung berubah tanpa login ulang.
+            $_SESSION['full_name'] = $profileName;
+            if ($profileEmail !== '') {
+                $_SESSION['email'] = $profileEmail;
+            }
+            $_SESSION['phone'] = $profilePhone;
+
+            $profileMessage = 'Profile berhasil diperbarui.';
+            $profileMessageType = 'success';
+        }
+
+        // Ambil data profile terbaru.
+        $profileStmt = $profileDb->prepare("
+            SELECT id, username, email, full_name, phone, role, profile_photo
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $profileStmt->execute([$profileUserId]);
+        $profileData = $profileStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    } catch (Throwable $e) {
+        $profileData = $profileData ?? [];
+        $profileMessage = $e->getMessage();
+        $profileMessageType = 'danger';
+    }
+}
+
+$profileFullName = trim((string)($profileData['full_name'] ?? $_SESSION['full_name'] ?? 'User')) ?: 'User';
+$profileUsername = trim((string)($profileData['username'] ?? $_SESSION['username'] ?? ''));
+$profileEmail = trim((string)($profileData['email'] ?? $_SESSION['email'] ?? ''));
+$profilePhone = trim((string)($profileData['phone'] ?? $_SESSION['phone'] ?? ''));
+$profilePhoto = trim((string)($profileData['profile_photo'] ?? ''));
+$profileInitial = strtoupper(substr($profileFullName, 0, 1));
+
 /*
  * PERSISTENT NOTIFICATION READ STATE
  * ----------------------------------
@@ -1138,7 +1281,14 @@ $notifUnread = count($notifUnreadItems);
                 </div>
             </div>
         </div>
-        <div class="avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div>
+        <button class="avatar profile-trigger" type="button" aria-label="Buka profile" aria-haspopup="dialog" aria-controls="profileModal">
+            <?php if ($profilePhoto !== ''): ?>
+                <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Profile">
+            <?php else: ?>
+                <span><?= htmlspecialchars($profileInitial) ?></span>
+            <?php endif; ?>
+            <i class="fas fa-chevron-down profile-chevron"></i>
+        </button>
     </div>
 </header>
 
@@ -1162,6 +1312,110 @@ $notifUnread = count($notifUnreadItems);
     <div class="rail-user"><div class="mini-avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div><div><strong><?= htmlspecialchars($fullName) ?></strong><span><?= htmlspecialchars(getRoleLabel($role)) ?></span></div></div>
     <a class="<?= $currentPage === 'logout.php' ? 'active' : '' ?>" href="logout.php"><i class="fas fa-power-off"></i><span>Logout</span></a>
 </aside>
+
+<!-- =========================================================
+     PROFILE MODAL
+     ========================================================= -->
+<div class="profile-modal" id="profileModal" hidden>
+    <div class="profile-modal-backdrop" data-profile-close></div>
+
+    <section class="profile-card" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+        <div class="profile-card-header">
+            <div>
+                <span class="profile-eyebrow">ACCOUNT</span>
+                <h2 id="profileModalTitle">Profile Pribadi</h2>
+                <p>Kelola informasi akun dan foto profile Anda.</p>
+            </div>
+            <button type="button" class="profile-close" data-profile-close aria-label="Tutup">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <?php if ($profileMessage !== ''): ?>
+            <div class="profile-alert profile-alert-<?= htmlspecialchars($profileMessageType) ?>">
+                <i class="fas <?= $profileMessageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?>"></i>
+                <span><?= htmlspecialchars($profileMessage) ?></span>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" enctype="multipart/form-data" class="profile-form">
+            <input type="hidden" name="action" value="update_profile">
+
+            <div class="profile-photo-section">
+                <div class="profile-photo-wrap">
+                    <div class="profile-photo-preview" id="profilePhotoPreview">
+                        <?php if ($profilePhoto !== ''): ?>
+                            <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Foto profile">
+                        <?php else: ?>
+                            <span><?= htmlspecialchars($profileInitial) ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <label class="profile-photo-upload" for="profilePhotoInput" title="Ganti foto profile">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input
+                        type="file"
+                        id="profilePhotoInput"
+                        name="profile_photo"
+                        accept="image/jpeg,image/png,image/webp"
+                        hidden
+                    >
+                </div>
+
+                <div class="profile-photo-info">
+                    <strong>Foto Profile</strong>
+                    <span>JPG, PNG atau WEBP</span>
+                    <small>Maksimal 2 MB</small>
+                    <label for="profilePhotoInput" class="profile-upload-btn">
+                        <i class="fas fa-upload"></i> Pilih Foto
+                    </label>
+                </div>
+            </div>
+
+            <div class="profile-grid">
+                <div class="profile-field profile-field-full">
+                    <label>Nama Lengkap</label>
+                    <div class="profile-input-wrap">
+                        <i class="fas fa-user"></i>
+                        <input type="text" name="profile_full_name" value="<?= htmlspecialchars($profileFullName) ?>" required>
+                    </div>
+                </div>
+
+                <div class="profile-field">
+                    <label>Username</label>
+                    <div class="profile-input-wrap">
+                        <i class="fas fa-at"></i>
+                        <input type="text" value="<?= htmlspecialchars($profileUsername) ?>" readonly>
+                    </div>
+                    <small class="profile-help">Username tidak dapat diubah.</small>
+                </div>
+
+                <div class="profile-field">
+                    <label>Email</label>
+                    <div class="profile-input-wrap">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" name="profile_email" value="<?= htmlspecialchars($profileEmail) ?>">
+                    </div>
+                </div>
+
+                <div class="profile-field profile-field-full">
+                    <label>No. Telepon</label>
+                    <div class="profile-input-wrap">
+                        <i class="fas fa-phone"></i>
+                        <input type="text" name="profile_phone" value="<?= htmlspecialchars($profilePhone) ?>" placeholder="Masukkan nomor telepon">
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-card-footer">
+                <button type="button" class="profile-btn profile-btn-secondary" data-profile-close>Batal</button>
+                <button type="submit" class="profile-btn profile-btn-primary">
+                    <i class="fas fa-save"></i> Simpan Profile
+                </button>
+            </div>
+        </form>
+    </section>
+</div>
 
 <script>
 (function () {
@@ -1275,4 +1529,68 @@ $notifUnread = count($notifUnreadItems);
         if (e.key === 'Escape' && !panel.hidden) closeNotif();
     });
 })();
+
+(function () {
+    const modal = document.getElementById('profileModal');
+    const trigger = document.querySelector('.profile-trigger');
+    if (!modal || !trigger) return;
+
+    const closeButtons = modal.querySelectorAll('[data-profile-close]');
+    const fileInput = document.getElementById('profilePhotoInput');
+    const preview = document.getElementById('profilePhotoPreview');
+
+    function openProfile() {
+        modal.hidden = false;
+        document.body.classList.add('profile-modal-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => modal.classList.add('show'));
+    }
+
+    function closeProfile() {
+        modal.classList.remove('show');
+        trigger.setAttribute('aria-expanded', 'false');
+        setTimeout(() => { modal.hidden = true; }, 180);
+        document.body.classList.remove('profile-modal-open');
+    }
+
+    trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (modal.hidden) openProfile();
+        else closeProfile();
+    });
+
+    closeButtons.forEach(function (button) {
+        button.addEventListener('click', closeProfile);
+    });
+
+    if (fileInput && preview) {
+        fileInput.addEventListener('change', function () {
+            const file = this.files && this.files[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Ukuran foto maksimal 2 MB.');
+                this.value = '';
+                return;
+            }
+
+            if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+                alert('Foto harus JPG, PNG, atau WEBP.');
+                this.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                preview.innerHTML = '<img src="' + event.target.result + '" alt="Preview foto profile">';
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) closeProfile();
+    });
+})();
+
 </script>
