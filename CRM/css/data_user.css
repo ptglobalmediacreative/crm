@@ -645,433 +645,8 @@
 }
 
 /* =========================================================
-   SALES ACTIVITY PAGE HEADER — MATCH ACCOUNT MANAGEMENT
-   Presentation only; existing PHP/DB/JS logic untouched.
-   ========================================================= */
-.page-data-user .page-header {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  gap: 20px !important;
-  min-height: 48px !important;
-  margin-bottom: 20px !important;
-  flex-wrap: wrap !important;
-}
-.page-header .page-title {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-}
-.page-header h4 {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  font-size: 25px !important;
-  line-height: 1.1 !important;
-  letter-spacing: -1px !important;
-  font-weight: 800 !important;
-  margin: 0 !important;
-  color: #f7f9ff !important;
-}
-.page-header h4 span {
-  width: 38px !important;
-  height: 38px !important;
-  border-radius: 11px !important;
-  background: rgba(96, 165, 250, 0.1) !important;
-  border: 1px solid rgba(96, 165, 250, 0.15) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-}
-.page-header h4 span i {
-  font-size: 15px !important;
-  color: #60a5fa !important;
-}
-.page-header .header-actions {
-  display: flex !important;
-  gap: 8px !important;
-  align-items: center !important;
-  flex-wrap: wrap !important;
-}
-
-@media (max-width: 800px) {
-  .page-data-user .page-header {
-    align-items: flex-start !important;
-    flex-direction: column !important;
-    gap: 14px !important;
-  }
-  .page-header > div:last-child {
-    width: 100% !important;
-  }
-  .page-header h4 {
-    font-size: 22px !important;
-  }
-  .page-header .header-actions {
-    width: 100% !important;
-    gap: 7px !important;
-  }
-  .page-header .header-actions a,
-  .page-header .header-actions button {
-    flex: 1 !important;
-  }
-}
-@media (max-width: 480px) {
-  .page-data-user .page-header {
-    gap: 12px !important;
-    margin-bottom: 16px !important;
-  }
-  .page-header h4 {
-    font-size: 20px !important;
-  }
-  .page-header h4 span {
-    width: 34px !important;
-    height: 34px !important;
-    border-radius: 9px !important;
-  }
-  .page-header h4 span i {
-    font-size: 14px !important;
-  }
-}
-
-/* =========================================================
-   PAGE TYPOGRAPHY CONSISTENCY — RESPONSIVE OVERRIDE
-   This layer intentionally keeps labels compact but readable.
-   ========================================================= */
-
-.page-data-user .table-custom {
-  font-size: 12px !important;
-}
-.page-data-user .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-data-user .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-data-user .info-label {
-  font-size: 10px !important;
-}
-.page-data-user .info-value {
-  font-size: 12px !important;
-}
-.page-data-user .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-data-user .footer-text,
-.page-data-user .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-data-user .table-custom {
-    min-width: 680px;
-  }
-  .page-data-user .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-data-user .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-deliveryinstruction .table-custom {
-  font-size: 12px !important;
-}
-.page-deliveryinstruction .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-deliveryinstruction .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-deliveryinstruction .info-label {
-  font-size: 10px !important;
-}
-.page-deliveryinstruction .info-value {
-  font-size: 12px !important;
-}
-.page-deliveryinstruction .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-deliveryinstruction .footer-text,
-.page-deliveryinstruction .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-deliveryinstruction .table-custom {
-    min-width: 680px;
-  }
-  .page-deliveryinstruction .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-deliveryinstruction .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-detailaktivitas .table-custom {
-  font-size: 12px !important;
-}
-.page-detailaktivitas .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-detailaktivitas .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-detailaktivitas .info-label {
-  font-size: 10px !important;
-}
-.page-detailaktivitas .info-value {
-  font-size: 12px !important;
-}
-.page-detailaktivitas .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-detailaktivitas .footer-text,
-.page-detailaktivitas .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-detailaktivitas .table-custom {
-    min-width: 680px;
-  }
-  .page-detailaktivitas .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-detailaktivitas .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-detaildi .table-custom {
-  font-size: 12px !important;
-}
-.page-detaildi .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-detaildi .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-detaildi .info-label {
-  font-size: 10px !important;
-}
-.page-detaildi .info-value {
-  font-size: 12px !important;
-}
-.page-detaildi .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-detaildi .footer-text,
-.page-detaildi .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-detaildi .table-custom {
-    min-width: 680px;
-  }
-  .page-detaildi .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-detaildi .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-detailtr .table-custom {
-  font-size: 12px !important;
-}
-.page-detailtr .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-detailtr .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-detailtr .info-label {
-  font-size: 10px !important;
-}
-.page-detailtr .info-value {
-  font-size: 12px !important;
-}
-.page-detailtr .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-detailtr .footer-text,
-.page-detailtr .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-detailtr .table-custom {
-    min-width: 680px;
-  }
-  .page-detailtr .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-detailtr .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-produk .table-custom {
-  font-size: 12px !important;
-}
-.page-produk .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-produk .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-produk .info-label {
-  font-size: 10px !important;
-}
-.page-produk .info-value {
-  font-size: 12px !important;
-}
-.page-produk .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-produk .footer-text,
-.page-produk .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-produk .table-custom {
-    min-width: 680px;
-  }
-  .page-produk .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-produk .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-data-user .table-custom {
-  font-size: 12px !important;
-}
-.page-data-user .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-data-user .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-data-user .info-label {
-  font-size: 10px !important;
-}
-.page-data-user .info-value {
-  font-size: 12px !important;
-}
-.page-data-user .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-data-user .footer-text,
-.page-data-user .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-data-user .table-custom {
-    min-width: 680px;
-  }
-  .page-data-user .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-data-user .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-transactionrequest .table-custom {
-  font-size: 12px !important;
-}
-.page-transactionrequest .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-transactionrequest .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-transactionrequest .info-label {
-  font-size: 10px !important;
-}
-.page-transactionrequest .info-value {
-  font-size: 12px !important;
-}
-.page-transactionrequest .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-transactionrequest .footer-text,
-.page-transactionrequest .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-transactionrequest .table-custom {
-    min-width: 680px;
-  }
-  .page-transactionrequest .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-transactionrequest .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-account-management .table-custom {
-  font-size: 12px !important;
-}
-.page-account-management .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-account-management .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-account-management .info-label {
-  font-size: 10px !important;
-}
-.page-account-management .info-value {
-  font-size: 12px !important;
-}
-.page-account-management .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-account-management .footer-text,
-.page-account-management .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-account-management .table-custom {
-    min-width: 680px;
-  }
-  .page-account-management .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-account-management .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-/* =========================================================
-   CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
-   Final override layer.
-   Goals:
-   - Consistent typography and spacing
-   - Clean filter / sort controls
-   - Stable pagination at every viewport
-   - PC / large monitor / laptop / tablet / phone
-   - No horizontal page overflow
+   DATA USER — CLEAN RESPONSIVE SYSTEM
+   One authoritative responsive layer.
    ========================================================= */
 
 html,
@@ -1080,108 +655,228 @@ body {
   overflow-x: hidden;
 }
 
-button,
-input,
-select,
-textarea {
+.page-data-user,
+.page-data-user .content,
+.page-data-user .page-header,
+.page-data-user .page-title,
+.page-data-user .page-actions,
+.page-data-user .card-custom,
+.page-data-user .table-responsive {
   min-width: 0;
 }
 
-.content {
-  min-width: 0;
+/* =========================================================
+   HEADER — DESKTOP
+   ========================================================= */
+
+.page-data-user .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 22px;
 }
 
-/* ---------- Shared controls ---------- */
-.filter,
-.filter-wrap,
-.filter-bar,
-.filter-buttons,
-.next-approver-filter-form,
-.next-approver-filter-wrap,
-.page-actions,
-.header-actions,
-.filters {
-  min-width: 0;
-}
-
-.filter,
-.page-data-user .filter {
-  box-sizing: border-box;
-  min-height: 38px;
-  line-height: 1.25;
-}
-
-.filter-buttons {
+.page-data-user .page-title {
+  display: flex;
   align-items: center;
+  gap: 16px;
+  min-width: 0;
 }
 
-.btn-filter,
-.filter-buttons .btn-filter {
-  min-height: 36px;
+.page-data-user .page-title-icon {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #60a5fa;
+  background: linear-gradient(
+    145deg,
+    rgba(12, 31, 58, 0.96),
+    rgba(8, 18, 35, 0.98)
+  );
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.page-data-user .page-title-icon i {
+  font-size: 22px;
+}
+
+.page-data-user .page-title h1 {
+  margin: 0;
+  color: #f7f9ff;
+  font-size: 26px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.page-data-user .page-title p {
+  margin: 7px 0 0;
+  color: var(--app-muted);
+  font-size: 12px;
+}
+
+.page-data-user .page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  flex-wrap: nowrap;
+}
+
+/* =========================================================
+   HEADER BUTTONS
+   ========================================================= */
+
+.page-data-user .btn-success-custom,
+.page-data-user .btn-export {
+  height: 38px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  line-height: 1.2;
+  gap: 7px;
   white-space: nowrap;
-  text-align: center;
+  text-decoration: none;
 }
 
-.next-approver-filter-wrap {
+.page-data-user .btn-success-custom,
+.page-data-user .btn-export {
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.08);
+  color: #6ee7b7;
+}
+
+.page-data-user .btn-success-custom:hover,
+.page-data-user .btn-export:hover {
+  color: #a7f3d0;
+  background: rgba(52, 211, 153, 0.14);
+  transform: translateY(-1px);
+}
+
+.page-data-user .btn-primary-custom {
+  height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.25);
+}
+
+.page-data-user .btn-primary-custom:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #4f8df7, #6d70f3);
+  transform: translateY(-1px);
+  box-shadow: 0 0 28px rgba(59, 130, 246, 0.35);
+}
+
+/* =========================================================
+   CARD HEADER / SEARCH
+   ========================================================= */
+
+.page-data-user .card-custom {
+  border-radius: 17px;
+}
+
+.page-data-user .card-header-custom {
   display: flex;
   align-items: center;
-  min-height: 38px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
 }
 
-.next-approver-select {
-  min-height: 38px;
-  box-sizing: border-box;
+.page-data-user .card-header-custom h6 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
-/* ---------- Pagination ---------- */
-.card-footer {
+.page-data-user .card-header-custom form {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   min-width: 0;
 }
 
-.page-data-user .pagination,
-.page-deliveryinstruction .pagination,
-.page-detailaktivitas .pagination,
-.page-detaildi .pagination,
-.page-detailtr .pagination,
-.page-produk .pagination,
-.page-data-user .pagination,
-.page-transactionrequest .pagination,
-.page-account-management .pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 !important;
+.page-data-user .search-input {
+  width: 240px;
+  min-width: 0;
+  height: 34px;
+}
+
+.page-data-user .btn-search {
+  width: 36px;
+  min-width: 36px;
+  height: 34px;
   padding: 0;
 }
 
-.page-data-user .pagination .page-item,
-.page-deliveryinstruction .pagination .page-item,
-.page-detailaktivitas .pagination .page-item,
-.page-detaildi .pagination .page-item,
-.page-detailtr .pagination .page-item,
-.page-produk .pagination .page-item,
-.page-data-user .pagination .page-item,
-.page-transactionrequest .pagination .page-item,
-.page-account-management .pagination .page-item {
-  margin: 0;
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.page-data-user .table-custom {
+  width: 100%;
+  min-width: 900px;
+  margin-bottom: 0;
+  font-size: 12px;
 }
 
-.page-data-user .pagination .page-link,
-.page-deliveryinstruction .pagination .page-link,
-.page-detailaktivitas .pagination .page-link,
-.page-detaildi .pagination .page-link,
-.page-detailtr .pagination .page-link,
-.page-produk .pagination .page-link,
-.page-data-user .pagination .page-link,
-.page-transactionrequest .pagination .page-link,
-.page-account-management .pagination .page-link {
+.page-data-user .table-custom th {
+  padding: 13px 14px;
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.page-data-user .table-custom td {
+  padding: 13px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.page-data-user .btn-action {
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.page-data-user .pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0 !important;
+}
+
+.page-data-user .pagination .page-link {
   min-width: 36px;
   min-height: 36px;
   padding: 0 10px !important;
@@ -1190,297 +885,189 @@ textarea {
   justify-content: center;
   border-radius: 9px !important;
   font-size: 11px !important;
-  font-weight: 650;
   line-height: 1;
-  white-space: nowrap;
-  text-decoration: none;
 }
 
-.page-data-user .pagination .page-item:first-child .page-link,
-.page-data-user .pagination .page-item:last-child .page-link,
-.page-deliveryinstruction .pagination .page-item:first-child .page-link,
-.page-deliveryinstruction .pagination .page-item:last-child .page-link,
-.page-detailaktivitas .pagination .page-item:first-child .page-link,
-.page-detailaktivitas .pagination .page-item:last-child .page-link,
-.page-detaildi .pagination .page-item:first-child .page-link,
-.page-detaildi .pagination .page-item:last-child .page-link,
-.page-detailtr .pagination .page-item:first-child .page-link,
-.page-detailtr .pagination .page-item:last-child .page-link,
-.page-produk .pagination .page-item:first-child .page-link,
-.page-produk .pagination .page-item:last-child .page-link,
-.page-data-user .pagination .page-item:first-child .page-link,
-.page-data-user .pagination .page-item:last-child .page-link,
-.page-transactionrequest .pagination .page-item:first-child .page-link,
-.page-transactionrequest .pagination .page-item:last-child .page-link,
-.page-account-management .pagination .page-item:first-child .page-link,
-.page-account-management .pagination .page-item:last-child .page-link {
-  min-width: 68px;
-}
+/* =========================================================
+   LARGE MONITOR — >=1440px
+   ========================================================= */
 
-/* ---------- Large monitor ---------- */
 @media (min-width: 1440px) {
-  .content {
+  .page-data-user .content {
     padding-left: 34px;
     padding-right: 34px;
   }
 
-  .page-header,
-  .hero-row {
+  .page-data-user .page-header {
     gap: 28px;
   }
-
-  .pagination .page-link {
-    min-height: 38px;
-  }
 }
 
-/* ---------- Laptop ---------- */
+/* =========================================================
+   LAPTOP — 1025px to 1439px
+   ========================================================= */
+
 @media (min-width: 1025px) and (max-width: 1439px) {
-  .content {
-    padding-left: 28px;
-    padding-right: 28px;
+  .page-data-user .content {
+    margin-left: 245px;
+    width: calc(100% - 245px);
+    padding: 24px 22px 42px;
   }
 
-  .card-header-custom {
-    gap: 12px;
+  .page-data-user .page-header {
+    flex-wrap: nowrap;
   }
 
-  .filter,
-  .page-data-user .filter {
-    min-height: 37px;
+  .page-data-user .page-title-icon {
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
+    border-radius: 15px;
+  }
+
+  .page-data-user .page-title h1 {
+    font-size: 25px;
   }
 }
 
-/* ---------- Tablet ---------- */
+/* =========================================================
+   TABLET — 769px to 1024px
+   ========================================================= */
+
 @media (min-width: 769px) and (max-width: 1024px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
+  .page-data-user .content {
     margin-left: 0;
     width: 100%;
     padding: 22px 20px 42px;
   }
 
-  .page-header,
-  .hero-row {
-    align-items: flex-start;
+  .page-data-user .page-header {
     flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
   }
 
-  .page-actions,
-  .header-actions,
-  .filters {
+  .page-data-user .page-actions {
     width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
   }
 
-  .filter,
-  .page-data-user .filter {
-    flex: 1 1 150px;
+  .page-data-user .page-actions > a,
+  .page-data-user .page-actions > button {
+    flex: 0 0 auto;
   }
 
-  .card-header-custom {
+  .page-data-user .card-header-custom {
     align-items: center;
   }
 
-  .card-header-custom form {
-    max-width: 100%;
+  .page-data-user .search-input {
+    width: 220px;
   }
 
-  .pagination .page-link {
-    min-width: 34px;
-    min-height: 34px;
+  .page-data-user .table-custom {
+    min-width: 900px;
   }
 }
 
-/* ---------- Phone ---------- */
+/* =========================================================
+   PHONE — <=768px
+   ========================================================= */
+
 @media (max-width: 768px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
+  .page-data-user .content {
     margin-left: 0;
     width: 100%;
     max-width: 100%;
     padding: 18px 14px 36px;
   }
 
-  .page-header,
-  .hero-row {
+  .page-data-user .page-header {
     width: 100%;
-    align-items: stretch;
     flex-direction: column;
+    align-items: stretch;
     gap: 14px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
 
-  .page-title,
-  .hero {
-    min-width: 0;
+  .page-data-user .page-title {
     width: 100%;
+    gap: 12px;
   }
 
-  .page-title h1,
-  .page-title h4,
-  .hero h1,
-  .page-header h4 {
-    font-size: 21px !important;
-    line-height: 1.18;
-    letter-spacing: -0.35px;
+  .page-data-user .page-title-icon {
+    width: 46px;
+    height: 46px;
+    flex-basis: 46px;
+    border-radius: 13px;
   }
 
-  .page-title p,
-  .hero p,
-  .page-header p {
-    font-size: 11px !important;
-    line-height: 1.45;
+  .page-data-user .page-title-icon i {
+    font-size: 18px;
   }
 
-  .page-actions,
-  .header-actions,
-  .filters,
-  .page-data-user .filters {
+  .page-data-user .page-title h1 {
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+
+  .page-data-user .page-title p {
+    font-size: 11px;
+  }
+
+  .page-data-user .page-actions {
     width: 100%;
+    margin-left: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .page-actions > *,
-  .header-actions > *,
-  .filters > *,
-  .page-data-user .filters > * {
+  .page-data-user .page-actions > a,
+  .page-data-user .page-actions > button {
     width: 100%;
     min-width: 0;
   }
 
-  .filter,
-  .page-data-user .filter,
-  .btn-filter,
-  .filter-buttons .btn-filter,
-  .btn-add,
-  .btn-export {
+  .page-data-user .btn-success-custom,
+  .page-data-user .btn-export,
+  .page-data-user .btn-primary-custom {
     width: 100%;
-    min-width: 0;
-    min-height: 38px;
-    height: 38px;
-    font-size: 11px;
+    height: 40px;
   }
 
-  .filter-wrap,
-  .filter-bar {
-    padding: 12px 14px !important;
-  }
-
-  .filter-buttons,
-  .page-deliveryinstruction .filter-buttons,
-  .page-transactionrequest .filter-buttons {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    gap: 7px;
-    padding: 1px 1px 4px;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .filter-buttons .btn-filter,
-  .page-deliveryinstruction .filter-buttons .btn-filter,
-  .page-transactionrequest .filter-buttons .btn-filter {
-    width: auto;
-    flex: 0 0 auto;
-    min-width: max-content;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .next-approver-filter-form,
-  .next-approver-filter-wrap {
-    width: 100%;
-    max-width: 100%;
-    margin-left: 0 !important;
-  }
-
-  .next-approver-select {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .card-header-custom {
-    min-height: auto;
-    padding: 13px 14px !important;
+  .page-data-user .card-header-custom {
+    flex-direction: column;
     align-items: stretch;
-    gap: 10px;
+    padding: 13px 14px;
   }
 
-  .card-header-custom h6 {
-    font-size: 12px !important;
-    line-height: 1.35;
-  }
-
-  .card-header-custom form,
-  .page-data-user .card-header-custom form,
-  .page-deliveryinstruction .card-header-custom form,
-  .page-produk .card-header-custom form {
+  .page-data-user .card-header-custom form {
     width: 100%;
-    max-width: 100%;
-    margin-left: 0 !important;
-    display: flex;
-    align-items: center;
-    gap: 7px;
   }
 
-  .card-header-custom form input,
-  .search-input {
-    width: 100% !important;
-    min-width: 0;
+  .page-data-user .search-input {
+    width: 100%;
     flex: 1 1 auto;
   }
 
-  .card-header-custom form .btn {
-    flex: 0 0 auto;
+  .page-data-user .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .card-footer {
-    padding: 12px 14px !important;
+  .page-data-user .table-custom {
+    min-width: 900px;
   }
 
-  .page-data-user .pagination,
-  .page-deliveryinstruction .pagination,
-  .page-detailaktivitas .pagination,
-  .page-detaildi .pagination,
-  .page-detailtr .pagination,
-  .page-produk .pagination,
-  .page-data-user .pagination,
-  .page-transactionrequest .pagination,
-  .page-account-management .pagination {
+  .page-data-user .pagination {
     justify-content: center;
-    gap: 5px;
   }
 
-  .page-data-user .pagination .page-link,
-  .page-deliveryinstruction .pagination .page-link,
-  .page-detailaktivitas .pagination .page-link,
-  .page-detaildi .pagination .page-link,
-  .page-detailtr .pagination .page-link,
-  .page-produk .pagination .page-link,
-  .page-data-user .pagination .page-link,
-  .page-transactionrequest .pagination .page-link,
-  .page-account-management .pagination .page-link {
+  .page-data-user .pagination .page-link {
     min-width: 34px;
     width: 34px;
     height: 34px;
@@ -1490,103 +1077,84 @@ textarea {
   }
 
   .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:first-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:last-child .page-link,
-  .page-detailaktivitas .pagination .page-item:first-child .page-link,
-  .page-detailaktivitas .pagination .page-item:last-child .page-link,
-  .page-detaildi .pagination .page-item:first-child .page-link,
-  .page-detaildi .pagination .page-item:last-child .page-link,
-  .page-detailtr .pagination .page-item:first-child .page-link,
-  .page-detailtr .pagination .page-item:last-child .page-link,
-  .page-produk .pagination .page-item:first-child .page-link,
-  .page-produk .pagination .page-item:last-child .page-link,
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-transactionrequest .pagination .page-item:first-child .page-link,
-  .page-transactionrequest .pagination .page-item:last-child .page-link,
-  .page-account-management .pagination .page-item:first-child .page-link,
-  .page-account-management .pagination .page-item:last-child .page-link {
+  .page-data-user .pagination .page-item:last-child .page-link {
     width: auto;
     min-width: 60px;
     padding: 0 9px !important;
   }
-
-  .table-responsive,
-  .card-body-custom {
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .table-custom {
-    white-space: nowrap;
-  }
 }
 
-/* ---------- Small phone ---------- */
+/* =========================================================
+   SMALL PHONE — <=480px
+   ========================================================= */
+
 @media (max-width: 480px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
+  .page-data-user .content {
     padding: 16px 10px 30px;
   }
 
-  .page-title h1,
-  .page-title h4,
-  .hero h1,
-  .page-header h4 {
-    font-size: 19px !important;
+  .page-data-user .page-header {
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
-  .page-actions,
-  .header-actions,
-  .filters,
-  .page-data-user .filters {
+  .page-data-user .page-title {
+    gap: 10px;
+  }
+
+  .page-data-user .page-title-icon {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 11px;
+  }
+
+  .page-data-user .page-title-icon i {
+    font-size: 17px;
+  }
+
+  .page-data-user .page-title h1 {
+    font-size: 20px;
+  }
+
+  .page-data-user .page-title p {
+    font-size: 10px;
+    margin-top: 4px;
+  }
+
+  .page-data-user .page-actions {
     grid-template-columns: 1fr;
   }
 
-  .card-custom,
-  .chart-card,
-  .info-card,
-  .stat-card,
-  .kpi,
-  .panel {
+  .page-data-user .btn-success-custom,
+  .page-data-user .btn-export,
+  .page-data-user .btn-primary-custom {
+    height: 40px;
+    border-radius: 10px;
+    font-size: 10px;
+  }
+
+  .page-data-user .card-custom {
     border-radius: 13px;
   }
 
-  .card-footer {
+  .page-data-user .card-header-custom {
+    padding: 12px;
+  }
+
+  .page-data-user .table-custom {
+    min-width: 850px;
+  }
+
+  .page-data-user .card-footer {
     padding: 10px !important;
   }
 
-  .page-data-user .pagination,
-  .page-deliveryinstruction .pagination,
-  .page-detailaktivitas .pagination,
-  .page-detaildi .pagination,
-  .page-detailtr .pagination,
-  .page-produk .pagination,
-  .page-data-user .pagination,
-  .page-transactionrequest .pagination,
-  .page-account-management .pagination {
+  .page-data-user .pagination {
     gap: 4px;
   }
 
-  .page-data-user .pagination .page-link,
-  .page-deliveryinstruction .pagination .page-link,
-  .page-detailaktivitas .pagination .page-link,
-  .page-detaildi .pagination .page-link,
-  .page-detailtr .pagination .page-link,
-  .page-produk .pagination .page-link,
-  .page-data-user .pagination .page-link,
-  .page-transactionrequest .pagination .page-link,
-  .page-account-management .pagination .page-link {
+  .page-data-user .pagination .page-link {
     width: 32px;
     min-width: 32px;
     height: 32px;
@@ -1596,73 +1164,73 @@ textarea {
   }
 
   .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:first-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:last-child .page-link,
-  .page-detailaktivitas .pagination .page-item:first-child .page-link,
-  .page-detailaktivitas .pagination .page-item:last-child .page-link,
-  .page-detaildi .pagination .page-item:first-child .page-link,
-  .page-detaildi .pagination .page-item:last-child .page-link,
-  .page-detailtr .pagination .page-item:first-child .page-link,
-  .page-detailtr .pagination .page-item:last-child .page-link,
-  .page-produk .pagination .page-item:first-child .page-link,
-  .page-produk .pagination .page-item:last-child .page-link,
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-transactionrequest .pagination .page-item:first-child .page-link,
-  .page-transactionrequest .pagination .page-item:last-child .page-link,
-  .page-account-management .pagination .page-item:first-child .page-link,
-  .page-account-management .pagination .page-item:last-child .page-link {
+  .page-data-user .pagination .page-item:last-child .page-link {
     min-width: 54px;
     width: auto;
-    padding: 0 8px !important;
+  }
+
+  .page-data-user .detail-item {
+    flex-direction: column;
+  }
+
+  .page-data-user .detail-item .detail-label {
+    width: 100%;
+    margin-bottom: 3px;
   }
 }
 
-/* ---------- Very small phone ---------- */
+/* =========================================================
+   VERY SMALL PHONE — <=360px
+   ========================================================= */
+
 @media (max-width: 360px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
+  .page-data-user .content {
     padding-left: 8px;
     padding-right: 8px;
   }
 
-  .pagination .page-link {
-    width: 30px !important;
-    min-width: 30px !important;
+  .page-data-user .page-title h1 {
+    font-size: 19px;
+  }
+
+  .page-data-user .page-title-icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .page-data-user .btn-success-custom,
+  .page-data-user .btn-export,
+  .page-data-user .btn-primary-custom {
+    height: 38px;
+  }
+
+  .page-data-user .table-custom {
+    min-width: 820px;
+  }
+
+  .page-data-user .pagination .page-link {
+    width: 30px;
+    min-width: 30px;
     height: 30px;
     min-height: 30px;
     font-size: 9px !important;
   }
 
-  .pagination .page-item:first-child .page-link,
-  .pagination .page-item:last-child .page-link {
-    min-width: 48px !important;
-    width: auto !important;
+  .page-data-user .pagination .page-item:first-child .page-link,
+  .page-data-user .pagination .page-item:last-child .page-link {
+    min-width: 48px;
   }
 }
 
-/* FINAL SALES ACTIVITY FILTER / SORT ALIGNMENT */
-.page-data-user .hero-row {
-  align-items: flex-end;
-}
-.page-data-user .filters {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-@media (max-width: 1024px) {
-  .page-data-user .hero-row {
-    align-items: stretch;
-  }
-  .page-data-user .filters {
-    justify-content: flex-start;
-  }
+/* =========================================================
+   FINAL PAGE-SCOPED SAFETY
+   ========================================================= */
+
+.page-data-user button,
+.page-data-user input,
+.page-data-user select,
+.page-data-user textarea {
+  min-width: 0;
+  box-sizing: border-box;
 }
