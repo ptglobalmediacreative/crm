@@ -774,11 +774,51 @@ function canSalesEdit($db, $account_id, $userId) {
                             <?php if ($page > 1): ?>
                                 <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Prev</a></li>
                             <?php endif; ?>
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <?php
+                            // Maksimal 5 nomor halaman yang ditampilkan
+                            $maxVisiblePages = 5;
+
+                            // Tentukan halaman awal dan akhir
+                            $startPage = max(1, $page - 2);
+                            $endPage = min($totalPages, $startPage + $maxVisiblePages - 1);
+
+                            // Jika mendekati halaman terakhir, geser window ke belakang
+                            $startPage = max(1, $endPage - $maxVisiblePages + 1);
+                            ?>
+
+                            <?php if ($startPage > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1&search=<?= urlencode($search) ?>">1</a>
+                                </li>
+
+                                <?php if ($startPage > 2): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>">
+                                        <?= $i ?>
+                                    </a>
                                 </li>
                             <?php endfor; ?>
+
+                            <?php if ($endPage < $totalPages): ?>
+                                <?php if ($endPage < $totalPages - 1): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                <?php endif; ?>
+
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>">
+                                        <?= $totalPages ?>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <?php if ($page < $totalPages): ?>
                                 <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next</a></li>
                             <?php endif; ?>
