@@ -195,6 +195,102 @@
 }
 
 /* =========================
+   READ / UNREAD TABS
+   ========================= */
+
+.notification-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 9px 11px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.notification-tab {
+  min-height: 34px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.notification-tab:hover {
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.notification-tab.active {
+  color: #e2c27c;
+  background: rgba(201, 155, 69, 0.1);
+  border-color: rgba(201, 155, 69, 0.2);
+}
+
+.notification-tab-count {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 8.5px;
+  font-weight: 800;
+}
+
+.notification-tab.active .notification-tab-count {
+  background: rgba(201, 155, 69, 0.18);
+  color: #e2c27c;
+}
+
+.notification-list[hidden] {
+  display: none !important;
+}
+
+.notification-item.notification-unread {
+  background: rgba(201, 155, 69, 0.035);
+}
+
+.notification-item.notification-unread .notification-content strong {
+  color: #fff;
+}
+
+.notification-item.notification-read {
+  opacity: 0.66;
+}
+
+.notification-item.notification-read:hover {
+  opacity: 0.9;
+}
+
+.notification-status-label {
+  display: block !important;
+  margin-top: 1px;
+  color: rgba(216, 180, 109, 0.7) !important;
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+.notification-read .notification-status-label {
+  color: rgba(255, 255, 255, 0.34) !important;
+}
+
+/* =========================
    LIST
    ========================= */
 

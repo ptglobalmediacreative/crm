@@ -42,9 +42,50 @@ if (!$notifDb && function_exists('getPDO')) {
     try { $notifDb = getPDO(); } catch (Throwable $e) {}
 }
 
-$notifRole = strtolower(trim((string)($userRole ?? ($role ?? ''))));
-$notifUserId = (int)($userId ?? 0);
+/*
+ * PERSISTENT NOTIFICATION READ STATE
+ * ----------------------------------
+ * Setiap user mempunyai daftar notification key yang sudah pernah dibuka.
+ * Key disimpan di database supaya status "Sudah Dibaca" tetap ada walaupun
+ * halaman di-refresh atau user logout/login kembali.
+ */
+$notifUserId = (int)($_SESSION['user_id'] ?? ($userId ?? 0));
 
+if ($notifDb instanceof PDO && $notifUserId > 0) {
+    try {
+        $notifDb->exec("
+            CREATE TABLE IF NOT EXISTS user_notification_reads (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                notification_key VARCHAR(255) NOT NULL,
+                read_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_user_notification (user_id, notification_key),
+                KEY idx_user_read_at (user_id, read_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+
+        /*
+         * Saat user klik notification, URL tujuan membawa:
+         * ?notification_read=<key>
+         * Karena halaman tujuan juga include navigation.php, key langsung
+         * dicatat sebagai sudah dibaca sebelum daftar notification dirender.
+         */
+        $notificationReadKey = trim((string)($_GET['notification_read'] ?? ''));
+        if ($notificationReadKey !== '' && strlen($notificationReadKey) <= 255) {
+            $markRead = $notifDb->prepare("
+                INSERT INTO user_notification_reads (user_id, notification_key, read_at)
+                VALUES (?, ?, NOW())
+                ON DUPLICATE KEY UPDATE read_at = VALUES(read_at)
+            ");
+            $markRead->execute([$notifUserId, $notificationReadKey]);
+        }
+    } catch (Throwable $e) {
+        // Status baca tidak boleh menghentikan halaman CRM.
+    }
+}
+
+$notifRole = strtolower(trim((string)($userRole ?? ($role ?? ''))));
 $notifRoleAliases = [
     'sales manager' => 'sales_manager',
     'salesmanager' => 'sales_manager',
@@ -921,7 +962,56 @@ foreach ($notifItems as $item) {
     $uniqueNotif[$item['key']] = $item;
 }
 $notifItems = array_values($uniqueNotif);
-$notifUnread = count($notifItems);
+
+/*
+ * Ambil daftar notification key yang sudah dibaca oleh user aktif.
+ */
+$notifReadKeys = [];
+if ($notifDb instanceof PDO && $notifUserId > 0 && $notifItems) {
+    try {
+        $placeholders = implode(',', array_fill(0, count($notifItems), '?'));
+        $params = [$notifUserId];
+        foreach ($notifItems as $item) {
+            $params[] = (string)$item['key'];
+        }
+
+        $readStmt = $notifDb->prepare("
+            SELECT notification_key
+            FROM user_notification_reads
+            WHERE user_id = ?
+              AND notification_key IN ($placeholders)
+        ");
+        $readStmt->execute($params);
+
+        while ($row = $readStmt->fetch(PDO::FETCH_ASSOC)) {
+            $notifReadKeys[(string)$row['notification_key']] = true;
+        }
+    } catch (Throwable $e) {
+        $notifReadKeys = [];
+    }
+}
+
+/* Tandai masing-masing item sebagai read/unread untuk tampilan. */
+foreach ($notifItems as &$item) {
+    $item['is_read'] = isset($notifReadKeys[(string)$item['key']]);
+}
+unset($item);
+
+$notifUnreadItems = array_values(array_filter(
+    $notifItems,
+    static function ($item) {
+        return empty($item['is_read']);
+    }
+));
+
+$notifReadItems = array_values(array_filter(
+    $notifItems,
+    static function ($item) {
+        return !empty($item['is_read']);
+    }
+));
+
+$notifUnread = count($notifUnreadItems);
 ?>
 <link rel="stylesheet" href="css/navigation.css">
 <link rel="stylesheet" href="css/notifications.css">
@@ -944,21 +1034,42 @@ $notifUnread = count($notifItems);
                 <div class="notification-head">
                     <div>
                         <strong>Notifikasi</strong>
-                        <small><?= $notifUnread ?> pemberitahuan</small>
+                        <small><span class="notification-unread-total"><?= $notifUnread ?></span> belum dibaca</small>
                     </div>
                     <button type="button" class="notification-close" aria-label="Tutup">&times;</button>
                 </div>
 
-                <div class="notification-list">
-                    <?php if (!$notifItems): ?>
+                <div class="notification-tabs" role="tablist" aria-label="Status notifikasi">
+                    <button type="button"
+                            class="notification-tab active"
+                            data-notification-tab="unread"
+                            role="tab"
+                            aria-selected="true">
+                        Belum Dibaca
+                        <span class="notification-tab-count"><?= $notifUnread ?></span>
+                    </button>
+                    <button type="button"
+                            class="notification-tab"
+                            data-notification-tab="read"
+                            role="tab"
+                            aria-selected="false">
+                        Sudah Dibaca
+                        <span class="notification-tab-count"><?= count($notifReadItems) ?></span>
+                    </button>
+                </div>
+
+                <div class="notification-list notification-list-unread" data-notification-list="unread">
+                    <?php if (!$notifUnreadItems): ?>
                         <div class="notification-empty">
-                            <i class="far fa-bell-slash"></i>
-                            <strong>Tidak ada notifikasi</strong>
-                            <span>Belum ada aktivitas yang membutuhkan perhatian Anda.</span>
+                            <i class="far fa-check-circle"></i>
+                            <strong>Semua sudah dibaca</strong>
+                            <span>Tidak ada pemberitahuan baru yang belum dibaca.</span>
                         </div>
                     <?php else: ?>
-                        <?php foreach ($notifItems as $item): ?>
-                            <a class="notification-item notification-type-<?= htmlspecialchars($item['type'] ?? 'general') ?>" href="<?= htmlspecialchars($item['url']) ?>">
+                        <?php foreach ($notifUnreadItems as $item): ?>
+                            <a class="notification-item notification-unread notification-type-<?= htmlspecialchars($item['type'] ?? 'general') ?>"
+                               href="<?= htmlspecialchars($item['url'] . (strpos($item['url'], '?') !== false ? '&' : '?') . 'notification_read=' . rawurlencode($item['key'])) ?>"
+                               data-notification-key="<?= htmlspecialchars($item['key']) ?>">
                                 <span class="notification-icon">
                                     <?php
                                     $icon = 'fa-bell';
@@ -973,6 +1084,41 @@ $notifUnread = count($notifItems);
                                 <span class="notification-content">
                                     <strong><?= htmlspecialchars($item['title']) ?></strong>
                                     <span><?= htmlspecialchars($item['message']) ?></span>
+                                    <small class="notification-status-label">Belum dibaca</small>
+                                </span>
+                                <i class="fas fa-chevron-right notification-arrow"></i>
+                            </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <div class="notification-list notification-list-read" data-notification-list="read" hidden>
+                    <?php if (!$notifReadItems): ?>
+                        <div class="notification-empty">
+                            <i class="far fa-folder-open"></i>
+                            <strong>Belum ada yang dibaca</strong>
+                            <span>Notification yang sudah Anda buka akan muncul di sini.</span>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($notifReadItems as $item): ?>
+                            <a class="notification-item notification-read notification-type-<?= htmlspecialchars($item['type'] ?? 'general') ?>"
+                               href="<?= htmlspecialchars($item['url']) ?>"
+                               data-notification-key="<?= htmlspecialchars($item['key']) ?>">
+                                <span class="notification-icon">
+                                    <?php
+                                    $icon = 'fa-bell';
+                                    if (($item['type'] ?? '') === 'approval') $icon = 'fa-check-circle';
+                                    elseif (($item['type'] ?? '') === 'incomplete') $icon = 'fa-exclamation-circle';
+                                    elseif (($item['type'] ?? '') === 'new') $icon = 'fa-file-circle-plus';
+                                    elseif (($item['type'] ?? '') === 'due') $icon = 'fa-clock';
+                                    elseif (($item['type'] ?? '') === 'approved') $icon = 'fa-circle-check';
+                                    ?>
+                                    <i class="fas <?= $icon ?>"></i>
+                                </span>
+                                <span class="notification-content">
+                                    <strong><?= htmlspecialchars($item['title']) ?></strong>
+                                    <span><?= htmlspecialchars($item['message']) ?></span>
+                                    <small class="notification-status-label">Sudah dibaca</small>
                                 </span>
                                 <i class="fas fa-chevron-right notification-arrow"></i>
                             </a>
@@ -1014,6 +1160,8 @@ $notifUnread = count($notifItems);
     const btn = wrap.querySelector('.notification-btn');
     const panel = wrap.querySelector('.notification-panel');
     const close = wrap.querySelector('.notification-close');
+    const tabs = wrap.querySelectorAll('[data-notification-tab]');
+    const lists = wrap.querySelectorAll('[data-notification-list]');
 
     function openNotif() {
         panel.hidden = false;
@@ -1027,6 +1175,18 @@ $notifUnread = count($notifItems);
         setTimeout(() => { panel.hidden = true; }, 160);
     }
 
+    function switchNotificationTab(tabName) {
+        tabs.forEach(function (tab) {
+            const active = tab.getAttribute('data-notification-tab') === tabName;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+
+        lists.forEach(function (list) {
+            list.hidden = list.getAttribute('data-notification-list') !== tabName;
+        });
+    }
+
     btn.addEventListener('click', function (e) {
         e.stopPropagation();
         if (panel.hidden) openNotif();
@@ -1034,6 +1194,12 @@ $notifUnread = count($notifItems);
     });
 
     if (close) close.addEventListener('click', closeNotif);
+
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            switchNotificationTab(tab.getAttribute('data-notification-tab'));
+        });
+    });
 
     document.addEventListener('click', function (e) {
         if (!wrap.contains(e.target) && !panel.hidden) closeNotif();
