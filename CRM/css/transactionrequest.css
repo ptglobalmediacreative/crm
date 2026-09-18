@@ -1777,3 +1777,240 @@ textarea {
     max-width: 100%;
   }
 }
+
+
+/* =========================================================
+   TRANSACTION REQUEST — COMPACT FILTER DROPDOWNS
+   Status + Next Approver
+   No Reset Button
+   ========================================================= */
+
+.page-transactionrequest .filter-bar {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+}
+
+.page-transactionrequest .filter-controls {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.page-transactionrequest .status-filter-form,
+.page-transactionrequest .next-approver-filter-form {
+    margin: 0;
+    min-width: 0;
+}
+
+.page-transactionrequest .status-filter-form {
+    flex: 0 1 180px;
+    width: 180px;
+}
+
+.page-transactionrequest .next-approver-filter-form {
+    flex: 0 1 280px;
+    width: 280px;
+    min-width: 180px;
+    max-width: 280px;
+    margin-left: auto;
+}
+
+.page-transactionrequest .status-filter-wrap,
+.page-transactionrequest .next-approver-filter-wrap {
+    height: 36px;
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 0 10px;
+
+    background: rgba(10, 17, 33, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 9px;
+
+    box-sizing: border-box;
+    transition: 0.2s;
+}
+
+.page-transactionrequest .status-filter-wrap > i,
+.page-transactionrequest .next-approver-filter-wrap > i {
+    flex: 0 0 auto;
+    color: var(--app-blue-light);
+    font-size: 10px;
+}
+
+.page-transactionrequest .status-filter-select,
+.page-transactionrequest .next-approver-select {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    height: 34px;
+
+    padding: 0 20px 0 0;
+
+    border: 0;
+    outline: 0;
+    background-color: transparent;
+
+    color: #cbd5e1;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.page-transactionrequest .status-filter-select option,
+.page-transactionrequest .next-approver-select option {
+    background: #0b1222;
+    color: #e8eef7;
+}
+
+.page-transactionrequest .status-filter-wrap:focus-within,
+.page-transactionrequest .next-approver-filter-wrap:focus-within {
+    border-color: rgba(96, 165, 250, 0.35);
+    background: #10203a;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
+}
+
+
+/* =========================================================
+   LAPTOP / SMALL PC
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .page-transactionrequest .filter-controls {
+        display: grid;
+
+        grid-template-columns:
+            minmax(150px, 180px)
+            minmax(180px, 1fr);
+
+        align-items: center;
+        gap: 8px;
+    }
+
+    .page-transactionrequest .status-filter-form,
+    .page-transactionrequest .next-approver-filter-form {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+    }
+
+    .page-transactionrequest .status-filter-wrap,
+    .page-transactionrequest .next-approver-filter-wrap {
+        width: 100%;
+    }
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .page-transactionrequest .filter-bar {
+        padding: 10px 12px;
+    }
+
+    .page-transactionrequest .filter-controls {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .page-transactionrequest .status-filter-form,
+    .page-transactionrequest .next-approver-filter-form {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+    }
+
+    .page-transactionrequest .status-filter-wrap,
+    .page-transactionrequest .next-approver-filter-wrap {
+        width: 100%;
+        height: 38px;
+    }
+
+    .page-transactionrequest .status-filter-select,
+    .page-transactionrequest .next-approver-select {
+        height: 36px;
+        font-size: 11px;
+    }
+}
+
+
+/* =========================================================
+   HP / MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .page-transactionrequest .filter-bar {
+        padding: 10px;
+    }
+
+    .page-transactionrequest .filter-controls {
+        width: 100%;
+
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+
+        gap: 8px;
+    }
+
+    .page-transactionrequest .status-filter-form,
+    .page-transactionrequest .next-approver-filter-form {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        margin: 0;
+    }
+
+    .page-transactionrequest .status-filter-wrap,
+    .page-transactionrequest .next-approver-filter-wrap {
+        width: 100%;
+        height: 40px;
+    }
+
+    .page-transactionrequest .status-filter-select,
+    .page-transactionrequest .next-approver-select {
+        height: 38px;
+        font-size: 11px;
+    }
+}
+
+
+/* =========================================================
+   SMALL HP
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+    .page-transactionrequest .filter-bar {
+        padding: 9px;
+    }
+
+    .page-transactionrequest .status-filter-wrap,
+    .page-transactionrequest .next-approver-filter-wrap {
+        padding: 0 9px;
+    }
+
+    .page-transactionrequest .status-filter-select,
+    .page-transactionrequest .next-approver-select {
+        font-size: 10px;
+    }
+}

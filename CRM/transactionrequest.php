@@ -409,46 +409,76 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                 </form>
             </div>
             
-            <!-- Filter Status -->
+            <!-- Filter Status & Next Approver -->
             <div class="filter-bar">
-                <div class="filter-buttons">
-                    <a href="?status=all&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'all' ? 'active' : '' ?>">
-                        Semua <span class="count"><?= $totalRequests ?></span>
-                    </a>
-                    <a href="?status=pending&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'pending' ? 'active' : '' ?>">
-                        <i class="fas fa-clock fa-fw" style="color:#f39c12;"></i> Pending <span class="count"><?= $totalPending ?></span>
-                    </a>
-                    <a href="?status=approved&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'approved' ? 'active' : '' ?>">
-                        <i class="fas fa-check-circle fa-fw" style="color:#2980b9;"></i> Approved <span class="count"><?= $totalApproved ?></span>
-                    </a>
-                    <a href="?status=rejected&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'rejected' ? 'active' : '' ?>">
-                        <i class="fas fa-times-circle fa-fw" style="color:#e74c3c;"></i> Rejected <span class="count"><?= $totalRejected ?></span>
-                    </a>
+                <div class="filter-controls">
 
-                    <form method="GET" class="next-approver-filter-form">
+                    <!-- STATUS DROPDOWN -->
+                    <form method="GET" class="status-filter-form">
                         <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
-                        <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
-                        <div class="next-approver-filter-wrap">
-                            <i class="fas fa-user-check"></i>
-                            <select name="next_approver" class="next-approver-select" onchange="this.form.submit()">
-                                <option value="all" <?= $next_approver_filter === 'all' ? 'selected' : '' ?>>Semua Next Approver</option>
-                                <?php foreach ($allowedNextApprovers as $approver): ?>
-                                    <option value="<?= htmlspecialchars($approver) ?>" <?= $next_approver_filter === $approver ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($approver) ?>
-                                    </option>
-                                <?php endforeach; ?>
+                        <input type="hidden" name="next_approver" value="<?= htmlspecialchars($next_approver_filter) ?>">
+
+                        <div class="status-filter-wrap">
+                            <i class="fas fa-filter"></i>
+
+                            <select
+                                name="status"
+                                class="status-filter-select"
+                                onchange="this.form.submit()">
+
+                                <option value="all" <?= $status_filter === 'all' ? 'selected' : '' ?>>
+                                    Semua (<?= $totalRequests ?>)
+                                </option>
+
+                                <option value="pending" <?= $status_filter === 'pending' ? 'selected' : '' ?>>
+                                    Pending (<?= $totalPending ?>)
+                                </option>
+
+                                <option value="approved" <?= $status_filter === 'approved' ? 'selected' : '' ?>>
+                                    Approved (<?= $totalApproved ?>)
+                                </option>
+
+                                <option value="rejected" <?= $status_filter === 'rejected' ? 'selected' : '' ?>>
+                                    Rejected (<?= $totalRejected ?>)
+                                </option>
+
                             </select>
                         </div>
                     </form>
 
-                    <?php if ($next_approver_filter !== 'all'): ?>
-                        <a href="?status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>" class="btn-filter" title="Reset filter Next Approver">
-                            <i class="fas fa-times"></i> Reset Approver
-                        </a>
-                    <?php endif; ?>
+
+                    <!-- NEXT APPROVER DROPDOWN -->
+                    <form method="GET" class="next-approver-filter-form">
+                        <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+                        <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
+
+                        <div class="next-approver-filter-wrap">
+                            <i class="fas fa-user-check"></i>
+
+                            <select
+                                name="next_approver"
+                                class="next-approver-select"
+                                onchange="this.form.submit()">
+
+                                <option value="all" <?= $next_approver_filter === 'all' ? 'selected' : '' ?>>
+                                    Semua Next Approver
+                                </option>
+
+                                <?php foreach ($allowedNextApprovers as $approver): ?>
+                                    <option
+                                        value="<?= htmlspecialchars($approver) ?>"
+                                        <?= $next_approver_filter === $appro_approver ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($approver) ?>
+                                    </option>
+                                <?php endforeach; ?>
+
+                            </select>
+                        </div>
+                    </form>
+
                 </div>
             </div>
-            
+
             <div class="card-body-custom">
                 <?= showFlash() ?>
                 <div class="table-responsive">
