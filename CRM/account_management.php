@@ -165,7 +165,7 @@ $userId = $_SESSION['user_id'] ?? 0;
 $userRole = $_SESSION['role'] ?? 'user';
 
 // Pagination
-$limit = 10;
+$limit = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
