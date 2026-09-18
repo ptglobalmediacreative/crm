@@ -510,7 +510,6 @@
   }
 }
 
-
 /* =========================================================
    CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
    Final override layer.
@@ -1099,7 +1098,6 @@ textarea {
   }
 }
 
-
 /* =========================================================
    CRM RESPONSIVE SYSTEM — FINAL OVERRIDE
    Breakpoints:
@@ -1590,7 +1588,6 @@ canvas {
   }
 }
 
-
 /* =========================================================
    NAVIGATION STRUCTURAL FIX
    Fixed navigation prevents clipping/disconnection while
@@ -1960,4 +1957,289 @@ body {
   .page-transactionrequest .content {
     padding-top: 72px !important;
   }
+}
+
+/* =========================================================
+   PROFILE MENU — CLEAN COMPACT TOP-RIGHT
+   No chevron / no "v" icon.
+   Avatar itself is the clickable trigger.
+   ========================================================= */
+
+.topbar .profile-menu {
+  position: relative !important;
+  flex: 0 0 auto !important;
+}
+
+.topbar .profile-trigger {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+}
+
+.topbar .profile-trigger::after,
+.topbar .profile-trigger::before {
+  display: none !important;
+  content: none !important;
+}
+
+.topbar .profile-trigger .avatar,
+.topbar .profile-trigger .profile-avatar {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease !important;
+}
+
+.topbar .profile-trigger:hover .avatar,
+.topbar .profile-trigger:hover .profile-avatar,
+.topbar .profile-trigger:focus-visible .avatar,
+.topbar .profile-trigger:focus-visible .profile-avatar {
+  transform: translateY(-1px) !important;
+  box-shadow:
+    0 0 0 4px rgba(96, 165, 250, 0.1),
+    0 8px 22px rgba(0, 0, 0, 0.2) !important;
+}
+
+.topbar .profile-trigger img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* Compact panel */
+.profile-menu .profile-dropdown {
+  position: absolute !important;
+  top: calc(100% + 10px) !important;
+  right: 0 !important;
+  left: auto !important;
+  width: 290px !important;
+  max-width: calc(100vw - 24px) !important;
+  padding: 8px !important;
+  margin: 0 !important;
+  border: 1px solid rgba(148, 163, 184, 0.14) !important;
+  border-radius: 15px !important;
+  background: rgba(8, 14, 28, 0.98) !important;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.42) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(-6px) scale(0.98) !important;
+  transform-origin: top right !important;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0.18s ease !important;
+  z-index: 12000 !important;
+}
+
+.profile-menu.open .profile-dropdown,
+.profile-menu.show .profile-dropdown,
+.profile-dropdown.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+/* Header identity */
+.profile-dropdown .profile-summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 10px !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.profile-dropdown .profile-summary-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #1e3a8a, #2563eb) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.profile-dropdown .profile-summary-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.profile-dropdown .profile-summary-info {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.profile-dropdown .profile-summary-info strong {
+  display: block !important;
+  color: #f7f9ff !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.profile-dropdown .profile-summary-info span {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #75839b !important;
+  font-size: 9px !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Menu items */
+.profile-dropdown .profile-menu-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  margin-top: 6px !important;
+}
+
+.profile-dropdown .profile-menu-item {
+  width: 100% !important;
+  min-height: 39px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  text-decoration: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease !important;
+}
+
+.profile-dropdown .profile-menu-item i {
+  width: 17px !important;
+  text-align: center !important;
+  color: #71809a !important;
+  font-size: 12px !important;
+}
+
+.profile-dropdown .profile-menu-item:hover {
+  background: rgba(96, 165, 250, 0.09) !important;
+  color: #fff !important;
+}
+
+.profile-dropdown .profile-menu-item:hover i {
+  color: #60a5fa !important;
+}
+
+/* Logout */
+.profile-dropdown .profile-menu-item.logout {
+  color: #fda4af !important;
+}
+
+.profile-dropdown .profile-menu-item.logout i {
+  color: #fb7185 !important;
+}
+
+.profile-dropdown .profile-menu-item.logout:hover {
+  background: rgba(244, 63, 94, 0.08) !important;
+  color: #fecdd3 !important;
+}
+
+/* Separator */
+.profile-dropdown .profile-divider {
+  height: 1px !important;
+  margin: 6px 4px !important;
+  background: rgba(148, 163, 184, 0.1) !important;
+}
+
+/* Profile modal/card if used by existing HTML */
+.profile-dropdown .profile-photo-action {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* Responsive — keep panel small and attached to right corner */
+@media (max-width: 768px) {
+  .topbar .profile-trigger .avatar,
+  .topbar .profile-trigger .profile-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+  }
+
+  .profile-menu .profile-dropdown {
+    top: calc(100% + 8px) !important;
+    right: -2px !important;
+    width: 270px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-menu .profile-dropdown {
+    width: 258px !important;
+    max-width: calc(100vw - 16px) !important;
+    padding: 7px !important;
+    border-radius: 13px !important;
+  }
+
+  .profile-dropdown .profile-summary {
+    padding: 9px !important;
+  }
+
+  .profile-dropdown .profile-summary-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+  }
+
+  .profile-dropdown .profile-menu-item {
+    min-height: 38px !important;
+  }
+}
+
+/* Safety: remove common chevron/caret visuals from profile trigger */
+.topbar .profile-trigger .fa-chevron-down,
+.topbar .profile-trigger .fa-angle-down,
+.topbar .profile-trigger .fa-caret-down,
+.topbar .profile-trigger .bi-chevron-down,
+.topbar .profile-trigger .bi-caret-down,
+.topbar .profile-trigger [class*="chevron"],
+.topbar .profile-trigger [class*="caret"] {
+  display: none !important;
 }
