@@ -361,6 +361,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/transactionrequest.css?v=20260918-2">
+    <link rel="stylesheet" href="css/footer.css">
 </head>
 <body class="page-transactionrequest">
 
@@ -584,10 +585,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             <?php endif; ?>
         </div>
 
-        <!-- FOOTER -->
-        <div class="footer-text">
-            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
-        </div>
+        <?php require_once 'footer.php'; ?>
 
     
     </main>

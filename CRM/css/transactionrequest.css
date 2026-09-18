@@ -442,22 +442,6 @@
   color: #64748b !important;
 }
 
-.page-transactionrequest .footer-text {
-  text-align: center;
-  color: #44536c;
-  font-size: 9px;
-  margin-top: 20px;
-}
-
-.footer-text a {
-  color: #6b7a94;
-  text-decoration: none;
-}
-
-.footer-text a:hover {
-  color: var(--app-blue-light);
-}
-
 @media (max-width: 991px) {
   .page-transactionrequest .content {
     margin-left: 0;
@@ -828,10 +812,6 @@
 }
 .page-transactionrequest .pagination .page-link {
   font-size: 11px !important;
-}
-.page-transactionrequest .footer-text,
-.page-transactionrequest .footer {
-  font-size: 10px !important;
 }
 @media (max-width: 768px) {
   .page-transactionrequest .table-custom {
@@ -1741,7 +1721,6 @@ textarea {
   }
 }
 
-
 /* =========================================================
    CRM RESPONSIVE SYSTEM — FINAL OVERRIDE
    Breakpoints:
@@ -2494,19 +2473,333 @@ body {
    CRM RESPONSIVE SYSTEM — FINAL CONSISTENCY PASS
    Dashboard reference / all devices
    ========================================================= */
-html,body{max-width:100%;overflow-x:hidden}
-.content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box;padding:28px 30px 52px}
-.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box}
-@media (min-width:1600px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (max-width:1199px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:24px}.page-header,.hero-row{gap:16px}.page-header h4,.page-title h4,.hero h1{font-size:23px}}
-@media (max-width:991px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:100%;margin-left:0;padding:22px 20px 44px}.page-header,.hero-row{align-items:flex-start;flex-wrap:wrap}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%;justify-content:flex-start;flex-wrap:wrap}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-grid{grid-template-columns:1fr}.card-header-custom{align-items:flex-start}.card-header-custom form{width:100%;margin-left:0}.card-header-custom form input{flex:1 1 auto;min-width:0;width:auto!important}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
-@media (max-width:767px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:18px 16px 38px}.page-header,.hero-row{margin-bottom:16px}.page-header h4,.page-title h4,.hero h1{font-size:21px}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat-card{min-height:112px;padding:15px}.kpi{min-height:104px;padding:13px}.detail-grid,.two-col,.form-grid,.form-row,.split-grid{grid-template-columns:1fr!important}.info-item{flex-direction:column;gap:7px}.info-label{width:auto!important}.card-header-custom form{flex-wrap:wrap}.card-header-custom form input,.card-header-custom form select{width:100%!important;min-width:0;flex:1 1 100%}}
-@media (max-width:575px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:16px 12px 32px}.page-header,.hero-row{flex-direction:column;align-items:stretch;gap:12px}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%}.page-actions>*,.header-actions>*,.filters>*{flex:1 1 auto;min-width:0}.stat-grid,.kpis{grid-template-columns:1fr;gap:9px}.card-header-custom{padding:12px}.card-header-custom h6{width:100%}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto}.table-custom th,.table-custom td{padding-left:10px!important;padding-right:10px!important}}
-@media (max-width:380px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:10px;padding-right:10px}.page-header h4,.page-title h4,.hero h1{font-size:19px}.page-actions,.header-actions,.filters{flex-direction:column;align-items:stretch}.page-actions>*,.header-actions>*,.filters>*{width:100%}}
-footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{box-sizing:border-box;max-width:none;width:calc(100% - 245px);margin-left:245px}
-@media (min-width:1600px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (min-width:992px) and (max-width:1599px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:30px;padding-right:30px}}
-@media (max-width:991px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{width:100%;margin-left:0;padding-left:20px;padding-right:20px}}
-@media (max-width:767px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:16px;padding-right:16px}}
-@media (max-width:575px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:12px;padding-right:12px}}
-img,video,canvas,iframe,table{max-width:100%}input,select,textarea,button{max-width:100%}
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.content {
+  width: calc(100% - 245px);
+  margin-left: 245px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 28px 30px 52px;
+}
+.page-account-management .content,
+.page-data-user .content,
+.page-deliveryinstruction .content,
+.page-detailaktivitas .content,
+.page-detaildi .content,
+.page-detailtr .content,
+.page-produk .content,
+.page-salesactivity .content,
+.page-transactionrequest .content {
+  width: calc(100% - 245px);
+  margin-left: 245px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+@media (min-width: 1600px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
+  }
+}
+@media (max-width: 1199px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 24px;
+  }
+  .page-header,
+  .hero-row {
+    gap: 16px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 23px;
+  }
+}
+@media (max-width: 991px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: 100%;
+    margin-left: 0;
+    padding: 22px 20px 44px;
+  }
+  .page-header,
+  .hero-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .page-header > div:last-child,
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-header-custom {
+    align-items: flex-start;
+  }
+  .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+  .card-header-custom form input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (max-width: 767px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 18px 16px 38px;
+  }
+  .page-header,
+  .hero-row {
+    margin-bottom: 16px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 21px;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .stat-card {
+    min-height: 112px;
+    padding: 15px;
+  }
+  .kpi {
+    min-height: 104px;
+    padding: 13px;
+  }
+  .detail-grid,
+  .two-col,
+  .form-grid,
+  .form-row,
+  .split-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .info-item {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .info-label {
+    width: auto !important;
+  }
+  .card-header-custom form {
+    flex-wrap: wrap;
+  }
+  .card-header-custom form input,
+  .card-header-custom form select {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}
+@media (max-width: 575px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 16px 12px 32px;
+  }
+  .page-header,
+  .hero-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header > div:last-child,
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+  }
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .card-header-custom {
+    padding: 12px;
+  }
+  .card-header-custom h6 {
+    width: 100%;
+  }
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .table-custom th,
+  .table-custom td {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+@media (max-width: 380px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 19px;
+  }
+  .page-actions,
+  .header-actions,
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    width: 100%;
+  }
+}
+footer:not(.modal-footer),
+.page-footer,
+.crm-footer,
+.site-footer {
+  box-sizing: border-box;
+  max-width: none;
+  width: calc(100% - 245px);
+  margin-left: 245px;
+}
+@media (min-width: 1600px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
+  }
+}
+@media (min-width: 992px) and (max-width: 1599px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+}
+@media (max-width: 991px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+@media (max-width: 767px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@media (max-width: 575px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+img,
+video,
+canvas,
+iframe,
+table {
+  max-width: 100%;
+}
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
