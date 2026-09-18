@@ -1778,239 +1778,354 @@ textarea {
   }
 }
 
-
 /* =========================================================
-   TRANSACTION REQUEST — COMPACT FILTER DROPDOWNS
-   Status + Next Approver
-   No Reset Button
+   TRANSACTION REQUEST — FILTER SYSTEM
+   Clean responsive layout
+   Status + Next Approver are dropdowns
    ========================================================= */
 
 .page-transactionrequest .filter-bar {
-    width: 100%;
-    min-width: 0;
-    overflow: visible;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  box-sizing: border-box;
 }
 
 .page-transactionrequest .filter-controls {
-    width: 100%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  gap: 10px;
+  flex-wrap: nowrap;
 }
+
+/* -------------------------
+   FILTER FORMS
+   ------------------------- */
 
 .page-transactionrequest .status-filter-form,
 .page-transactionrequest .next-approver-filter-form {
-    margin: 0;
-    min-width: 0;
+  margin: 0;
+  min-width: 0;
 }
 
 .page-transactionrequest .status-filter-form {
-    flex: 0 1 180px;
-    width: 180px;
+  width: 190px;
+  flex: 0 1 190px;
 }
 
 .page-transactionrequest .next-approver-filter-form {
-    flex: 0 1 280px;
-    width: 280px;
-    min-width: 180px;
-    max-width: 280px;
-    margin-left: auto;
+  width: 270px;
+  max-width: 270px;
+  min-width: 0;
+  flex: 0 1 270px;
+  margin-left: 0;
 }
+
+/* -------------------------
+   FILTER BOX
+   ------------------------- */
 
 .page-transactionrequest .status-filter-wrap,
 .page-transactionrequest .next-approver-filter-wrap {
-    height: 36px;
-    width: 100%;
-    min-width: 0;
+  width: 100%;
+  height: 38px;
+  min-width: 0;
 
-    display: flex;
-    align-items: center;
-    gap: 7px;
+  display: flex;
+  align-items: center;
 
-    padding: 0 10px;
+  gap: 8px;
+  padding: 0 11px;
 
-    background: rgba(10, 17, 33, 0.92);
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    border-radius: 9px;
+  background: rgba(10, 17, 33, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 9px;
 
-    box-sizing: border-box;
-    transition: 0.2s;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .page-transactionrequest .status-filter-wrap > i,
 .page-transactionrequest .next-approver-filter-wrap > i {
-    flex: 0 0 auto;
-    color: var(--app-blue-light);
-    font-size: 10px;
+  flex: 0 0 auto;
+
+  color: var(--app-blue-light);
+  font-size: 10px;
+  width: 12px;
+  text-align: center;
 }
+
+/* -------------------------
+   SELECT
+   ------------------------- */
 
 .page-transactionrequest .status-filter-select,
 .page-transactionrequest .next-approver-select {
-    min-width: 0;
-    width: 100%;
-    max-width: none;
-    height: 34px;
+  display: block;
 
-    padding: 0 20px 0 0;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 36px;
 
-    border: 0;
-    outline: 0;
-    background-color: transparent;
+  padding: 0 22px 0 0;
 
-    color: #cbd5e1;
-    font-family: Inter, Arial, sans-serif;
-    font-size: 10px;
-    font-weight: 600;
+  border: 0;
+  outline: 0;
 
-    cursor: pointer;
-    box-sizing: border-box;
+  background-color: transparent;
+  color: #cbd5e1;
+
+  font-family: Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
 .page-transactionrequest .status-filter-select option,
 .page-transactionrequest .next-approver-select option {
-    background: #0b1222;
-    color: #e8eef7;
+  background: #0b1222;
+  color: #e8eef7;
 }
 
+/* Focus */
 .page-transactionrequest .status-filter-wrap:focus-within,
 .page-transactionrequest .next-approver-filter-wrap:focus-within {
-    border-color: rgba(96, 165, 250, 0.35);
-    background: #10203a;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
+  border-color: rgba(96, 165, 250, 0.35);
+  background: #10203a;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
 }
 
-
 /* =========================================================
-   LAPTOP / SMALL PC
+   LARGE PC — 1201px+
    ========================================================= */
 
-@media (max-width: 1100px) {
+@media (min-width: 1201px) {
+  .page-transactionrequest .filter-controls {
+    flex-wrap: nowrap;
+  }
 
-    .page-transactionrequest .filter-controls {
-        display: grid;
+  .page-transactionrequest .status-filter-form {
+    flex: 0 0 190px;
+  }
 
-        grid-template-columns:
-            minmax(150px, 180px)
-            minmax(180px, 1fr);
-
-        align-items: center;
-        gap: 8px;
-    }
-
-    .page-transactionrequest .status-filter-form,
-    .page-transactionrequest .next-approver-filter-form {
-        width: 100%;
-        min-width: 0;
-        max-width: none;
-        margin: 0;
-    }
-
-    .page-transactionrequest .status-filter-wrap,
-    .page-transactionrequest .next-approver-filter-wrap {
-        width: 100%;
-    }
+  .page-transactionrequest .next-approver-filter-form {
+    flex: 0 0 270px;
+  }
 }
 
-
 /* =========================================================
-   TABLET
+   LAPTOP — 992px TO 1200px
    ========================================================= */
 
-@media (max-width: 768px) {
+@media (min-width: 992px) and (max-width: 1200px) {
+  .page-transactionrequest .filter-controls {
+    display: grid;
 
-    .page-transactionrequest .filter-bar {
-        padding: 10px 12px;
-    }
+    grid-template-columns:
+      minmax(170px, 190px)
+      minmax(220px, 1fr);
 
-    .page-transactionrequest .filter-controls {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
+    gap: 10px;
+    align-items: center;
+  }
 
-    .page-transactionrequest .status-filter-form,
-    .page-transactionrequest .next-approver-filter-form {
-        width: 100%;
-        min-width: 0;
-        max-width: none;
-        margin: 0;
-    }
+  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+  }
 
-    .page-transactionrequest .status-filter-wrap,
-    .page-transactionrequest .next-approver-filter-wrap {
-        width: 100%;
-        height: 38px;
-    }
-
-    .page-transactionrequest .status-filter-select,
-    .page-transactionrequest .next-approver-select {
-        height: 36px;
-        font-size: 11px;
-    }
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+  }
 }
 
-
 /* =========================================================
-   HP / MOBILE
+   TABLET — 769px TO 991px
    ========================================================= */
 
-@media (max-width: 600px) {
+@media (min-width: 769px) and (max-width: 991px) {
+  .page-transactionrequest .filter-bar {
+    padding: 11px 14px;
+  }
 
-    .page-transactionrequest .filter-bar {
-        padding: 10px;
-    }
+  .page-transactionrequest .filter-controls {
+    display: grid;
 
-    .page-transactionrequest .filter-controls {
-        width: 100%;
+    grid-template-columns:
+      minmax(170px, 220px)
+      minmax(0, 1fr);
 
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
+    gap: 9px;
+    align-items: center;
+  }
 
-        gap: 8px;
-    }
+  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+  }
 
-    .page-transactionrequest .status-filter-form,
-    .page-transactionrequest .next-approver-filter-form {
-        width: 100%;
-        max-width: none;
-        min-width: 0;
-        margin: 0;
-    }
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+    height: 38px;
+  }
 
-    .page-transactionrequest .status-filter-wrap,
-    .page-transactionrequest .next-approver-filter-wrap {
-        width: 100%;
-        height: 40px;
-    }
-
-    .page-transactionrequest .status-filter-select,
-    .page-transactionrequest .next-approver-select {
-        height: 38px;
-        font-size: 11px;
-    }
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    font-size: 10px;
+  }
 }
 
+/* =========================================================
+   MOBILE — 481px TO 768px
+   ========================================================= */
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .page-transactionrequest .filter-bar {
+    padding: 10px 12px;
+  }
+
+  .page-transactionrequest .filter-controls {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    height: 40px;
+  }
+
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 38px;
+    font-size: 10.5px;
+  }
+}
 
 /* =========================================================
-   SMALL HP
+   PHONE — 480px AND BELOW
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .page-transactionrequest .filter-bar {
+    padding: 10px;
+  }
+
+  .page-transactionrequest .filter-controls {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 8px;
+  }
+
+  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 38px;
+    font-size: 11px;
+  }
+}
+
+/* =========================================================
+   SMALL PHONE — 380px AND BELOW
    ========================================================= */
 
 @media (max-width: 380px) {
+  .page-transactionrequest .filter-bar {
+    padding: 9px;
+  }
 
-    .page-transactionrequest .filter-bar {
-        padding: 9px;
-    }
+  .page-transactionrequest .filter-controls {
+    gap: 7px;
+  }
 
-    .page-transactionrequest .status-filter-wrap,
-    .page-transactionrequest .next-approver-filter-wrap {
-        padding: 0 9px;
-    }
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    height: 38px;
+    padding: 0 9px;
+    gap: 7px;
+  }
 
-    .page-transactionrequest .status-filter-select,
-    .page-transactionrequest .next-approver-select {
-        font-size: 10px;
-    }
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 36px;
+    font-size: 10px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL PHONE — 360px AND BELOW
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .page-transactionrequest .filter-bar {
+    padding: 8px;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    height: 37px;
+    padding: 0 8px;
+  }
+
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 35px;
+    font-size: 9.5px;
+  }
 }
