@@ -1038,7 +1038,7 @@
 }
 
 /* =========================================================
-   FINAL OVERRIDE — MATCH SALESACTIVITY VISUAL SYSTEM
+   DATA USER HEADER — EXACT SALESACTIVITY HEADER SYSTEM
    ========================================================= */
 .page-data-user .page-header {
   display: flex !important;
@@ -1049,26 +1049,23 @@
   margin-bottom: 20px !important;
   flex-wrap: wrap !important;
 }
-
-.page-data-user .page-title {
+.page-data-user .page-header .page-title {
   display: flex !important;
   align-items: center !important;
-  gap: 0 !important;
+  gap: 12px !important;
 }
-
-.page-data-user .page-title h4 {
+.page-data-user .page-header h4 {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
-  margin: 0 !important;
-  font-size: 20px !important;
-  line-height: 1.2 !important;
+  font-size: 25px !important;
+  line-height: 1.1 !important;
+  letter-spacing: -1px !important;
   font-weight: 800 !important;
-  letter-spacing: -0.5px !important;
+  margin: 0 !important;
   color: #f7f9ff !important;
 }
-
-.page-data-user .page-title h4 > span {
+.page-data-user .page-header h4 span {
   width: 38px !important;
   height: 38px !important;
   border-radius: 11px !important;
@@ -1079,93 +1076,86 @@
   justify-content: center !important;
   flex-shrink: 0 !important;
 }
-
-.page-data-user .page-title h4 > span i {
-  color: #60a5fa !important;
+.page-data-user .page-header h4 span i {
   font-size: 15px !important;
+  color: #60a5fa !important;
 }
-
-.page-data-user .header-actions {
+.page-data-user .page-header .header-actions {
   display: flex !important;
   gap: 8px !important;
   align-items: center !important;
   flex-wrap: wrap !important;
-  justify-content: flex-end !important;
 }
-
 .page-data-user .btn-export,
 .page-data-user .btn-add {
   height: 38px !important;
   border-radius: 11px !important;
   font-size: 11px !important;
   font-weight: 700 !important;
-  padding: 0 15px !important;
+  padding: 0 14px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  white-space: nowrap !important;
   text-decoration: none !important;
+  white-space: nowrap !important;
+  border: 0;
 }
-
 .page-data-user .btn-export {
   border: 1px solid rgba(52, 211, 153, 0.25) !important;
   background: rgba(52, 211, 153, 0.08) !important;
   color: #6ee7b7 !important;
 }
-
 .page-data-user .btn-export:hover {
   color: #a7f3d0 !important;
   background: rgba(52, 211, 153, 0.14) !important;
   transform: translateY(-1px);
 }
-
 .page-data-user .btn-add {
-  border: 0 !important;
   background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
   color: #fff !important;
+  padding: 0 15px !important;
   box-shadow: 0 0 24px rgba(59, 130, 246, 0.25) !important;
 }
-
 .page-data-user .btn-add:hover {
   color: #fff !important;
   transform: translateY(-1px);
   box-shadow: 0 0 28px rgba(59, 130, 246, 0.35) !important;
 }
-
-.page-data-user .card-custom {
-  margin-top: 0 !important;
-}
-
 @media (max-width: 800px) {
   .page-data-user .page-header {
     align-items: flex-start !important;
     flex-direction: column !important;
     gap: 14px !important;
   }
-
-  .page-data-user .header-actions {
+  .page-data-user .page-header > div:last-child {
     width: 100% !important;
-    justify-content: flex-start !important;
   }
-
-  .page-data-user .header-actions .btn-export,
-  .page-data-user .header-actions .btn-add {
-    flex: 1 1 0 !important;
+  .page-data-user .page-header h4 {
+    font-size: 22px !important;
+  }
+  .page-data-user .page-header .header-actions {
+    width: 100% !important;
+    gap: 7px !important;
+  }
+  .page-data-user .page-header .header-actions a,
+  .page-data-user .page-header .header-actions button {
+    flex: 1 !important;
   }
 }
-
 @media (max-width: 480px) {
-  .page-data-user .page-title h4 {
-    font-size: 19px !important;
+  .page-data-user .page-header {
+    gap: 12px !important;
+    margin-bottom: 16px !important;
   }
-
-  .page-data-user .page-title h4 > span {
+  .page-data-user .page-header h4 {
+    font-size: 20px !important;
+  }
+  .page-data-user .page-header h4 span {
     width: 34px !important;
     height: 34px !important;
     border-radius: 9px !important;
   }
-
-  .page-data-user .page-title h4 > span i {
+  .page-data-user .page-header h4 span i {
     font-size: 14px !important;
   }
 }
