@@ -392,6 +392,7 @@ try {
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/footer.css">
 <link rel="stylesheet" href="css/navigation.css">
 </head>
 <body>
@@ -448,8 +449,8 @@ $pipelineColors = [
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-bolt"></i> Recent Activity</div><div class="panel-sub">Latest CRM actions</div></div><a class="panel-link" href="salesactivity.php">View all →</a></div><div class="activity-list"><?php if($recentActivities): foreach($recentActivities as $act): ?><div class="activity"><div class="act-icon"><i class="fas fa-file-lines"></i></div><div><div class="act-title"><?= htmlspecialchars($act['subject']??'-') ?></div><div class="act-desc"><?= htmlspecialchars($act['nama_pt']??'-') ?> · <?= htmlspecialchars($act['jenis_tugas']??'-') ?></div></div><div class="act-time"><?= date('d M H:i',strtotime($act['created_at'])) ?></div></div><?php endforeach; else: ?><div class="empty">Belum ada aktivitas.</div><?php endif; ?></div></div>
 </section>
 
-<div class="footer">© <?= date('Y') ?> PT Ganda Elang Tangguh · Heavy Equipment Dealer CRM</div>
-    </main>
+    <?php require_once 'footer.php'; ?>
+</main>
 </div>
 
 <script>
