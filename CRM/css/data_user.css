@@ -514,59 +514,72 @@
 }
 
 /* =========================================================
-   DATA USER — HEADER / ACTIONS
-   Match the Sales Activity visual language exactly.
-   Page-specific only; PHP / JS / DB are untouched.
+   DATA USER — FINAL HEADER / ACTIONS
+   Visual reference: Sales Activity
    ========================================================= */
 
+.page-data-user .content {
+  margin-left: 245px;
+  width: calc(100% - 245px);
+  min-height: calc(100vh - 72px);
+  padding: 26px 28px 50px;
+  max-width: none;
+}
+
+/* Header: same structure/proportion as Sales Activity */
 .page-data-user .page-header {
   display: flex !important;
   justify-content: space-between !important;
-  align-items: center !important;
+  align-items: flex-end !important;
   gap: 20px !important;
-  min-height: 48px !important;
-  margin-bottom: 20px !important;
-  flex-wrap: wrap !important;
+  margin-bottom: 22px !important;
+  min-height: 56px;
+  width: 100%;
 }
 
 .page-data-user .page-title {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 16px !important;
   min-width: 0;
+  flex: 0 1 auto;
 }
 
 .page-data-user .page-title-icon {
-  width: 38px !important;
-  height: 38px !important;
-  flex: 0 0 38px !important;
-  border-radius: 11px !important;
-  background: rgba(96, 165, 250, 0.1) !important;
-  border: 1px solid rgba(96, 165, 250, 0.15) !important;
-  box-shadow: none !important;
-  display: inline-flex !important;
+  width: 56px !important;
+  height: 56px !important;
+  flex: 0 0 56px !important;
+  border-radius: 18px !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  color: #60a5fa !important;
+  background: linear-gradient(
+    145deg,
+    rgba(12, 31, 58, 0.96),
+    rgba(8, 18, 35, 0.98)
+  ) !important;
+  border: 1px solid rgba(96, 165, 250, 0.18) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22) !important;
 }
 
 .page-data-user .page-title-icon i {
-  font-size: 15px !important;
-  color: #60a5fa !important;
+  font-size: 22px !important;
 }
 
 .page-data-user .page-title h1 {
   margin: 0 !important;
   color: #f7f9ff !important;
-  font-size: 25px !important;
-  line-height: 1.1 !important;
-  letter-spacing: -1px !important;
+  font-size: 26px !important;
+  line-height: 1.05 !important;
   font-weight: 800 !important;
+  letter-spacing: -1px !important;
 }
 
 .page-data-user .page-title p {
-  margin: 4px 0 0 !important;
-  color: #687892 !important;
-  font-size: 11px !important;
+  margin: 7px 0 0 !important;
+  color: var(--app-muted) !important;
+  font-size: 12px !important;
 }
 
 .page-data-user .page-actions {
@@ -574,13 +587,22 @@
   align-items: center !important;
   justify-content: flex-end !important;
   gap: 8px !important;
-  flex-wrap: wrap !important;
+  flex: 0 0 auto !important;
   margin-left: auto !important;
+  flex-wrap: nowrap !important;
 }
 
-/* Export Excel — same visual as Sales Activity */
+.page-data-user .page-actions > a,
+.page-data-user .page-actions > button {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  text-decoration: none;
+}
+
+/* Export — same visual language as Sales Activity */
 .page-data-user .btn-success-custom {
   height: 38px !important;
+  min-width: 0 !important;
   border: 1px solid rgba(52, 211, 153, 0.25) !important;
   border-radius: 11px !important;
   background: rgba(52, 211, 153, 0.08) !important;
@@ -592,8 +614,8 @@
   align-items: center !important;
   justify-content: center !important;
   gap: 8px !important;
-  white-space: nowrap !important;
-  text-decoration: none !important;
+  box-shadow: none !important;
+  transition: 0.2s ease;
 }
 
 .page-data-user .btn-success-custom:hover {
@@ -602,9 +624,10 @@
   transform: translateY(-1px);
 }
 
-/* Primary action — same visual as Sales Activity */
+/* Add — same visual language as Sales Activity .btn-add */
 .page-data-user .btn-primary-custom {
   height: 38px !important;
+  min-width: 0 !important;
   border: 0 !important;
   border-radius: 11px !important;
   background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
@@ -616,267 +639,350 @@
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
-  white-space: nowrap !important;
-  text-decoration: none !important;
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.25) !important;
+  transition: 0.2s ease;
 }
 
 .page-data-user .btn-primary-custom:hover {
-  background: linear-gradient(135deg, #4f8df7, #6d70f3) !important;
   color: #fff !important;
+  background: linear-gradient(135deg, #4f8df7, #6d70f3) !important;
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 28px rgba(59, 130, 246, 0.35) !important;
+}
+
+/* Search/header/table stay compact like Sales Activity */
+.page-data-user .card-custom {
+  border-radius: 17px !important;
+}
+
+.page-data-user .card-header-custom {
+  padding: 15px 18px !important;
+  min-height: 0 !important;
+  gap: 12px !important;
+}
+
+.page-data-user .card-header-custom h6 {
+  font-size: 13px !important;
+}
+
+.page-data-user .search-input {
+  width: 240px !important;
+  min-height: 34px !important;
+}
+
+.page-data-user .btn-search {
+  height: 34px !important;
+  min-width: 36px !important;
+}
+
+/* Table proportions aligned with Sales Activity */
+.page-data-user .table-custom {
+  margin-bottom: 0 !important;
+  min-width: 900px;
+  font-size: 10px;
+}
+
+.page-data-user .table-custom th {
+  height: auto !important;
+  padding: 13px 14px !important;
+  font-size: 9px !important;
+  letter-spacing: 0.45px !important;
+}
+
+.page-data-user .table-custom td {
+  height: auto !important;
+  padding: 13px 14px !important;
+  font-size: 10px !important;
+}
+
+.page-data-user .btn-action {
+  width: 29px !important;
+  height: 29px !important;
+  border-radius: 8px !important;
+  font-size: 10px !important;
 }
 
 /* =========================================================
-   DATA USER — RESPONSIVE
-   Same breakpoint logic as Sales Activity.
-   Non-overlapping media queries only.
+   DESKTOP — 1200px+
    ========================================================= */
 
-/* ---------- Laptop / smaller desktop ---------- */
-@media (max-width: 1050px) {
+@media (min-width: 1200px) {
   .page-data-user .content {
-    padding: 22px 20px 45px;
-  }
-}
-
-/* ---------- Tablet / mobile ---------- */
-@media (max-width: 800px) {
-  .page-data-user .content {
-    margin-left: 0;
-    width: 100%;
-    min-height: calc(100vh - 64px);
-    padding: 20px 14px 40px;
+    margin-left: 245px;
+    width: calc(100% - 245px);
+    padding: 26px 28px 50px;
   }
 
   .page-data-user .page-header {
-    align-items: flex-start !important;
-    flex-direction: column !important;
-    gap: 14px !important;
+    flex-direction: row;
+    align-items: flex-end;
+    flex-wrap: nowrap;
   }
 
   .page-data-user .page-title {
-    width: 100%;
-  }
-
-  .page-data-user .page-header > div:last-child {
-    width: 100% !important;
+    flex: 0 1 auto;
   }
 
   .page-data-user .page-actions {
-    width: 100% !important;
-    justify-content: flex-start !important;
-    gap: 7px !important;
-    flex-wrap: nowrap !important;
+    margin-left: auto;
+    flex-wrap: nowrap;
+  }
+}
+
+/* =========================================================
+   LAPTOP — 769px to 1199px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1199px) {
+  .page-data-user .content {
+    margin-left: 245px;
+    width: calc(100% - 245px);
+    padding: 24px 22px 42px;
   }
 
-  .page-data-user .page-actions a,
-  .page-data-user .page-actions button {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
+  .page-data-user .page-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 16px !important;
+  }
+
+  .page-data-user .page-title {
+    gap: 12px !important;
+  }
+
+  .page-data-user .page-title-icon {
+    width: 46px !important;
+    height: 46px !important;
+    flex-basis: 46px !important;
+    border-radius: 13px !important;
+  }
+
+  .page-data-user .page-title-icon i {
+    font-size: 18px !important;
+  }
+
+  .page-data-user .page-title h1 {
+    font-size: 25px !important;
+  }
+
+  .page-data-user .page-actions {
+    gap: 8px !important;
   }
 
   .page-data-user .btn-success-custom,
   .page-data-user .btn-primary-custom {
-    width: 100% !important;
-  }
-
-  .page-data-user .card-header-custom {
-    align-items: flex-start;
-  }
-
-  .page-data-user .card-header-custom form {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .page-data-user .search-input {
-    width: 100% !important;
-    max-width: none !important;
+    height: 38px !important;
+    font-size: 11px !important;
   }
 
   .page-data-user .table-custom {
     min-width: 900px;
-    font-size: 9px;
-  }
-
-  .page-data-user .table-custom th,
-  .page-data-user .table-custom td {
-    padding: 10px 9px !important;
-  }
-
-  .page-data-user .pagination {
-    justify-content: center;
-    flex-wrap: wrap;
   }
 }
 
-/* ---------- Phone ---------- */
-@media (max-width: 480px) {
+/* =========================================================
+   TABLET — 481px to 768px
+   ========================================================= */
+
+@media (min-width: 481px) and (max-width: 768px) {
   .page-data-user .content {
-    padding: 18px 10px 35px;
+    margin-left: 0;
+    width: 100%;
+    padding: 22px 18px 36px;
   }
 
   .page-data-user .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .page-data-user .page-title {
     gap: 12px !important;
-    margin-bottom: 16px !important;
+  }
+
+  .page-data-user .page-title-icon {
+    width: 46px !important;
+    height: 46px !important;
+    flex-basis: 46px !important;
+    border-radius: 13px !important;
+  }
+
+  .page-data-user .page-title-icon i {
+    font-size: 18px !important;
+  }
+
+  .page-data-user .page-title h1 {
+    font-size: 25px !important;
+  }
+
+  .page-data-user .page-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+    margin-left: 0 !important;
+  }
+
+  .page-data-user .page-actions > a,
+  .page-data-user .page-actions > button {
+    width: 100%;
+  }
+
+  .page-data-user .btn-success-custom,
+  .page-data-user .btn-primary-custom {
+    width: 100%;
+    height: 42px !important;
+    font-size: 11px !important;
+    border-radius: 10px !important;
+  }
+
+  .page-data-user .table-custom {
+    min-width: 900px;
+  }
+}
+
+/* =========================================================
+   PHONE — <=480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .page-data-user .content {
+    margin-left: 0;
+    width: 100%;
+    padding: 18px 12px 28px;
+  }
+
+  .page-data-user .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 13px !important;
+    margin-bottom: 18px !important;
   }
 
   .page-data-user .page-title {
     gap: 10px !important;
   }
 
+  .page-data-user .page-title-icon {
+    width: 42px !important;
+    height: 42px !important;
+    flex-basis: 42px !important;
+    border-radius: 12px !important;
+  }
+
+  .page-data-user .page-title-icon i {
+    font-size: 17px !important;
+  }
+
   .page-data-user .page-title h1 {
-    font-size: 20px !important;
+    font-size: 23px !important;
+    letter-spacing: -0.6px !important;
   }
 
   .page-data-user .page-title p {
     font-size: 10px !important;
-  }
-
-  .page-data-user .page-title-icon {
-    width: 34px !important;
-    height: 34px !important;
-    flex-basis: 34px !important;
-    border-radius: 9px !important;
-  }
-
-  .page-data-user .page-title-icon i {
-    font-size: 14px !important;
+    margin-top: 4px !important;
   }
 
   .page-data-user .page-actions {
-    width: 100% !important;
+    width: 100%;
     display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 7px !important;
+    grid-template-columns: 1fr;
+    gap: 8px !important;
+    margin-left: 0 !important;
   }
 
-  .page-data-user .page-actions a,
-  .page-data-user .page-actions button {
-    width: 100% !important;
-    flex: none !important;
+  .page-data-user .page-actions > a,
+  .page-data-user .page-actions > button {
+    width: 100%;
+  }
+
+  .page-data-user .btn-success-custom,
+  .page-data-user .btn-primary-custom {
+    width: 100%;
+    height: 42px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
   }
 
   .page-data-user .card-header-custom {
-    padding: 13px !important;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-data-user .card-header-custom form {
+    width: 100%;
+    margin-left: 0 !important;
   }
 
   .page-data-user .search-input {
     width: 100% !important;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .page-data-user .table-custom {
     min-width: 780px;
   }
 
-  .page-data-user .table-custom th,
-  .page-data-user .table-custom td {
-    padding: 10px 8px !important;
+  .page-data-user .card-footer {
+    padding: 10px !important;
   }
 
   .page-data-user .pagination {
+    justify-content: center !important;
+    flex-wrap: wrap;
     gap: 4px;
-  }
-
-  .page-data-user .pagination .page-link {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    min-height: 32px;
-    padding: 0 !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px !important;
-    border-radius: 8px !important;
-  }
-
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link {
-    width: auto;
-    min-width: 54px;
-    padding: 0 8px !important;
   }
 }
 
-/* ---------- Very small phone ---------- */
+/* =========================================================
+   VERY SMALL PHONE — <=360px
+   ========================================================= */
+
 @media (max-width: 360px) {
   .page-data-user .content {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: 9px;
+    padding-right: 9px;
   }
 
   .page-data-user .page-title h1 {
-    font-size: 19px !important;
+    font-size: 21px !important;
   }
 
   .page-data-user .page-title-icon {
-    width: 32px !important;
-    height: 32px !important;
-    flex-basis: 32px !important;
-  }
-
-  .page-data-user .page-title-icon i {
-    font-size: 13px !important;
+    width: 40px !important;
+    height: 40px !important;
+    flex-basis: 40px !important;
   }
 
   .page-data-user .btn-success-custom,
   .page-data-user .btn-primary-custom {
-    height: 36px !important;
+    height: 40px !important;
     font-size: 10px !important;
   }
 
   .page-data-user .table-custom {
     min-width: 760px;
   }
-
-  .page-data-user .pagination .page-link {
-    width: 30px !important;
-    min-width: 30px !important;
-    height: 30px !important;
-    min-height: 30px !important;
-    font-size: 9px !important;
-  }
-
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link {
-    min-width: 48px !important;
-    width: auto !important;
-  }
 }
 
 /* =========================================================
-   DATA USER — FINAL TABLE / TYPOGRAPHY CONSISTENCY
+   FINAL SAFETY
    ========================================================= */
 
-.page-data-user .table-custom {
-  font-size: 12px !important;
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
-.page-data-user .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-
-.page-data-user .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-
-.page-data-user .info-label {
-  font-size: 10px !important;
-}
-
-.page-data-user .info-value {
-  font-size: 12px !important;
-}
-
-.page-data-user .pagination .page-link {
-  font-size: 11px !important;
-}
-
-.page-data-user .footer-text,
-.page-data-user .footer {
-  font-size: 10px !important;
+.page-data-user,
+.page-data-user .content,
+.page-data-user .page-header,
+.page-data-user .page-title,
+.page-data-user .page-actions {
+  min-width: 0;
 }
