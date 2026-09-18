@@ -427,3 +427,46 @@
     height: 36px;
   }
 }
+
+/* ==========================================================
+   NOTIFICATION TYPES
+   ========================================================== */
+
+.notification-type-approval .notification-icon {
+  color: #d8b46d;
+  background: rgba(201, 155, 69, 0.12);
+  border-color: rgba(201, 155, 69, 0.2);
+}
+
+.notification-type-incomplete .notification-icon {
+  color: #e4a95a;
+  background: rgba(228, 169, 90, 0.1);
+  border-color: rgba(228, 169, 90, 0.18);
+}
+
+.notification-type-new .notification-icon {
+  color: #c7d2e2;
+  background: rgba(199, 210, 226, 0.08);
+  border-color: rgba(199, 210, 226, 0.14);
+}
+
+.notification-type-due .notification-icon {
+  color: #d8b46d;
+  background: rgba(201, 155, 69, 0.1);
+  border-color: rgba(201, 155, 69, 0.18);
+}
+
+.notification-type-approved .notification-icon {
+  color: #8fc7a1;
+  background: rgba(92, 166, 116, 0.1);
+  border-color: rgba(92, 166, 116, 0.16);
+}
+
+/* Make the record identifier visually easy to scan */
+.notification-content span {
+  letter-spacing: 0.02px;
+}
+
+.notification-content strong {
+  letter-spacing: -0.05px;
+}

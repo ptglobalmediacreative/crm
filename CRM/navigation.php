@@ -20,29 +20,19 @@ $showMenu = static function($name) use ($menuNames) {
 
 /* ==========================================================
    NOTIFICATION SYSTEM
-   ==========================================================
-   Dibuat kompatibel dengan struktur CRM yang sudah digunakan:
-   - sales_activity / detail sales activity
-   - detail_transaction_requests / transaction_request
-   - delivery_instructions / detail DI
-   - approval berdasarkan role
+   Data notification dibuat dari record CRM yang sebenarnya.
+   Setiap item menampilkan:
+   - TR/DI Number
+   - Nama PT
+   - status / tindakan yang diperlukan
+   - hanya record yang relevan dengan role user
    ========================================================== */
 
 $notifItems = [];
 $notifUnread = 0;
 
-$addNotif = static function(string $title, string $message, string $url, string $key) use (&$notifItems) {
-    $notifItems[] = [
-        'title'   => $title,
-        'message' => $message,
-        'url'     => $url,
-        'key'     => $key
-    ];
-};
-
-/* Cari koneksi PDO yang sudah dipakai halaman */
 $notifDb = null;
-foreach (['pdo', 'conn', 'db'] as $candidate) {
+foreach (['db', 'pdo', 'conn'] as $candidate) {
     if (isset($$candidate) && $$candidate instanceof PDO) {
         $notifDb = $$candidate;
         break;
@@ -52,229 +42,885 @@ if (!$notifDb && function_exists('getPDO')) {
     try { $notifDb = getPDO(); } catch (Throwable $e) {}
 }
 
-/* Helper aman: cek tabel/kolom tanpa mengganggu halaman */
-$notifTableExists = static function(PDO $db, string $table): bool {
+$notifRole = strtolower(trim((string)($userRole ?? ($role ?? ''))));
+$notifUserId = (int)($userId ?? 0);
+
+$notifRoleAliases = [
+    'sales manager' => 'sales_manager',
+    'salesmanager' => 'sales_manager',
+    'sales_manager' => 'sales_manager',
+    'part support' => 'part_support',
+    'partsupport' => 'part_support',
+    'part_support' => 'part_support',
+    'service support' => 'service_support',
+    'servicesupport' => 'service_support',
+    'service_support' => 'service_support',
+    'direktur sales' => 'direktur_sales',
+    'direktursales' => 'direktur_sales',
+    'direktur_sales' => 'direktur_sales',
+    'direktur operasional' => 'direktur_operasional',
+    'direkturoperasional' => 'direktur_operasional',
+    'direktur_operasional' => 'direktur_operasional',
+    'direktur utama' => 'direktur_utama',
+    'direkturutama' => 'direktur_utama',
+    'direktur_utama' => 'direktur_utama',
+];
+$notifRoleKey = $notifRoleAliases[$notifRole] ?? $notifRole;
+
+$notifAdd = static function(
+    string $title,
+    string $message,
+    string $url,
+    string $key,
+    string $type = 'general'
+) use (&$notifItems) {
+    $notifItems[] = [
+        'title' => $title,
+        'message' => $message,
+        'url' => $url,
+        'key' => $key,
+        'type' => $type
+    ];
+};
+
+/*
+ * Ambil kolom yang benar-benar ada.
+ * Ini membuat navigation aman ketika ada perbedaan kecil antar versi database.
+ */
+$notifHasTable = static function(PDO $db, string $table): bool {
     try {
-        $st = $db->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?");
-        $st->execute([$table]);
-        return (bool)$st->fetchColumn();
+        $q = $db->prepare(
+            "SELECT COUNT(*) FROM information_schema.tables
+             WHERE table_schema = DATABASE() AND table_name = ?"
+        );
+        $q->execute([$table]);
+        return (int)$q->fetchColumn() > 0;
     } catch (Throwable $e) {
         return false;
     }
 };
-$notifColumns = static function(PDO $db, string $table): array {
+
+$notifHasColumn = static function(PDO $db, string $table, string $column): bool {
     try {
-        $st = $db->prepare("SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ?");
-        $st->execute([$table]);
-        return array_map('strtolower', $st->fetchAll(PDO::FETCH_COLUMN));
+        $q = $db->prepare(
+            "SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+             AND table_name = ? AND column_name = ?"
+        );
+        $q->execute([$table, $column]);
+        return (int)$q->fetchColumn() > 0;
     } catch (Throwable $e) {
-        return [];
+        return false;
     }
-};
-$notifPickCol = static function(array $cols, array $names): ?string {
-    foreach ($names as $name) {
-        if (in_array(strtolower($name), $cols, true)) return $name;
-    }
-    return null;
 };
 
-$notifRole = strtolower(trim((string)($role ?? '')));
-$notifUserId = (int)($userId ?? ($id_user ?? ($id ?? 0)));
-$notifFullName = (string)($fullName ?? '');
+$notifEsc = static function($value): string {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+};
+
+/*
+ * TR:
+ * Sumber utama nomor TR dan nama PT mengikuti detailtr.php:
+ * activity_details -> sales_activities -> accounts.
+ */
+$notifTR = [];
+$notifTRComplete = [];
+
+try {
+    if (
+        $notifDb instanceof PDO &&
+        $notifHasTable($notifDb, 'activity_details') &&
+        $notifHasTable($notifDb, 'sales_activities') &&
+        $notifHasTable($notifDb, 'accounts') &&
+        $notifHasTable($notifDb, 'detail_transaction_requests')
+    ) {
+        $sqlTR = "
+            SELECT
+                ad.tr_number,
+                ad.due_date,
+                ad.subject AS activity_subject,
+                ad.jenis_tugas AS activity_jenis_tugas,
+                ad.created_at AS request_date,
+                ad.id AS activity_detail_id,
+                sa.id AS sales_activity_id,
+                sa.sales_id,
+                a.nama_pt,
+                COALESCE(dtr.status, 'pending') AS tr_status,
+                dtr.updated_at AS tr_updated_at
+            FROM activity_details ad
+            LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+            LEFT JOIN accounts a ON sa.account_id = a.id
+            LEFT JOIN detail_transaction_requests dtr
+                ON dtr.id = (
+                    SELECT MAX(d2.id)
+                    FROM detail_transaction_requests d2
+                    WHERE d2.trf_number = ad.tr_number
+                )
+            WHERE ad.tr_number IS NOT NULL
+              AND TRIM(ad.tr_number) <> ''
+            GROUP BY
+                ad.tr_number, ad.due_date, ad.subject, ad.jenis_tugas, ad.created_at, ad.id,
+                sa.id, sa.sales_id, a.nama_pt, dtr.status, dtr.updated_at
+            ORDER BY ad.id DESC
+        ";
+        $q = $notifDb->query($sqlTR);
+        $notifTR = $q->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($notifTR as &$tr) {
+            $tr['_jenis_tugas'] = $tr['activity_jenis_tugas'] ?? '';
+            $tr['_subject'] = $tr['activity_subject'] ?? '';
+        }
+        unset($tr);
+
+        /*
+         * Validasi kelengkapan TR mengikuti validateTRApprovalData()
+         * pada detailtr.php:
+         * 1. Summary/Deskripsi
+         * 2. Detail Unit
+         * 3. Term of Payment
+         * 4. Additional Cost
+         */
+        foreach ($notifTR as &$tr) {
+            $trNumber = (string)$tr['tr_number'];
+            $missing = [];
+
+            $summary = '';
+            try {
+                $s = $notifDb->prepare("
+                    SELECT deskripsi
+                    FROM detail_transaction_requests
+                    WHERE trf_number = ?
+                    ORDER BY id DESC
+                    LIMIT 1
+                ");
+                $s->execute([$trNumber]);
+                $summary = (string)$s->fetchColumn();
+            } catch (Throwable $e) {}
+
+            if (trim($summary) === '') {
+                $missing[] = 'Summary / Deskripsi';
+            }
+
+            $units = [];
+            if ($notifHasTable($notifDb, 'tr_detail_units')) {
+                try {
+                    $s = $notifDb->prepare("
+                        SELECT unit_id, qty, price
+                        FROM tr_detail_units
+                        WHERE trf_number = ?
+                        ORDER BY id ASC
+                    ");
+                    $s->execute([$trNumber]);
+                    $units = $s->fetchAll(PDO::FETCH_ASSOC);
+                } catch (Throwable $e) {}
+            }
+
+            if (!$units) {
+                $missing[] = 'Detail Unit';
+            } else {
+                foreach ($units as $unit) {
+                    if ((int)($unit['unit_id'] ?? 0) <= 0) {
+                        $missing[] = 'Detail Unit - Produk';
+                        break;
+                    }
+                    if ((int)($unit['qty'] ?? 0) <= 0) {
+                        $missing[] = 'Detail Unit - Quantity';
+                        break;
+                    }
+                    if ((float)($unit['price'] ?? 0) <= 0) {
+                        $missing[] = 'Detail Unit - Harga';
+                        break;
+                    }
+                }
+            }
+
+            $payments = [];
+            if ($notifHasTable($notifDb, 'tr_term_of_payments')) {
+                try {
+                    $s = $notifDb->prepare("
+                        SELECT amount
+                        FROM tr_term_of_payments
+                        WHERE trf_number = ?
+                        ORDER BY id ASC
+                    ");
+                    $s->execute([$trNumber]);
+                    $payments = $s->fetchAll(PDO::FETCH_ASSOC);
+                } catch (Throwable $e) {}
+            }
+
+            if (!$payments) {
+                $missing[] = 'Term of Payment';
+            } else {
+                $positivePayment = false;
+                foreach ($payments as $payment) {
+                    if ((float)($payment['amount'] ?? 0) > 0) {
+                        $positivePayment = true;
+                        break;
+                    }
+                }
+                if (!$positivePayment) {
+                    $missing[] = 'Term of Payment - Nominal';
+                }
+            }
+
+            $costs = [];
+            if ($notifHasTable($notifDb, 'tr_additional_cost_items')) {
+                try {
+                    $s = $notifDb->prepare("
+                        SELECT id
+                        FROM tr_additional_cost_items
+                        WHERE trf_number = ?
+                        ORDER BY id ASC
+                    ");
+                    $s->execute([$trNumber]);
+                    $costs = $s->fetchAll(PDO::FETCH_ASSOC);
+                } catch (Throwable $e) {}
+            }
+
+            if (!$costs) {
+                $missing[] = 'Additional Cost';
+            }
+
+            $tr['_missing'] = $missing;
+            $tr['_complete'] = empty($missing);
+        }
+        unset($tr);
+
+        /*
+         * Hanya TR yang benar-benar lengkap masuk daftar approval.
+         * Current approval ditentukan dari approval history, persis seperti
+         * alur detailtr.php.
+         */
+        $trApprovalLevels = [
+            1 => 'sales_manager',
+            2 => 'direktur_sales',
+            3 => 'direktur_operasional',
+            4 => 'direktur_utama',
+        ];
+
+        foreach ($notifTR as &$tr) {
+            $tr['_current_role'] = null;
+
+            if (($tr['tr_status'] ?? 'pending') !== 'pending') {
+                continue;
+            }
+
+            try {
+                $s = $notifDb->prepare("
+                    SELECT approval_order, approval_role, status
+                    FROM tr_approval_history
+                    WHERE trf_number = ?
+                    ORDER BY approval_order ASC
+                ");
+                $s->execute([$tr['tr_number']]);
+                $history = $s->fetchAll(PDO::FETCH_ASSOC);
+
+                $approved = [];
+                $rejected = false;
+
+                foreach ($history as $h) {
+                    $order = (int)($h['approval_order'] ?? 0);
+                    if (!isset($trApprovalLevels[$order])) continue;
+                    if ((string)($h['approval_role'] ?? '') !== $trApprovalLevels[$order]) continue;
+
+                    if (($h['status'] ?? '') === 'approved') {
+                        $approved[$order] = true;
+                    } elseif (($h['status'] ?? '') === 'rejected') {
+                        $rejected = true;
+                    }
+                }
+
+                if (!$rejected) {
+                    $currentOrder = 1;
+                    for ($i = 1; $i <= 4; $i++) {
+                        if (!empty($approved[$i])) {
+                            $currentOrder = $i + 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    $tr['_current_role'] = $trApprovalLevels[$currentOrder] ?? null;
+                }
+            } catch (Throwable $e) {}
+        }
+        unset($tr);
+
+        $notifTRComplete = array_values(array_filter(
+            $notifTR,
+            static fn($row) => !empty($row['_complete'])
+        ));
+    }
+} catch (Throwable $e) {
+    $notifTR = [];
+    $notifTRComplete = [];
+}
+
+/*
+ * DI:
+ * Sumber nomor DI dan nama PT mengikuti detaildi.php:
+ * activity_details -> sales_activities -> accounts.
+ */
+$notifDI = [];
+
+try {
+    if (
+        $notifDb instanceof PDO &&
+        $notifHasTable($notifDb, 'activity_details') &&
+        $notifHasTable($notifDb, 'sales_activities') &&
+        $notifHasTable($notifDb, 'accounts') &&
+        $notifHasTable($notifDb, 'detail_delivery_instructions')
+    ) {
+        $sqlDI = "
+            SELECT
+                ad.di_number,
+                ad.created_at AS request_date,
+                ad.id AS activity_detail_id,
+                sa.id AS sales_activity_id,
+                sa.sales_id,
+                a.nama_pt,
+                COALESCE(ddi.status, 'pending') AS di_status,
+                COALESCE(ddi.current_approval_order, 1) AS current_approval_order
+            FROM activity_details ad
+            LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+            LEFT JOIN accounts a ON sa.account_id = a.id
+            LEFT JOIN detail_delivery_instructions ddi
+                ON ddi.id = (
+                    SELECT MAX(d2.id)
+                    FROM detail_delivery_instructions d2
+                    WHERE d2.di_number = ad.di_number
+                )
+            WHERE ad.di_number IS NOT NULL
+              AND TRIM(ad.di_number) <> ''
+            GROUP BY
+                ad.di_number, ad.created_at, ad.id,
+                sa.id, sa.sales_id, a.nama_pt,
+                ddi.status, ddi.current_approval_order
+            ORDER BY ad.id DESC
+        ";
+        $q = $notifDb->query($sqlDI);
+        $notifDI = $q->fetchAll(PDO::FETCH_ASSOC);
+
+        /*
+         * DI approval mengikuti detaildi.php:
+         * 1 Admin, 2 Business, 3 Service Support, 4 Part Support,
+         * 5 Direktur Sales, 6 Direktur Utama.
+         */
+        $diApprovalLevels = [
+            1 => 'admin',
+            2 => 'business',
+            3 => 'service_support',
+            4 => 'part_support',
+            5 => 'direktur_sales',
+            6 => 'direktur_utama',
+        ];
+
+        foreach ($notifDI as &$di) {
+            $di['_current_role'] = null;
+
+            if (($di['di_status'] ?? 'pending') !== 'pending') {
+                continue;
+            }
+
+            $currentOrder = (int)($di['current_approval_order'] ?? 1);
+
+            /*
+             * Gunakan current_approval_order dari detail DI.
+             * Jika nilainya tidak tersedia/valid, hitung ulang dari history.
+             */
+            if ($currentOrder < 1 || $currentOrder > 6) {
+                $currentOrder = 1;
+
+                try {
+                    $s = $notifDb->prepare("
+                        SELECT approval_order, approval_role, status
+                        FROM di_approval_history
+                        WHERE di_number = ?
+                        ORDER BY approval_order ASC
+                    ");
+                    $s->execute([$di['di_number']]);
+                    $history = $s->fetchAll(PDO::FETCH_ASSOC);
+
+                    $approved = [];
+                    $rejected = false;
+
+                    foreach ($history as $h) {
+                        $order = (int)($h['approval_order'] ?? 0);
+                        if (!isset($diApprovalLevels[$order])) continue;
+                        if (($h['status'] ?? '') === 'approved') {
+                            $approved[$order] = true;
+                        } elseif (($h['status'] ?? '') === 'rejected') {
+                            $rejected = true;
+                        }
+                    }
+
+                    if (!$rejected) {
+                        for ($i = 1; $i <= 6; $i++) {
+                            if (!empty($approved[$i])) {
+                                $currentOrder = $i + 1;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                } catch (Throwable $e) {}
+            }
+
+            $di['_current_role'] = $diApprovalLevels[$currentOrder] ?? null;
+
+            /*
+             * Detail DI dianggap perlu dilengkapi apabila:
+             * - no_so kosong
+             * - belum ada unit DI
+             * - logistics belum ada
+             *
+             * Ini mengikuti bagian data yang memang ada pada detaildi.php.
+             */
+            $missing = [];
+
+            try {
+                $s = $notifDb->prepare("
+                    SELECT no_so
+                    FROM detail_delivery_instructions
+                    WHERE di_number = ?
+                    ORDER BY id DESC
+                    LIMIT 1
+                ");
+                $s->execute([$di['di_number']]);
+                $noSO = trim((string)$s->fetchColumn());
+                if ($noSO === '') {
+                    $missing[] = 'No. SO';
+                }
+            } catch (Throwable $e) {
+                $missing[] = 'Data Penjualan';
+            }
+
+            if ($notifHasTable($notifDb, 'di_units')) {
+                try {
+                    $s = $notifDb->prepare("SELECT COUNT(*) FROM di_units WHERE di_number = ?");
+                    $s->execute([$di['di_number']]);
+                    if ((int)$s->fetchColumn() <= 0) {
+                        $missing[] = 'Unit';
+                    }
+                } catch (Throwable $e) {
+                    $missing[] = 'Unit';
+                }
+            }
+
+            if ($notifHasTable($notifDb, 'di_logistics')) {
+                try {
+                    $s = $notifDb->prepare("SELECT COUNT(*) FROM di_logistics WHERE di_number = ?");
+                    $s->execute([$di['di_number']]);
+                    if ((int)$s->fetchColumn() <= 0) {
+                        $missing[] = 'Logistics';
+                    }
+                } catch (Throwable $e) {
+                    $missing[] = 'Logistics';
+                }
+            }
+
+            $di['_missing'] = $missing;
+            $di['_complete'] = empty($missing);
+        }
+        unset($di);
+    }
+} catch (Throwable $e) {
+    $notifDI = [];
+}
+
+/* ==========================================================
+   SALES ACTIVITY DUE-DATE NOTIFICATIONS
+   Menampilkan Nama PT + Jenis Tugas + Subject + Due Date.
+   Sumbernya langsung dari activity_details sehingga semua jenis
+   tugas (bukan hanya yang memiliki TR) ikut ter-cover.
+   ========================================================== */
+
+$notifActivitiesDue = [];
+
+try {
+    if (
+        $notifDb instanceof PDO &&
+        $notifHasTable($notifDb, 'activity_details') &&
+        $notifHasTable($notifDb, 'sales_activities') &&
+        $notifHasTable($notifDb, 'accounts')
+    ) {
+        $sqlActivityDue = "
+            SELECT
+                ad.id AS activity_detail_id,
+                ad.sales_activity_id,
+                ad.subject,
+                ad.jenis_tugas,
+                ad.due_date,
+                ad.status,
+                sa.sales_id,
+                a.nama_pt
+            FROM activity_details ad
+            INNER JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+            LEFT JOIN accounts a ON sa.account_id = a.id
+            WHERE ad.due_date IS NOT NULL
+              AND ad.status = 'in_progress'
+              AND DATE(ad.due_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            ORDER BY ad.due_date ASC, ad.id DESC
+        ";
+
+        $q = $notifDb->query($sqlActivityDue);
+        $notifActivitiesDue = $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (Throwable $e) {
+    $notifActivitiesDue = [];
+}
+
+/* ==========================================================
+   BUILD NOTIFICATIONS PER ROLE
+   ========================================================== */
 
 try {
     if ($notifDb instanceof PDO) {
-        /* --------------------------------------------------
-           SALES
-           -------------------------------------------------- */
-        if (in_array($notifRole, ['sales', 'sales marketing', 'salesmarketing'], true)) {
 
-            // Detail Sales Activity mendekati due date (7 hari ke depan)
-            if ($notifTableExists($notifDb, 'sales_activities')) {
-                $c = $notifColumns($notifDb, 'sales_activities');
-                $idc = $notifPickCol($c, ['id','activity_id']);
-                $userc = $notifPickCol($c, ['user_id','sales_id','id_user','created_by']);
-                $duec = $notifPickCol($c, ['due_date','deadline','tanggal_due_date','end_date']);
-                if ($idc && $duec) {
-                    $where = "DATE(`$duec`) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
-                    $params = [];
-                    if ($userc && $notifUserId > 0) { $where .= " AND `$userc` = ?"; $params[] = $notifUserId; }
-                    $st = $notifDb->prepare("SELECT COUNT(*) FROM `sales_activities` WHERE $where");
-                    $st->execute($params);
-                    $n = (int)$st->fetchColumn();
-                    if ($n > 0) $addNotif('Sales Activity Mendekati Due Date', "Ada $n detail Sales Activity yang due date-nya dalam 7 hari.", 'salesactivity.php', 'sales_due');
+        /* ---------------- SALES ---------------- */
+        if ($notifRoleKey === 'sales') {
+            foreach ($notifActivitiesDue as $activityDue) {
+                if ((int)($activityDue['sales_id'] ?? 0) !== $notifUserId) continue;
+
+                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
+                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
+
+                $notifAdd(
+                    'Sales Activity Mendekati Due Date',
+                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
+                    'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
+                    'activity_due_' . $activityDue['activity_detail_id'],
+                    'due'
+                );
+            }
+
+            foreach ($notifTR as $tr) {
+                if ((int)($tr['sales_id'] ?? 0) !== $notifUserId) continue;
+
+                $due = $tr['due_date'] ?? null;
+                if ($due && strtotime($due) !== false) {
+                    $days = (strtotime(date('Y-m-d', strtotime($due))) - strtotime(date('Y-m-d'))) / 86400;
+                    if ($days >= 0 && $days <= 7 && !in_array(($tr['tr_status'] ?? ''), ['approved','rejected'], true)) {
+                        $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                        $taskType = trim((string)($tr['_jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
+                        $subject = trim((string)($tr['_subject'] ?? '')) ?: 'Aktivitas';
+                        $notifAdd(
+                            'Sales Activity Mendekati Due Date',
+                            $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($due)),
+                            'detailaktivitas.php?leads_id=' . (int)($tr['sales_activity_id'] ?? 0),
+                            'sales_due_' . $tr['activity_detail_id'],
+                            'due'
+                        );
+                    }
+                }
+
+                if (!$tr['_complete'] && ($tr['tr_status'] ?? 'pending') !== 'approved') {
+                    $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                    $missing = implode(', ', $tr['_missing']);
+                    $notifAdd(
+                        'Harus Melengkapi Detail TR',
+                        $tr['tr_number'] . ' • ' . $company . ' • Kurang: ' . $missing,
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        'sales_tr_incomplete_' . $tr['tr_number'],
+                        'incomplete'
+                    );
+                }
+
+                if (($tr['tr_status'] ?? '') === 'approved') {
+                    $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                    $notifAdd(
+                        'Transaction Request Sudah Approved',
+                        $tr['tr_number'] . ' • ' . $company . ' • Seluruh approval TR selesai.',
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        'sales_tr_approved_' . $tr['tr_number'],
+                        'approved'
+                    );
                 }
             }
 
-            // Harus melengkapi Detail TR
-            if ($notifTableExists($notifDb, 'transaction_requests')) {
-                $c = $notifColumns($notifDb, 'transaction_requests');
-                $idc = $notifPickCol($c, ['id','transaction_request_id']);
-                $userc = $notifPickCol($c, ['user_id','sales_id','id_user','created_by']);
-                $statusc = $notifPickCol($c, ['status','tr_status']);
-                if ($idc) {
-                    $where = '1=1'; $params = [];
-                    if ($userc && $notifUserId > 0) { $where .= " AND `$userc` = ?"; $params[] = $notifUserId; }
-                    if ($statusc) $where .= " AND LOWER(`$statusc`) IN ('draft','pending detail','need detail','incomplete')";
-                    $st = $notifDb->prepare("SELECT COUNT(*) FROM `transaction_requests` WHERE $where");
-                    $st->execute($params);
-                    $n = (int)$st->fetchColumn();
-                    if ($n > 0) $addNotif('Lengkapi Detail TR', "Ada $n Transaction Request yang masih harus dilengkapi Detail TR.", 'transactionrequest.php', 'tr_detail');
-                }
-            }
+            foreach ($notifDI as $di) {
+                if ((int)($di['sales_id'] ?? 0) !== $notifUserId) continue;
 
-            // TR sudah approve semua
-            if ($notifTableExists($notifDb, 'transaction_requests')) {
-                $c = $notifColumns($notifDb, 'transaction_requests');
-                $statusc = $notifPickCol($c, ['status','tr_status']);
-                $userc = $notifPickCol($c, ['user_id','sales_id','id_user','created_by']);
-                if ($statusc) {
-                    $where = "LOWER(`$statusc`) IN ('approved','approve','fully approved','completed')"; $params = [];
-                    if ($userc && $notifUserId > 0) { $where .= " AND `$userc` = ?"; $params[] = $notifUserId; }
-                    $st = $notifDb->prepare("SELECT COUNT(*) FROM `transaction_requests` WHERE $where");
-                    $st->execute($params);
-                    $n = (int)$st->fetchColumn();
-                    if ($n > 0) $addNotif('Transaction Request Approved', "$n Transaction Request milik Anda sudah di-approve semua.", 'transactionrequest.php', 'tr_approved');
-                }
-            }
-
-            // DI sudah approve semua
-            if ($notifTableExists($notifDb, 'delivery_instructions')) {
-                $c = $notifColumns($notifDb, 'delivery_instructions');
-                $statusc = $notifPickCol($c, ['status','di_status']);
-                $userc = $notifPickCol($c, ['user_id','sales_id','id_user','created_by']);
-                if ($statusc) {
-                    $where = "LOWER(`$statusc`) IN ('approved','approve','fully approved','completed')"; $params = [];
-                    if ($userc && $notifUserId > 0) { $where .= " AND `$userc` = ?"; $params[] = $notifUserId; }
-                    $st = $notifDb->prepare("SELECT COUNT(*) FROM `delivery_instructions` WHERE $where");
-                    $st->execute($params);
-                    $n = (int)$st->fetchColumn();
-                    if ($n > 0) $addNotif('Delivery Instruction Approved', "$n Delivery Instruction milik Anda sudah di-approve semua.", 'deliveryinstruction.php', 'di_approved');
+                if (($di['di_status'] ?? '') === 'approved') {
+                    $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                    $notifAdd(
+                        'Delivery Instruction Sudah Approved',
+                        $di['di_number'] . ' • ' . $company . ' • Seluruh approval DI selesai.',
+                        'detaildi.php?di_number=' . urlencode($di['di_number']),
+                        'sales_di_approved_' . $di['di_number'],
+                        'approved'
+                    );
                 }
             }
         }
 
-        /* --------------------------------------------------
-           SALES MANAGER
-           -------------------------------------------------- */
-        if (in_array($notifRole, ['sales manager','sales_manager','salesmanager'], true)) {
-            if ($notifTableExists($notifDb, 'transaction_requests')) {
-                $c = $notifColumns($notifDb, 'transaction_requests');
-                $idc = $notifPickCol($c, ['id','transaction_request_id']);
-                $statusc = $notifPickCol($c, ['status','tr_status']);
-                $createdc = $notifPickCol($c, ['created_at','created_date','tanggal_dibuat']);
-                if ($idc) {
-                    $where = '1=1'; $params = [];
-                    if ($statusc) $where .= " AND LOWER(`$statusc`) NOT IN ('rejected','cancelled')";
-                    if ($createdc) $where .= " AND `$createdc` >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-                    $st = $notifDb->prepare("SELECT COUNT(*) FROM `transaction_requests` WHERE $where");
-                    $st->execute($params);
-                    $n = (int)$st->fetchColumn();
-                    if ($n > 0) $addNotif('Transaction Request Baru', "Ada $n Transaction Request Number baru yang masuk.", 'transactionrequest.php', 'tr_new');
+        /* ---------------- SALES MANAGER ---------------- */
+        if ($notifRoleKey === 'sales_manager') {
+            foreach ($notifActivitiesDue as $activityDue) {
+                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
+                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
+
+                $notifAdd(
+                    'Sales Activity Mendekati Due Date',
+                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
+                    'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
+                    'activity_due_' . $activityDue['activity_detail_id'],
+                    'due'
+                );
+            }
+
+            foreach ($notifTR as $tr) {
+                $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+
+                if (
+                    !empty($tr['request_date']) &&
+                    strtotime($tr['request_date']) >= strtotime('-7 days')
+                ) {
+                    $notifAdd(
+                        'Transaction Request Number Baru',
+                        $tr['tr_number'] . ' • ' . $company . ' • TR baru masuk.',
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        'sm_new_tr_' . $tr['tr_number'],
+                        'new'
+                    );
+                }
+
+                if ($tr['_complete'] && ($tr['_current_role'] ?? '') === 'sales_manager') {
+                    $notifAdd(
+                        'Harus Approve Transaction Request',
+                        $tr['tr_number'] . ' • ' . $company . ' • TR lengkap dan menunggu approval Sales Manager.',
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        'sm_approve_tr_' . $tr['tr_number'],
+                        'approval'
+                    );
+                }
+
+                if (!$tr['_complete'] && ($tr['tr_status'] ?? 'pending') === 'pending') {
+                    $notifAdd(
+                        'Harus Melengkapi Detail TR',
+                        $tr['tr_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $tr['_missing']),
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        'sm_incomplete_tr_' . $tr['tr_number'],
+                        'incomplete'
+                    );
                 }
             }
-            // Approval TR untuk role Sales Manager
-            $addNotif('Approval Transaction Request', 'Periksa Transaction Request yang menunggu approval Anda.', 'transactionrequest.php?status=pending', 'tr_approval');
-            // Sales Activity & Detail TR
-            if ($notifTableExists($notifDb, 'sales_activities')) {
-                $c = $notifColumns($notifDb, 'sales_activities');
-                $duec = $notifPickCol($c, ['due_date','deadline','tanggal_due_date','end_date']);
-                if ($duec) {
-                    $st = $notifDb->query("SELECT COUNT(*) FROM `sales_activities` WHERE DATE(`$duec`) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)");
-                    if ((int)$st->fetchColumn() > 0) $addNotif('Sales Activity Mendekati Due Date', 'Ada Sales Activity yang mendekati due date.', 'salesactivity.php', 'sm_due');
+
+            foreach ($notifTR as $tr) {
+                if (($tr['tr_status'] ?? '') === 'pending' && $tr['due_date']) {
+                    $days = (strtotime(date('Y-m-d', strtotime($tr['due_date']))) - strtotime(date('Y-m-d'))) / 86400;
+                    if ($days >= 0 && $days <= 7) {
+                        $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                        $taskType = trim((string)($tr['_jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
+                        $subject = trim((string)($tr['_subject'] ?? '')) ?: 'Aktivitas';
+                        $notifAdd(
+                            'Sales Activity Mendekati Due Date',
+                            $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($tr['due_date'])),
+                            'detailaktivitas.php?leads_id=' . (int)($tr['sales_activity_id'] ?? 0),
+                            'sm_due_' . $tr['activity_detail_id'],
+                            'due'
+                        );
+                    }
                 }
             }
-            $addNotif('Lengkapi Detail TR', 'Periksa Transaction Request yang masih membutuhkan Detail TR.', 'transactionrequest.php', 'sm_tr_detail');
         }
 
-        /* --------------------------------------------------
-           PART SUPPORT / SERVICE SUPPORT
-           -------------------------------------------------- */
-        if (in_array($notifRole, ['part support','part_support','partsupport','service support','service_support','servicesupport'], true)) {
-            $label = str_contains($notifRole, 'part') ? 'Part Support' : 'Service Support';
-            $addNotif('Approval Delivery Instruction', "$label memiliki Delivery Instruction yang menunggu approval.", 'deliveryinstruction.php?status=pending', 'di_approval');
+        /* ---------------- BUSINESS ---------------- */
+        if ($notifRoleKey === 'business') {
+            foreach ($notifActivitiesDue as $activityDue) {
+                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
+                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
+
+                $notifAdd(
+                    'Sales Activity Mendekati Due Date',
+                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
+                    'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
+                    'activity_due_' . $activityDue['activity_detail_id'],
+                    'due'
+                );
+            }
+
+            foreach ($notifTR as $tr) {
+                $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+
+                if (
+                    !empty($tr['request_date']) &&
+                    strtotime($tr['request_date']) >= strtotime('-7 days')
+                ) {
+                    $notifAdd(
+                        'Transaction Request Number Baru',
+                        $tr['tr_number'] . ' • ' . $company . ' • TR baru masuk.',
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        'business_new_tr_' . $tr['tr_number'],
+                        'new'
+                    );
+                }
+
+                if (!$tr['_complete'] && ($tr['tr_status'] ?? 'pending') === 'pending') {
+                    $notifAdd(
+                        'Harus Melengkapi Detail TR',
+                        $tr['tr_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $tr['_missing']),
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        'business_incomplete_tr_' . $tr['tr_number'],
+                        'incomplete'
+                    );
+                }
+            }
         }
 
-        /* --------------------------------------------------
-           ADMIN
-           -------------------------------------------------- */
-        if ($notifRole === 'admin') {
-            if ($notifTableExists($notifDb, 'delivery_instructions')) {
-                $c = $notifColumns($notifDb, 'delivery_instructions');
-                $createdc = $notifPickCol($c, ['created_at','created_date','tanggal_dibuat']);
-                $statusc = $notifPickCol($c, ['status','di_status']);
-                $where = '1=1';
-                if ($createdc) $where .= " AND `$createdc` >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-                if ($statusc) $where .= " AND LOWER(`$statusc`) NOT IN ('rejected','cancelled')";
-                $st = $notifDb->query("SELECT COUNT(*) FROM `delivery_instructions` WHERE $where");
-                if ((int)$st->fetchColumn() > 0) $addNotif('Delivery Instruction Baru', 'Ada Delivery Instruction baru yang masuk.', 'deliveryinstruction.php', 'di_new');
+        /* ---------------- ADMIN ---------------- */
+        if ($notifRoleKey === 'admin') {
+            foreach ($notifDI as $di) {
+                $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+
+                if (
+                    !empty($di['request_date']) &&
+                    strtotime($di['request_date']) >= strtotime('-7 days')
+                ) {
+                    $notifAdd(
+                        'Delivery Instruction Baru',
+                        $di['di_number'] . ' • ' . $company . ' • DI baru masuk.',
+                        'detaildi.php?di_number=' . urlencode($di['di_number']),
+                        'admin_new_di_' . $di['di_number'],
+                        'new'
+                    );
+                }
+
+                if (!$di['_complete'] && ($di['di_status'] ?? 'pending') === 'pending') {
+                    $notifAdd(
+                        'Harus Melengkapi Detail DI',
+                        $di['di_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $di['_missing']),
+                        'detaildi.php?di_number=' . urlencode($di['di_number']),
+                        'admin_incomplete_di_' . $di['di_number'],
+                        'incomplete'
+                    );
+                }
+
+                if (
+                    ($di['_current_role'] ?? '') === 'admin' &&
+                    ($di['di_status'] ?? 'pending') === 'pending'
+                ) {
+                    $notifAdd(
+                        'Harus Approve Delivery Instruction',
+                        $di['di_number'] . ' • ' . $company . ' • DI menunggu approval Admin.',
+                        'detaildi.php?di_number=' . urlencode($di['di_number']),
+                        'admin_approve_di_' . $di['di_number'],
+                        'approval'
+                    );
+                }
             }
-            $addNotif('Lengkapi Detail DI', 'Periksa Delivery Instruction yang masih harus dilengkapi Detail DI.', 'deliveryinstruction.php', 'di_detail');
-            $addNotif('Approval Delivery Instruction', 'Periksa Delivery Instruction yang menunggu approval.', 'deliveryinstruction.php?status=pending', 'di_approval');
         }
 
-        /* --------------------------------------------------
-           BUSINESS
-           -------------------------------------------------- */
-        if ($notifRole === 'business') {
-            if ($notifTableExists($notifDb, 'transaction_requests')) {
-                $c = $notifColumns($notifDb, 'transaction_requests');
-                $createdc = $notifPickCol($c, ['created_at','created_date','tanggal_dibuat']);
-                $statusc = $notifPickCol($c, ['status','tr_status']);
-                $where = '1=1';
-                if ($createdc) $where .= " AND `$createdc` >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-                if ($statusc) $where .= " AND LOWER(`$statusc`) NOT IN ('rejected','cancelled')";
-                $st = $notifDb->query("SELECT COUNT(*) FROM `transaction_requests` WHERE $where");
-                if ((int)$st->fetchColumn() > 0) $addNotif('Transaction Request Baru', 'Ada Transaction Request Number baru yang masuk.', 'transactionrequest.php', 'business_tr_new');
+        /* ---------------- PART / SERVICE SUPPORT ---------------- */
+        if (in_array($notifRoleKey, ['part_support', 'service_support'], true)) {
+            foreach ($notifDI as $di) {
+                if (($di['_current_role'] ?? '') !== $notifRoleKey) continue;
+                if (($di['di_status'] ?? 'pending') !== 'pending') continue;
+
+                $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                $label = $notifRoleKey === 'part_support' ? 'Part Support' : 'Service Support';
+
+                $notifAdd(
+                    'Harus Approve Delivery Instruction',
+                    $di['di_number'] . ' • ' . $company . ' • DI menunggu approval ' . $label . '.',
+                    'detaildi.php?di_number=' . urlencode($di['di_number']),
+                    $notifRoleKey . '_approve_di_' . $di['di_number'],
+                    'approval'
+                );
             }
-            $addNotif('Lengkapi Detail TR', 'Periksa Transaction Request yang masih harus dilengkapi Detail TR.', 'transactionrequest.php', 'business_tr_detail');
         }
 
-        /* --------------------------------------------------
-           DIREKTUR OPERASIONAL / SALES / UTAMA
-           -------------------------------------------------- */
-        if (in_array($notifRole, ['direktur operasional','direktur_operasional','direkturoperasional','direktur sales','direktur_sales','direktursales','direktur utama','direktur_utama','direkturutama'], true)) {
-            $isDO = str_contains($notifRole, 'operasional');
-            $isDS = str_contains($notifRole, 'sales');
-            $isDU = str_contains($notifRole, 'utama');
-            $roleTitle = $isDO ? 'Direktur Operasional' : ($isDS ? 'Direktur Sales' : 'Direktur Utama');
+        /* ---------------- DIREKTUR ---------------- */
+        if (in_array($notifRoleKey, ['direktur_sales', 'direktur_operasional', 'direktur_utama'], true)) {
+            foreach ($notifActivitiesDue as $activityDue) {
+                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
+                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
 
-            if ($notifTableExists($notifDb, 'transaction_requests')) {
-                $c = $notifColumns($notifDb, 'transaction_requests');
-                $createdc = $notifPickCol($c, ['created_at','created_date','tanggal_dibuat']);
-                $statusc = $notifPickCol($c, ['status','tr_status']);
-                $where = '1=1';
-                if ($createdc) $where .= " AND `$createdc` >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-                if ($statusc) $where .= " AND LOWER(`$statusc`) NOT IN ('rejected','cancelled')";
-                $st = $notifDb->query("SELECT COUNT(*) FROM `transaction_requests` WHERE $where");
-                if ((int)$st->fetchColumn() > 0) $addNotif('Transaction Request Number Baru', "Ada Transaction Request Number baru untuk diperiksa oleh $roleTitle.", 'transactionrequest.php', 'dir_tr_new');
+                $notifAdd(
+                    'Sales Activity Mendekati Due Date',
+                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
+                    'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
+                    'activity_due_' . $activityDue['activity_detail_id'],
+                    'due'
+                );
             }
 
-            if ($notifTableExists($notifDb, 'delivery_instructions')) {
-                $c = $notifColumns($notifDb, 'delivery_instructions');
-                $createdc = $notifPickCol($c, ['created_at','created_date','tanggal_dibuat']);
-                $statusc = $notifPickCol($c, ['status','di_status']);
-                $where = '1=1';
-                if ($createdc) $where .= " AND `$createdc` >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-                if ($statusc) $where .= " AND LOWER(`$statusc`) NOT IN ('rejected','cancelled')";
-                $st = $notifDb->query("SELECT COUNT(*) FROM `delivery_instructions` WHERE $where");
-                if ((int)$st->fetchColumn() > 0) $addNotif('Delivery Instruction Baru', "Ada Delivery Instruction baru untuk diperiksa oleh $roleTitle.", 'deliveryinstruction.php', 'dir_di_new');
+            foreach ($notifTR as $tr) {
+                $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+
+                if (
+                    !empty($tr['request_date']) &&
+                    strtotime($tr['request_date']) >= strtotime('-7 days')
+                ) {
+                    $notifAdd(
+                        'Transaction Request Number Baru',
+                        $tr['tr_number'] . ' • ' . $company . ' • TR baru masuk.',
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        $notifRoleKey . '_new_tr_' . $tr['tr_number'],
+                        'new'
+                    );
+                }
+
+                if (
+                    $tr['_complete'] &&
+                    ($tr['_current_role'] ?? '') === $notifRoleKey
+                ) {
+                    $notifAdd(
+                        'Harus Approve Transaction Request',
+                        $tr['tr_number'] . ' • ' . $company . ' • TR lengkap dan menunggu approval ' .
+                        ucwords(str_replace('_', ' ', $notifRoleKey)) . '.',
+                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                        $notifRoleKey . '_approve_tr_' . $tr['tr_number'],
+                        'approval'
+                    );
+                }
             }
 
-            $addNotif('Approval Transaction Request', "Ada Transaction Request yang menunggu approval $roleTitle.", 'transactionrequest.php?status=pending', 'dir_tr_approval');
-            $addNotif('Approval Delivery Instruction', "Ada Delivery Instruction yang menunggu approval $roleTitle.", 'deliveryinstruction.php?status=pending', 'dir_di_approval');
+            foreach ($notifDI as $di) {
+                $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+
+                if (
+                    !empty($di['request_date']) &&
+                    strtotime($di['request_date']) >= strtotime('-7 days')
+                ) {
+                    $notifAdd(
+                        'Delivery Instruction Baru',
+                        $di['di_number'] . ' • ' . $company . ' • DI baru masuk.',
+                        'detaildi.php?di_number=' . urlencode($di['di_number']),
+                        $notifRoleKey . '_new_di_' . $di['di_number'],
+                        'new'
+                    );
+                }
+
+                if (
+                    ($di['_current_role'] ?? '') === $notifRoleKey &&
+                    ($di['di_status'] ?? 'pending') === 'pending'
+                ) {
+                    $notifAdd(
+                        'Harus Approve Delivery Instruction',
+                        $di['di_number'] . ' • ' . $company . ' • DI menunggu approval ' .
+                        ucwords(str_replace('_', ' ', $notifRoleKey)) . '.',
+                        'detaildi.php?di_number=' . urlencode($di['di_number']),
+                        $notifRoleKey . '_approve_di_' . $di['di_number'],
+                        'approval'
+                    );
+                }
+            }
         }
     }
 } catch (Throwable $e) {
-    // Notification gagal tidak boleh membuat halaman CRM error.
+    // Notification tidak boleh menghentikan halaman utama CRM.
 }
 
-/* Hapus duplikasi */
-$unique = [];
+/* Hilangkan item yang benar-benar duplikat */
+$uniqueNotif = [];
 foreach ($notifItems as $item) {
-    $unique[$item['key']] = $item;
+    $uniqueNotif[$item['key']] = $item;
 }
-$notifItems = array_values($unique);
+$notifItems = array_values($uniqueNotif);
 $notifUnread = count($notifItems);
 ?>
 <link rel="stylesheet" href="css/navigation.css">
@@ -312,8 +958,18 @@ $notifUnread = count($notifItems);
                         </div>
                     <?php else: ?>
                         <?php foreach ($notifItems as $item): ?>
-                            <a class="notification-item" href="<?= htmlspecialchars($item['url']) ?>">
-                                <span class="notification-icon"><i class="far fa-bell"></i></span>
+                            <a class="notification-item notification-type-<?= htmlspecialchars($item['type'] ?? 'general') ?>" href="<?= htmlspecialchars($item['url']) ?>">
+                                <span class="notification-icon">
+                                    <?php
+                                    $icon = 'fa-bell';
+                                    if (($item['type'] ?? '') === 'approval') $icon = 'fa-check-circle';
+                                    elseif (($item['type'] ?? '') === 'incomplete') $icon = 'fa-exclamation-circle';
+                                    elseif (($item['type'] ?? '') === 'new') $icon = 'fa-file-circle-plus';
+                                    elseif (($item['type'] ?? '') === 'due') $icon = 'fa-clock';
+                                    elseif (($item['type'] ?? '') === 'approved') $icon = 'fa-circle-check';
+                                    ?>
+                                    <i class="fas <?= $icon ?>"></i>
+                                </span>
                                 <span class="notification-content">
                                     <strong><?= htmlspecialchars($item['title']) ?></strong>
                                     <span><?= htmlspecialchars($item['message']) ?></span>
