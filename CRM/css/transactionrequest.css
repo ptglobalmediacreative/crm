@@ -647,7 +647,6 @@
   }
 }
 
-
 /* =========================================================
    PAGE TYPOGRAPHY CONSISTENCY — RESPONSIVE OVERRIDE
    This layer intentionally keeps labels compact but readable.
@@ -976,7 +975,6 @@
     font-size: 12px !important;
   }
 }
-
 
 /* =========================================================
    CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
@@ -1571,4 +1569,211 @@ textarea {
 }
 .page-transactionrequest .filter-buttons {
   align-items: center;
+}
+
+/* =========================================================
+   TRANSACTION REQUEST — NEXT APPROVER FINAL LAYOUT
+   Purpose: prevent overlap on desktop, laptop, tablet and phone.
+   ========================================================= */
+
+.page-transactionrequest .filter-bar {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.page-transactionrequest .filter-buttons {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* The Next Approver selector is its own responsive block. */
+.page-transactionrequest .next-approver-filter-form {
+  flex: 0 1 250px;
+  min-width: 190px;
+  max-width: 250px;
+  margin: 0 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.page-transactionrequest .next-approver-filter-wrap {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.page-transactionrequest .next-approver-filter-wrap > i {
+  flex: 0 0 auto;
+  width: 14px;
+  text-align: center;
+}
+
+.page-transactionrequest .next-approver-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  height: 36px;
+  padding: 0 24px 0 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+}
+
+/* Desktop / large PC: keep chips on the left and selector on the right. */
+@media (min-width: 1201px) {
+  .page-transactionrequest .filter-buttons {
+    flex-wrap: nowrap;
+  }
+
+  .page-transactionrequest .filter-buttons > .btn-filter {
+    flex: 0 0 auto;
+  }
+
+  .page-transactionrequest .next-approver-filter-form {
+    margin-left: auto;
+  }
+}
+
+/* Normal laptop: allow the selector to move to a clean second row
+   rather than squeezing into / overlapping the filter chips. */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .page-transactionrequest .filter-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .page-transactionrequest .filter-buttons > .btn-filter {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .page-transactionrequest .next-approver-filter-form {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+  }
+}
+
+/* Tablet: four compact status filters + full-width Next Approver. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page-transactionrequest .filter-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-transactionrequest .next-approver-filter-form {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Phone: status filters remain horizontally scrollable;
+   Next Approver is always placed below them and never overlaps. */
+@media (max-width: 768px) {
+  .page-transactionrequest .filter-bar {
+    padding: 12px 14px 13px !important;
+  }
+
+  .page-transactionrequest .filter-buttons {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .page-transactionrequest .filter-buttons > .btn-filter {
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    justify-content: space-between;
+    min-height: 38px;
+    box-sizing: border-box;
+  }
+
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: 0 0 auto;
+    margin: 2px 0 0 !important;
+  }
+
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 11px;
+  }
+
+  .page-transactionrequest .next-approver-select {
+    height: 38px;
+    font-size: 11px;
+  }
+}
+
+/* Small phones: tighter but still readable. */
+@media (max-width: 480px) {
+  .page-transactionrequest .filter-bar {
+    padding: 10px !important;
+  }
+
+  .page-transactionrequest .filter-buttons {
+    gap: 7px;
+  }
+
+  .page-transactionrequest .filter-buttons > .btn-filter {
+    min-height: 37px;
+    font-size: 10px;
+  }
+
+  .page-transactionrequest .next-approver-filter-wrap {
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .page-transactionrequest .next-approver-select {
+    height: 36px;
+    font-size: 10px;
+  }
+}
+
+/* Very small phones: never force the selector wider than the card. */
+@media (max-width: 360px) {
+  .page-transactionrequest .filter-bar {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .page-transactionrequest .next-approver-filter-form,
+  .page-transactionrequest .next-approver-filter-wrap,
+  .page-transactionrequest .next-approver-select {
+    max-width: 100%;
+  }
 }
