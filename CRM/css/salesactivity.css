@@ -1,3 +1,4 @@
+/* CRM FINISHING BUILD — 2026-09-18 */
 /* =========================================================
    SALESACTIVITY
    Page-specific styles only.
@@ -1061,4 +1062,605 @@
   .page-account-management .table-custom td {
     font-size: 12px !important;
   }
+}
+
+
+/* =========================================================
+   CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
+   Final override layer.
+   Goals:
+   - Consistent typography and spacing
+   - Clean filter / sort controls
+   - Stable pagination at every viewport
+   - PC / large monitor / laptop / tablet / phone
+   - No horizontal page overflow
+   ========================================================= */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+.content {
+  min-width: 0;
+}
+
+/* ---------- Shared controls ---------- */
+.filter,
+.filter-wrap,
+.filter-bar,
+.filter-buttons,
+.next-approver-filter-form,
+.next-approver-filter-wrap,
+.page-actions,
+.header-actions,
+.filters {
+  min-width: 0;
+}
+
+.filter,
+.page-salesactivity .filter {
+  box-sizing: border-box;
+  min-height: 38px;
+  line-height: 1.25;
+}
+
+.filter-buttons {
+  align-items: center;
+}
+
+.btn-filter,
+.filter-buttons .btn-filter {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.next-approver-filter-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+}
+
+.next-approver-select {
+  min-height: 38px;
+  box-sizing: border-box;
+}
+
+/* ---------- Pagination ---------- */
+.card-footer {
+  min-width: 0;
+}
+
+.page-data-user .pagination,
+.page-deliveryinstruction .pagination,
+.page-detailaktivitas .pagination,
+.page-detaildi .pagination,
+.page-detailtr .pagination,
+.page-produk .pagination,
+.page-salesactivity .pagination,
+.page-transactionrequest .pagination,
+.page-account-management .pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 !important;
+  padding: 0;
+}
+
+.page-data-user .pagination .page-item,
+.page-deliveryinstruction .pagination .page-item,
+.page-detailaktivitas .pagination .page-item,
+.page-detaildi .pagination .page-item,
+.page-detailtr .pagination .page-item,
+.page-produk .pagination .page-item,
+.page-salesactivity .pagination .page-item,
+.page-transactionrequest .pagination .page-item,
+.page-account-management .pagination .page-item {
+  margin: 0;
+}
+
+.page-data-user .pagination .page-link,
+.page-deliveryinstruction .pagination .page-link,
+.page-detailaktivitas .pagination .page-link,
+.page-detaildi .pagination .page-link,
+.page-detailtr .pagination .page-link,
+.page-produk .pagination .page-link,
+.page-salesactivity .pagination .page-link,
+.page-transactionrequest .pagination .page-link,
+.page-account-management .pagination .page-link {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 10px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px !important;
+  font-size: 11px !important;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.page-data-user .pagination .page-item:first-child .page-link,
+.page-data-user .pagination .page-item:last-child .page-link,
+.page-deliveryinstruction .pagination .page-item:first-child .page-link,
+.page-deliveryinstruction .pagination .page-item:last-child .page-link,
+.page-detailaktivitas .pagination .page-item:first-child .page-link,
+.page-detailaktivitas .pagination .page-item:last-child .page-link,
+.page-detaildi .pagination .page-item:first-child .page-link,
+.page-detaildi .pagination .page-item:last-child .page-link,
+.page-detailtr .pagination .page-item:first-child .page-link,
+.page-detailtr .pagination .page-item:last-child .page-link,
+.page-produk .pagination .page-item:first-child .page-link,
+.page-produk .pagination .page-item:last-child .page-link,
+.page-salesactivity .pagination .page-item:first-child .page-link,
+.page-salesactivity .pagination .page-item:last-child .page-link,
+.page-transactionrequest .pagination .page-item:first-child .page-link,
+.page-transactionrequest .pagination .page-item:last-child .page-link,
+.page-account-management .pagination .page-item:first-child .page-link,
+.page-account-management .pagination .page-item:last-child .page-link {
+  min-width: 68px;
+}
+
+/* ---------- Large monitor ---------- */
+@media (min-width: 1440px) {
+  .content {
+    padding-left: 34px;
+    padding-right: 34px;
+  }
+
+  .page-header,
+  .hero-row {
+    gap: 28px;
+  }
+
+  .pagination .page-link {
+    min-height: 38px;
+  }
+}
+
+/* ---------- Laptop ---------- */
+@media (min-width: 1025px) and (max-width: 1439px) {
+  .content {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+
+  .card-header-custom {
+    gap: 12px;
+  }
+
+  .filter,
+  .page-salesactivity .filter {
+    min-height: 37px;
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content,
+  .page-account-management .content {
+    margin-left: 0;
+    width: 100%;
+    padding: 22px 20px 42px;
+  }
+
+  .page-header,
+  .hero-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+  }
+
+  .filter,
+  .page-salesactivity .filter {
+    flex: 1 1 150px;
+  }
+
+  .card-header-custom {
+    align-items: center;
+  }
+
+  .card-header-custom form {
+    max-width: 100%;
+  }
+
+  .pagination .page-link {
+    min-width: 34px;
+    min-height: 34px;
+  }
+}
+
+/* ---------- Phone ---------- */
+@media (max-width: 768px) {
+  .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content,
+  .page-account-management .content {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 18px 14px 36px;
+  }
+
+  .page-header,
+  .hero-row {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .page-title,
+  .hero {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .page-title h1,
+  .page-title h4,
+  .hero h1,
+  .page-header h4 {
+    font-size: 21px !important;
+    line-height: 1.18;
+    letter-spacing: -0.35px;
+  }
+
+  .page-title p,
+  .hero p,
+  .page-header p {
+    font-size: 11px !important;
+    line-height: 1.45;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters,
+  .page-salesactivity .filters {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .page-actions > *,
+  .header-actions > *,
+  .filters > *,
+  .page-salesactivity .filters > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter,
+  .page-salesactivity .filter,
+  .btn-filter,
+  .filter-buttons .btn-filter,
+  .btn-add,
+  .btn-export {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    height: 38px;
+    font-size: 11px;
+  }
+
+  .filter-wrap,
+  .filter-bar {
+    padding: 12px 14px !important;
+  }
+
+  .filter-buttons,
+  .page-deliveryinstruction .filter-buttons,
+  .page-transactionrequest .filter-buttons {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 7px;
+    padding: 1px 1px 4px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-buttons .btn-filter,
+  .page-deliveryinstruction .filter-buttons .btn-filter,
+  .page-transactionrequest .filter-buttons .btn-filter {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: max-content;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .next-approver-filter-form,
+  .next-approver-filter-wrap {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .next-approver-select {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .card-header-custom {
+    min-height: auto;
+    padding: 13px 14px !important;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .card-header-custom h6 {
+    font-size: 12px !important;
+    line-height: 1.35;
+  }
+
+  .card-header-custom form,
+  .page-data-user .card-header-custom form,
+  .page-deliveryinstruction .card-header-custom form,
+  .page-produk .card-header-custom form {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .card-header-custom form input,
+  .search-input {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .card-header-custom form .btn {
+    flex: 0 0 auto;
+  }
+
+  .card-footer {
+    padding: 12px 14px !important;
+  }
+
+  .page-data-user .pagination,
+  .page-deliveryinstruction .pagination,
+  .page-detailaktivitas .pagination,
+  .page-detaildi .pagination,
+  .page-detailtr .pagination,
+  .page-produk .pagination,
+  .page-salesactivity .pagination,
+  .page-transactionrequest .pagination,
+  .page-account-management .pagination {
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .page-data-user .pagination .page-link,
+  .page-deliveryinstruction .pagination .page-link,
+  .page-detailaktivitas .pagination .page-link,
+  .page-detaildi .pagination .page-link,
+  .page-detailtr .pagination .page-link,
+  .page-produk .pagination .page-link,
+  .page-salesactivity .pagination .page-link,
+  .page-transactionrequest .pagination .page-link,
+  .page-account-management .pagination .page-link {
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 !important;
+    font-size: 10px !important;
+  }
+
+  .page-data-user .pagination .page-item:first-child .page-link,
+  .page-data-user .pagination .page-item:last-child .page-link,
+  .page-deliveryinstruction .pagination .page-item:first-child .page-link,
+  .page-deliveryinstruction .pagination .page-item:last-child .page-link,
+  .page-detailaktivitas .pagination .page-item:first-child .page-link,
+  .page-detailaktivitas .pagination .page-item:last-child .page-link,
+  .page-detaildi .pagination .page-item:first-child .page-link,
+  .page-detaildi .pagination .page-item:last-child .page-link,
+  .page-detailtr .pagination .page-item:first-child .page-link,
+  .page-detailtr .pagination .page-item:last-child .page-link,
+  .page-produk .pagination .page-item:first-child .page-link,
+  .page-produk .pagination .page-item:last-child .page-link,
+  .page-salesactivity .pagination .page-item:first-child .page-link,
+  .page-salesactivity .pagination .page-item:last-child .page-link,
+  .page-transactionrequest .pagination .page-item:first-child .page-link,
+  .page-transactionrequest .pagination .page-item:last-child .page-link,
+  .page-account-management .pagination .page-item:first-child .page-link,
+  .page-account-management .pagination .page-item:last-child .page-link {
+    width: auto;
+    min-width: 60px;
+    padding: 0 9px !important;
+  }
+
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-custom {
+    white-space: nowrap;
+  }
+}
+
+/* ---------- Small phone ---------- */
+@media (max-width: 480px) {
+  .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content,
+  .page-account-management .content {
+    padding: 16px 10px 30px;
+  }
+
+  .page-title h1,
+  .page-title h4,
+  .hero h1,
+  .page-header h4 {
+    font-size: 19px !important;
+  }
+
+  .page-actions,
+  .header-actions,
+  .filters,
+  .page-salesactivity .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .card-custom,
+  .chart-card,
+  .info-card,
+  .stat-card,
+  .kpi,
+  .panel {
+    border-radius: 13px;
+  }
+
+  .card-footer {
+    padding: 10px !important;
+  }
+
+  .page-data-user .pagination,
+  .page-deliveryinstruction .pagination,
+  .page-detailaktivitas .pagination,
+  .page-detaildi .pagination,
+  .page-detailtr .pagination,
+  .page-produk .pagination,
+  .page-salesactivity .pagination,
+  .page-transactionrequest .pagination,
+  .page-account-management .pagination {
+    gap: 4px;
+  }
+
+  .page-data-user .pagination .page-link,
+  .page-deliveryinstruction .pagination .page-link,
+  .page-detailaktivitas .pagination .page-link,
+  .page-detaildi .pagination .page-link,
+  .page-detailtr .pagination .page-link,
+  .page-produk .pagination .page-link,
+  .page-salesactivity .pagination .page-link,
+  .page-transactionrequest .pagination .page-link,
+  .page-account-management .pagination .page-link {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    font-size: 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .page-data-user .pagination .page-item:first-child .page-link,
+  .page-data-user .pagination .page-item:last-child .page-link,
+  .page-deliveryinstruction .pagination .page-item:first-child .page-link,
+  .page-deliveryinstruction .pagination .page-item:last-child .page-link,
+  .page-detailaktivitas .pagination .page-item:first-child .page-link,
+  .page-detailaktivitas .pagination .page-item:last-child .page-link,
+  .page-detaildi .pagination .page-item:first-child .page-link,
+  .page-detaildi .pagination .page-item:last-child .page-link,
+  .page-detailtr .pagination .page-item:first-child .page-link,
+  .page-detailtr .pagination .page-item:last-child .page-link,
+  .page-produk .pagination .page-item:first-child .page-link,
+  .page-produk .pagination .page-item:last-child .page-link,
+  .page-salesactivity .pagination .page-item:first-child .page-link,
+  .page-salesactivity .pagination .page-item:last-child .page-link,
+  .page-transactionrequest .pagination .page-item:first-child .page-link,
+  .page-transactionrequest .pagination .page-item:last-child .page-link,
+  .page-account-management .pagination .page-item:first-child .page-link,
+  .page-account-management .pagination .page-item:last-child .page-link {
+    min-width: 54px;
+    width: auto;
+    padding: 0 8px !important;
+  }
+}
+
+/* ---------- Very small phone ---------- */
+@media (max-width: 360px) {
+  .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content,
+  .page-account-management .content {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .pagination .page-link {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px;
+    min-height: 30px;
+    font-size: 9px !important;
+  }
+
+  .pagination .page-item:first-child .page-link,
+  .pagination .page-item:last-child .page-link {
+    min-width: 48px !important;
+    width: auto !important;
+  }
+}
+
+/* FINAL SALES ACTIVITY FILTER / SORT ALIGNMENT */
+.page-salesactivity .hero-row {
+  align-items: flex-end;
+}
+.page-salesactivity .filters {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+@media (max-width: 1024px) {
+  .page-salesactivity .hero-row { align-items: stretch; }
+  .page-salesactivity .filters { justify-content: flex-start; }
 }
