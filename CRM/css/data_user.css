@@ -29,12 +29,13 @@
 }
 
 .page-data-user .page-header {
-  min-height: 48px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 20px !important;
+  min-height: 48px !important;
+  margin-bottom: 20px !important;
+  flex-wrap: wrap !important;
 }
 .page-data-user .page-actions {
   display: flex;
@@ -44,10 +45,9 @@
 }
 
 .page-data-user .page-title {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
 }
 .page-title-icon {
   width: 38px;
