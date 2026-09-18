@@ -1018,6 +1018,16 @@ $notifUnread = count($notifUnreadItems);
 <link rel="stylesheet" href="css/app.css">
 
 <header class="topbar">
+    <button class="mobile-menu-toggle"
+            type="button"
+            aria-label="Buka menu navigasi"
+            aria-controls="crmSidebar"
+            aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
     <a class="brand" href="dashboard.php">
         <img src="images/logo.webp" alt="GET">
         <div><strong>PT GANDA ELANG TANGGUH</strong><small>Customer Relationship Management</small></div>
@@ -1132,7 +1142,7 @@ $notifUnread = count($notifUnreadItems);
     </div>
 </header>
 
-<aside class="rail">
+<aside class="rail" id="crmSidebar">
     <div class="rail-label">Main Menu</div>
     <a class="<?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
     <?php if ($showMenu('sales_activity')): ?>
@@ -1154,6 +1164,61 @@ $notifUnread = count($notifUnreadItems);
 </aside>
 
 <script>
+(function () {
+    const toggle = document.querySelector('.mobile-menu-toggle');
+    const sidebar = document.getElementById('crmSidebar');
+
+    if (!toggle || !sidebar) return;
+
+    let overlay = document.querySelector('.mobile-menu-overlay');
+
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'mobile-menu-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(overlay);
+    }
+
+    function openMenu() {
+        sidebar.classList.add('open');
+        overlay.classList.add('show');
+        document.body.classList.add('mobile-menu-open');
+        toggle.classList.add('active');
+        toggle.setAttribute('aria-expanded', 'true');
+        toggle.setAttribute('aria-label', 'Tutup menu navigasi');
+        overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeMenu() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+        document.body.classList.remove('mobile-menu-open');
+        toggle.classList.remove('active');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Buka menu navigasi');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    toggle.addEventListener('click', function (event) {
+        event.stopPropagation();
+        sidebar.classList.contains('open') ? closeMenu() : openMenu();
+    });
+
+    overlay.addEventListener('click', closeMenu);
+
+    sidebar.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', closeMenu);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeMenu();
+    });
+
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) closeMenu();
+    });
+})();
+
 (function () {
     const wrap = document.querySelector('.notification-wrap');
     if (!wrap) return;
