@@ -259,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="page-data-user">
 
     <div class="app">
         <?php require_once 'navigation.php'; ?>
@@ -267,21 +267,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <main class="content">
 
         
-        <!-- HEADER -->
+        <!-- HEADER — SAME VISUAL SYSTEM AS SALES ACTIVITY -->
         <div class="page-header">
             <div class="page-title">
-                <div class="page-title-icon"><i class="fas fa-users"></i></div>
-                <div>
-                    <h1>Data User</h1>
-                </div>
+                <h4><span><i class="fas fa-users"></i></span> Data User</h4>
             </div>
-            <div class="page-actions">
-                <a href="data_user.php?export=excel<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="btn btn-success-custom">
-                    <i class="fas fa-file-excel"></i> Export Excel
+            <div class="header-actions">
+                <a href="data_user.php?export=excel<?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="btn-export">
+                    <i class="fas fa-file-excel me-2"></i>Export Excel
                 </a>
                 <?php if (canAdd('data_user')): ?>
-                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalUser">
-                        <i class="fas fa-plus"></i> Tambah User
+                    <button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalUser">
+                        <i class="fas fa-plus me-2"></i>Tambah User
                     </button>
                 <?php endif; ?>
             </div>
@@ -291,11 +288,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar User</h6>
-                <form method="GET" class="d-flex gap-2">
-                    <input type="text" name="search" class="form-control form-control-sm search-input" placeholder="Cari user..." value="<?= htmlspecialchars($search) ?>">
-                    <button type="submit" class="btn btn-primary-custom btn-search"><i class="fas fa-search"></i></button>
+                <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
+                    <input type="text" name="search" class="form-control form-control-sm search-input" style="width: 240px;" placeholder="Cari user..." value="<?= htmlspecialchars($search) ?>">
+                    <button type="submit" class="btn-primary-custom btn-search"><i class="fas fa-search"></i></button>
                     <?php if (!empty($search)): ?>
-                        <a href="data_user.php" class="btn btn-secondary-custom btn-search btn-clear"><i class="fas fa-times"></i></a>
+                        <a href="data_user.php" class="btn-secondary-custom btn-search btn-clear"><i class="fas fa-times"></i></a>
                     <?php endif; ?>
                 </form>
             </div>
