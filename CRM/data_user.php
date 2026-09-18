@@ -95,7 +95,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 }
 
 // Pagination
-$limit = 5;
+$limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
