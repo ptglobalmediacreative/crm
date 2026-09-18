@@ -621,12 +621,6 @@
     width: auto;
   }
 
-  .page-transactionrequest .filter-buttons {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 2px;
-  }
-
   .next-approver-filter-form {
     width: 100%;
     margin-left: 0;
@@ -1563,34 +1557,6 @@ textarea {
   }
 }
 
-/* FINAL TRANSACTION REQUEST FILTER BAR */
-.page-transactionrequest .filter-bar {
-  overflow: hidden;
-}
-.page-transactionrequest .filter-buttons {
-  align-items: center;
-}
-
-/* =========================================================
-   TRANSACTION REQUEST — NEXT APPROVER FINAL LAYOUT
-   Purpose: prevent overlap on desktop, laptop, tablet and phone.
-   ========================================================= */
-
-.page-transactionrequest .filter-bar {
-  width: 100%;
-  min-width: 0;
-  overflow: visible;
-}
-
-.page-transactionrequest .filter-buttons {
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 /* The Next Approver selector is its own responsive block. */
 .page-transactionrequest .next-approver-filter-form {
   flex: 0 1 250px;
@@ -2127,5 +2093,351 @@ textarea {
   .page-transactionrequest .next-approver-select {
     height: 35px;
     font-size: 9.5px;
+  }
+}
+
+/* =========================================================
+   TRANSACTION REQUEST — FILTER BAR
+   Desktop:
+   [ Status dropdown ]                         [ Next Approver ]
+   Mobile:
+   [ Status dropdown ]
+   [ Next Approver ]
+   ========================================================= */
+
+.page-transactionrequest .filter-bar {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 17px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.page-transactionrequest .filter-buttons {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+/* Status dropdown — always stays on the LEFT */
+.page-transactionrequest .status-filter-form {
+  width: 190px;
+  min-width: 0;
+  flex: 0 0 190px;
+  margin: 0;
+}
+
+.page-transactionrequest .status-filter-wrap {
+  width: 100%;
+  height: 38px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  background: rgba(10, 17, 33, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 9px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: 0.2s;
+}
+
+.page-transactionrequest .status-filter-wrap > i {
+  flex: 0 0 auto;
+  width: 13px;
+  text-align: center;
+  color: var(--app-blue-light);
+  font-size: 10px;
+}
+
+.page-transactionrequest .status-filter-select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 22px 0 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #cbd5e1;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.page-transactionrequest .status-filter-select option {
+  background: #0b1222;
+  color: #e8eef7;
+}
+
+/* Next Approver — always pushed to the RIGHT on desktop */
+.page-transactionrequest .next-approver-filter-form {
+  width: 270px;
+  max-width: 270px;
+  min-width: 0;
+  flex: 0 0 270px;
+  margin: 0 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.page-transactionrequest .next-approver-filter-wrap {
+  width: 100%;
+  height: 38px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  background: rgba(10, 17, 33, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 9px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: 0.2s;
+}
+
+.page-transactionrequest .next-approver-filter-wrap > i {
+  flex: 0 0 auto;
+  width: 13px;
+  text-align: center;
+  color: var(--app-blue-light);
+  font-size: 10px;
+}
+
+.page-transactionrequest .next-approver-select {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 36px;
+  padding: 0 22px 0 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #cbd5e1;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+
+.page-transactionrequest .next-approver-select option {
+  background: #0b1222;
+  color: #e8eef7;
+}
+
+.page-transactionrequest .status-filter-wrap:focus-within,
+.page-transactionrequest .next-approver-filter-wrap:focus-within {
+  border-color: rgba(96, 165, 250, 0.35);
+  background: #10203a;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
+}
+
+/* =========================================================
+   DESKTOP — 1201px+
+   ========================================================= */
+
+@media (min-width: 1201px) {
+  .page-transactionrequest .filter-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+  }
+
+  .page-transactionrequest .status-filter-form {
+    flex: 0 0 190px;
+  }
+
+  .page-transactionrequest .next-approver-filter-form {
+    flex: 0 0 270px;
+    margin-left: auto;
+  }
+}
+
+/* =========================================================
+   LAPTOP — 1025px TO 1200px
+   ========================================================= */
+
+@media (min-width: 1025px) and (max-width: 1200px) {
+  .page-transactionrequest .filter-bar {
+    padding: 11px 15px;
+  }
+
+  .page-transactionrequest .filter-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+
+  .page-transactionrequest .status-filter-form {
+    width: 185px;
+    flex: 0 1 185px;
+  }
+
+  .page-transactionrequest .next-approver-filter-form {
+    width: 250px;
+    max-width: 250px;
+    flex: 0 1 250px;
+    margin-left: auto;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    height: 37px;
+  }
+
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 35px;
+    font-size: 10px;
+  }
+}
+
+/* =========================================================
+   TABLET — 769px TO 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page-transactionrequest .filter-bar {
+    padding: 10px 14px;
+  }
+
+  .page-transactionrequest .filter-buttons {
+    display: grid;
+    grid-template-columns: minmax(170px, 1fr) minmax(210px, 1fr);
+    align-items: center;
+    gap: 9px;
+  }
+
+  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+    height: 38px;
+  }
+}
+
+/* =========================================================
+   PHONE — 481px TO 768px
+   ========================================================= */
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .page-transactionrequest .filter-bar {
+    padding: 10px 12px;
+  }
+
+  .page-transactionrequest .filter-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+    height: 39px;
+  }
+
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 37px;
+    font-size: 10.5px;
+  }
+}
+
+/* =========================================================
+   SMALL PHONE — 480px AND BELOW
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .page-transactionrequest .filter-bar {
+    padding: 9px 10px;
+  }
+
+  .page-transactionrequest .filter-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .next-approver-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    margin: 0;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    width: 100%;
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 38px;
+    font-size: 11px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL PHONE — 360px AND BELOW
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .page-transactionrequest .filter-bar {
+    padding: 8px;
+  }
+
+  .page-transactionrequest .filter-buttons {
+    gap: 7px;
+  }
+
+  .page-transactionrequest .status-filter-wrap,
+  .page-transactionrequest .next-approver-filter-wrap {
+    height: 38px;
+    padding: 0 9px;
+    gap: 7px;
+  }
+
+  .page-transactionrequest .status-filter-select,
+  .page-transactionrequest .next-approver-select {
+    height: 36px;
+    font-size: 10px;
   }
 }
