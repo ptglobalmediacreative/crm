@@ -514,11 +514,344 @@
 }
 
 /* =========================================================
-   DATA USER — FINAL TYPOGRAPHY / TABLE CONSISTENCY
+   DATA USER — HEADER / ACTIONS
+   Match the Sales Activity visual language exactly.
+   Page-specific only; PHP / JS / DB are untouched.
+   ========================================================= */
+
+.page-data-user .page-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 20px !important;
+  min-height: 48px !important;
+  margin-bottom: 20px !important;
+  flex-wrap: wrap !important;
+}
+
+.page-data-user .page-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0;
+}
+
+.page-data-user .page-title-icon {
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 11px !important;
+  background: rgba(96, 165, 250, 0.1) !important;
+  border: 1px solid rgba(96, 165, 250, 0.15) !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.page-data-user .page-title-icon i {
+  font-size: 15px !important;
+  color: #60a5fa !important;
+}
+
+.page-data-user .page-title h1 {
+  margin: 0 !important;
+  color: #f7f9ff !important;
+  font-size: 25px !important;
+  line-height: 1.1 !important;
+  letter-spacing: -1px !important;
+  font-weight: 800 !important;
+}
+
+.page-data-user .page-title p {
+  margin: 4px 0 0 !important;
+  color: #687892 !important;
+  font-size: 11px !important;
+}
+
+.page-data-user .page-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-left: auto !important;
+}
+
+/* Export Excel — same visual as Sales Activity */
+.page-data-user .btn-success-custom {
+  height: 38px !important;
+  border: 1px solid rgba(52, 211, 153, 0.25) !important;
+  border-radius: 11px !important;
+  background: rgba(52, 211, 153, 0.08) !important;
+  color: #6ee7b7 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+.page-data-user .btn-success-custom:hover {
+  color: #a7f3d0 !important;
+  background: rgba(52, 211, 153, 0.14) !important;
+  transform: translateY(-1px);
+}
+
+/* Primary action — same visual as Sales Activity */
+.page-data-user .btn-primary-custom {
+  height: 38px !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 0 15px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+.page-data-user .btn-primary-custom:hover {
+  background: linear-gradient(135deg, #4f8df7, #6d70f3) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(59, 130, 246, 0.2);
+}
+
+/* =========================================================
+   DATA USER — RESPONSIVE
+   Same breakpoint logic as Sales Activity.
+   Non-overlapping media queries only.
+   ========================================================= */
+
+/* ---------- Laptop / smaller desktop ---------- */
+@media (max-width: 1050px) {
+  .page-data-user .content {
+    padding: 22px 20px 45px;
+  }
+}
+
+/* ---------- Tablet / mobile ---------- */
+@media (max-width: 800px) {
+  .page-data-user .content {
+    margin-left: 0;
+    width: 100%;
+    min-height: calc(100vh - 64px);
+    padding: 20px 14px 40px;
+  }
+
+  .page-data-user .page-header {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  .page-data-user .page-title {
+    width: 100%;
+  }
+
+  .page-data-user .page-header > div:last-child {
+    width: 100% !important;
+  }
+
+  .page-data-user .page-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .page-data-user .page-actions a,
+  .page-data-user .page-actions button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+
+  .page-data-user .btn-success-custom,
+  .page-data-user .btn-primary-custom {
+    width: 100% !important;
+  }
+
+  .page-data-user .card-header-custom {
+    align-items: flex-start;
+  }
+
+  .page-data-user .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .page-data-user .search-input {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .page-data-user .table-custom {
+    min-width: 900px;
+    font-size: 9px;
+  }
+
+  .page-data-user .table-custom th,
+  .page-data-user .table-custom td {
+    padding: 10px 9px !important;
+  }
+
+  .page-data-user .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- Phone ---------- */
+@media (max-width: 480px) {
+  .page-data-user .content {
+    padding: 18px 10px 35px;
+  }
+
+  .page-data-user .page-header {
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .page-data-user .page-title {
+    gap: 10px !important;
+  }
+
+  .page-data-user .page-title h1 {
+    font-size: 20px !important;
+  }
+
+  .page-data-user .page-title p {
+    font-size: 10px !important;
+  }
+
+  .page-data-user .page-title-icon {
+    width: 34px !important;
+    height: 34px !important;
+    flex-basis: 34px !important;
+    border-radius: 9px !important;
+  }
+
+  .page-data-user .page-title-icon i {
+    font-size: 14px !important;
+  }
+
+  .page-data-user .page-actions {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 7px !important;
+  }
+
+  .page-data-user .page-actions a,
+  .page-data-user .page-actions button {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .page-data-user .card-header-custom {
+    padding: 13px !important;
+  }
+
+  .page-data-user .search-input {
+    width: 100% !important;
+  }
+
+  .page-data-user .table-custom {
+    min-width: 780px;
+  }
+
+  .page-data-user .table-custom th,
+  .page-data-user .table-custom td {
+    padding: 10px 8px !important;
+  }
+
+  .page-data-user .pagination {
+    gap: 4px;
+  }
+
+  .page-data-user .pagination .page-link {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .page-data-user .pagination .page-item:first-child .page-link,
+  .page-data-user .pagination .page-item:last-child .page-link {
+    width: auto;
+    min-width: 54px;
+    padding: 0 8px !important;
+  }
+}
+
+/* ---------- Very small phone ---------- */
+@media (max-width: 360px) {
+  .page-data-user .content {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .page-data-user .page-title h1 {
+    font-size: 19px !important;
+  }
+
+  .page-data-user .page-title-icon {
+    width: 32px !important;
+    height: 32px !important;
+    flex-basis: 32px !important;
+  }
+
+  .page-data-user .page-title-icon i {
+    font-size: 13px !important;
+  }
+
+  .page-data-user .btn-success-custom,
+  .page-data-user .btn-primary-custom {
+    height: 36px !important;
+    font-size: 10px !important;
+  }
+
+  .page-data-user .table-custom {
+    min-width: 760px;
+  }
+
+  .page-data-user .pagination .page-link {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    font-size: 9px !important;
+  }
+
+  .page-data-user .pagination .page-item:first-child .page-link,
+  .page-data-user .pagination .page-item:last-child .page-link {
+    min-width: 48px !important;
+    width: auto !important;
+  }
+}
+
+/* =========================================================
+   DATA USER — FINAL TABLE / TYPOGRAPHY CONSISTENCY
    ========================================================= */
 
 .page-data-user .table-custom {
-  font-size: 12px;
+  font-size: 12px !important;
 }
 
 .page-data-user .table-custom th {
@@ -546,404 +879,4 @@
 .page-data-user .footer-text,
 .page-data-user .footer {
   font-size: 10px !important;
-}
-
-/* =========================================================
-   DATA USER — CLEAN RESPONSIVE SYSTEM
-   Visual target: premium dark header like Sales Activity.
-   Breakpoints are intentionally non-overlapping.
-   ========================================================= */
-
-/* ---------- Global page safety ---------- */
-html,
-body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.page-data-user,
-.page-data-user .content,
-.page-data-user .page-header,
-.page-data-user .page-title,
-.page-data-user .page-actions {
-  min-width: 0;
-}
-
-/* =========================================================
-   DESKTOP — 1200px+
-   Header target:
-   [ icon + title ]                         [ Export ][ Tambah ]
-   ========================================================= */
-
-@media (min-width: 1200px) {
-  .page-data-user .content {
-    margin-left: 245px;
-    width: calc(100% - 245px);
-    padding: 49px 40px 52px;
-  }
-
-  .page-data-user .page-header {
-    min-height: 58px;
-    margin-bottom: 24px;
-    gap: 24px;
-    flex-wrap: nowrap;
-  }
-
-  .page-data-user .page-title {
-    gap: 15px;
-  }
-
-  .page-data-user .page-title-icon {
-    width: 58px;
-    height: 58px;
-    flex: 0 0 58px;
-    border-radius: 16px;
-  }
-
-  .page-data-user .page-title-icon i {
-    font-size: 22px;
-  }
-
-  .page-data-user .page-title h1 {
-    font-size: 38px;
-    line-height: 1.05;
-    font-weight: 800;
-    letter-spacing: -1.15px;
-  }
-
-  .page-data-user .page-title p {
-    font-size: 11px;
-  }
-
-  .page-data-user .page-actions {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-    flex-wrap: nowrap;
-    margin-left: auto;
-  }
-
-  .page-data-user .page-actions > a,
-  .page-data-user .page-actions > button {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
-  .page-data-user .btn-success-custom {
-    height: 56px;
-    min-width: 180px;
-    padding: 0 22px;
-    border-radius: 16px;
-    font-size: 16px;
-    gap: 9px;
-  }
-
-  .page-data-user .btn-primary-custom {
-    height: 56px;
-    min-width: 228px;
-    padding: 0 23px !important;
-    border-radius: 16px !important;
-    font-size: 16px !important;
-    gap: 10px;
-  }
-
-  .page-data-user .card-custom {
-    border-radius: 16px;
-  }
-}
-
-/* =========================================================
-   LAPTOP — 769px to 1199px
-   ========================================================= */
-
-@media (min-width: 769px) and (max-width: 1199px) {
-  .page-data-user .content {
-    margin-left: 245px;
-    width: calc(100% - 245px);
-    padding: 32px 24px 44px;
-  }
-
-  .page-data-user .page-header {
-    min-height: 50px;
-    margin-bottom: 20px;
-    gap: 18px;
-    flex-wrap: nowrap;
-  }
-
-  .page-data-user .page-title {
-    gap: 12px;
-  }
-
-  .page-data-user .page-title-icon {
-    width: 46px;
-    height: 46px;
-    flex-basis: 46px;
-    border-radius: 13px;
-  }
-
-  .page-data-user .page-title-icon i {
-    font-size: 18px;
-  }
-
-  .page-data-user .page-title h1 {
-    font-size: 29px;
-    letter-spacing: -0.75px;
-  }
-
-  .page-data-user .page-actions {
-    flex: 0 0 auto;
-    margin-left: auto;
-    gap: 8px;
-    flex-wrap: nowrap;
-  }
-
-  .page-data-user .btn-success-custom,
-  .page-data-user .btn-primary-custom {
-    height: 46px;
-    font-size: 12px !important;
-    border-radius: 12px !important;
-    white-space: nowrap;
-  }
-
-  .page-data-user .btn-success-custom {
-    min-width: 145px;
-    padding: 0 15px;
-  }
-
-  .page-data-user .btn-primary-custom {
-    min-width: 180px;
-    padding: 0 16px !important;
-  }
-
-  .page-data-user .table-custom {
-    min-width: 900px;
-  }
-}
-
-/* =========================================================
-   TABLET — 481px to 768px
-   ========================================================= */
-
-@media (min-width: 481px) and (max-width: 768px) {
-  .page-data-user .content {
-    margin-left: 0;
-    width: 100%;
-    min-height: calc(100vh - 64px);
-    padding: 28px 18px 38px;
-  }
-
-  .page-data-user .page-header {
-    min-height: 0;
-    margin-bottom: 20px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .page-data-user .page-title {
-    width: 100%;
-    gap: 12px;
-  }
-
-  .page-data-user .page-title-icon {
-    width: 46px;
-    height: 46px;
-    flex-basis: 46px;
-    border-radius: 13px;
-  }
-
-  .page-data-user .page-title-icon i {
-    font-size: 18px;
-  }
-
-  .page-data-user .page-title h1 {
-    font-size: 28px;
-    letter-spacing: -0.7px;
-  }
-
-  .page-data-user .page-title p {
-    font-size: 10px;
-  }
-
-  .page-data-user .page-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .page-data-user .page-actions > a,
-  .page-data-user .page-actions > button {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .page-data-user .btn-success-custom,
-  .page-data-user .btn-primary-custom {
-    height: 44px;
-    min-width: 0;
-    border-radius: 11px !important;
-    font-size: 11px !important;
-  }
-
-  .page-data-user .table-custom {
-    min-width: 900px;
-  }
-}
-
-/* =========================================================
-   PHONE — <=480px
-   ========================================================= */
-
-@media (max-width: 480px) {
-  .page-data-user .content {
-    margin-left: 0;
-    width: 100%;
-    min-height: calc(100vh - 64px);
-    padding: 22px 12px 30px;
-  }
-
-  .page-data-user .page-header {
-    min-height: 0;
-    margin-bottom: 18px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 14px;
-  }
-
-  .page-data-user .page-title {
-    width: 100%;
-    gap: 11px;
-  }
-
-  .page-data-user .page-title-icon {
-    width: 42px;
-    height: 42px;
-    flex-basis: 42px;
-    border-radius: 12px;
-  }
-
-  .page-data-user .page-title-icon i {
-    font-size: 16px;
-  }
-
-  .page-data-user .page-title h1 {
-    font-size: 23px;
-    line-height: 1.08;
-    letter-spacing: -0.55px;
-  }
-
-  .page-data-user .page-title p {
-    margin-top: 3px;
-    font-size: 9px;
-  }
-
-  .page-data-user .page-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .page-data-user .page-actions > a,
-  .page-data-user .page-actions > button {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .page-data-user .btn-success-custom,
-  .page-data-user .btn-primary-custom {
-    width: 100%;
-    height: 42px;
-    min-width: 0;
-    border-radius: 10px !important;
-    font-size: 11px !important;
-  }
-
-  .page-data-user .card-header-custom {
-    padding: 13px !important;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .page-data-user .card-header-custom form {
-    width: 100%;
-    margin-left: 0;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-
-  .page-data-user .search-input {
-    width: 100% !important;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
-  .page-data-user .table-custom {
-    min-width: 780px;
-  }
-
-  .page-data-user .card-footer {
-    padding: 10px !important;
-  }
-
-  .page-data-user .pagination {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .page-data-user .pagination .page-link {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    min-height: 32px;
-    padding: 0 !important;
-    font-size: 10px !important;
-  }
-
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link {
-    width: auto;
-    min-width: 54px;
-    padding: 0 8px !important;
-  }
-}
-
-/* =========================================================
-   VERY SMALL PHONE — <=360px
-   ========================================================= */
-
-@media (max-width: 360px) {
-  .page-data-user .content {
-    padding-left: 9px;
-    padding-right: 9px;
-  }
-
-  .page-data-user .page-title h1 {
-    font-size: 21px;
-  }
-
-  .page-data-user .page-title-icon {
-    width: 40px;
-    height: 40px;
-    flex-basis: 40px;
-  }
-
-  .page-data-user .page-actions {
-    gap: 7px;
-  }
-
-  .page-data-user .btn-success-custom,
-  .page-data-user .btn-primary-custom {
-    height: 40px;
-    font-size: 10px !important;
-  }
-
-  .page-data-user .table-custom {
-    min-width: 760px;
-  }
 }
