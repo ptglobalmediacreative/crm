@@ -133,12 +133,103 @@ $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
+$next_approver_filter = isset($_GET['next_approver']) ? $_GET['next_approver'] : 'all';
+
+$allowedNextApprovers = [
+    'Sales Manager',
+    'Direktur Sales',
+    'Direktur Operasional',
+    'Direktur Utama',
+    'No More Approval'
+];
+
+if ($next_approver_filter !== 'all' && !in_array($next_approver_filter, $allowedNextApprovers, true)) {
+    $next_approver_filter = 'all';
+}
 
 // ============================================
 // AMBIL DATA TR NUMBER DARI ACTIVITY_DETAILS
 // ============================================
 $where = "WHERE ad.tr_number IS NOT NULL AND ad.tr_number != ''";
 $params = [];
+$nextApproverSql = "(CASE
+    WHEN NOT EXISTS (
+        SELECT 1 FROM detail_transaction_requests d0
+        WHERE d0.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+    ) THEN 'Sales Manager'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_transaction_requests d0
+        WHERE d0.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND d0.status = 'rejected'
+    ) THEN 'No More Approval'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_transaction_requests d0
+        WHERE d0.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND d0.status = 'approved'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM detail_transaction_requests d0
+        WHERE d0.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND d0.status IN ('pending', 'rejected')
+    ) THEN 'No More Approval'
+    WHEN EXISTS (
+        SELECT 1 FROM tr_approval_history ah1
+        WHERE ah1.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah1.approval_order = 1
+          AND ah1.approval_role = 'sales_manager'
+          AND ah1.status = 'approved'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM tr_approval_history ah2
+        WHERE ah2.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah2.approval_order = 2
+          AND ah2.approval_role = 'direktur_sales'
+          AND ah2.status = 'approved'
+    ) THEN 'Direktur Sales'
+    WHEN EXISTS (
+        SELECT 1 FROM tr_approval_history ah1
+        WHERE ah1.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah1.approval_order = 1
+          AND ah1.approval_role = 'sales_manager'
+          AND ah1.status = 'approved'
+    ) AND EXISTS (
+        SELECT 1 FROM tr_approval_history ah2
+        WHERE ah2.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah2.approval_order = 2
+          AND ah2.approval_role = 'direktur_sales'
+          AND ah2.status = 'approved'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM tr_approval_history ah3
+        WHERE ah3.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah3.approval_order = 3
+          AND ah3.approval_role = 'direktur_operasional'
+          AND ah3.status = 'approved'
+    ) THEN 'Direktur Operasional'
+    WHEN EXISTS (
+        SELECT 1 FROM tr_approval_history ah1
+        WHERE ah1.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah1.approval_order = 1
+          AND ah1.approval_role = 'sales_manager'
+          AND ah1.status = 'approved'
+    ) AND EXISTS (
+        SELECT 1 FROM tr_approval_history ah2
+        WHERE ah2.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah2.approval_order = 2
+          AND ah2.approval_role = 'direktur_sales'
+          AND ah2.status = 'approved'
+    ) AND EXISTS (
+        SELECT 1 FROM tr_approval_history ah3
+        WHERE ah3.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah3.approval_order = 3
+          AND ah3.approval_role = 'direktur_operasional'
+          AND ah3.status = 'approved'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM tr_approval_history ah4
+        WHERE ah4.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+          AND ah4.approval_order = 4
+          AND ah4.approval_role = 'direktur_utama'
+          AND ah4.status = 'approved'
+    ) THEN 'Direktur Utama'
+    ELSE 'Sales Manager'
+END)";
 
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
@@ -162,6 +253,11 @@ if ($status_filter !== 'all') {
 if (!empty($search)) {
     $where .= " AND (ad.tr_number LIKE ? OR a.nama_pt LIKE ?)";
     $params = array_merge($params, ["%$search%", "%$search%"]);
+}
+
+if ($next_approver_filter !== 'all') {
+    $where .= " AND $nextApproverSql = ?";
+    $params[] = $next_approver_filter;
 }
 
 $countSql = "SELECT COUNT(DISTINCT ad.tr_number) 
@@ -196,7 +292,8 @@ $sql = "SELECT ad.tr_number,
                        WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'approved'
                    ) THEN 'approved'
                    ELSE 'pending'
-               END as status
+               END as status,
+               $nextApproverSql as next_approver
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
         LEFT JOIN accounts a ON sa.account_id = a.id
@@ -532,6 +629,53 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             margin-left:4px;
         }
 
+        .next-approver-filter-form{
+            display:flex;
+            align-items:center;
+            margin-left:auto;
+        }
+
+        .next-approver-filter-wrap{
+            height:34px;
+            display:flex;
+            align-items:center;
+            gap:7px;
+            padding:0 10px;
+            background:rgba(10,17,33,.92);
+            border:1px solid rgba(148,163,184,.14);
+            border-radius:9px;
+            transition:.2s;
+        }
+
+        .next-approver-filter-wrap:focus-within{
+            border-color:rgba(96,165,250,.35);
+            background:#10203a;
+            box-shadow:0 0 0 3px rgba(59,130,246,.06);
+        }
+
+        .next-approver-filter-wrap > i{
+            color:var(--blue2);
+            font-size:10px;
+        }
+
+        .next-approver-select{
+            min-width:175px;
+            max-width:210px;
+            border:0;
+            outline:0;
+            background:transparent;
+            color:#cbd5e1;
+            font-family:Inter,Arial,sans-serif;
+            font-size:10px;
+            font-weight:600;
+            cursor:pointer;
+        }
+
+        .next-approver-select option{
+            background:#0b1222;
+            color:#e8eef7;
+        }
+
         .table-responsive{
             background:transparent;
             overflow-x:auto;
@@ -829,6 +973,21 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                 padding-bottom:2px;
             }
 
+            .next-approver-filter-form{
+                width:100%;
+                margin-left:0;
+            }
+
+            .next-approver-filter-wrap{
+                width:100%;
+            }
+
+            .next-approver-select{
+                min-width:0;
+                width:100%;
+                max-width:none;
+            }
+
             .btn-filter{white-space:nowrap}
         }
     </style>
@@ -895,6 +1054,28 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                     <a href="?status=rejected&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'rejected' ? 'active' : '' ?>">
                         <i class="fas fa-times-circle fa-fw" style="color:#e74c3c;"></i> Rejected <span class="count"><?= $totalRejected ?></span>
                     </a>
+
+                    <form method="GET" class="next-approver-filter-form">
+                        <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+                        <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
+                        <div class="next-approver-filter-wrap">
+                            <i class="fas fa-user-check"></i>
+                            <select name="next_approver" class="next-approver-select" onchange="this.form.submit()">
+                                <option value="all" <?= $next_approver_filter === 'all' ? 'selected' : '' ?>>Semua Next Approver</option>
+                                <?php foreach ($allowedNextApprovers as $approver): ?>
+                                    <option value="<?= htmlspecialchars($approver) ?>" <?= $next_approver_filter === $approver ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($approver) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </form>
+
+                    <?php if ($next_approver_filter !== 'all'): ?>
+                        <a href="?status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>" class="btn-filter" title="Reset filter Next Approver">
+                            <i class="fas fa-times"></i> Reset Approver
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -940,7 +1121,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
 </td>
                                         <td><?= date('d/m/Y', strtotime($request['request_date'])) ?></td>
                                         <td><?= htmlspecialchars($request['sales_name'] ?? '-') ?></td>
-                                        <td><span class="current-approver"><?= htmlspecialchars(getCurrentApproverForTR($db, (string)($request['tr_number'] ?? ''), $approvalLevels, $totalApprovalLevels)) ?></span></td>
+                                        <td><span class="current-approver"><?= htmlspecialchars($request['next_approver'] ?? '-') ?></span></td>
                                         <td>
                                             <span class="badge-status-tr <?= $statusClass ?>">
                                                 <?php if ($request['status'] == 'pending'): ?>
@@ -987,15 +1168,15 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
