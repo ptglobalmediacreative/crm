@@ -220,95 +220,6 @@
   border-color: rgba(148, 163, 184, 0.22);
 }
 
-.filter-bar {
-  padding: 13px 17px 11px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-}
-
-.page-transactionrequest .filter-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.btn-filter {
-  padding: 7px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(10, 17, 33, 0.85);
-  border-radius: 9px;
-  color: #8492aa;
-  text-decoration: none;
-  font-size: 10px;
-  font-weight: 600;
-  transition: 0.2s;
-}
-
-.btn-filter:hover {
-  color: #fff;
-  border-color: rgba(96, 165, 250, 0.25);
-  background: #10203a;
-}
-
-.btn-filter.active {
-  background: rgba(37, 99, 235, 0.15);
-  border-color: rgba(96, 165, 250, 0.3);
-  color: #9fc5ff;
-}
-
-.btn-filter .count {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2px 6px;
-  border-radius: 10px;
-  margin-left: 4px;
-}
-
-.next-approver-filter-form {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-}
-
-.next-approver-filter-wrap {
-  height: 34px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 10px;
-  background: rgba(10, 17, 33, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 9px;
-  transition: 0.2s;
-}
-
-.next-approver-filter-wrap:focus-within {
-  border-color: rgba(96, 165, 250, 0.35);
-  background: #10203a;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
-}
-
-.next-approver-filter-wrap > i {
-  color: var(--app-blue-light);
-  font-size: 10px;
-}
-
-.next-approver-select {
-  min-width: 175px;
-  max-width: 210px;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #cbd5e1;
-  font-family: Inter, Arial, sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.next-approver-select option {
-  background: #0b1222;
-  color: #e8eef7;
-}
-
 .page-transactionrequest .table-responsive {
   background: transparent;
   overflow-x: auto;
@@ -1557,265 +1468,80 @@ textarea {
   }
 }
 
-/* The Next Approver selector is its own responsive block. */
-.page-transactionrequest .next-approver-filter-form {
-  flex: 0 1 250px;
-  min-width: 190px;
-  max-width: 250px;
-  margin: 0 0 0 auto;
-  display: flex;
-  align-items: center;
-}
-
-.page-transactionrequest .next-approver-filter-wrap {
-  width: 100%;
-  min-width: 0;
-  height: 38px;
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 11px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.page-transactionrequest .next-approver-filter-wrap > i {
-  flex: 0 0 auto;
-  width: 14px;
-  text-align: center;
-}
-
-.page-transactionrequest .next-approver-select {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: 100%;
-  max-width: none;
-  height: 36px;
-  padding: 0 24px 0 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #cbd5e1;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-}
-
-/* Desktop / large PC: keep chips on the left and selector on the right. */
-@media (min-width: 1201px) {
-  .page-transactionrequest .filter-buttons {
-    flex-wrap: nowrap;
-  }
-
-  .page-transactionrequest .filter-buttons > .btn-filter {
-    flex: 0 0 auto;
-  }
-
-  .page-transactionrequest .next-approver-filter-form {
-    margin-left: auto;
-  }
-}
-
-/* Normal laptop: allow the selector to move to a clean second row
-   rather than squeezing into / overlapping the filter chips. */
-@media (min-width: 769px) and (max-width: 1200px) {
-  .page-transactionrequest .filter-buttons {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .page-transactionrequest .filter-buttons > .btn-filter {
-    width: 100%;
-    min-width: 0;
-    justify-content: center;
-  }
-
-  .page-transactionrequest .next-approver-filter-form {
-    grid-column: 1 / -1;
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    margin: 0;
-  }
-
-  .page-transactionrequest .next-approver-filter-wrap {
-    width: 100%;
-  }
-}
-
-/* Tablet: four compact status filters + full-width Next Approver. */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .page-transactionrequest .filter-buttons {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .page-transactionrequest .next-approver-filter-form {
-    grid-column: 1 / -1;
-  }
-}
-
-/* Phone: status filters remain horizontally scrollable;
-   Next Approver is always placed below them and never overlaps. */
-@media (max-width: 768px) {
-  .page-transactionrequest .filter-bar {
-    padding: 12px 14px 13px !important;
-  }
-
-  .page-transactionrequest .filter-buttons {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    overflow: visible;
-    padding: 0;
-  }
-
-  .page-transactionrequest .filter-buttons > .btn-filter {
-    width: 100%;
-    min-width: 0;
-    flex: 0 0 auto;
-    justify-content: space-between;
-    min-height: 38px;
-    box-sizing: border-box;
-  }
-
-  .page-transactionrequest .next-approver-filter-form {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    flex: 0 0 auto;
-    margin: 2px 0 0 !important;
-  }
-
-  .page-transactionrequest .next-approver-filter-wrap {
-    width: 100%;
-    height: 40px;
-    min-height: 40px;
-    padding: 0 11px;
-  }
-
-  .page-transactionrequest .next-approver-select {
-    height: 38px;
-    font-size: 11px;
-  }
-}
-
-/* Small phones: tighter but still readable. */
-@media (max-width: 480px) {
-  .page-transactionrequest .filter-bar {
-    padding: 10px !important;
-  }
-
-  .page-transactionrequest .filter-buttons {
-    gap: 7px;
-  }
-
-  .page-transactionrequest .filter-buttons > .btn-filter {
-    min-height: 37px;
-    font-size: 10px;
-  }
-
-  .page-transactionrequest .next-approver-filter-wrap {
-    height: 38px;
-    min-height: 38px;
-  }
-
-  .page-transactionrequest .next-approver-select {
-    height: 36px;
-    font-size: 10px;
-  }
-}
-
-/* Very small phones: never force the selector wider than the card. */
-@media (max-width: 360px) {
-  .page-transactionrequest .filter-bar {
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-  }
-
-  .page-transactionrequest .next-approver-filter-form,
-  .page-transactionrequest .next-approver-filter-wrap,
-  .page-transactionrequest .next-approver-select {
-    max-width: 100%;
-  }
-}
-
 /* =========================================================
-   TRANSACTION REQUEST — FILTER SYSTEM
-   Clean responsive layout
-   Status + Next Approver are dropdowns
+   TRANSACTION REQUEST — CLEAN FILTER SYSTEM
+   HTML target:
+   .filter-bar > .filter-controls
+   .status-filter-form
+   .next-approver-filter-form
+
+   Desktop:
+   [ Status ]                                      [ Next Approver ]
+
+   Mobile:
+   [ Status ]
+   [ Next Approver ]
+
+   IMPORTANT:
+   The page wrapper is .page-transactionrequest on <body>.
    ========================================================= */
 
 .page-transactionrequest .filter-bar {
   width: 100%;
-  min-width: 0;
-  padding: 12px 16px;
+  padding: 12px 17px;
+  margin: 0;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .page-transactionrequest .filter-controls {
   width: 100%;
   min-width: 0;
-
   display: flex;
   align-items: center;
   justify-content: flex-start;
-
-  gap: 10px;
+  gap: 12px;
   flex-wrap: nowrap;
 }
 
-/* -------------------------
-   FILTER FORMS
-   ------------------------- */
+/* ---------- Forms ---------- */
 
 .page-transactionrequest .status-filter-form,
 .page-transactionrequest .next-approver-filter-form {
-  margin: 0;
+  display: flex;
+  align-items: center;
   min-width: 0;
+  margin: 0;
 }
 
 .page-transactionrequest .status-filter-form {
+  flex: 0 0 190px;
   width: 190px;
-  flex: 0 1 190px;
 }
 
 .page-transactionrequest .next-approver-filter-form {
+  flex: 0 0 270px;
   width: 270px;
-  max-width: 270px;
-  min-width: 0;
-  flex: 0 1 270px;
-  margin-left: 0;
+  margin-left: auto;
 }
 
-/* -------------------------
-   FILTER BOX
-   ------------------------- */
+/* ---------- Filter boxes ---------- */
 
 .page-transactionrequest .status-filter-wrap,
 .page-transactionrequest .next-approver-filter-wrap {
   width: 100%;
   height: 38px;
   min-width: 0;
-
   display: flex;
   align-items: center;
-
   gap: 8px;
   padding: 0 11px;
-
   background: rgba(10, 17, 33, 0.92);
   border: 1px solid rgba(148, 163, 184, 0.14);
   border-radius: 9px;
-
   box-sizing: border-box;
   overflow: hidden;
-
   transition:
     border-color 0.2s ease,
     background 0.2s ease,
@@ -1824,42 +1550,36 @@ textarea {
 
 .page-transactionrequest .status-filter-wrap > i,
 .page-transactionrequest .next-approver-filter-wrap > i {
-  flex: 0 0 auto;
-
+  flex: 0 0 14px;
+  width: 14px;
+  text-align: center;
   color: var(--app-blue-light);
   font-size: 10px;
-  width: 12px;
-  text-align: center;
 }
 
-/* -------------------------
-   SELECT
-   ------------------------- */
+/* ---------- Selects ---------- */
 
 .page-transactionrequest .status-filter-select,
 .page-transactionrequest .next-approver-select {
   display: block;
-
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   max-width: none;
   height: 36px;
-
   padding: 0 22px 0 0;
-
+  margin: 0;
   border: 0;
   outline: 0;
-
-  background-color: transparent;
+  background: transparent;
   color: #cbd5e1;
-
   font-family: Inter, Arial, sans-serif;
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
-
   cursor: pointer;
   box-sizing: border-box;
+  appearance: auto;
 }
 
 .page-transactionrequest .status-filter-select option,
@@ -1868,7 +1588,6 @@ textarea {
   color: #e8eef7;
 }
 
-/* Focus */
 .page-transactionrequest .status-filter-wrap:focus-within,
 .page-transactionrequest .next-approver-filter-wrap:focus-within {
   border-color: rgba(96, 165, 250, 0.35);
@@ -1877,518 +1596,100 @@ textarea {
 }
 
 /* =========================================================
-   LARGE PC — 1201px+
+   LARGE DESKTOP — 1201px+
    ========================================================= */
 
 @media (min-width: 1201px) {
   .page-transactionrequest .filter-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
     flex-wrap: nowrap;
-  }
-
-  .page-transactionrequest .status-filter-form {
-    flex: 0 0 190px;
-  }
-
-  .page-transactionrequest .next-approver-filter-form {
-    flex: 0 0 270px;
-  }
-}
-
-/* =========================================================
-   LAPTOP — 992px TO 1200px
-   ========================================================= */
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .page-transactionrequest .filter-controls {
-    display: grid;
-
-    grid-template-columns:
-      minmax(170px, 190px)
-      minmax(220px, 1fr);
-
-    gap: 10px;
-    align-items: center;
-  }
-
-  .page-transactionrequest .status-filter-form,
-  .page-transactionrequest .next-approver-filter-form {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    flex: none;
-    margin: 0;
-  }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    width: 100%;
-  }
-}
-
-/* =========================================================
-   TABLET — 769px TO 991px
-   ========================================================= */
-
-@media (min-width: 769px) and (max-width: 991px) {
-  .page-transactionrequest .filter-bar {
-    padding: 11px 14px;
-  }
-
-  .page-transactionrequest .filter-controls {
-    display: grid;
-
-    grid-template-columns:
-      minmax(170px, 220px)
-      minmax(0, 1fr);
-
-    gap: 9px;
-    align-items: center;
-  }
-
-  .page-transactionrequest .status-filter-form,
-  .page-transactionrequest .next-approver-filter-form {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    flex: none;
-    margin: 0;
-  }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    width: 100%;
-    height: 38px;
-  }
-
-  .page-transactionrequest .status-filter-select,
-  .page-transactionrequest .next-approver-select {
-    font-size: 10px;
-  }
-}
-
-/* =========================================================
-   MOBILE — 481px TO 768px
-   ========================================================= */
-
-@media (min-width: 481px) and (max-width: 768px) {
-  .page-transactionrequest .filter-bar {
-    padding: 10px 12px;
-  }
-
-  .page-transactionrequest .filter-controls {
-    display: grid;
-
-    grid-template-columns: 1fr 1fr;
-
-    gap: 8px;
-    align-items: stretch;
-  }
-
-  .page-transactionrequest .status-filter-form,
-  .page-transactionrequest .next-approver-filter-form {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    flex: none;
-    margin: 0;
-  }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    height: 40px;
-  }
-
-  .page-transactionrequest .status-filter-select,
-  .page-transactionrequest .next-approver-select {
-    height: 38px;
-    font-size: 10.5px;
-  }
-}
-
-/* =========================================================
-   PHONE — 480px AND BELOW
-   ========================================================= */
-
-@media (max-width: 480px) {
-  .page-transactionrequest .filter-bar {
-    padding: 10px;
-  }
-
-  .page-transactionrequest .filter-controls {
-    width: 100%;
-
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-
-    gap: 8px;
-  }
-
-  .page-transactionrequest .status-filter-form,
-  .page-transactionrequest .next-approver-filter-form {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    flex: none;
-    margin: 0;
-  }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    width: 100%;
-    height: 40px;
-    padding: 0 10px;
-  }
-
-  .page-transactionrequest .status-filter-select,
-  .page-transactionrequest .next-approver-select {
-    height: 38px;
-    font-size: 11px;
-  }
-}
-
-/* =========================================================
-   SMALL PHONE — 380px AND BELOW
-   ========================================================= */
-
-@media (max-width: 380px) {
-  .page-transactionrequest .filter-bar {
-    padding: 9px;
-  }
-
-  .page-transactionrequest .filter-controls {
-    gap: 7px;
-  }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    height: 38px;
-    padding: 0 9px;
-    gap: 7px;
-  }
-
-  .page-transactionrequest .status-filter-select,
-  .page-transactionrequest .next-approver-select {
-    height: 36px;
-    font-size: 10px;
-  }
-}
-
-/* =========================================================
-   VERY SMALL PHONE — 360px AND BELOW
-   ========================================================= */
-
-@media (max-width: 360px) {
-  .page-transactionrequest .filter-bar {
-    padding: 8px;
-  }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    height: 37px;
-    padding: 0 8px;
-  }
-
-  .page-transactionrequest .status-filter-select,
-  .page-transactionrequest .next-approver-select {
-    height: 35px;
-    font-size: 9.5px;
-  }
-}
-
-/* =========================================================
-   TRANSACTION REQUEST — FILTER BAR
-   Desktop:
-   [ Status dropdown ]                         [ Next Approver ]
-   Mobile:
-   [ Status dropdown ]
-   [ Next Approver ]
-   ========================================================= */
-
-.page-transactionrequest .filter-bar {
-  width: 100%;
-  min-width: 0;
-  padding: 12px 17px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-  box-sizing: border-box;
-  overflow: visible;
-}
-
-.page-transactionrequest .filter-buttons {
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: nowrap;
-}
-
-/* Status dropdown — always stays on the LEFT */
-.page-transactionrequest .status-filter-form {
-  width: 190px;
-  min-width: 0;
-  flex: 0 0 190px;
-  margin: 0;
-}
-
-.page-transactionrequest .status-filter-wrap {
-  width: 100%;
-  height: 38px;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 11px;
-  background: rgba(10, 17, 33, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 9px;
-  box-sizing: border-box;
-  overflow: hidden;
-  transition: 0.2s;
-}
-
-.page-transactionrequest .status-filter-wrap > i {
-  flex: 0 0 auto;
-  width: 13px;
-  text-align: center;
-  color: var(--app-blue-light);
-  font-size: 10px;
-}
-
-.page-transactionrequest .status-filter-select {
-  width: 100%;
-  min-width: 0;
-  height: 36px;
-  padding: 0 22px 0 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #cbd5e1;
-  font-family: Inter, Arial, sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.page-transactionrequest .status-filter-select option {
-  background: #0b1222;
-  color: #e8eef7;
-}
-
-/* Next Approver — always pushed to the RIGHT on desktop */
-.page-transactionrequest .next-approver-filter-form {
-  width: 270px;
-  max-width: 270px;
-  min-width: 0;
-  flex: 0 0 270px;
-  margin: 0 0 0 auto;
-  display: flex;
-  align-items: center;
-}
-
-.page-transactionrequest .next-approver-filter-wrap {
-  width: 100%;
-  height: 38px;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 11px;
-  background: rgba(10, 17, 33, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 9px;
-  box-sizing: border-box;
-  overflow: hidden;
-  transition: 0.2s;
-}
-
-.page-transactionrequest .next-approver-filter-wrap > i {
-  flex: 0 0 auto;
-  width: 13px;
-  text-align: center;
-  color: var(--app-blue-light);
-  font-size: 10px;
-}
-
-.page-transactionrequest .next-approver-select {
-  width: 100%;
-  min-width: 0;
-  max-width: none;
-  height: 36px;
-  padding: 0 22px 0 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #cbd5e1;
-  font-family: Inter, Arial, sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  box-sizing: border-box;
-  text-overflow: ellipsis;
-}
-
-.page-transactionrequest .next-approver-select option {
-  background: #0b1222;
-  color: #e8eef7;
-}
-
-.page-transactionrequest .status-filter-wrap:focus-within,
-.page-transactionrequest .next-approver-filter-wrap:focus-within {
-  border-color: rgba(96, 165, 250, 0.35);
-  background: #10203a;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
-}
-
-/* =========================================================
-   DESKTOP — 1201px+
-   ========================================================= */
-
-@media (min-width: 1201px) {
-  .page-transactionrequest .filter-buttons {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: nowrap;
-  }
-
-  .page-transactionrequest .status-filter-form {
-    flex: 0 0 190px;
-  }
-
-  .page-transactionrequest .next-approver-filter-form {
-    flex: 0 0 270px;
-    margin-left: auto;
-  }
-}
-
-/* =========================================================
-   LAPTOP — 1025px TO 1200px
-   ========================================================= */
-
-@media (min-width: 1025px) and (max-width: 1200px) {
-  .page-transactionrequest .filter-bar {
-    padding: 11px 15px;
-  }
-
-  .page-transactionrequest .filter-buttons {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 12px;
-    flex-wrap: nowrap;
   }
 
   .page-transactionrequest .status-filter-form {
-    width: 185px;
-    flex: 0 1 185px;
+    flex: 0 0 190px;
+    width: 190px;
   }
 
   .page-transactionrequest .next-approver-filter-form {
-    width: 250px;
-    max-width: 250px;
-    flex: 0 1 250px;
+    flex: 0 0 270px;
+    width: 270px;
     margin-left: auto;
   }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    height: 37px;
-  }
-
-  .page-transactionrequest .status-filter-select,
-  .page-transactionrequest .next-approver-select {
-    height: 35px;
-    font-size: 10px;
-  }
 }
 
 /* =========================================================
-   TABLET — 769px TO 1024px
+   LAPTOP — 769px TO 1200px
+   Keep both dropdowns on ONE ROW.
    ========================================================= */
 
-@media (min-width: 769px) and (max-width: 1024px) {
-  .page-transactionrequest .filter-bar {
-    padding: 10px 14px;
-  }
-
-  .page-transactionrequest .filter-buttons {
-    display: grid;
-    grid-template-columns: minmax(170px, 1fr) minmax(210px, 1fr);
+@media (min-width: 769px) and (max-width: 1200px) {
+  .page-transactionrequest .filter-controls {
+    display: flex;
     align-items: center;
-    gap: 9px;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 10px;
   }
 
-  .page-transactionrequest .status-filter-form,
+  .page-transactionrequest .status-filter-form {
+    flex: 0 1 190px;
+    width: 190px;
+  }
+
   .page-transactionrequest .next-approver-filter-form {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    flex: none;
-    margin: 0;
-  }
-
-  .page-transactionrequest .status-filter-wrap,
-  .page-transactionrequest .next-approver-filter-wrap {
-    width: 100%;
-    height: 38px;
+    flex: 0 1 270px;
+    width: 270px;
+    margin-left: auto;
   }
 }
 
 /* =========================================================
-   PHONE — 481px TO 768px
+   TABLET — 481px TO 768px
    ========================================================= */
 
 @media (min-width: 481px) and (max-width: 768px) {
   .page-transactionrequest .filter-bar {
-    padding: 10px 12px;
+    padding: 12px 14px;
   }
 
-  .page-transactionrequest .filter-buttons {
+  .page-transactionrequest .filter-controls {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    align-items: center;
+    gap: 10px;
   }
 
   .page-transactionrequest .status-filter-form,
   .page-transactionrequest .next-approver-filter-form {
     width: 100%;
-    max-width: none;
     min-width: 0;
-    flex: none;
+    max-width: none;
     margin: 0;
   }
 
   .page-transactionrequest .status-filter-wrap,
   .page-transactionrequest .next-approver-filter-wrap {
     width: 100%;
-    height: 39px;
-  }
-
-  .page-transactionrequest .status-filter-select,
-  .page-transactionrequest .next-approver-select {
-    height: 37px;
-    font-size: 10.5px;
   }
 }
 
 /* =========================================================
-   SMALL PHONE — 480px AND BELOW
+   PHONE — <=480px
    ========================================================= */
 
 @media (max-width: 480px) {
   .page-transactionrequest .filter-bar {
-    padding: 9px 10px;
+    padding: 11px 12px;
   }
 
-  .page-transactionrequest .filter-buttons {
+  .page-transactionrequest .filter-controls {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    justify-content: flex-start;
     gap: 8px;
   }
 
@@ -2396,48 +1697,42 @@ textarea {
   .page-transactionrequest .next-approver-filter-form {
     width: 100%;
     max-width: none;
-    min-width: 0;
-    flex: none;
+    flex: 0 0 auto;
     margin: 0;
   }
 
   .page-transactionrequest .status-filter-wrap,
   .page-transactionrequest .next-approver-filter-wrap {
     width: 100%;
-    height: 40px;
-    padding: 0 10px;
+    height: 38px;
   }
 
   .page-transactionrequest .status-filter-select,
   .page-transactionrequest .next-approver-select {
-    height: 38px;
-    font-size: 11px;
+    min-width: 0;
+    width: 100%;
+    max-width: none;
   }
 }
 
 /* =========================================================
-   VERY SMALL PHONE — 360px AND BELOW
+   VERY SMALL PHONE — <=360px
    ========================================================= */
 
 @media (max-width: 360px) {
   .page-transactionrequest .filter-bar {
-    padding: 8px;
-  }
-
-  .page-transactionrequest .filter-buttons {
-    gap: 7px;
+    padding-left: 9px;
+    padding-right: 9px;
   }
 
   .page-transactionrequest .status-filter-wrap,
   .page-transactionrequest .next-approver-filter-wrap {
-    height: 38px;
-    padding: 0 9px;
-    gap: 7px;
+    padding-left: 9px;
+    padding-right: 9px;
   }
 
   .page-transactionrequest .status-filter-select,
   .page-transactionrequest .next-approver-select {
-    height: 36px;
-    font-size: 10px;
+    font-size: 9px;
   }
 }
