@@ -159,6 +159,60 @@ if ($profileDb instanceof PDO && $profileUserId > 0) {
 
             $profileMessage = 'Profile berhasil diperbarui.';
             $profileMessageType = 'success';
+
+            // Password bersifat opsional pada form Edit Profile.
+            $currentPassword = (string)($_POST['current_password'] ?? '');
+            $newPassword = (string)($_POST['new_password'] ?? '');
+            $confirmPassword = (string)($_POST['confirm_password'] ?? '');
+
+            if ($currentPassword !== '' || $newPassword !== '' || $confirmPassword !== '') {
+                if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+                    throw new RuntimeException('Lengkapi semua kolom password untuk mengganti password.');
+                }
+                if (strlen($newPassword) < 8) {
+                    throw new RuntimeException('Password baru minimal 8 karakter.');
+                }
+                if ($newPassword !== $confirmPassword) {
+                    throw new RuntimeException('Konfirmasi password tidak cocok.');
+                }
+
+                $passwordColumn = null;
+                foreach (['password', 'password_hash', 'user_password'] as $candidateColumn) {
+                    $checkColumn = $profileDb->prepare("
+                        SELECT COUNT(*) FROM information_schema.columns
+                        WHERE table_schema = DATABASE()
+                          AND table_name = 'users'
+                          AND column_name = ?
+                    ");
+                    $checkColumn->execute([$candidateColumn]);
+                    if ((int)$checkColumn->fetchColumn() > 0) {
+                        $passwordColumn = $candidateColumn;
+                        break;
+                    }
+                }
+
+                if ($passwordColumn === null) {
+                    throw new RuntimeException('Kolom password pada tabel users tidak ditemukan.');
+                }
+
+                $passwordStmt = $profileDb->prepare("SELECT `" . $passwordColumn . "` FROM users WHERE id = ? LIMIT 1");
+                $passwordStmt->execute([$profileUserId]);
+                $storedPassword = (string)$passwordStmt->fetchColumn();
+
+                if ($storedPassword === '' || !password_verify($currentPassword, $storedPassword)) {
+                    throw new RuntimeException('Password saat ini tidak benar.');
+                }
+
+                $updatePassword = $profileDb->prepare(
+                    "UPDATE users SET `" . $passwordColumn . "` = ? WHERE id = ?"
+                );
+                $updatePassword->execute([
+                    password_hash($newPassword, PASSWORD_DEFAULT),
+                    $profileUserId
+                ]);
+
+                $profileMessage = 'Profile dan password berhasil diperbarui.';
+            }
         }
 
         // Ambil data profile terbaru.
@@ -1308,111 +1362,204 @@ $notifUnread = count($notifUnreadItems);
     <?php if ($showMenu('data_user')): ?><a class="<?= $currentPage === 'data_user.php' ? 'active' : '' ?>" href="data_user.php"><i class="fas fa-users"></i><span>Data User</span></a><?php endif; ?>
     <?php if ($showMenu('data_sales') && file_exists('data_sales.php')): ?><a class="<?= $currentPage === 'data_sales.php' ? 'active' : '' ?>" href="data_sales.php"><i class="fas fa-user-tie"></i><span>Data Sales</span></a><?php endif; ?>
     <div class="spacer"></div>
-    <div class="rail-user"><div class="mini-avatar"><?= strtoupper(substr($fullName, 0, 1)) ?></div><div><strong><?= htmlspecialchars($fullName) ?></strong><span><?= htmlspecialchars(getRoleLabel($role)) ?></span></div></div>
-    <a class="<?= $currentPage === 'logout.php' ? 'active' : '' ?>" href="logout.php"><i class="fas fa-power-off"></i><span>Logout</span></a>
 </aside>
 
 <!-- =========================================================
-     PROFILE MODAL
+     PROFILE PANEL — PREVIEW / EDIT
      ========================================================= -->
 <div class="profile-modal" id="profileModal" hidden>
     <div class="profile-modal-backdrop" data-profile-close></div>
 
-    <section class="profile-card" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
-        <div class="profile-card-header">
-            <div>
-                <span class="profile-eyebrow">ACCOUNT</span>
-                <h2 id="profileModalTitle">Profile Pribadi</h2>
-                <p>Kelola informasi akun dan foto profile Anda.</p>
-            </div>
-            <button type="button" class="profile-close" data-profile-close aria-label="Tutup">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <?php if ($profileMessage !== ''): ?>
-            <div class="profile-alert profile-alert-<?= htmlspecialchars($profileMessageType) ?>">
-                <i class="fas <?= $profileMessageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?>"></i>
-                <span><?= htmlspecialchars($profileMessage) ?></span>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" enctype="multipart/form-data" class="profile-form">
-            <input type="hidden" name="action" value="update_profile">
-
-            <div class="profile-photo-section">
-                <div class="profile-photo-wrap">
-                    <div class="profile-photo-preview" id="profilePhotoPreview">
-                        <?php if ($profilePhoto !== ''): ?>
-                            <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Foto profile">
-                        <?php else: ?>
-                            <span><?= htmlspecialchars($profileInitial) ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <label class="profile-photo-upload" for="profilePhotoInput" title="Ganti foto profile">
-                        <i class="fas fa-camera"></i>
-                    </label>
-                    <input
-                        type="file"
-                        id="profilePhotoInput"
-                        name="profile_photo"
-                        accept="image/jpeg,image/png,image/webp"
-                        hidden
-                    >
+    <section class="profile-card" role="dialog" aria-modal="false" aria-labelledby="profileModalTitle">
+        <!-- PREVIEW MODE -->
+        <div class="profile-preview" id="profilePreview">
+            <div class="profile-preview-top">
+                <div>
+                    <span class="profile-eyebrow">ACCOUNT</span>
+                    <h2 id="profileModalTitle">Profile Pribadi</h2>
+                    <p>Informasi akun Anda.</p>
                 </div>
-
-                <div class="profile-photo-info">
-                    <strong>Foto Profile</strong>
-                    <span>JPG, PNG atau WEBP</span>
-                    <small>Maksimal 2 MB</small>
-                    <label for="profilePhotoInput" class="profile-upload-btn">
-                        <i class="fas fa-upload"></i> Pilih Foto
-                    </label>
-                </div>
-            </div>
-
-            <div class="profile-grid">
-                <div class="profile-field profile-field-full">
-                    <label>Nama Lengkap</label>
-                    <div class="profile-input-wrap">
-                        <i class="fas fa-user"></i>
-                        <input type="text" name="profile_full_name" value="<?= htmlspecialchars($profileFullName) ?>" required>
-                    </div>
-                </div>
-
-                <div class="profile-field">
-                    <label>Username</label>
-                    <div class="profile-input-wrap">
-                        <i class="fas fa-at"></i>
-                        <input type="text" value="<?= htmlspecialchars($profileUsername) ?>" readonly>
-                    </div>
-                    <small class="profile-help">Username tidak dapat diubah.</small>
-                </div>
-
-                <div class="profile-field">
-                    <label>Email</label>
-                    <div class="profile-input-wrap">
-                        <i class="fas fa-envelope"></i>
-                        <input type="email" name="profile_email" value="<?= htmlspecialchars($profileEmail) ?>">
-                    </div>
-                </div>
-
-                <div class="profile-field profile-field-full">
-                    <label>No. Telepon</label>
-                    <div class="profile-input-wrap">
-                        <i class="fas fa-phone"></i>
-                        <input type="text" name="profile_phone" value="<?= htmlspecialchars($profilePhone) ?>" placeholder="Masukkan nomor telepon">
-                    </div>
-                </div>
-            </div>
-
-            <div class="profile-card-footer">
-                <button type="button" class="profile-btn profile-btn-secondary" data-profile-close>Batal</button>
-                <button type="submit" class="profile-btn profile-btn-primary">
-                    <i class="fas fa-save"></i> Simpan Profile
+                <button type="button" class="profile-close" data-profile-close aria-label="Tutup">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-        </form>
+
+            <div class="profile-identity">
+                <div class="profile-avatar-large">
+                    <?php if ($profilePhoto !== ''): ?>
+                        <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Foto profile">
+                    <?php else: ?>
+                        <span><?= htmlspecialchars($profileInitial) ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="profile-identity-text">
+                    <strong><?= htmlspecialchars($profileFullName) ?></strong>
+                    <span>@<?= htmlspecialchars($profileUsername) ?></span>
+                    <small><i class="fas fa-shield-alt"></i> <?= htmlspecialchars(getRoleLabel($role)) ?></small>
+                </div>
+            </div>
+
+            <div class="profile-info-list">
+                <div class="profile-info-item">
+                    <span class="profile-info-icon"><i class="fas fa-envelope"></i></span>
+                    <div><small>Email</small><strong><?= htmlspecialchars($profileEmail ?: '-') ?></strong></div>
+                </div>
+                <div class="profile-info-item">
+                    <span class="profile-info-icon"><i class="fas fa-phone"></i></span>
+                    <div><small>No. Telepon</small><strong><?= htmlspecialchars($profilePhone ?: '-') ?></strong></div>
+                </div>
+                <div class="profile-info-item">
+                    <span class="profile-info-icon"><i class="fas fa-user"></i></span>
+                    <div><small>Username</small><strong><?= htmlspecialchars($profileUsername ?: '-') ?></strong></div>
+                </div>
+            </div>
+
+            <div class="profile-preview-footer">
+                <button type="button" class="profile-btn profile-btn-edit" id="profileEditBtn">
+                    <i class="fas fa-pen"></i> Edit Profile
+                </button>
+                <a href="logout.php" class="profile-btn profile-btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- EDIT MODE -->
+        <div class="profile-edit" id="profileEdit" hidden>
+            <div class="profile-card-header">
+                <div>
+                    <span class="profile-eyebrow">ACCOUNT SETTINGS</span>
+                    <h2>Edit Profile</h2>
+                    <p>Perbarui informasi dan keamanan akun.</p>
+                </div>
+                <button type="button" class="profile-close" data-profile-close aria-label="Tutup">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <?php if ($profileMessage !== ''): ?>
+                <div class="profile-alert profile-alert-<?= htmlspecialchars($profileMessageType) ?>">
+                    <i class="fas <?= $profileMessageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle' ?>"></i>
+                    <span><?= htmlspecialchars($profileMessage) ?></span>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST" enctype="multipart/form-data" class="profile-form">
+                <input type="hidden" name="action" value="update_profile">
+
+                <div class="profile-photo-section">
+                    <div class="profile-photo-wrap">
+                        <div class="profile-photo-preview" id="profilePhotoPreview">
+                            <?php if ($profilePhoto !== ''): ?>
+                                <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Foto profile">
+                            <?php else: ?>
+                                <span><?= htmlspecialchars($profileInitial) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <label class="profile-photo-upload" for="profilePhotoInput" title="Ganti foto profile">
+                            <i class="fas fa-camera"></i>
+                        </label>
+                        <input type="file" id="profilePhotoInput" name="profile_photo"
+                               accept="image/jpeg,image/png,image/webp" hidden>
+                    </div>
+                    <div class="profile-photo-info">
+                        <strong>Foto Profile</strong>
+                        <span>JPG, PNG atau WEBP</span>
+                        <small>Maksimal 2 MB</small>
+                        <label for="profilePhotoInput" class="profile-upload-btn">
+                            <i class="fas fa-upload"></i> Pilih Foto
+                        </label>
+                    </div>
+                </div>
+
+                <div class="profile-grid">
+                    <div class="profile-field profile-field-full">
+                        <label>Nama Lengkap</label>
+                        <div class="profile-input-wrap">
+                            <i class="fas fa-user"></i>
+                            <input type="text" name="profile_full_name" value="<?= htmlspecialchars($profileFullName) ?>" required>
+                        </div>
+                    </div>
+
+                    <div class="profile-field">
+                        <label>Username</label>
+                        <div class="profile-input-wrap">
+                            <i class="fas fa-at"></i>
+                            <input type="text" value="<?= htmlspecialchars($profileUsername) ?>" readonly>
+                        </div>
+                    </div>
+
+                    <div class="profile-field">
+                        <label>Email</label>
+                        <div class="profile-input-wrap">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" name="profile_email" value="<?= htmlspecialchars($profileEmail) ?>">
+                        </div>
+                    </div>
+
+                    <div class="profile-field profile-field-full">
+                        <label>No. Telepon</label>
+                        <div class="profile-input-wrap">
+                            <i class="fas fa-phone"></i>
+                            <input type="text" name="profile_phone" value="<?= htmlspecialchars($profilePhone) ?>" placeholder="Masukkan nomor telepon">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="password-section">
+                    <div class="password-section-title">
+                        <span class="password-section-icon"><i class="fas fa-lock"></i></span>
+                        <div>
+                            <strong>Reset Password</strong>
+                            <small>Ganti password akun Anda secara aman.</small>
+                        </div>
+                    </div>
+
+                    <div class="password-grid">
+                        <div class="profile-field password-full">
+                            <label>Password Saat Ini</label>
+                            <div class="profile-input-wrap password-wrap">
+                                <i class="fas fa-key"></i>
+                                <input type="password" name="current_password" autocomplete="current-password" placeholder="Masukkan password saat ini">
+                                <button type="button" class="password-toggle" data-password-target="current_password" aria-label="Tampilkan password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label>Password Baru</label>
+                            <div class="profile-input-wrap password-wrap">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" name="new_password" minlength="8" autocomplete="new-password" placeholder="Min. 8 karakter">
+                                <button type="button" class="password-toggle" data-password-target="new_password" aria-label="Tampilkan password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label>Konfirmasi Password</label>
+                            <div class="profile-input-wrap password-wrap">
+                                <i class="fas fa-check"></i>
+                                <input type="password" name="confirm_password" minlength="8" autocomplete="new-password" placeholder="Ulangi password baru">
+                                <button type="button" class="password-toggle" data-password-target="confirm_password" aria-label="Tampilkan password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="profile-help password-help">Kosongkan kolom password jika tidak ingin menggantinya.</small>
+                </div>
+
+                <div class="profile-card-footer">
+                    <button type="button" class="profile-btn profile-btn-secondary" id="profileBackBtn">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </button>
+                    <button type="submit" class="profile-btn profile-btn-primary">
+                        <i class="fas fa-save"></i> Simpan Profile
+                    </button>
+                </div>
+            </form>
+        </div>
     </section>
 </div>
 
@@ -1534,13 +1681,27 @@ $notifUnread = count($notifUnreadItems);
     const trigger = document.querySelector('.profile-trigger');
     if (!modal || !trigger) return;
 
+    const previewMode = document.getElementById('profilePreview');
+    const editMode = document.getElementById('profileEdit');
+    const editBtn = document.getElementById('profileEditBtn');
+    const backBtn = document.getElementById('profileBackBtn');
     const closeButtons = modal.querySelectorAll('[data-profile-close]');
     const fileInput = document.getElementById('profilePhotoInput');
     const preview = document.getElementById('profilePhotoPreview');
 
+    function showPreview() {
+        previewMode.hidden = false;
+        editMode.hidden = true;
+    }
+
+    function showEdit() {
+        previewMode.hidden = true;
+        editMode.hidden = false;
+    }
+
     function openProfile() {
         modal.hidden = false;
-        document.body.classList.add('profile-modal-open');
+        showPreview();
         trigger.setAttribute('aria-expanded', 'true');
         requestAnimationFrame(() => modal.classList.add('show'));
     }
@@ -1549,13 +1710,20 @@ $notifUnread = count($notifUnreadItems);
         modal.classList.remove('show');
         trigger.setAttribute('aria-expanded', 'false');
         setTimeout(() => { modal.hidden = true; }, 180);
-        document.body.classList.remove('profile-modal-open');
     }
 
     trigger.addEventListener('click', function (e) {
         e.stopPropagation();
         if (modal.hidden) openProfile();
         else closeProfile();
+    });
+
+    editBtn?.addEventListener('click', function () {
+        showEdit();
+    });
+
+    backBtn?.addEventListener('click', function () {
+        showPreview();
     });
 
     closeButtons.forEach(function (button) {
@@ -1586,6 +1754,30 @@ $notifUnread = count($notifUnreadItems);
             reader.readAsDataURL(file);
         });
     }
+
+    modal.querySelectorAll('.password-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const input = document.querySelector('[name="' + this.dataset.passwordTarget + '"]');
+            if (!input) return;
+
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            this.innerHTML = isPassword
+                ? '<i class="fas fa-eye-slash"></i>'
+                : '<i class="fas fa-eye"></i>';
+        });
+    });
+
+    // Clicking outside the actual card closes the panel.
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeProfile();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!modal.hidden && !modal.querySelector('.profile-card').contains(e.target) && !trigger.contains(e.target)) {
+            closeProfile();
+        }
+    });
 
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && !modal.hidden) closeProfile();
