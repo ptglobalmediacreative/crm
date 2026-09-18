@@ -1,55 +1,23 @@
-:root {
-  --bg: #060b18;
-  --panel: #0b1222;
-  --panel2: #0d1730;
-  --line: rgba(148, 163, 184, 0.16);
-  --text: #f7f9ff;
-  --muted: #8e9bb5;
-  --blue: #3b82f6;
-  --blue2: #60a5fa;
-  --green: #34d399;
-  --red: #fb7185;
-  --amber: #fbbf24;
-}
+/* =========================================================
+   TRANSACTIONREQUEST
+   Page-specific styles only.
+   Shared theme/layout: app.css
+   Navigation: navigation.css
+   ========================================================= */
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* =========================================================
+   TRANSACTIONREQUEST.CSS — PAGE-SCOPED
+   Required page wrapper: .page-transactionrequest
+   ========================================================= */
 
-html {
-  background: var(--bg);
-  scrollbar-color: rgba(96, 165, 250, 0.32) var(--bg);
-  scrollbar-width: thin;
-}
-
-body {
-  font-family: Inter, Arial, sans-serif;
-  background:
-    radial-gradient(
-      circle at 70% -10%,
-      rgba(37, 99, 235, 0.2),
-      transparent 30%
-    ),
-    linear-gradient(145deg, #050914, #08111f 55%, #07162c);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-a {
-  color: inherit;
-}
-
-.content {
+.page-transactionrequest .content {
   margin-left: 245px;
   width: calc(100% - 245px);
   padding: 26px 28px 50px;
   min-height: calc(100vh - 72px);
 }
 
-.page-header {
+.page-transactionrequest .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -66,7 +34,7 @@ a {
   line-height: 1.1;
   font-weight: 800;
   letter-spacing: -0.4px;
-  color: var(--text);
+  color: var(--app-text);
   margin: 0;
 }
 
@@ -84,7 +52,7 @@ a {
 
 .page-header h4 span i {
   font-size: 15px;
-  color: var(--blue2);
+  color: var(--app-blue-light);
 }
 
 .stat-grid {
@@ -101,7 +69,7 @@ a {
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 17px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   padding: 18px 19px;
@@ -131,15 +99,15 @@ a {
 }
 .stat-icon.blue {
   background: rgba(59, 130, 246, 0.12);
-  color: var(--blue2);
+  color: var(--app-blue-light);
 }
 .stat-icon.red {
   background: rgba(251, 113, 133, 0.1);
-  color: var(--red);
+  color: var(--app-red);
 }
 
 .stat-number {
-  color: var(--text);
+  color: var(--app-text);
   font-size: 24px;
   font-weight: 800;
   line-height: 1;
@@ -155,13 +123,13 @@ a {
   color: #70809b;
 }
 
-.card-custom {
+.page-transactionrequest .card-custom {
   background: linear-gradient(
     145deg,
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 16px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   overflow: hidden;
@@ -173,7 +141,7 @@ a {
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
 }
 
-.card-header-custom {
+.page-transactionrequest .card-header-custom {
   min-height: 62px;
   padding: 13px 17px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -186,13 +154,13 @@ a {
 
 .card-header-custom h6 {
   font-weight: 700;
-  color: var(--text);
+  color: var(--app-text);
   margin: 0;
   font-size: 12px;
 }
 
 .card-header-custom h6 i {
-  color: var(--blue2);
+  color: var(--app-blue-light);
   margin-right: 8px;
 }
 
@@ -256,7 +224,7 @@ a {
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
 }
 
-.filter-buttons {
+.page-transactionrequest .filter-buttons {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -318,7 +286,7 @@ a {
 }
 
 .next-approver-filter-wrap > i {
-  color: var(--blue2);
+  color: var(--app-blue-light);
   font-size: 10px;
 }
 
@@ -340,12 +308,12 @@ a {
   color: #e8eef7;
 }
 
-.table-responsive {
+.page-transactionrequest .table-responsive {
   background: transparent;
   overflow-x: auto;
 }
 
-.table-custom {
+.page-transactionrequest .table-custom {
   margin-bottom: 0 !important;
   width: 100%;
   min-width: 1080px;
@@ -391,7 +359,7 @@ a {
 }
 
 .table-custom a {
-  color: var(--blue2) !important;
+  color: var(--app-blue-light) !important;
   text-decoration: none;
   font-weight: 700;
 }
@@ -491,7 +459,7 @@ a {
 
 .badge-status-tr.rejected {
   background: rgba(251, 113, 133, 0.1);
-  color: var(--red);
+  color: var(--app-red);
   border-color: rgba(251, 113, 133, 0.15);
 }
 
@@ -532,7 +500,7 @@ a {
   border-top: 1px solid rgba(148, 163, 184, 0.08) !important;
 }
 
-.pagination {
+.page-transactionrequest .pagination {
   gap: 4px;
 }
 
@@ -558,11 +526,11 @@ a {
   box-shadow: 0 0 15px rgba(59, 130, 246, 0.22);
 }
 
-.text-muted {
+.page-transactionrequest .text-muted {
   color: #64748b !important;
 }
 
-.footer-text {
+.page-transactionrequest .footer-text {
   text-align: center;
   color: #44536c;
   font-size: 9px;
@@ -575,34 +543,11 @@ a {
 }
 
 .footer-text a:hover {
-  color: var(--blue2);
-}
-
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.3);
-  border-radius: 999px;
-  border: 1px solid rgba(6, 11, 24, 0.9);
-}
-
-html::-webkit-scrollbar-thumb:hover,
-body::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.48);
+  color: var(--app-blue-light);
 }
 
 @media (max-width: 991px) {
-  .content {
+  .page-transactionrequest .content {
     margin-left: 0;
     width: 100%;
     padding: 92px 18px 24px;
@@ -612,28 +557,28 @@ body::-webkit-scrollbar-thumb {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .page-header {
+  .page-transactionrequest .page-header {
     align-items: flex-start;
   }
 }
 
 @media (max-width: 800px) {
-  .content {
+  .page-transactionrequest .content {
     padding: 20px 14px 40px;
   }
 
-  .page-header {
+  .page-transactionrequest .page-header {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .table-custom {
+  .page-transactionrequest .table-custom {
     min-width: 1080px;
   }
 }
 
 @media (max-width: 520px) {
-  .content {
+  .page-transactionrequest .content {
     padding: 17px 10px 34px;
   }
 
@@ -661,7 +606,7 @@ body::-webkit-scrollbar-thumb {
     font-size: 20px;
   }
 
-  .card-header-custom {
+  .page-transactionrequest .card-header-custom {
     align-items: flex-start;
     padding: 13px;
   }
@@ -675,7 +620,7 @@ body::-webkit-scrollbar-thumb {
     width: auto;
   }
 
-  .filter-buttons {
+  .page-transactionrequest .filter-buttons {
     overflow-x: auto;
     flex-wrap: nowrap;
     padding-bottom: 2px;

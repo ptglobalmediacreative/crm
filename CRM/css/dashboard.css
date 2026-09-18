@@ -1,10 +1,22 @@
 /* =========================================================
+   DASHBOARD
+   Page-specific styles only.
+   Shared theme/layout: app.css
+   Navigation: navigation.css
+   ========================================================= */
+
+/* =========================================================
+   DASHBOARD.CSS — PAGE-SCOPED
+   Required page wrapper: .page-dashboard
+   ========================================================= */
+
+/* =========================================================
    DASHBOARD — PT GANDA ELANG TANGGUH CRM
    Page-specific styles only.
    Navigation styles are handled by css/navigation.css.
    ========================================================= */
 
-.content {
+.page-dashboard .content {
   width: calc(100% - 245px);
   margin-left: 245px;
   min-height: calc(100vh - 72px);
@@ -18,7 +30,7 @@
    Hero / Header
    ========================= */
 
-.hero-row {
+.page-dashboard .hero-row {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -48,14 +60,14 @@
   font-size: 11px;
 }
 
-.filters {
+.page-dashboard .filters {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.filter {
+.page-dashboard .filter {
   height: 36px;
   padding: 0 11px;
   border: 1px solid rgba(148, 163, 184, 0.16);
@@ -509,7 +521,7 @@
   font-size: 7px;
 }
 
-.footer {
+.page-dashboard .footer {
   padding-top: 18px;
   color: #3f4d63;
   font-size: 8px;
@@ -538,13 +550,13 @@
 }
 
 @media (max-width: 800px) {
-  .content {
+  .page-dashboard .content {
     width: 100%;
     margin-left: 0;
     padding: 20px 15px 40px;
   }
 
-  .hero-row {
+  .page-dashboard .hero-row {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -563,7 +575,7 @@
 }
 
 @media (max-width: 480px) {
-  .content {
+  .page-dashboard .content {
     padding: 16px 12px 30px;
   }
 

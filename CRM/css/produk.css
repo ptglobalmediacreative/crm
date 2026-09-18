@@ -1,42 +1,22 @@
-:root {
-  --bg: #060b18;
-  --panel: #0b1222;
-  --line: rgba(148, 163, 184, 0.16);
-  --text: #f7f9ff;
-  --muted: #8e9bb5;
-  --blue: #3b82f6;
-  --blue2: #60a5fa;
-  --green: #34d399;
-  --red: #fb7185;
-}
-* {
-  box-sizing: border-box;
-}
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  background: var(--bg);
-  color: var(--text);
-}
-body {
-  font-family: Inter, Arial, sans-serif;
-  background:
-    radial-gradient(
-      circle at 70% -10%,
-      rgba(37, 99, 235, 0.2),
-      transparent 30%
-    ),
-    linear-gradient(145deg, #050914, #08111f 55%, #07162c);
-  overflow-x: hidden;
-}
-.content {
+/* =========================================================
+   PRODUK
+   Page-specific styles only.
+   Shared theme/layout: app.css
+   Navigation: navigation.css
+   ========================================================= */
+
+/* =========================================================
+   PRODUK.CSS — PAGE-SCOPED
+   Required page wrapper: .page-produk
+   ========================================================= */
+
+.page-produk .content {
   margin-left: 245px;
   width: calc(100% - 245px);
   padding: 28px 30px 52px;
   min-height: calc(100vh - 72px);
 }
-.page-header {
+.page-produk .page-header {
   min-height: 48px;
   margin-bottom: 20px;
   display: flex;
@@ -67,7 +47,7 @@ body {
 }
 .page-header h4 span i {
   font-size: 15px;
-  color: var(--blue2);
+  color: var(--app-blue-light);
 }
 .page-header > div:last-child {
   display: flex;
@@ -75,13 +55,13 @@ body {
   gap: 8px;
   flex-wrap: wrap;
 }
-.card-custom {
+.page-produk .card-custom {
   background: linear-gradient(
     145deg,
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 17px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   overflow: hidden;
@@ -91,7 +71,7 @@ body {
   border-color: rgba(96, 165, 250, 0.35);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
 }
-.card-header-custom {
+.page-produk .card-header-custom {
   min-height: 62px;
   padding: 13px 17px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -108,7 +88,7 @@ body {
   font-weight: 700;
 }
 .card-header-custom h6 i {
-  color: var(--blue2);
+  color: var(--app-blue-light);
   margin-right: 8px;
 }
 .card-header-custom form {
@@ -127,15 +107,15 @@ body {
   justify-content: center;
   padding: 0 13px !important;
 }
-.card-body-custom {
+.page-produk .card-body-custom {
   padding: 0;
   background: rgba(3, 8, 18, 0.12);
   overflow-x: auto;
 }
-.table-responsive {
+.page-produk .table-responsive {
   overflow-x: auto;
 }
-.table-custom {
+.page-produk .table-custom {
   width: 100%;
   min-width: 680px;
   margin: 0;
@@ -312,7 +292,7 @@ body {
   background: rgba(5, 12, 25, 0.35) !important;
   border-top: 1px solid rgba(148, 163, 184, 0.08) !important;
 }
-.pagination {
+.page-produk .pagination {
   gap: 4px;
   margin: 0;
 }
@@ -335,7 +315,7 @@ body {
   color: #fff;
   box-shadow: 0 0 15px rgba(59, 130, 246, 0.22);
 }
-.form-label {
+.page-produk .form-label {
   font-weight: 600;
   font-size: 11px;
   color: #aebbd0;
@@ -376,14 +356,14 @@ body {
 .currency-input .form-control {
   padding-left: 38px !important;
 }
-.modal-content {
+.page-produk .modal-content {
   background: linear-gradient(145deg, #0c172b, #07101f);
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 16px;
   color: #dbe5f5;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
 }
-.modal-header {
+.page-produk .modal-header {
   min-height: 56px;
   padding: 14px 18px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -397,12 +377,12 @@ body {
   color: #f7f9ff;
 }
 .modal-title i {
-  color: var(--blue2) !important;
+  color: var(--app-blue-light) !important;
 }
-.modal-body {
+.page-produk .modal-body {
   padding: 20px;
 }
-.modal-footer {
+.page-produk .modal-footer {
   padding: 12px 18px;
   border-top: 1px solid rgba(148, 163, 184, 0.1);
 }
@@ -410,7 +390,7 @@ body {
   filter: invert(1) grayscale(1);
   opacity: 0.55;
 }
-.detail-item {
+.page-produk .detail-item {
   display: flex;
   gap: 18px;
   padding: 11px 0;
@@ -432,7 +412,7 @@ body {
   font-size: 10px;
   word-break: break-word;
 }
-.footer-text {
+.page-produk .footer-text {
   text-align: center;
   color: #44536c;
   font-size: 9px;
@@ -445,40 +425,11 @@ body {
 .footer-text a:hover {
   color: #60a5fa;
 }
-html,
-body {
-  scrollbar-color: rgba(96, 165, 250, 0.32) #060b18;
-  scrollbar-width: thin;
-}
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
-  background: #060b18;
-}
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.3);
-  border-radius: 999px;
-}
-.table-responsive::-webkit-scrollbar {
-  height: 7px;
-}
-.table-responsive::-webkit-scrollbar-track {
-  background: #060b18;
-}
-.table-responsive::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.28);
-  border-radius: 999px;
-}
 @media (max-width: 1050px) {
-  .content {
+  .page-produk .content {
     padding: 24px 20px 45px;
   }
-  .page-header {
+  .page-produk .page-header {
     align-items: flex-start;
   }
   .table-custom th:nth-child(2) {
@@ -489,12 +440,12 @@ body::-webkit-scrollbar-thumb {
   }
 }
 @media (max-width: 800px) {
-  .content {
+  .page-produk .content {
     margin-left: 0;
     width: 100%;
     padding: 20px 14px 40px;
   }
-  .page-header {
+  .page-produk .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 14px;
@@ -506,7 +457,7 @@ body::-webkit-scrollbar-thumb {
   .page-header > div:last-child button {
     flex: 1;
   }
-  .card-header-custom {
+  .page-produk .card-header-custom {
     align-items: flex-start;
   }
   .card-header-custom form {
@@ -515,7 +466,7 @@ body::-webkit-scrollbar-thumb {
   .card-header-custom form input {
     width: 100% !important;
   }
-  .table-custom {
+  .page-produk .table-custom {
     min-width: 680px;
   }
   .table-custom th,
@@ -536,7 +487,7 @@ body::-webkit-scrollbar-thumb {
   }
 }
 @media (max-width: 480px) {
-  .content {
+  .page-produk .content {
     padding: 18px 10px 35px;
   }
   .page-header h4 {
@@ -547,7 +498,7 @@ body::-webkit-scrollbar-thumb {
     height: 34px;
     border-radius: 9px;
   }
-  .table-custom {
+  .page-produk .table-custom {
     min-width: 660px;
   }
   .table-custom th:nth-child(2) {
@@ -564,7 +515,7 @@ body::-webkit-scrollbar-thumb {
   .table-custom td:nth-child(3) {
     padding-left: 28px;
   }
-  .detail-item {
+  .page-produk .detail-item {
     flex-direction: column;
     gap: 4px;
   }

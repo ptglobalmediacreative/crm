@@ -1,9 +1,16 @@
+/* NOTIFICATION — fully scoped; no global body/content/notif rules. */
+
+/* =========================================================
+   NOTIFICATION — GLOBAL NOTIFICATION COMPONENT
+   All selectors are notification-scoped.
+   ========================================================= */
+
 /* =========================================================
    NOTIFICATIONS — CLEAN PREMIUM DARK UI
    File: css/notifications.css
    ========================================================= */
 
-.notification-wrap {
+.notification-countication-wrap {
   position: relative;
   z-index: 10050;
 }
@@ -12,7 +19,7 @@
    BELL BUTTON
    ========================================================= */
 
-.notification-btn {
+.notification-countication-btn {
   position: relative;
   width: 40px;
   height: 40px;
@@ -28,17 +35,17 @@
   transition: all 0.18s ease;
 }
 
-.notification-btn:hover {
+.notification-countication-btn:hover {
   color: #e2c27c;
   border-color: rgba(201, 155, 69, 0.28);
   background: rgba(201, 155, 69, 0.07);
 }
 
-.notification-btn i {
+.notification-countication-btn i {
   font-size: 14px;
 }
 
-.notification-btn .notif {
+.notification-countication-btn .notification-countication-countication-count {
   position: absolute;
   top: 2px;
   right: 2px;
@@ -61,7 +68,7 @@
    PANEL
    ========================================================= */
 
-.notification-panel {
+.notification-countication-panel {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
@@ -94,11 +101,11 @@
    navigation.php menggunakan atribut hidden.
    JavaScript juga menambahkan class .show.
 */
-.notification-panel[hidden] {
+.notification-countication-panel[hidden] {
   display: block !important;
 }
 
-.notification-panel.show {
+.notification-countication-panel.show {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -109,7 +116,7 @@
    HEADER
    ========================================================= */
 
-.notification-head {
+.notification-countication-head {
   min-height: 62px;
   padding: 12px 14px 12px 17px;
   display: flex;
@@ -119,7 +126,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-.notification-head strong {
+.notification-countication-head strong {
   display: block;
   color: #f4f7fb;
   font-size: 12px;
@@ -127,7 +134,7 @@
   font-weight: 800;
 }
 
-.notification-head small {
+.notification-countication-head small {
   display: block;
   margin-top: 4px;
   color: #7d8ba2;
@@ -135,12 +142,12 @@
   line-height: 1.3;
 }
 
-.notification-unread-total {
+.notification-countication-unread-total {
   color: #dfbd76;
   font-weight: 800;
 }
 
-.notification-close {
+.notification-countication-close {
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
@@ -157,7 +164,7 @@
   transition: all 0.18s ease;
 }
 
-.notification-close:hover {
+.notification-countication-close:hover {
   color: #f3f5f8;
   border-color: rgba(255, 255, 255, 0.13);
   background: rgba(255, 255, 255, 0.06);
@@ -167,7 +174,7 @@
    TABS — BELUM DIBACA / SUDAH DIBACA
    ========================================================= */
 
-.notification-tabs {
+.notification-countication-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
@@ -175,7 +182,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.notification-tab {
+.notification-countication-tab {
   min-width: 0;
   height: 36px;
   display: flex;
@@ -197,18 +204,18 @@
   transition: all 0.16s ease;
 }
 
-.notification-tab:hover {
+.notification-countication-tab:hover {
   color: #d6dce5;
   background: rgba(255, 255, 255, 0.035);
 }
 
-.notification-tab.active {
+.notification-countication-tab.active {
   color: #e3c27d;
   border-color: rgba(201, 155, 69, 0.22);
   background: rgba(201, 155, 69, 0.09);
 }
 
-.notification-tab-count {
+.notification-countication-tab-count {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -223,7 +230,7 @@
   font-weight: 900;
 }
 
-.notification-tab.active .notification-tab-count {
+.notification-countication-tab.active .notification-countication-tab-count {
   background: rgba(201, 155, 69, 0.18);
   color: #e3c27d;
 }
@@ -232,7 +239,7 @@
    LIST
    ========================================================= */
 
-.notification-list {
+.notification-countication-list {
   max-height: 485px;
   padding: 7px;
   overflow-x: hidden;
@@ -241,24 +248,24 @@
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
 
-.notification-list[hidden] {
+.notification-countication-list[hidden] {
   display: none !important;
 }
 
-.notification-list::-webkit-scrollbar {
+.notification-countication-list::-webkit-scrollbar {
   width: 4px;
 }
 
-.notification-list::-webkit-scrollbar-track {
+.notification-countication-list::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.notification-list::-webkit-scrollbar-thumb {
+.notification-countication-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.13);
   border-radius: 20px;
 }
 
-.notification-list::-webkit-scrollbar-thumb:hover {
+.notification-countication-list::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.22);
 }
 
@@ -266,7 +273,7 @@
    NOTIFICATION ITEM
    ========================================================= */
 
-.notification-item {
+.notification-countication-item {
   position: relative;
   min-height: 66px;
   display: grid;
@@ -285,7 +292,7 @@
     opacity 0.16s ease;
 }
 
-.notification-item:hover {
+.notification-countication-item:hover {
   border-color: rgba(255, 255, 255, 0.065);
   background: rgba(255, 255, 255, 0.035);
 }
@@ -294,12 +301,12 @@
    UNREAD
    ========================================================= */
 
-.notification-item.notification-unread {
+.notification-countication-item.notification-countication-unread {
   background: rgba(201, 155, 69, 0.055);
   border-color: rgba(201, 155, 69, 0.055);
 }
 
-.notification-item.notification-unread::before {
+.notification-countication-item.notification-countication-unread::before {
   content: "";
   position: absolute;
   left: 3px;
@@ -310,7 +317,7 @@
   background: #d8b46d;
 }
 
-.notification-item.notification-unread:hover {
+.notification-countication-item.notification-countication-unread:hover {
   background: rgba(201, 155, 69, 0.085);
   border-color: rgba(201, 155, 69, 0.13);
 }
@@ -319,12 +326,12 @@
    READ
    ========================================================= */
 
-.notification-item.notification-read {
+.notification-countication-item.notification-countication-read {
   opacity: 0.58;
   background: rgba(255, 255, 255, 0.012);
 }
 
-.notification-item.notification-read:hover {
+.notification-countication-item.notification-countication-read:hover {
   opacity: 0.88;
   background: rgba(255, 255, 255, 0.035);
   border-color: rgba(255, 255, 255, 0.055);
@@ -334,7 +341,7 @@
    ICON
    ========================================================= */
 
-.notification-icon {
+.notification-countication-icon {
   width: 34px;
   height: 34px;
   display: flex;
@@ -347,7 +354,7 @@
   font-size: 11px;
 }
 
-.notification-unread .notification-icon {
+.notification-countication-unread .notification-countication-icon {
   color: #dfbb72;
   border-color: rgba(201, 155, 69, 0.18);
   background: rgba(201, 155, 69, 0.085);
@@ -355,31 +362,31 @@
 
 /* Notification types */
 
-.notification-type-approval .notification-icon {
+.notification-countication-type-approval .notification-countication-icon {
   color: #dfbb72;
   border-color: rgba(201, 155, 69, 0.18);
   background: rgba(201, 155, 69, 0.09);
 }
 
-.notification-type-incomplete .notification-icon {
+.notification-countication-type-incomplete .notification-countication-icon {
   color: #e3a65d;
   border-color: rgba(227, 166, 93, 0.18);
   background: rgba(227, 166, 93, 0.08);
 }
 
-.notification-type-new .notification-icon {
+.notification-countication-type-new .notification-countication-icon {
   color: #b9c6d8;
   border-color: rgba(185, 198, 216, 0.13);
   background: rgba(185, 198, 216, 0.06);
 }
 
-.notification-type-due .notification-icon {
+.notification-countication-type-due .notification-countication-icon {
   color: #e0b76c;
   border-color: rgba(224, 183, 108, 0.18);
   background: rgba(224, 183, 108, 0.08);
 }
 
-.notification-type-approved .notification-icon {
+.notification-countication-type-approved .notification-countication-icon {
   color: #8fc5a0;
   border-color: rgba(143, 197, 160, 0.16);
   background: rgba(143, 197, 160, 0.08);
@@ -389,12 +396,12 @@
    CONTENT
    ========================================================= */
 
-.notification-content {
+.notification-countication-content {
   min-width: 0;
   overflow: hidden;
 }
 
-.notification-content strong {
+.notification-countication-content strong {
   display: block;
   min-width: 0;
   margin: 0 0 4px;
@@ -408,11 +415,11 @@
   letter-spacing: 0;
 }
 
-.notification-unread .notification-content strong {
+.notification-countication-unread .notification-countication-content strong {
   color: #ffffff;
 }
 
-.notification-content > span {
+.notification-countication-content > span {
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -424,7 +431,7 @@
   word-break: break-word;
 }
 
-.notification-unread .notification-content > span {
+.notification-countication-unread .notification-countication-content > span {
   color: #9aa7b9;
 }
 
@@ -432,7 +439,7 @@
    Status "Belum Dibaca" / "Sudah Dibaca"
    dibuat jelas dan tidak bergantung pada line-clamp.
 */
-.notification-status-label {
+.notification-countication-status-label {
   display: block !important;
   margin-top: 5px;
   color: #d7b56f !important;
@@ -443,7 +450,7 @@
   text-transform: uppercase;
 }
 
-.notification-read .notification-status-label {
+.notification-countication-read .notification-countication-status-label {
   color: #657389 !important;
 }
 
@@ -451,7 +458,7 @@
    ARROW
    ========================================================= */
 
-.notification-arrow {
+.notification-countication-arrow {
   color: #4d5a70;
   font-size: 8px;
   transition:
@@ -459,7 +466,7 @@
     transform 0.16s ease;
 }
 
-.notification-item:hover .notification-arrow {
+.notification-countication-item:hover .notification-countication-arrow {
   color: #9aa6b8;
   transform: translateX(1px);
 }
@@ -468,7 +475,7 @@
    EMPTY STATE
    ========================================================= */
 
-.notification-empty {
+.notification-countication-empty {
   min-height: 180px;
   padding: 28px 18px;
   display: flex;
@@ -478,7 +485,7 @@
   text-align: center;
 }
 
-.notification-empty > i {
+.notification-countication-empty > i {
   width: 40px;
   height: 40px;
   margin-bottom: 10px;
@@ -492,14 +499,14 @@
   font-size: 14px;
 }
 
-.notification-empty strong {
+.notification-countication-empty strong {
   color: #d4dbe5;
   font-size: 10px;
   line-height: 1.3;
   font-weight: 800;
 }
 
-.notification-empty span {
+.notification-countication-empty span {
   max-width: 280px;
   margin-top: 5px;
   color: #637188;
@@ -512,40 +519,40 @@
    ========================================================= */
 
 @media (max-width: 520px) {
-  .notification-panel {
+  .notification-countication-panel {
     right: -5px;
     width: calc(100vw - 20px);
     max-height: calc(100vh - 90px);
   }
 
-  .notification-list {
+  .notification-countication-list {
     max-height: calc(100vh - 210px);
   }
 
-  .notification-item {
+  .notification-countication-item {
     grid-template-columns: 32px minmax(0, 1fr) 10px;
     gap: 8px;
     padding: 9px 8px;
   }
 
-  .notification-icon {
+  .notification-countication-icon {
     width: 32px;
     height: 32px;
   }
 }
 
 @media (max-width: 420px) {
-  .notification-panel {
+  .notification-countication-panel {
     right: 10px;
     left: auto;
     width: calc(100vw - 20px);
   }
 
-  .notification-tabs {
+  .notification-countication-tabs {
     padding: 7px;
   }
 
-  .notification-tab {
+  .notification-countication-tab {
     font-size: 8.5px;
   }
 }

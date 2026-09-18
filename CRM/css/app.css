@@ -1,0 +1,203 @@
+/* =========================================================
+   CRM GLOBAL FOUNDATION
+   One source of truth for theme + basic reset.
+   Page CSS files must NOT redefine :root/body/.content.
+   ========================================================= */
+
+:root {
+  --bg: #060b18;
+  --panel: #0b1222;
+  --panel-2: #0d1730;
+  --panel-3: #101b30;
+
+  --line: rgba(148, 163, 184, 0.14);
+  --line-soft: rgba(148, 163, 184, 0.09);
+
+  --text: #f7f9ff;
+  --text-soft: #dbe4f2;
+  --muted: #8e9bb5;
+  --muted-2: #64748b;
+
+  --blue: #3b82f6;
+  --blue-2: #60a5fa;
+  --cyan: #22d3ee;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --gold: #d8b46d;
+  --red: #fb7185;
+
+  --sidebar-width: 245px;
+  --topbar-height: 72px;
+
+  --radius-sm: 9px;
+  --radius-md: 11px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.14);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96, 165, 250, 0.32) var(--bg);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(
+      circle at 70% -10%,
+      rgba(37, 99, 235, 0.2),
+      transparent 30%
+    ),
+    linear-gradient(145deg, #050914, #08111f 55%, #07162c);
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(96, 165, 250, 0.22);
+  color: #fff;
+}
+
+/* Main page shell. Shared by every CRM page. */
+.app {
+  min-height: 100vh;
+}
+
+.content {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-height: calc(100vh - var(--topbar-height));
+  padding: 28px 30px 52px;
+}
+
+/* Shared page header */
+.page-header {
+  min-height: 48px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Shared card primitive */
+.card-custom {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.card-header-custom {
+  min-height: 62px;
+  padding: 13px 17px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: rgba(13, 23, 41, 0.55);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.card-header-custom h6 {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.card-body-custom {
+  padding: 17px;
+}
+
+/* Bootstrap modal consistency */
+.modal-content {
+  background: var(--panel) !important;
+  color: var(--text);
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--line-soft) !important;
+}
+
+.modal-header .btn-close {
+  filter: invert(1) grayscale(1);
+  opacity: 0.7;
+}
+
+.form-control,
+.form-select {
+  background: #0d1727 !important;
+  color: var(--text) !important;
+  border-color: var(--line) !important;
+}
+
+.form-control::placeholder {
+  color: #64748b !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(96, 165, 250, 0.45) !important;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.1) !important;
+}
+
+@media (max-width: 1100px) {
+  .content {
+    padding: 24px 22px 44px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0;
+    width: 100%;
+    padding: 20px 16px 36px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+  }
+}

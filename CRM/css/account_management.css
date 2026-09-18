@@ -1,49 +1,24 @@
-:root {
-  --bg: #060b18;
-  --panel: #0b1222;
-  --line: rgba(148, 163, 184, 0.16);
-  --text: #f7f9ff;
-  --muted: #8e9bb5;
-  --blue: #3b82f6;
-  --blue2: #60a5fa;
-}
+/* =========================================================
+   ACCOUNT_MANAGEMENT
+   Page-specific styles only.
+   Shared theme/layout: app.css
+   Navigation: navigation.css
+   ========================================================= */
 
-* {
-  box-sizing: border-box;
-}
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  background: #060b18 !important;
-  color: var(--text) !important;
-  scrollbar-color: rgba(96, 165, 250, 0.32) #060b18;
-  scrollbar-width: thin;
-}
-body {
-  font-family: Inter, Arial, sans-serif !important;
-  background:
-    radial-gradient(
-      circle at 70% -10%,
-      rgba(37, 99, 235, 0.2),
-      transparent 30%
-    ),
-    linear-gradient(145deg, #050914, #08111f 55%, #07162c) !important;
-  overflow-x: hidden;
-}
-a {
-  color: inherit;
-}
+/* =========================================================
+   ACCOUNT_MANAGEMENT.CSS — PAGE-SCOPED
+   Required page wrapper: .page-account-management
+   ========================================================= */
 
 /* Main content */
-.content {
+.page-account-management .content {
   margin-left: 245px;
   width: calc(100% - 245px);
   padding: 28px 30px 52px;
   min-height: calc(100vh - 72px);
 }
 
-.page-header {
+.page-account-management .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -105,7 +80,7 @@ a {
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 17px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   color: #eaf0f8;
@@ -171,13 +146,13 @@ a {
 }
 
 /* Card & table */
-.card-custom {
+.page-account-management .card-custom {
   background: linear-gradient(
     145deg,
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 16px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   overflow: hidden;
@@ -188,7 +163,7 @@ a {
   border-color: rgba(96, 165, 250, 0.35);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
 }
-.card-header-custom {
+.page-account-management .card-header-custom {
   min-height: 62px;
   padding: 13px 17px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -223,16 +198,16 @@ a {
   align-items: center;
   justify-content: center;
 }
-.card-body-custom {
+.page-account-management .card-body-custom {
   padding: 0;
   overflow-x: auto;
   background: rgba(3, 8, 18, 0.12);
 }
 
-.table-responsive {
+.page-account-management .table-responsive {
   border-radius: 0;
 }
-.table-custom {
+.page-account-management .table-custom {
   margin-bottom: 0;
   min-width: 1120px;
   font-size: 10px;
@@ -399,7 +374,7 @@ a {
 }
 
 /* Forms */
-.form-label {
+.page-account-management .form-label {
   font-size: 11px;
   font-weight: 600;
   color: #aebbd0;
@@ -511,17 +486,17 @@ a {
 }
 
 /* Modal */
-.modal-dialog {
+.page-account-management .modal-dialog {
   max-width: 760px;
 }
-.modal-content {
+.page-account-management .modal-content {
   background: linear-gradient(145deg, #0c172b, #07101f);
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 16px;
   color: #dbe5f5;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
 }
-.modal-header {
+.page-account-management .modal-header {
   min-height: 56px;
   padding: 14px 18px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -537,10 +512,10 @@ a {
   color: #60a5fa !important;
   margin-right: 8px;
 }
-.modal-body {
+.page-account-management .modal-body {
   padding: 20px;
 }
-.modal-footer {
+.page-account-management .modal-footer {
   padding: 12px 18px;
   border-top: 1px solid rgba(148, 163, 184, 0.1);
 }
@@ -559,7 +534,7 @@ a {
   background: #0c1830;
   color: #cbd5e1;
 }
-.detail-item {
+.page-account-management .detail-item {
   display: flex;
   padding: 10px 0;
   border-bottom: 1px solid rgba(148, 163, 184, 0.08);
@@ -579,7 +554,7 @@ a {
   color: #dbe5f5;
   word-break: break-word;
 }
-.text-muted {
+.page-account-management .text-muted {
   color: #64748b !important;
 }
 .text-success {
@@ -601,7 +576,7 @@ a {
   background: rgba(5, 12, 25, 0.35) !important;
   border-top: 1px solid rgba(148, 163, 184, 0.08) !important;
 }
-.pagination {
+.page-account-management .pagination {
   gap: 4px;
   margin-bottom: 0 !important;
 }
@@ -625,7 +600,7 @@ a {
   box-shadow: 0 0 15px rgba(59, 130, 246, 0.22);
 }
 
-.footer-text {
+.page-account-management .footer-text {
   text-align: center;
   color: #44536c;
   font-size: 9px;
@@ -640,36 +615,7 @@ a {
 }
 
 /* Scrollbars */
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
-  background: #060b18;
-}
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.3);
-  border-radius: 999px;
-  border: 1px solid rgba(6, 11, 24, 0.9);
-}
-.card-body-custom::-webkit-scrollbar,
-.table-responsive::-webkit-scrollbar {
-  height: 7px;
-}
-.card-body-custom::-webkit-scrollbar-track,
-.table-responsive::-webkit-scrollbar-track {
-  background: #060b18;
-}
-.card-body-custom::-webkit-scrollbar-thumb,
-.table-responsive::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.28);
-  border-radius: 999px;
-}
 
-/* Responsive */
 @media (min-width: 1200px) {
   .stat-card {
     min-height: 132px;
@@ -706,24 +652,24 @@ body::-webkit-scrollbar-thumb {
   }
 }
 @media (max-width: 1050px) {
-  .content {
+  .page-account-management .content {
     padding: 24px 20px 45px;
   }
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
-  .page-header {
+  .page-account-management .page-header {
     align-items: flex-start;
   }
 }
 @media (max-width: 800px) {
-  .content {
+  .page-account-management .content {
     margin-left: 0;
     width: 100%;
     padding: 20px 14px 40px;
   }
-  .page-header {
+  .page-account-management .page-header {
     align-items: flex-start;
     flex-direction: column;
     gap: 14px;
@@ -739,7 +685,7 @@ body::-webkit-scrollbar-thumb {
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .card-header-custom {
+  .page-account-management .card-header-custom {
     align-items: flex-start;
     padding: 12px 13px;
   }
@@ -749,7 +695,7 @@ body::-webkit-scrollbar-thumb {
   .card-header-custom form input {
     width: 100%;
   }
-  .table-custom {
+  .page-account-management .table-custom {
     font-size: 9px;
   }
   .table-custom th,
@@ -758,7 +704,7 @@ body::-webkit-scrollbar-thumb {
   }
 }
 @media (max-width: 480px) {
-  .content {
+  .page-account-management .content {
     padding: 17px 10px 34px;
   }
   .page-header h4 {
@@ -789,10 +735,10 @@ body::-webkit-scrollbar-thumb {
   .stat-card .stat-label {
     font-size: 8px;
   }
-  .table-custom {
+  .page-account-management .table-custom {
     min-width: 1120px;
   }
-  .detail-item {
+  .page-account-management .detail-item {
     flex-direction: column;
   }
   .detail-item .detail-label {

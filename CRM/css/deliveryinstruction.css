@@ -1,43 +1,22 @@
-:root {
-  --bg: #060b18;
-  --panel: #0a1220;
-  --line: rgba(148, 163, 184, 0.13);
-  --text: #f7f9ff;
-  --muted: #8e9bb5;
-  --blue: #3b82f6;
-  --blue2: #60a5fa;
-  --green: #34d399;
-  --yellow: #f6cf63;
-  --red: #fb7185;
-}
-* {
-  box-sizing: border-box;
-}
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  background: var(--bg);
-  color: var(--text);
-}
-body {
-  font-family: Inter, Arial, sans-serif;
-  background:
-    radial-gradient(
-      circle at 70% -10%,
-      rgba(37, 99, 235, 0.2),
-      transparent 30%
-    ),
-    linear-gradient(145deg, #050914, #08111f 55%, #07162c);
-  overflow-x: hidden;
-}
-.content {
+/* =========================================================
+   DELIVERYINSTRUCTION
+   Page-specific styles only.
+   Shared theme/layout: app.css
+   Navigation: navigation.css
+   ========================================================= */
+
+/* =========================================================
+   DELIVERYINSTRUCTION.CSS — PAGE-SCOPED
+   Required page wrapper: .page-deliveryinstruction
+   ========================================================= */
+
+.page-deliveryinstruction .content {
   margin-left: 245px;
   width: calc(100% - 245px);
   padding: 28px 30px 52px;
   min-height: calc(100vh - 72px);
 }
-.page-header {
+.page-deliveryinstruction .page-header {
   min-height: 48px;
   margin-bottom: 20px;
   display: flex;
@@ -69,11 +48,11 @@ body {
 }
 .page-header h4 span i {
   font-size: 15px;
-  color: var(--blue2) !important;
+  color: var(--app-blue-light) !important;
 }
-.card-custom {
+.page-deliveryinstruction .card-custom {
   background: #0a1220;
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
@@ -83,7 +62,7 @@ body {
   border-color: rgba(96, 165, 250, 0.3);
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
 }
-.card-header-custom {
+.page-deliveryinstruction .card-header-custom {
   min-height: 62px;
   padding: 13px 17px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -102,7 +81,7 @@ body {
   letter-spacing: 0.1px;
 }
 .card-header-custom h6 i {
-  color: var(--blue2);
+  color: var(--app-blue-light);
   margin-right: 7px;
 }
 .card-header-custom form {
@@ -122,15 +101,15 @@ body {
   justify-content: center;
   padding: 0 13px !important;
 }
-.card-body-custom {
+.page-deliveryinstruction .card-body-custom {
   padding: 0;
   background: rgba(3, 8, 18, 0.12);
   overflow-x: auto;
 }
-.table-responsive {
+.page-deliveryinstruction .table-responsive {
   overflow-x: auto;
 }
-.table-custom {
+.page-deliveryinstruction .table-custom {
   width: 100%;
   min-width: 900px;
   margin: 0 !important;
@@ -314,7 +293,7 @@ body {
   border-bottom: 1px solid rgba(148, 163, 184, 0.08);
   background: rgba(8, 15, 28, 0.45);
 }
-.filter-buttons {
+.page-deliveryinstruction .filter-buttons {
   display: flex;
   gap: 7px;
   flex-wrap: wrap;
@@ -346,7 +325,7 @@ body {
   color: inherit;
   opacity: 0.8;
 }
-.pagination {
+.page-deliveryinstruction .pagination {
   margin: 0 !important;
   gap: 4px;
 }
@@ -396,7 +375,7 @@ body {
   font-size: 11px !important;
   margin: 12px 14px !important;
 }
-.footer-text {
+.page-deliveryinstruction .footer-text {
   text-align: center;
   padding: 16px 0 8px;
   color: #4f5e74;
@@ -409,55 +388,26 @@ body {
 .footer-text a:hover {
   color: #60a5fa;
 }
-html,
-body {
-  scrollbar-color: rgba(96, 165, 250, 0.32) #060b18;
-  scrollbar-width: thin;
-}
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
-  background: #060b18;
-}
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.3);
-  border-radius: 999px;
-}
-.table-responsive::-webkit-scrollbar {
-  height: 7px;
-}
-.table-responsive::-webkit-scrollbar-track {
-  background: #060b18;
-}
-.table-responsive::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.28);
-  border-radius: 999px;
-}
 @media (max-width: 1050px) {
-  .content {
+  .page-deliveryinstruction .content {
     padding: 24px 20px 45px;
   }
-  .page-header {
+  .page-deliveryinstruction .page-header {
     align-items: flex-start;
   }
 }
 @media (max-width: 800px) {
-  .content {
+  .page-deliveryinstruction .content {
     margin-left: 0;
     width: 100%;
     padding: 20px 14px 40px;
   }
-  .page-header {
+  .page-deliveryinstruction .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 14px;
   }
-  .card-header-custom {
+  .page-deliveryinstruction .card-header-custom {
     align-items: stretch;
   }
   .card-header-custom form {
@@ -468,12 +418,12 @@ body::-webkit-scrollbar-thumb {
     width: 100% !important;
     flex: 1;
   }
-  .table-custom {
+  .page-deliveryinstruction .table-custom {
     min-width: 860px;
   }
 }
 @media (max-width: 480px) {
-  .content {
+  .page-deliveryinstruction .content {
     padding: 18px 10px 35px;
   }
   .page-header h4 {
@@ -484,7 +434,7 @@ body::-webkit-scrollbar-thumb {
     height: 34px;
     border-radius: 9px;
   }
-  .table-custom {
+  .page-deliveryinstruction .table-custom {
     min-width: 820px;
   }
 }

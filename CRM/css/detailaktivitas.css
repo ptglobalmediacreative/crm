@@ -1,49 +1,23 @@
-* {
-  box-sizing: border-box;
-}
+/* =========================================================
+   DETAILAKTIVITAS
+   Page-specific styles only.
+   Shared theme/layout: app.css
+   Navigation: navigation.css
+   ========================================================= */
 
-:root {
-  --page-bg: #060b18;
-  --panel: #0b1222;
-  --panel-2: #0d1730;
-  --line: rgba(148, 163, 184, 0.16);
-  --text: #f7f9ff;
-  --muted: #8e9bb5;
-  --blue: #3b82f6;
-  --blue-light: #60a5fa;
-  --green: #34d399;
-  --red: #fb7185;
-  --amber: #fbbf24;
-}
+/* =========================================================
+   DETAILAKTIVITAS.CSS — PAGE-SCOPED
+   Required page wrapper: .page-detailaktivitas
+   ========================================================= */
 
-html,
-body {
-  min-height: 100%;
-  background: var(--page-bg);
-}
-
-body {
-  margin: 0;
-  font-family: "Inter", Arial, sans-serif;
-  background:
-    radial-gradient(
-      circle at 70% -10%,
-      rgba(37, 99, 235, 0.2),
-      transparent 30%
-    ),
-    linear-gradient(145deg, #050914, #08111f 55%, #07162c);
-  color: var(--text);
-  overflow-x: hidden;
-}
-
-.content {
+.page-detailaktivitas .content {
   margin-left: 245px;
   width: calc(100% - 245px);
   min-width: 0;
   padding: 26px 28px 50px;
 }
 
-.page-header {
+.page-detailaktivitas .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -52,7 +26,7 @@ body {
   flex-wrap: wrap;
 }
 
-.page-title {
+.page-detailaktivitas .page-title {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -60,7 +34,7 @@ body {
 
 .page-title h4 {
   margin: 0;
-  color: var(--text);
+  color: var(--app-text);
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -1px;
@@ -71,7 +45,7 @@ body {
   color: var(--blue-light);
 }
 
-.page-actions {
+.page-detailaktivitas .page-actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -79,13 +53,13 @@ body {
 }
 
 .info-card,
-.card-custom {
+.page-detailaktivitas .card-custom {
   background: linear-gradient(
     145deg,
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 17px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   color: #dce5f5;
@@ -129,11 +103,11 @@ body {
   color: #fff;
 }
 
-.card-custom {
+.page-detailaktivitas .card-custom {
   overflow: hidden;
 }
 
-.card-header-custom {
+.page-detailaktivitas .card-header-custom {
   min-height: 58px;
   padding: 0 18px;
   display: flex;
@@ -145,7 +119,7 @@ body {
 
 .card-header-custom h6 {
   margin: 0;
-  color: var(--text);
+  color: var(--app-text);
   font-size: 13px;
   font-weight: 700;
 }
@@ -155,13 +129,13 @@ body {
   color: var(--blue-light);
 }
 
-.card-body-custom {
+.page-detailaktivitas .card-body-custom {
   padding: 0;
   background: transparent;
   overflow-x: auto;
 }
 
-.table-custom {
+.page-detailaktivitas .table-custom {
   margin-bottom: 0;
   font-size: 11px;
   color: #cdd7e7;
@@ -205,7 +179,7 @@ body {
 }
 
 .table-custom a.di-link {
-  color: var(--green);
+  color: var(--app-green);
 }
 
 .badge-tugas,
@@ -258,11 +232,11 @@ body {
 }
 .badge-status.completed {
   background: rgba(52, 211, 153, 0.12);
-  color: var(--green);
+  color: var(--app-green);
 }
 .badge-status.overdue {
   background: rgba(251, 113, 133, 0.12);
-  color: var(--red);
+  color: var(--app-red);
 }
 
 .btn-action {
@@ -293,13 +267,13 @@ body {
   background: rgba(59, 130, 246, 0.12);
 }
 .btn-action.complete {
-  color: var(--green);
+  color: var(--app-green);
 }
 .btn-action.complete:hover {
   background: rgba(52, 211, 153, 0.12);
 }
 .btn-action.delete {
-  color: var(--red);
+  color: var(--app-red);
 }
 .btn-action.delete:hover {
   background: rgba(251, 113, 133, 0.12);
@@ -324,7 +298,7 @@ body {
 
 .btn-primary-custom {
   color: #fff;
-  background: linear-gradient(135deg, var(--blue), #6366f1);
+  background: linear-gradient(135deg, var(--app-blue), #6366f1);
   border: 0;
   box-shadow: 0 0 24px rgba(59, 130, 246, 0.18);
 }
@@ -338,7 +312,7 @@ body {
 .btn-secondary-custom {
   color: #aeb9ca;
   background: rgba(10, 17, 33, 0.85);
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
 }
 
 .btn-secondary-custom:hover {
@@ -351,32 +325,32 @@ body {
 .alert {
   margin: 0;
   padding: 12px 16px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 10px;
   background: #0d1730;
   color: #dce5f5;
   font-size: 13px;
 }
 
-.modal-content {
+.page-detailaktivitas .modal-content {
   color: #dce5f5;
   background: #0b1222;
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 16px;
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
 }
 
-.modal-header,
-.modal-footer {
+.page-detailaktivitas .modal-header,
+.page-detailaktivitas .modal-footer {
   border-color: rgba(148, 163, 184, 0.1);
 }
 
-.modal-header {
+.page-detailaktivitas .modal-header {
   padding: 18px 24px;
 }
 
 .modal-header .modal-title {
-  color: var(--text);
+  color: var(--app-text);
   font-size: 17px;
   font-weight: 700;
 }
@@ -386,15 +360,15 @@ body {
   color: var(--blue-light);
 }
 
-.modal-body {
+.page-detailaktivitas .modal-body {
   padding: 20px 24px;
 }
 
-.modal-footer {
+.page-detailaktivitas .modal-footer {
   padding: 14px 24px;
 }
 
-.form-label {
+.page-detailaktivitas .form-label {
   color: #9aa8bf;
   font-size: 12px;
   font-weight: 600;
@@ -414,12 +388,12 @@ body {
 .form-select:focus {
   color: #dce5f5;
   background: #070e1c;
-  border-color: var(--blue);
+  border-color: var(--app-blue);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .form-control[readonly] {
-  color: var(--muted);
+  color: var(--app-muted);
   background: #0d1730;
 }
 
@@ -461,7 +435,7 @@ body {
   margin-right: 8px;
 }
 
-.footer-text {
+.page-detailaktivitas .footer-text {
   padding: 16px 0 8px;
   color: #44536c;
   font-size: 11px;
@@ -479,25 +453,25 @@ body {
 }
 
 @media (max-width: 800px) {
-  .content {
+  .page-detailaktivitas .content {
     margin-left: 0;
     width: 100%;
     padding: 20px 14px 40px;
   }
 
-  .page-header {
+  .page-detailaktivitas .page-header {
     align-items: flex-start;
   }
 }
 
 @media (max-width: 650px) {
-  .page-header {
+  .page-detailaktivitas .page-header {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
 
-  .page-actions {
+  .page-detailaktivitas .page-actions {
     width: 100%;
   }
 
@@ -517,7 +491,7 @@ body {
 }
 
 @media (max-width: 480px) {
-  .content {
+  .page-detailaktivitas .content {
     padding: 18px 10px 35px;
   }
 
@@ -529,7 +503,7 @@ body {
     padding: 14px;
   }
 
-  .table-custom {
+  .page-detailaktivitas .table-custom {
     font-size: 10px;
   }
 
@@ -544,11 +518,11 @@ body {
     font-size: 11px;
   }
 
-  .modal-body {
+  .page-detailaktivitas .modal-body {
     padding: 14px 16px;
   }
 
-  .modal-header {
+  .page-detailaktivitas .modal-header {
     padding: 14px 16px;
   }
 }

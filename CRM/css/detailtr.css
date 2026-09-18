@@ -1,52 +1,23 @@
-:root {
-  --bg: #060b18;
-  --panel: #0b1222;
-  --panel2: #0d1730;
-  --line: rgba(148, 163, 184, 0.16);
-  --text: #f7f9ff;
-  --muted: #8e9bb5;
-  --blue: #3b82f6;
-  --blue2: #60a5fa;
-  --cyan: #22d3ee;
-  --green: #34d399;
-  --red: #fb7185;
-  --amber: #fbbf24;
-  --purple: #a78bfa;
-}
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-html {
-  background: #060b18;
-}
-body {
-  font-family: Inter, Arial, sans-serif;
-  background:
-    radial-gradient(
-      circle at 70% -10%,
-      rgba(37, 99, 235, 0.2),
-      transparent 30%
-    ),
-    linear-gradient(145deg, #050914, #08111f 55%, #07162c);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-  padding-bottom: 0;
-}
-a {
-  color: inherit;
-}
+/* =========================================================
+   DETAILTR
+   Page-specific styles only.
+   Shared theme/layout: app.css
+   Navigation: navigation.css
+   ========================================================= */
 
-.content {
+/* =========================================================
+   DETAILTR.CSS — PAGE-SCOPED
+   Required page wrapper: .page-detailtr
+   ========================================================= */
+
+.page-detailtr .content {
   margin-left: 245px;
   width: calc(100% - 245px);
   padding: 26px 28px 50px;
   min-height: calc(100vh - 72px);
   max-width: none;
 }
-.page-header {
+.page-detailtr .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -88,10 +59,10 @@ a {
 }
 .page-header p {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--app-muted);
   margin-top: 7px;
 }
-.eyebrow {
+.page-detailtr .eyebrow {
   font-size: 10px;
   color: #6f80a0;
   text-transform: uppercase;
@@ -112,7 +83,7 @@ a {
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 17px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   padding: 18px 19px;
@@ -165,13 +136,13 @@ a {
   font-weight: 700;
   color: #70809b;
 }
-.card-custom {
+.page-detailtr .card-custom {
   background: linear-gradient(
     145deg,
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 16px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   overflow: hidden;
@@ -181,7 +152,7 @@ a {
   border-color: rgba(96, 165, 250, 0.35);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
 }
-.card-header-custom {
+.page-detailtr .card-header-custom {
   min-height: 62px;
   padding: 13px 17px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -269,7 +240,7 @@ a {
 .border-bottom {
   border-color: rgba(148, 163, 184, 0.1) !important;
 }
-.filter-buttons {
+.page-detailtr .filter-buttons {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -301,14 +272,14 @@ a {
   border-radius: 10px;
   margin-left: 4px;
 }
-.card-body-custom {
+.page-detailtr .card-body-custom {
   padding: 0;
 }
-.table-responsive {
+.page-detailtr .table-responsive {
   background: transparent;
   overflow-x: auto;
 }
-.table-custom {
+.page-detailtr .table-custom {
   margin-bottom: 0 !important;
   width: 100%;
   min-width: 1120px;
@@ -366,7 +337,7 @@ a {
   width: 92px;
   text-align: center;
 }
-.text-muted {
+.page-detailtr .text-muted {
   color: #64748b !important;
 }
 .badge-status-tr {
@@ -431,7 +402,7 @@ a {
   background: rgba(5, 12, 25, 0.35) !important;
   border-top: 1px solid rgba(148, 163, 184, 0.08) !important;
 }
-.pagination {
+.page-detailtr .pagination {
   gap: 4px;
 }
 .pagination .page-link {
@@ -461,7 +432,7 @@ a {
   background: #0c1830;
   color: #cbd5e1;
 }
-.footer-text {
+.page-detailtr .footer-text {
   text-align: center;
   color: #44536c;
   font-size: 9px;
@@ -474,32 +445,9 @@ a {
 .footer-text a:hover {
   color: #60a5fa;
 }
-html,
-body {
-  scrollbar-color: rgba(96, 165, 250, 0.32) #060b18;
-  scrollbar-width: thin;
-}
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
-  background: #060b18;
-}
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.3);
-  border-radius: 999px;
-  border: 1px solid rgba(6, 11, 24, 0.9);
-}
-html::-webkit-scrollbar-thumb:hover,
-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(96, 165, 250, 0.48);
-}
+
 @media (max-width: 991px) {
-  .content {
+  .page-detailtr .content {
     margin-left: 0;
     width: 100%;
     padding: 24px 18px 40px;
@@ -507,24 +455,24 @@ body::-webkit-scrollbar-thumb:hover {
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .page-header {
+  .page-detailtr .page-header {
     align-items: flex-start;
   }
 }
 @media (max-width: 800px) {
-  .content {
+  .page-detailtr .content {
     padding: 20px 14px 40px;
   }
-  .page-header {
+  .page-detailtr .page-header {
     align-items: flex-start;
     flex-direction: column;
   }
-  .table-custom {
+  .page-detailtr .table-custom {
     min-width: 1120px;
   }
 }
 @media (max-width: 520px) {
-  .content {
+  .page-detailtr .content {
     padding: 17px 10px 34px;
   }
   .page-header h4 {
@@ -546,7 +494,7 @@ body::-webkit-scrollbar-thumb:hover {
   .stat-number {
     font-size: 20px;
   }
-  .card-header-custom {
+  .page-detailtr .card-header-custom {
     align-items: flex-start;
     padding: 13px;
   }
@@ -557,7 +505,7 @@ body::-webkit-scrollbar-thumb:hover {
     flex: 1;
     width: auto;
   }
-  .filter-buttons {
+  .page-detailtr .filter-buttons {
     overflow-x: auto;
     flex-wrap: nowrap;
     padding-bottom: 2px;
@@ -584,7 +532,7 @@ body::-webkit-scrollbar-thumb:hover {
   line-height: 1.55;
   word-break: break-word;
 }
-.form-label {
+.page-detailtr .form-label {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.55px;
@@ -731,7 +679,7 @@ body::-webkit-scrollbar-thumb:hover {
     rgba(12, 23, 43, 0.94),
     rgba(7, 14, 28, 0.96)
   );
-  border: 1px solid var(--line);
+  border: 1px solid var(--app-line);
   border-radius: 16px;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
   margin-bottom: 18px;
@@ -867,10 +815,10 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 @media (max-width: 991px) {
-  .content {
+  .page-detailtr .content {
     padding-top: 24px;
   }
-  .page-header {
+  .page-detailtr .page-header {
     margin-bottom: 16px;
   }
   .tab-nav {
@@ -881,7 +829,7 @@ body::-webkit-scrollbar-thumb:hover {
   }
 }
 @media (max-width: 520px) {
-  .content {
+  .page-detailtr .content {
     padding: 17px 10px 34px;
   }
   .tab-nav {
@@ -897,10 +845,10 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 /* FINAL DETAIL TR POLISH — KEEP SYSTEM/LOGIC UNCHANGED */
-.content {
+.page-detailtr .content {
   padding-top: 28px;
 }
-.page-header {
+.page-detailtr .page-header {
   margin-bottom: 18px;
 }
 .page-header h4 {
@@ -909,7 +857,7 @@ body::-webkit-scrollbar-thumb:hover {
 .page-header h4 span {
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.08);
 }
-.card-body-custom {
+.page-detailtr .card-body-custom {
   padding: 20px;
 }
 .card-custom .card-body {
@@ -1003,7 +951,7 @@ textarea.form-control {
 #editCostCalc .row {
   --bs-gutter-y: 14px;
 }
-.table-custom {
+.page-detailtr .table-custom {
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -1409,10 +1357,10 @@ textarea.form-control {
   }
 }
 @media (max-width: 991px) {
-  .content {
+  .page-detailtr .content {
     padding: 22px 18px 40px;
   }
-  .card-body-custom,
+  .page-detailtr .card-body-custom,
   .card-custom .card-body {
     padding: 17px !important;
   }
@@ -1421,7 +1369,7 @@ textarea.form-control {
   }
 }
 @media (max-width: 767px) {
-  .page-header {
+  .page-detailtr .page-header {
     gap: 12px;
   }
   .page-header h4 {
@@ -1445,14 +1393,14 @@ textarea.form-control {
   }
 }
 @media (max-width: 520px) {
-  .content {
+  .page-detailtr .content {
     padding: 16px 10px 32px;
   }
-  .card-body-custom,
+  .page-detailtr .card-body-custom,
   .card-custom .card-body {
     padding: 14px !important;
   }
-  .card-header-custom {
+  .page-detailtr .card-header-custom {
     min-height: 58px;
   }
   .card-header-custom h6 {
