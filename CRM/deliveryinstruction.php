@@ -205,6 +205,7 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="css/deliveryinstruction.css">
+    <link rel="stylesheet" href="css/footer.css">
 
 </head>
 <body>
@@ -347,11 +348,7 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
                 </div>
             <?php endif; ?>
         </div>
-
-        <!-- FOOTER -->
-        <div class="footer-text">
-            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
-        </div>
+        <?php require_once 'footer.php'; ?>
 
     </main>
 
