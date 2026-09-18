@@ -1,7 +1,3 @@
-:root {
-  --line: rgba(148, 163, 184, 0.16);
-}
-
 .topbar {
   height: 72px;
   border-bottom: 1px solid var(--line);
