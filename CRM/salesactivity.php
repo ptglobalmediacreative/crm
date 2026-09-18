@@ -870,6 +870,7 @@ $role = $_SESSION['role'] ?? 'user';
 <link rel="stylesheet" href="css/navigation.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="css/salesactivity.css">
+<link rel="stylesheet" href="css/notifications.css">
 </head>
 <body>
 <div class="app">
