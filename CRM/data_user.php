@@ -63,7 +63,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     $stmt->execute($exportParams);
     $exportUsers = $stmt->fetchAll();
 
-    echo '<html><head><meta charset="UTF-8"></head><body class="page-data-user">';
+    echo '<html><head><meta charset="UTF-8"></head><body>';
     echo '<h2>Data User - PT Ganda Elang Tangguh</h2>';
     echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . '</p>';
     if ($exportSearch !== '') {
@@ -131,14 +131,14 @@ $userId = $_SESSION['user_id'] ?? 0;
 // Proses tambah user
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
-
+    
     if ($action === 'add') {
         // Cek permission tambah
         if (!canAdd('data_user')) {
             setFlash('Anda tidak memiliki akses untuk menambah user!', 'danger');
             redirect('data_user.php');
         }
-
+        
         $username = bersihkan($_POST['username']);
         $email = bersihkan($_POST['email']);
         $full_name = bersihkan($_POST['full_name']);
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $password = $_POST['password'];
         $role_name = bersihkan($_POST['role_name']);
         $is_active = isset($_POST['is_active']) ? 1 : 0;
-
+        
         // Validasi
         $errors = [];
         if (empty($username)) $errors[] = 'Username wajib diisi!';
@@ -154,33 +154,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($full_name)) $errors[] = 'Nama lengkap wajib diisi!';
         if (strlen($password) < 6) $errors[] = 'Password minimal 6 karakter!';
         if (empty($role_name)) $errors[] = 'Divisi wajib dipilih!';
-
+        
         // Cek username/email sudah ada
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
         $stmt->execute([$username, $email]);
         if ($stmt->fetchColumn() > 0) {
             $errors[] = 'Username atau email sudah terdaftar!';
         }
-
+        
         if (empty($errors)) {
             $hash = hashPassword($password);
             $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, full_name, phone, role, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$username, $email, $hash, $full_name, $phone, $role_name, $is_active]);
-
+            
             setFlash('User berhasil ditambahkan!', 'success');
             redirect('data_user.php');
         } else {
             setFlash(implode('<br>', $errors), 'danger');
         }
     }
-
+    
     if ($action === 'edit') {
         // Cek permission edit
         if (!canEdit('data_user')) {
             setFlash('Anda tidak memiliki akses untuk mengedit user!', 'danger');
             redirect('data_user.php');
         }
-
+        
         $id = (int)$_POST['id'];
         $username = bersihkan($_POST['username']);
         $email = bersihkan($_POST['email']);
@@ -189,20 +189,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $role_name = bersihkan($_POST['role_name']);
         $is_active = isset($_POST['is_active']) ? 1 : 0;
         $password = $_POST['password'];
-
+        
         $errors = [];
         if (empty($username)) $errors[] = 'Username wajib diisi!';
         if (empty($email)) $errors[] = 'Email wajib diisi!';
         if (empty($full_name)) $errors[] = 'Nama lengkap wajib diisi!';
         if (empty($role_name)) $errors[] = 'Divisi wajib dipilih!';
-
+        
         // Cek username/email sudah ada (kecuali dirinya sendiri)
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE (username = ? OR email = ?) AND id != ?");
         $stmt->execute([$username, $email, $id]);
         if ($stmt->fetchColumn() > 0) {
             $errors[] = 'Username atau email sudah digunakan oleh user lain!';
         }
-
+        
         if (empty($errors)) {
             if (!empty($password)) {
                 $hash = hashPassword($password);
@@ -212,21 +212,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, role = ?, is_active = ? WHERE id = ?");
                 $stmt->execute([$username, $email, $full_name, $phone, $role_name, $is_active, $id]);
             }
-
+            
             setFlash('User berhasil diupdate!', 'success');
             redirect('data_user.php');
         } else {
             setFlash(implode('<br>', $errors), 'danger');
         }
     }
-
+    
     if ($action === 'delete') {
         // Cek permission delete
         if (!canDelete('data_user')) {
             setFlash('Anda tidak memiliki akses untuk menghapus user!', 'danger');
             redirect('data_user.php');
         }
-
+        
         $id = (int)$_POST['id'];
         // Cek jangan hapus user utama
         if ($id == 1) {
@@ -246,12 +246,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Data User - PT Ganda Elang Tangguh</title>
-
+    
     <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
-    <link rel="stylesheet" href="css/data_user.css?v=20260918-3">
-
+    <link rel="stylesheet" href="css/data_user.css">
+    
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         <main class="content">
 
-
+        
         <!-- HEADER -->
         <div class="page-header">
             <div class="page-title">
@@ -342,13 +342,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 <?php endif; ?>
-
+                                                
                                                 <?php if (canManageUser()): ?>
                                                     <button class="btn-action permission" onclick="showPermission(<?= htmlspecialchars(json_encode($user)) ?>)">
                                                         <i class="fas fa-lock"></i>
                                                     </button>
                                                 <?php endif; ?>
-
+                                                
                                                 <?php if (canDelete('data_user') && $user['id'] != 1): ?>
                                                     <button class="btn-action delete" onclick="deleteUser(<?= $user['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
@@ -412,7 +412,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <div class="modal-body">
                         <input type="hidden" name="action" id="formAction" value="add">
                         <input type="hidden" name="id" id="formId" value="">
-
+                        
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Username <span class="text-danger">*</span></label>
@@ -423,7 +423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <input type="email" name="email" id="email" class="form-control" placeholder="user@email.com" required>
                             </div>
                         </div>
-
+                        
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
@@ -434,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <input type="text" name="phone" id="phone" class="form-control" placeholder="08123456789">
                             </div>
                         </div>
-
+                        
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Password <span class="text-danger">*</span></label>
@@ -459,7 +459,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 </select>
                             </div>
                         </div>
-
+                        
                         <div class="mb-3">
                             <div class="form-check">
                                 <input type="checkbox" name="is_active" id="is_active" class="form-check-input" checked>
@@ -531,7 +531,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <script>
         let currentUserId = null;
         let currentUserRole = null;
-
+        
         // Edit User
         function editUser(data) {
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit User';
@@ -543,15 +543,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             document.getElementById('phone').value = data.phone || '';
             document.getElementById('role_name').value = data.role;
             document.getElementById('is_active').checked = data.is_active == 1;
-
+            
             document.getElementById('password').required = false;
             document.getElementById('password').placeholder = 'Kosongkan jika tidak diubah';
             document.getElementById('passwordHint').textContent = 'Kosongkan jika tidak ingin mengubah password';
-
+            
             var modal = new bootstrap.Modal(document.getElementById('modalUser'));
             modal.show();
         }
-
+        
         document.getElementById('modalUser').addEventListener('hidden.bs.modal', function() {
             document.getElementById('formUser').reset();
             document.getElementById('formAction').value = 'add';
@@ -561,27 +561,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             document.getElementById('password').placeholder = 'Minimal 6 karakter';
             document.getElementById('passwordHint').textContent = 'Minimal 6 karakter';
         });
-
+        
         function deleteUser(id) {
             document.getElementById('deleteId').value = id;
             var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
             modal.show();
         }
-
+        
         function showPermission(data) {
             currentUserId = data.id;
             currentUserRole = data.role;
-
+            
             var modal = new bootstrap.Modal(document.getElementById('modalPermission'));
             modal.show();
-
+            
             document.getElementById('permissionBody').innerHTML = `
                 <div class="text-center py-4">
                     <div class="spinner-border text-primary" role="status"></div>
                     <p class="mt-2">Memuat data...</p>
                 </div>
             `;
-
+            
             fetch('api/get_permission.php?user_id=' + data.id)
                 .then(response => response.json())
                 .then(data => {
@@ -612,7 +612,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     document.getElementById('permissionBody').innerHTML = '<div class="text-center py-4 text-danger">Gagal memuat data!</div>';
                 });
         }
-
+        
         function savePermission() {
             var permissions = [];
             document.querySelectorAll('.perm-check').forEach(function(checkbox) {
@@ -620,7 +620,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 var checked = checkbox.checked ? 1 : 0;
                 permissions.push({module: module, value: checked});
             });
-
+            
             fetch('api/save_permission.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
