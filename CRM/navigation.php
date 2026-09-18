@@ -1287,7 +1287,6 @@ $notifUnread = count($notifUnreadItems);
             <?php else: ?>
                 <span><?= htmlspecialchars($profileInitial) ?></span>
             <?php endif; ?>
-            <i class="fas fa-chevron-down profile-chevron"></i>
         </button>
     </div>
 </header>
