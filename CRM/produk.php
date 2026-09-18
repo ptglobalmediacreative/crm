@@ -255,6 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/produk.css">
+    <link rel="stylesheet" href="css/footer.css">
 </head>
 <body>
 
@@ -365,13 +366,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 </div>
             <?php endif; ?>
         </div>
+        <?php require_once 'footer.php'; ?>
 
-        <!-- FOOTER -->
-        <div class="footer-text">
-            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
-        </div>
-
-    </main>
+</main>
 
     <!-- MODAL TAMBAH / EDIT PRODUK -->
     <?php if ($hasFullAccess): ?>
