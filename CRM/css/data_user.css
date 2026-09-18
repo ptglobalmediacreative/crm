@@ -1,13 +1,13 @@
 /* CRM FINISHING BUILD — 2026-09-18 */
 /* =========================================================
-   data.page-data-user
+   DATA USER
    Page-specific styles only.
    Shared theme/layout: app.css
    Navigation: navigation.css
    ========================================================= */
 
 /* =========================================================
-   data.page-data-user.CSS — PAGE-SCOPED
+   DATA USER.CSS — PAGE-SCOPED
    Required page wrapper: .page-data-user
    ========================================================= */
 
@@ -34,13 +34,13 @@
   font-weight: 700;
   margin-bottom: 7px;
 }
-.hero h1 {
+.page-data-user .hero h1 {
   font-size: 26px;
   letter-spacing: -1px;
   font-weight: 800;
   margin: 0;
 }
-.hero p {
+.page-data-user .hero p {
   font-size: 12px;
   color: var(--app-muted);
   margin-top: 7px;
@@ -614,10 +614,10 @@
   .page-data-user .content {
     padding: 18px 10px 35px;
   }
-  .hero h1 {
+  .page-data-user .hero h1 {
     font-size: 22px;
   }
-  .hero p {
+  .page-data-user .hero p {
     font-size: 10px;
   }
   .chart-wrapper {
@@ -645,8 +645,8 @@
 }
 
 /* =========================================================
-   SALES ACTIVITY PAGE HEADER — MATCH ACCOUNT MANAGEMENT
-   Presentation only; existing PHP/DB/JS logic untouched.
+   DATA USER — PAGE HEADER
+   Visual system matched to Sales Activity
    ========================================================= */
 .page-data-user .page-header {
   display: flex !important;
@@ -657,23 +657,14 @@
   margin-bottom: 20px !important;
   flex-wrap: wrap !important;
 }
-.page-header .page-title {
+
+.page-data-user .page-title {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
 }
-.page-header h4 {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  font-size: 25px !important;
-  line-height: 1.1 !important;
-  letter-spacing: -1px !important;
-  font-weight: 800 !important;
-  margin: 0 !important;
-  color: #f7f9ff !important;
-}
-.page-header h4 span {
+
+.page-data-user .page-title-icon {
   width: 38px !important;
   height: 38px !important;
   border-radius: 11px !important;
@@ -684,909 +675,337 @@
   justify-content: center !important;
   flex-shrink: 0 !important;
 }
-.page-header h4 span i {
+
+.page-data-user .page-title-icon i {
   font-size: 15px !important;
   color: #60a5fa !important;
 }
-.page-header .header-actions {
+
+.page-data-user .page-title h1 {
+  display: flex !important;
+  align-items: center !important;
+  font-size: 25px !important;
+  line-height: 1.1 !important;
+  letter-spacing: -1px !important;
+  font-weight: 800 !important;
+  margin: 0 !important;
+  color: #f7f9ff !important;
+}
+
+.page-data-user .page-actions {
   display: flex !important;
   gap: 8px !important;
   align-items: center !important;
   flex-wrap: wrap !important;
 }
 
+.page-data-user .btn-success-custom,
+.page-data-user .btn-primary-custom {
+  height: 38px !important;
+  border-radius: 11px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 0 15px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+.page-data-user .btn-success-custom {
+  border: 1px solid rgba(52, 211, 153, 0.25) !important;
+  background: rgba(52, 211, 153, 0.08) !important;
+  color: #6ee7b7 !important;
+}
+
+.page-data-user .btn-success-custom:hover {
+  color: #a7f3d0 !important;
+  background: rgba(52, 211, 153, 0.14) !important;
+  transform: translateY(-1px);
+}
+
+.page-data-user .btn-primary-custom {
+  border: 0 !important;
+  background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+  color: #fff !important;
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.25);
+}
+
+.page-data-user .btn-primary-custom:hover {
+  background: linear-gradient(135deg, #4f8df7, #6d70f3) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(59, 130, 246, 0.2);
+}
+
+/* Search area — same compact treatment */
+.page-data-user .card-header-custom form {
+  display: flex;
+  align-items: center;
+  gap: 8px !important;
+  margin-left: auto;
+}
+
+.page-data-user .search-input {
+  width: 240px !important;
+  min-height: 34px !important;
+  height: 34px !important;
+}
+
+.page-data-user .btn-search {
+  height: 34px !important;
+  min-width: 36px !important;
+  padding: 6px 11px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-data-user .btn-clear {
+  color: #a9b5c8 !important;
+}
+
+/* Data User badges */
+.page-data-user .badge-role,
+.page-data-user .badge-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.page-data-user .badge-role.it_support {
+  background: rgba(167, 139, 250, 0.1);
+  color: #b9a4ff;
+  border-color: rgba(167, 139, 250, 0.14);
+}
+.page-data-user .badge-role.admin {
+  background: rgba(96, 165, 250, 0.1);
+  color: #8bc1ff;
+  border-color: rgba(96, 165, 250, 0.14);
+}
+.page-data-user .badge-role.finance {
+  background: rgba(34, 211, 238, 0.1);
+  color: #73e4f2;
+  border-color: rgba(34, 211, 238, 0.14);
+}
+.page-data-user .badge-role.direktur_sales,
+.page-data-user .badge-role.direktur_operasional,
+.page-data-user .badge-role.service_support {
+  background: rgba(45, 212, 191, 0.09);
+  color: #6ee7d2;
+  border-color: rgba(45, 212, 191, 0.13);
+}
+.page-data-user .badge-role.direktur_utama {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.14);
+}
+.page-data-user .badge-role.business,
+.page-data-user .badge-role.sales_manager,
+.page-data-user .badge-role.sales {
+  background: rgba(52, 211, 153, 0.1);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.14);
+}
+.page-data-user .badge-role.part_support {
+  background: rgba(251, 113, 133, 0.09);
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.13);
+}
+
+.page-data-user .badge-status.active {
+  background: rgba(52, 211, 153, 0.1);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.14);
+}
+.page-data-user .badge-status.inactive {
+  background: rgba(251, 113, 133, 0.09);
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.13);
+}
+
+/* User action buttons */
+.page-data-user .btn-action {
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  transition: 0.2s;
+  font-size: 10px;
+  cursor: pointer;
+}
+.page-data-user .btn-action:hover {
+  transform: translateY(-1px) scale(1.04);
+}
+.page-data-user .btn-action.edit {
+  background: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.12);
+}
+.page-data-user .btn-action.permission {
+  background: rgba(167, 139, 250, 0.1);
+  color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.12);
+}
+.page-data-user .btn-action.delete {
+  background: rgba(251, 113, 133, 0.09);
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.12);
+}
+
+/* Table sizing for 8 Data User columns */
+.page-data-user .table-custom {
+  width: 100%;
+  min-width: 900px;
+}
+.page-data-user .table-custom th:first-child,
+.page-data-user .table-custom td:first-child {
+  width: 58px;
+  text-align: center;
+}
+.page-data-user .table-custom th:nth-child(2) {
+  width: 14%;
+}
+.page-data-user .table-custom th:nth-child(3) {
+  width: 18%;
+}
+.page-data-user .table-custom th:nth-child(4) {
+  width: 21%;
+}
+.page-data-user .table-custom th:nth-child(5) {
+  width: 14%;
+}
+.page-data-user .table-custom th:nth-child(6) {
+  width: 15%;
+}
+.page-data-user .table-custom th:nth-child(7) {
+  width: 9%;
+}
+.page-data-user .table-custom th:last-child,
+.page-data-user .table-custom td:last-child {
+  width: 112px;
+  text-align: center;
+}
+
+.page-data-user .table-custom td strong {
+  color: #e5edf8;
+  font-weight: 700;
+}
+
+/* =========================================================
+   RESPONSIVE — same breakpoints / behavior as Sales Activity
+   ========================================================= */
 @media (max-width: 800px) {
+  .page-data-user .content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-height: calc(100vh - 64px);
+    padding: 20px 14px 40px !important;
+  }
+
   .page-data-user .page-header {
     align-items: flex-start !important;
     flex-direction: column !important;
     gap: 14px !important;
   }
-  .page-header > div:last-child {
+
+  .page-data-user .page-title {
+    width: 100%;
+  }
+
+  .page-data-user .page-header > div:last-child {
     width: 100% !important;
   }
-  .page-header h4 {
+
+  .page-data-user .page-title h1 {
     font-size: 22px !important;
   }
-  .page-header .header-actions {
+
+  .page-data-user .page-actions {
     width: 100% !important;
     gap: 7px !important;
+    flex-wrap: nowrap !important;
   }
-  .page-header .header-actions a,
-  .page-header .header-actions button {
-    flex: 1 !important;
+
+  .page-data-user .page-actions a,
+  .page-data-user .page-actions button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+
+  .page-data-user .card-header-custom {
+    align-items: flex-start;
+  }
+
+  .page-data-user .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .page-data-user .search-input {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 1;
+  }
+
+  .page-data-user .table-custom {
+    min-width: 900px;
+  }
+
+  .page-data-user .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
+
 @media (max-width: 480px) {
+  .page-data-user .content {
+    padding: 18px 10px 35px !important;
+  }
+
   .page-data-user .page-header {
     gap: 12px !important;
     margin-bottom: 16px !important;
   }
-  .page-header h4 {
+
+  .page-data-user .page-title h1 {
     font-size: 20px !important;
   }
-  .page-header h4 span {
+
+  .page-data-user .page-title-icon {
     width: 34px !important;
     height: 34px !important;
     border-radius: 9px !important;
   }
-  .page-header h4 span i {
+
+  .page-data-user .page-title-icon i {
     font-size: 14px !important;
   }
-}
 
-/* =========================================================
-   PAGE TYPOGRAPHY CONSISTENCY — RESPONSIVE OVERRIDE
-   This layer intentionally keeps labels compact but readable.
-   ========================================================= */
-
-.page-data-user .table-custom {
-  font-size: 12px !important;
-}
-.page-data-user .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-data-user .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-data-user .info-label {
-  font-size: 10px !important;
-}
-.page-data-user .info-value {
-  font-size: 12px !important;
-}
-.page-data-user .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-data-user .footer-text,
-.page-data-user .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-data-user .table-custom {
-    min-width: 680px;
-  }
-  .page-data-user .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-data-user .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-deliveryinstruction .table-custom {
-  font-size: 12px !important;
-}
-.page-deliveryinstruction .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-deliveryinstruction .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-deliveryinstruction .info-label {
-  font-size: 10px !important;
-}
-.page-deliveryinstruction .info-value {
-  font-size: 12px !important;
-}
-.page-deliveryinstruction .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-deliveryinstruction .footer-text,
-.page-deliveryinstruction .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-deliveryinstruction .table-custom {
-    min-width: 680px;
-  }
-  .page-deliveryinstruction .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-deliveryinstruction .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-detailaktivitas .table-custom {
-  font-size: 12px !important;
-}
-.page-detailaktivitas .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-detailaktivitas .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-detailaktivitas .info-label {
-  font-size: 10px !important;
-}
-.page-detailaktivitas .info-value {
-  font-size: 12px !important;
-}
-.page-detailaktivitas .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-detailaktivitas .footer-text,
-.page-detailaktivitas .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-detailaktivitas .table-custom {
-    min-width: 680px;
-  }
-  .page-detailaktivitas .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-detailaktivitas .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-detaildi .table-custom {
-  font-size: 12px !important;
-}
-.page-detaildi .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-detaildi .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-detaildi .info-label {
-  font-size: 10px !important;
-}
-.page-detaildi .info-value {
-  font-size: 12px !important;
-}
-.page-detaildi .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-detaildi .footer-text,
-.page-detaildi .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-detaildi .table-custom {
-    min-width: 680px;
-  }
-  .page-detaildi .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-detaildi .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-detailtr .table-custom {
-  font-size: 12px !important;
-}
-.page-detailtr .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-detailtr .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-detailtr .info-label {
-  font-size: 10px !important;
-}
-.page-detailtr .info-value {
-  font-size: 12px !important;
-}
-.page-detailtr .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-detailtr .footer-text,
-.page-detailtr .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-detailtr .table-custom {
-    min-width: 680px;
-  }
-  .page-detailtr .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-detailtr .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-produk .table-custom {
-  font-size: 12px !important;
-}
-.page-produk .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-produk .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-produk .info-label {
-  font-size: 10px !important;
-}
-.page-produk .info-value {
-  font-size: 12px !important;
-}
-.page-produk .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-produk .footer-text,
-.page-produk .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-produk .table-custom {
-    min-width: 680px;
-  }
-  .page-produk .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-produk .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-data-user .table-custom {
-  font-size: 12px !important;
-}
-.page-data-user .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-data-user .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-data-user .info-label {
-  font-size: 10px !important;
-}
-.page-data-user .info-value {
-  font-size: 12px !important;
-}
-.page-data-user .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-data-user .footer-text,
-.page-data-user .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-data-user .table-custom {
-    min-width: 680px;
-  }
-  .page-data-user .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-data-user .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-transactionrequest .table-custom {
-  font-size: 12px !important;
-}
-.page-transactionrequest .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-transactionrequest .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-transactionrequest .info-label {
-  font-size: 10px !important;
-}
-.page-transactionrequest .info-value {
-  font-size: 12px !important;
-}
-.page-transactionrequest .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-transactionrequest .footer-text,
-.page-transactionrequest .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-transactionrequest .table-custom {
-    min-width: 680px;
-  }
-  .page-transactionrequest .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-transactionrequest .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-.page-account-management .table-custom {
-  font-size: 12px !important;
-}
-.page-account-management .table-custom th {
-  font-size: 10px !important;
-  line-height: 1.35;
-}
-.page-account-management .table-custom td {
-  font-size: 12px !important;
-  line-height: 1.45;
-}
-.page-account-management .info-label {
-  font-size: 10px !important;
-}
-.page-account-management .info-value {
-  font-size: 12px !important;
-}
-.page-account-management .pagination .page-link {
-  font-size: 11px !important;
-}
-.page-account-management .footer-text,
-.page-account-management .footer {
-  font-size: 10px !important;
-}
-@media (max-width: 768px) {
-  .page-account-management .table-custom {
-    min-width: 680px;
-  }
-  .page-account-management .table-custom th {
-    font-size: 10px !important;
-  }
-  .page-account-management .table-custom td {
-    font-size: 12px !important;
-  }
-}
-
-/* =========================================================
-   CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
-   Final override layer.
-   Goals:
-   - Consistent typography and spacing
-   - Clean filter / sort controls
-   - Stable pagination at every viewport
-   - PC / large monitor / laptop / tablet / phone
-   - No horizontal page overflow
-   ========================================================= */
-
-html,
-body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-button,
-input,
-select,
-textarea {
-  min-width: 0;
-}
-
-.content {
-  min-width: 0;
-}
-
-/* ---------- Shared controls ---------- */
-.filter,
-.filter-wrap,
-.filter-bar,
-.filter-buttons,
-.next-approver-filter-form,
-.next-approver-filter-wrap,
-.page-actions,
-.header-actions,
-.filters {
-  min-width: 0;
-}
-
-.filter,
-.page-data-user .filter {
-  box-sizing: border-box;
-  min-height: 38px;
-  line-height: 1.25;
-}
-
-.filter-buttons {
-  align-items: center;
-}
-
-.btn-filter,
-.filter-buttons .btn-filter {
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.next-approver-filter-wrap {
-  display: flex;
-  align-items: center;
-  min-height: 38px;
-}
-
-.next-approver-select {
-  min-height: 38px;
-  box-sizing: border-box;
-}
-
-/* ---------- Pagination ---------- */
-.card-footer {
-  min-width: 0;
-}
-
-.page-data-user .pagination,
-.page-deliveryinstruction .pagination,
-.page-detailaktivitas .pagination,
-.page-detaildi .pagination,
-.page-detailtr .pagination,
-.page-produk .pagination,
-.page-data-user .pagination,
-.page-transactionrequest .pagination,
-.page-account-management .pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 !important;
-  padding: 0;
-}
-
-.page-data-user .pagination .page-item,
-.page-deliveryinstruction .pagination .page-item,
-.page-detailaktivitas .pagination .page-item,
-.page-detaildi .pagination .page-item,
-.page-detailtr .pagination .page-item,
-.page-produk .pagination .page-item,
-.page-data-user .pagination .page-item,
-.page-transactionrequest .pagination .page-item,
-.page-account-management .pagination .page-item {
-  margin: 0;
-}
-
-.page-data-user .pagination .page-link,
-.page-deliveryinstruction .pagination .page-link,
-.page-detailaktivitas .pagination .page-link,
-.page-detaildi .pagination .page-link,
-.page-detailtr .pagination .page-link,
-.page-produk .pagination .page-link,
-.page-data-user .pagination .page-link,
-.page-transactionrequest .pagination .page-link,
-.page-account-management .pagination .page-link {
-  min-width: 36px;
-  min-height: 36px;
-  padding: 0 10px !important;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px !important;
-  font-size: 11px !important;
-  font-weight: 650;
-  line-height: 1;
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.page-data-user .pagination .page-item:first-child .page-link,
-.page-data-user .pagination .page-item:last-child .page-link,
-.page-deliveryinstruction .pagination .page-item:first-child .page-link,
-.page-deliveryinstruction .pagination .page-item:last-child .page-link,
-.page-detailaktivitas .pagination .page-item:first-child .page-link,
-.page-detailaktivitas .pagination .page-item:last-child .page-link,
-.page-detaildi .pagination .page-item:first-child .page-link,
-.page-detaildi .pagination .page-item:last-child .page-link,
-.page-detailtr .pagination .page-item:first-child .page-link,
-.page-detailtr .pagination .page-item:last-child .page-link,
-.page-produk .pagination .page-item:first-child .page-link,
-.page-produk .pagination .page-item:last-child .page-link,
-.page-data-user .pagination .page-item:first-child .page-link,
-.page-data-user .pagination .page-item:last-child .page-link,
-.page-transactionrequest .pagination .page-item:first-child .page-link,
-.page-transactionrequest .pagination .page-item:last-child .page-link,
-.page-account-management .pagination .page-item:first-child .page-link,
-.page-account-management .pagination .page-item:last-child .page-link {
-  min-width: 68px;
-}
-
-/* ---------- Large monitor ---------- */
-@media (min-width: 1440px) {
-  .content {
-    padding-left: 34px;
-    padding-right: 34px;
-  }
-
-  .page-header,
-  .hero-row {
-    gap: 28px;
-  }
-
-  .pagination .page-link {
-    min-height: 38px;
-  }
-}
-
-/* ---------- Laptop ---------- */
-@media (min-width: 1025px) and (max-width: 1439px) {
-  .content {
-    padding-left: 28px;
-    padding-right: 28px;
-  }
-
-  .card-header-custom {
-    gap: 12px;
-  }
-
-  .filter,
-  .page-data-user .filter {
-    min-height: 37px;
-  }
-}
-
-/* ---------- Tablet ---------- */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    margin-left: 0;
-    width: 100%;
-    padding: 22px 20px 42px;
-  }
-
-  .page-header,
-  .hero-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .page-actions,
-  .header-actions,
-  .filters {
-    width: 100%;
-  }
-
-  .filter,
-  .page-data-user .filter {
-    flex: 1 1 150px;
-  }
-
-  .card-header-custom {
-    align-items: center;
-  }
-
-  .card-header-custom form {
-    max-width: 100%;
-  }
-
-  .pagination .page-link {
-    min-width: 34px;
-    min-height: 34px;
-  }
-}
-
-/* ---------- Phone ---------- */
-@media (max-width: 768px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    margin-left: 0;
-    width: 100%;
-    max-width: 100%;
-    padding: 18px 14px 36px;
-  }
-
-  .page-header,
-  .hero-row {
-    width: 100%;
-    align-items: stretch;
-    flex-direction: column;
-    gap: 14px;
-    margin-bottom: 16px;
-  }
-
-  .page-title,
-  .hero {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .page-title h1,
-  .page-title h4,
-  .hero h1,
-  .page-header h4 {
-    font-size: 21px !important;
-    line-height: 1.18;
-    letter-spacing: -0.35px;
-  }
-
-  .page-title p,
-  .hero p,
-  .page-header p {
-    font-size: 11px !important;
-    line-height: 1.45;
-  }
-
-  .page-actions,
-  .header-actions,
-  .filters,
-  .page-data-user .filters {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .page-actions > *,
-  .header-actions > *,
-  .filters > *,
-  .page-data-user .filters > * {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .filter,
-  .page-data-user .filter,
-  .btn-filter,
-  .filter-buttons .btn-filter,
-  .btn-add,
-  .btn-export {
-    width: 100%;
-    min-width: 0;
-    min-height: 38px;
-    height: 38px;
-    font-size: 11px;
-  }
-
-  .filter-wrap,
-  .filter-bar {
-    padding: 12px 14px !important;
-  }
-
-  .filter-buttons,
-  .page-deliveryinstruction .filter-buttons,
-  .page-transactionrequest .filter-buttons {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    gap: 7px;
-    padding: 1px 1px 4px;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .filter-buttons .btn-filter,
-  .page-deliveryinstruction .filter-buttons .btn-filter,
-  .page-transactionrequest .filter-buttons .btn-filter {
-    width: auto;
-    flex: 0 0 auto;
-    min-width: max-content;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .next-approver-filter-form,
-  .next-approver-filter-wrap {
-    width: 100%;
-    max-width: 100%;
-    margin-left: 0 !important;
-  }
-
-  .next-approver-select {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .card-header-custom {
-    min-height: auto;
-    padding: 13px 14px !important;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .card-header-custom h6 {
-    font-size: 12px !important;
-    line-height: 1.35;
-  }
-
-  .card-header-custom form,
-  .page-data-user .card-header-custom form,
-  .page-deliveryinstruction .card-header-custom form,
-  .page-produk .card-header-custom form {
-    width: 100%;
-    max-width: 100%;
-    margin-left: 0 !important;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-
-  .card-header-custom form input,
-  .search-input {
-    width: 100% !important;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
-  .card-header-custom form .btn {
-    flex: 0 0 auto;
-  }
-
-  .card-footer {
-    padding: 12px 14px !important;
-  }
-
-  .page-data-user .pagination,
-  .page-deliveryinstruction .pagination,
-  .page-detailaktivitas .pagination,
-  .page-detaildi .pagination,
-  .page-detailtr .pagination,
-  .page-produk .pagination,
-  .page-data-user .pagination,
-  .page-transactionrequest .pagination,
-  .page-account-management .pagination {
-    justify-content: center;
-    gap: 5px;
-  }
-
-  .page-data-user .pagination .page-link,
-  .page-deliveryinstruction .pagination .page-link,
-  .page-detailaktivitas .pagination .page-link,
-  .page-detaildi .pagination .page-link,
-  .page-detailtr .pagination .page-link,
-  .page-produk .pagination .page-link,
-  .page-data-user .pagination .page-link,
-  .page-transactionrequest .pagination .page-link,
-  .page-account-management .pagination .page-link {
-    min-width: 34px;
-    width: 34px;
-    height: 34px;
-    min-height: 34px;
-    padding: 0 !important;
-    font-size: 10px !important;
-  }
-
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:first-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:last-child .page-link,
-  .page-detailaktivitas .pagination .page-item:first-child .page-link,
-  .page-detailaktivitas .pagination .page-item:last-child .page-link,
-  .page-detaildi .pagination .page-item:first-child .page-link,
-  .page-detaildi .pagination .page-item:last-child .page-link,
-  .page-detailtr .pagination .page-item:first-child .page-link,
-  .page-detailtr .pagination .page-item:last-child .page-link,
-  .page-produk .pagination .page-item:first-child .page-link,
-  .page-produk .pagination .page-item:last-child .page-link,
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-transactionrequest .pagination .page-item:first-child .page-link,
-  .page-transactionrequest .pagination .page-item:last-child .page-link,
-  .page-account-management .pagination .page-item:first-child .page-link,
-  .page-account-management .pagination .page-item:last-child .page-link {
-    width: auto;
-    min-width: 60px;
-    padding: 0 9px !important;
-  }
-
-  .table-responsive,
-  .card-body-custom {
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .table-custom {
-    white-space: nowrap;
-  }
-}
-
-/* ---------- Small phone ---------- */
-@media (max-width: 480px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    padding: 16px 10px 30px;
-  }
-
-  .page-title h1,
-  .page-title h4,
-  .hero h1,
-  .page-header h4 {
-    font-size: 19px !important;
-  }
-
-  .page-actions,
-  .header-actions,
-  .filters,
-  .page-data-user .filters {
-    grid-template-columns: 1fr;
-  }
-
-  .card-custom,
-  .chart-card,
-  .info-card,
-  .stat-card,
-  .kpi,
-  .panel {
+  .page-data-user .card-custom {
     border-radius: 13px;
   }
 
-  .card-footer {
-    padding: 10px !important;
+  .page-data-user .table-custom {
+    min-width: 900px;
   }
 
-  .page-data-user .pagination,
-  .page-deliveryinstruction .pagination,
-  .page-detailaktivitas .pagination,
-  .page-detaildi .pagination,
-  .page-detailtr .pagination,
-  .page-produk .pagination,
-  .page-data-user .pagination,
-  .page-transactionrequest .pagination,
-  .page-account-management .pagination {
+  .page-data-user .pagination {
     gap: 4px;
   }
 
-  .page-data-user .pagination .page-link,
-  .page-deliveryinstruction .pagination .page-link,
-  .page-detailaktivitas .pagination .page-link,
-  .page-detaildi .pagination .page-link,
-  .page-detailtr .pagination .page-link,
-  .page-produk .pagination .page-link,
-  .page-data-user .pagination .page-link,
-  .page-transactionrequest .pagination .page-link,
-  .page-account-management .pagination .page-link {
+  .page-data-user .pagination .page-link {
     width: 32px;
     min-width: 32px;
     height: 32px;
@@ -1596,73 +1015,24 @@ textarea {
   }
 
   .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:first-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:last-child .page-link,
-  .page-detailaktivitas .pagination .page-item:first-child .page-link,
-  .page-detailaktivitas .pagination .page-item:last-child .page-link,
-  .page-detaildi .pagination .page-item:first-child .page-link,
-  .page-detaildi .pagination .page-item:last-child .page-link,
-  .page-detailtr .pagination .page-item:first-child .page-link,
-  .page-detailtr .pagination .page-item:last-child .page-link,
-  .page-produk .pagination .page-item:first-child .page-link,
-  .page-produk .pagination .page-item:last-child .page-link,
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-transactionrequest .pagination .page-item:first-child .page-link,
-  .page-transactionrequest .pagination .page-item:last-child .page-link,
-  .page-account-management .pagination .page-item:first-child .page-link,
-  .page-account-management .pagination .page-item:last-child .page-link {
+  .page-data-user .pagination .page-item:last-child .page-link {
     min-width: 54px;
     width: auto;
     padding: 0 8px !important;
   }
 }
 
-/* ---------- Very small phone ---------- */
 @media (max-width: 360px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-data-user .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    padding-left: 8px;
-    padding-right: 8px;
+  .page-data-user .content {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
 
-  .pagination .page-link {
+  .page-data-user .pagination .page-link {
     width: 30px !important;
     min-width: 30px !important;
     height: 30px;
     min-height: 30px;
     font-size: 9px !important;
-  }
-
-  .pagination .page-item:first-child .page-link,
-  .pagination .page-item:last-child .page-link {
-    min-width: 48px !important;
-    width: auto !important;
-  }
-}
-
-/* FINAL SALES ACTIVITY FILTER / SORT ALIGNMENT */
-.page-data-user .hero-row {
-  align-items: flex-end;
-}
-.page-data-user .filters {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-@media (max-width: 1024px) {
-  .page-data-user .hero-row {
-    align-items: stretch;
-  }
-  .page-data-user .filters {
-    justify-content: flex-start;
   }
 }

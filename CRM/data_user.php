@@ -63,7 +63,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     $stmt->execute($exportParams);
     $exportUsers = $stmt->fetchAll();
 
-    echo '<html><head><meta charset="UTF-8"></head><body>';
+    echo '<html><head><meta charset="UTF-8"></head><body class="page-data-user">';
     echo '<h2>Data User - PT Ganda Elang Tangguh</h2>';
     echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . '</p>';
     if ($exportSearch !== '') {
