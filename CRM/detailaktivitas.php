@@ -890,6 +890,7 @@ foreach ($detailsList as $d) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="css/detailaktivitas.css">
+    <link rel="stylesheet" href="css/footer.css">
 
 </head>
 <body>
@@ -1074,9 +1075,7 @@ foreach ($detailsList as $d) {
         </div>
 
         <!-- FOOTER -->
-        <div class="footer-text">
-            &copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> - CRM
-        </div>
+        <?php require_once 'footer.php'; ?>
 
     </div>
 
