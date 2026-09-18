@@ -869,6 +869,7 @@ $role = $_SESSION['role'] ?? 'user';
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="css/salesactivity.css">
+<link rel="stylesheet" href="css/footer.css">
 </head>
 <body>
 <div class="app">
@@ -1047,9 +1048,7 @@ $role = $_SESSION['role'] ?? 'user';
                 </div>
             <?php endif; ?>
         </div>
-
-    
-<div class="footer-text">&copy; <?= date('Y') ?> <a href="#">PT Ganda Elang Tangguh</a> · Heavy Equipment Dealer CRM</div>
+    <?php require_once 'footer.php'; ?>
 </main>
 </div>
 </div>
