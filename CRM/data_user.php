@@ -250,7 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <!-- Favicon -->
     <link rel="icon" type="image/webp" href="images/favicon.webp">
     <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
-    <link rel="stylesheet" href="css/navigation.css">
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -261,7 +260,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
 
     <link rel="stylesheet" href="css/data_user.css">
-    <link rel="stylesheet" href="css/notification.css">
 
 
 </head>
