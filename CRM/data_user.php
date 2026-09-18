@@ -261,7 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
 
     <link rel="stylesheet" href="css/data_user.css">
-    <link rel="stylesheet" href="css/notifications.css">
+    <link rel="stylesheet" href="css/notification.css">
 
 
 </head>

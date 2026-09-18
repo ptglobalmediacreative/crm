@@ -598,7 +598,7 @@ function canSalesEdit($db, $account_id, $userId) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/navigation.css">
     <link rel="stylesheet" href="css/account_management.css">
-    <link rel="stylesheet" href="css/notifications.css">
+    <link rel="stylesheet" href="css/notification.css">
 
 </head>
 <body>

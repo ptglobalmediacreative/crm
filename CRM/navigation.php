@@ -1014,7 +1014,7 @@ $notifReadItems = array_values(array_filter(
 $notifUnread = count($notifUnreadItems);
 ?>
 <link rel="stylesheet" href="css/navigation.css">
-<link rel="stylesheet" href="css/notifications.css">
+<link rel="stylesheet" href="css/notification.css">
 
 <header class="topbar">
     <a class="brand" href="dashboard.php">
