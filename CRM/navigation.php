@@ -1209,6 +1209,100 @@ $notifReadItems = array_values(array_filter(
 ));
 
 $notifUnread = count($notifUnreadItems);
+
+/* ==========================================================
+   EMAIL NOTIFICATION — BELUM DIBACA
+   ----------------------------------------------------------
+   Semua notification yang tampil di tab "Belum Dibaca"
+   dikirim 1x ke email user aktif.
+
+   Catatan:
+   - Recipient berasal dari users.email.
+   - Pengiriman menggunakan sendEmail() dari config.php.
+   - Deduplication dilakukan di notification_email_logs.
+   - Jika tabel log belum ada, dibuat otomatis.
+   - Kegagalan email tidak menghentikan CRM.
+   ========================================================== */
+
+if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
+    try {
+        // Pastikan tabel log email tersedia.
+        $notifDb->exec("
+            CREATE TABLE IF NOT EXISTS notification_email_logs (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                notification_key VARCHAR(255) NOT NULL,
+                recipient_email VARCHAR(320) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                status ENUM('processing','sent','failed') NOT NULL DEFAULT 'processing',
+                sent_at DATETIME NULL,
+                error_message TEXT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_notification_email_user_key (user_id, notification_key),
+                KEY idx_notification_email_status (status),
+                KEY idx_notification_email_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+
+        // Ambil email user aktif.
+        $emailUserStmt = $notifDb->prepare("
+            SELECT id, email, full_name
+            FROM users
+            WHERE id = ?
+              AND (is_active = 1 OR is_active IS NULL)
+            LIMIT 1
+        ");
+        $emailUserStmt->execute([$notifUserId]);
+        $emailUser = $emailUserStmt->fetch(PDO::FETCH_ASSOC);
+
+        $recipientEmail = trim((string)($emailUser['email'] ?? ''));
+        $recipientName  = trim((string)($emailUser['full_name'] ?? 'User'));
+
+        if (
+            $emailUser &&
+            filter_var($recipientEmail, FILTER_VALIDATE_EMAIL) &&
+            function_exists('sendEmail')
+        ) {
+            $notificationEmailService = __DIR__ . '/services/NotificationEmailService.php';
+
+            if (is_file($notificationEmailService)) {
+                require_once $notificationEmailService;
+
+                foreach ($notifUnreadItems as $unreadNotification) {
+                    try {
+                        sendNotificationEmail(
+                            $notifDb,
+                            $notifUserId,
+                            $recipientEmail,
+                            $recipientName,
+                            $unreadNotification
+                        );
+                    } catch (Throwable $emailError) {
+                        error_log(
+                            '[GET CRM] Notification email error: ' .
+                            $emailError->getMessage()
+                        );
+                    }
+                }
+            } else {
+                error_log(
+                    '[GET CRM] NotificationEmailService.php tidak ditemukan: ' .
+                    $notificationEmailService
+                );
+            }
+        }
+    } catch (Throwable $emailIntegrationError) {
+        // Email notification tidak boleh menghentikan halaman CRM.
+        error_log(
+            '[GET CRM] Email notification integration error: ' .
+            $emailIntegrationError->getMessage()
+        );
+    }
+}
+
 ?>
 <link rel="stylesheet" href="css/navigation.css">
 <link rel="stylesheet" href="css/notification.css">
