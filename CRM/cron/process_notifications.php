@@ -3,7 +3,7 @@
  * GET CRM - Background Notification Worker
  *
  * Fungsi:
- * - Menjalankan proses notifikasi CRM secara background.
+ * - Menjalankan proses notification CRM secara background.
  * - Tidak membutuhkan user membuka CRM.
  * - Menggunakan notification engine yang sama dengan navigation.php.
  * - Memproses user yang mempunyai email valid.
@@ -32,21 +32,16 @@ if (PHP_SAPI !== 'cli') {
 // 2. TENTUKAN ROOT CRM
 // ============================================================
 //
-// File ini berada di:
+// File:
 //
 // /CRM/cron/process_notifications.php
 //
-// Maka:
-// __DIR__
-// = /CRM/cron
-//
-// dirname(__DIR__)
-// = /CRM
+// dirname(__DIR__) = /CRM
 //
 
 $crmRoot = dirname(__DIR__);
 
-$configFile = $crmRoot . '/config.php';
+$configFile    = $crmRoot . '/config.php';
 $navigationFile = $crmRoot . '/navigation.php';
 
 
@@ -77,11 +72,13 @@ if (!is_file($navigationFile)) {
 // 4. LOAD CONFIG CRM
 // ============================================================
 //
-// config.php membuat koneksi PDO pada variable:
+// config.php milik CRM membuat koneksi PDO.
 //
-// $db
+// Biasanya:
 //
-// Jangan menimpa $db dengan null setelah require_once.
+// $db = new PDO(...)
+//
+// JANGAN mengosongkan $db setelah require_once.
 //
 
 try {
@@ -112,13 +109,6 @@ try {
 // 3. $conn
 // 4. getPDO()
 //
-// PENTING:
-// Jangan melakukan:
-//
-// $db = null;
-//
-// karena config.php sudah membuat $db.
-//
 
 $notificationDb = null;
 
@@ -137,7 +127,11 @@ if (isset($db) && $db instanceof PDO) {
 // PRIORITAS 2: $pdo
 // ------------------------------------------------------------
 
-if (!$notificationDb && isset($pdo) && $pdo instanceof PDO) {
+if (
+    !$notificationDb &&
+    isset($pdo) &&
+    $pdo instanceof PDO
+) {
 
     $notificationDb = $pdo;
 }
@@ -147,7 +141,11 @@ if (!$notificationDb && isset($pdo) && $pdo instanceof PDO) {
 // PRIORITAS 3: $conn
 // ------------------------------------------------------------
 
-if (!$notificationDb && isset($conn) && $conn instanceof PDO) {
+if (
+    !$notificationDb &&
+    isset($conn) &&
+    $conn instanceof PDO
+) {
 
     $notificationDb = $conn;
 }
@@ -157,7 +155,10 @@ if (!$notificationDb && isset($conn) && $conn instanceof PDO) {
 // PRIORITAS 4: getPDO()
 // ------------------------------------------------------------
 
-if (!$notificationDb && function_exists('getPDO')) {
+if (
+    !$notificationDb &&
+    function_exists('getPDO')
+) {
 
     try {
 
@@ -197,9 +198,6 @@ if (!$notificationDb instanceof PDO) {
 // ============================================================
 // 7. TEST DATABASE CONNECTION
 // ============================================================
-//
-// Kita test koneksi sebelum melanjutkan worker.
-//
 
 try {
 
@@ -229,48 +227,123 @@ fwrite(
 // ============================================================
 //
 // navigation.php menggunakan $db.
-// Jadi kita expose koneksi tersebut sebagai $db.
+//
+// Karena itu kita expose koneksi sebagai $db.
 //
 
 $db = $notificationDb;
 
 
 // ============================================================
-// 9. SESSION
+// 9. FALLBACK getRoleLabel()
+// ============================================================
+//
+// Saat CRM dibuka normal, beberapa halaman CRM mendefinisikan
+// getRoleLabel() sebelum navigation.php dipanggil.
+//
+// Background worker langsung menjalankan navigation.php,
+// sehingga fungsi tersebut belum tentu tersedia.
+//
+// Kita hanya membuat fallback jika fungsi belum tersedia.
+//
+// Jika fungsi sudah ada, fungsi asli tetap digunakan.
+//
+
+if (!function_exists('getRoleLabel')) {
+
+    function getRoleLabel($role)
+    {
+        $roleLabels = [
+
+            'it_support'
+                => 'IT Support',
+
+            'admin'
+                => 'Admin',
+
+            'finance'
+                => 'Finance',
+
+            'direktur_utama'
+                => 'Direktur Utama',
+
+            'direktur_operasional'
+                => 'Direktur Operasional',
+
+            'direktur_sales'
+                => 'Direktur Sales',
+
+            'business'
+                => 'Business',
+
+            'sales_manager'
+                => 'Sales Manager',
+
+            'sales'
+                => 'Sales',
+
+            'part_support'
+                => 'Part Support',
+
+            'service_support'
+                => 'Service Support'
+        ];
+
+
+        $role = strtolower(
+            trim(
+                (string)$role
+            )
+        );
+
+
+        return $roleLabels[$role]
+            ?? ucfirst(
+                str_replace(
+                    '_',
+                    ' ',
+                    $role
+                )
+            );
+    }
+}
+
+
+// ============================================================
+// 10. SESSION
 // ============================================================
 
 if (session_status() === PHP_SESSION_NONE) {
+
     session_start();
 }
 
 
 // ============================================================
-// 10. LOAD USER CRM
+// 11. CEK KOLOM is_active
 // ============================================================
 //
-// Kita ambil user yang mempunyai email valid.
+// Beberapa versi database mungkin memiliki:
 //
-// Karena beberapa versi database mungkin mempunyai kolom
-// is_active dan beberapa versi mungkin belum mempunyai,
-// kita cek terlebih dahulu.
+// users.is_active
 //
-
-$users = [];
-
-
-// ------------------------------------------------------------
-// CEK APAKAH users.is_active ADA
-// ------------------------------------------------------------
+// Jika ada, kita hanya memproses user aktif.
+//
+// Jika tidak ada, kita tetap memproses user yang memiliki email.
+//
 
 $hasIsActiveColumn = false;
 
+
 try {
 
-    $checkColumn = $notificationDb->query("
-        SHOW COLUMNS FROM users LIKE 'is_active'
-    ");
+    $checkColumn = $notificationDb->query(
+        "SHOW COLUMNS FROM users LIKE 'is_active'"
+    );
 
-    $hasIsActiveColumn = (bool)$checkColumn->fetch(PDO::FETCH_ASSOC);
+    $hasIsActiveColumn = (bool)$checkColumn->fetch(
+        PDO::FETCH_ASSOC
+    );
 
 } catch (Throwable $e) {
 
@@ -279,17 +352,16 @@ try {
 
 
 // ============================================================
-// QUERY USER
+// 12. AMBIL USER CRM
 // ============================================================
+
+$users = [];
+
 
 try {
 
     if ($hasIsActiveColumn) {
 
-        /*
-         * Jika kolom is_active tersedia,
-         * hanya proses user aktif.
-         */
         $userQuery = "
             SELECT
                 id,
@@ -307,10 +379,6 @@ try {
 
     } else {
 
-        /*
-         * Jika kolom is_active belum tersedia,
-         * proses semua user yang mempunyai email.
-         */
         $userQuery = "
             SELECT
                 id,
@@ -346,10 +414,11 @@ try {
 
 
 // ============================================================
-// 11. INFO AWAL WORKER
+// 13. INFORMASI USER
 // ============================================================
 
 $totalUsers = count($users);
+
 
 fwrite(
     STDOUT,
@@ -358,10 +427,10 @@ fwrite(
 
 
 // ============================================================
-// 12. FLAG WORKER
+// 14. FLAG WORKER
 // ============================================================
 //
-// Flag ini dapat dibaca oleh navigation.php.
+// Flag ini dapat dibaca navigation.php.
 //
 // Tujuannya membedakan:
 //
@@ -373,31 +442,42 @@ fwrite(
 //
 
 if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
-    define('GET_CRM_NOTIFICATION_WORKER', true);
+
+    define(
+        'GET_CRM_NOTIFICATION_WORKER',
+        true
+    );
 }
 
 
 // ============================================================
-// 13. COUNTER
+// 15. COUNTER
 // ============================================================
 
 $processed = 0;
+
 $failed = 0;
+
 $skipped = 0;
 
 $started = microtime(true);
 
 
 // ============================================================
-// 14. PROCESS SETIAP USER
+// 16. PROCESS SETIAP USER
 // ============================================================
 
 foreach ($users as $user) {
 
-    $userId = (int)($user['id'] ?? 0);
+    $userId = (int)(
+        $user['id'] ?? 0
+    );
+
 
     $userEmail = trim(
-        (string)($user['email'] ?? '')
+        (string)(
+            $user['email'] ?? ''
+        )
     );
 
 
@@ -417,7 +497,12 @@ foreach ($users as $user) {
     // VALIDASI EMAIL
     // --------------------------------------------------------
 
-    if (!filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+    if (
+        !filter_var(
+            $userEmail,
+            FILTER_VALIDATE_EMAIL
+        )
+    ) {
 
         $skipped++;
 
@@ -439,19 +524,24 @@ foreach ($users as $user) {
 
     $_SESSION['user_id'] = $userId;
 
+
     $_SESSION['username'] = (string)(
         $user['username'] ?? ''
     );
 
+
     $_SESSION['email'] = $userEmail;
+
 
     $_SESSION['full_name'] = (string)(
         $user['full_name'] ?? 'User'
     );
 
+
     $_SESSION['phone'] = (string)(
         $user['phone'] ?? ''
     );
+
 
     $_SESSION['role'] = (string)(
         $user['role'] ?? ''
@@ -459,22 +549,45 @@ foreach ($users as $user) {
 
 
     // ========================================================
-    // GLOBAL VARIABLE
+    // GLOBAL USER DATA
     // ========================================================
     //
-    // Beberapa bagian CRM menggunakan variable global.
-    // Kita isi agar navigation.php dapat bekerja seperti
-    // ketika user membuka halaman CRM.
+    // navigation.php dapat menggunakan:
+    //
+    // $userId
+    // $userRole
+    // $role
     //
 
     $GLOBALS['userId'] = $userId;
+
 
     $GLOBALS['userRole'] = (string)(
         $user['role'] ?? ''
     );
 
+
     $GLOBALS['role'] = (string)(
         $user['role'] ?? ''
+    );
+
+
+    // ========================================================
+    // VARIABLE LOKAL UNTUK navigation.php
+    // ========================================================
+
+    $userRole = (string)(
+        $user['role'] ?? ''
+    );
+
+
+    $role = (string)(
+        $user['role'] ?? ''
+    );
+
+
+    $fullName = (string)(
+        $user['full_name'] ?? 'User'
     );
 
 
@@ -484,13 +597,15 @@ foreach ($users as $user) {
     //
     // navigation.php menghasilkan HTML.
     //
-    // Worker tidak membutuhkan HTML tersebut.
+    // Worker tidak membutuhkan HTML.
     //
     // Kita hanya membutuhkan side-effect:
     //
     // notification ditemukan
-    //        ↓
-    // email diproses
+    //       ↓
+    // NotificationEmailService
+    //       ↓
+    // email dikirim
     //
 
     ob_start();
@@ -510,6 +625,7 @@ foreach ($users as $user) {
         // ----------------------------------------------------
 
         if (ob_get_level() > 0) {
+
             ob_end_clean();
         }
 
@@ -530,13 +646,18 @@ foreach ($users as $user) {
     } catch (Throwable $e) {
 
         // ----------------------------------------------------
-        // Pastikan output buffer dibersihkan
+        // Bersihkan output buffer
         // ----------------------------------------------------
 
         if (ob_get_level() > 0) {
+
             ob_end_clean();
         }
 
+
+        // ----------------------------------------------------
+        // Catat error
+        // ----------------------------------------------------
 
         $failed++;
 
@@ -552,7 +673,7 @@ foreach ($users as $user) {
 
 
 // ============================================================
-// 15. DURASI
+// 17. HITUNG DURASI
 // ============================================================
 
 $duration = round(
@@ -562,7 +683,7 @@ $duration = round(
 
 
 // ============================================================
-// 16. HASIL AKHIR
+// 18. HASIL AKHIR WORKER
 // ============================================================
 
 fwrite(
@@ -570,25 +691,30 @@ fwrite(
     "[GET CRM] Background worker selesai.\n"
 );
 
+
 fwrite(
     STDOUT,
     "[GET CRM] Total user: {$totalUsers}\n"
 );
+
 
 fwrite(
     STDOUT,
     "[GET CRM] User diproses: {$processed}\n"
 );
 
+
 fwrite(
     STDOUT,
     "[GET CRM] User gagal: {$failed}\n"
 );
 
+
 fwrite(
     STDOUT,
     "[GET CRM] User dilewati: {$skipped}\n"
 );
+
 
 fwrite(
     STDOUT,
@@ -597,7 +723,7 @@ fwrite(
 
 
 // ============================================================
-// 17. SELESAI
+// 19. SELESAI
 // ============================================================
 
 exit(0);

@@ -44,200 +44,209 @@ if (!$notifDb && function_exists('getPDO')) {
 
 /* ==========================================================
    USER PROFILE SYSTEM
-   Profile dibuka dari avatar di topbar.
-   Data tersimpan ke tabel users.
-   Kolom profile_photo dibuat otomatis bila belum ada.
+   Pada background worker, bagian profile/UI tidak diperlukan.
+   Browser tetap menggunakan blok profile seperti biasa.
    ========================================================== */
-$profileUserId = (int)($_SESSION['user_id'] ?? 0);
-$profileDb = $notifDb instanceof PDO ? $notifDb : null;
-$profileMessage = '';
-$profileMessageType = 'success';
 
-if ($profileDb instanceof PDO && $profileUserId > 0) {
-    try {
-        // Tambahkan kolom foto profil jika database versi lama belum memilikinya.
-        $profileDb->exec("
-            ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) NULL
-            AFTER phone
-        ");
+if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
+    /* ==========================================================
+       USER PROFILE SYSTEM
+       Profile dibuka dari avatar di topbar.
+       Data tersimpan ke tabel users.
+       Kolom profile_photo dibuat otomatis bila belum ada.
+       ========================================================== */
+    $profileUserId = (int)($_SESSION['user_id'] ?? 0);
+    $profileDb = $notifDb instanceof PDO ? $notifDb : null;
+    $profileMessage = '';
+    $profileMessageType = 'success';
 
-        // Simpan perubahan profile.
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_profile') {
-            $profileName  = trim((string)($_POST['profile_full_name'] ?? ''));
-            $profileEmail = trim((string)($_POST['profile_email'] ?? ''));
-            $profilePhone = trim((string)($_POST['profile_phone'] ?? ''));
+    if ($profileDb instanceof PDO && $profileUserId > 0) {
+        try {
+            // Tambahkan kolom foto profil jika database versi lama belum memilikinya.
+            $profileDb->exec("
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) NULL
+                AFTER phone
+            ");
 
-            if ($profileName === '') {
-                throw new RuntimeException('Nama lengkap wajib diisi.');
-            }
+            // Simpan perubahan profile.
+            if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_profile') {
+                $profileName  = trim((string)($_POST['profile_full_name'] ?? ''));
+                $profileEmail = trim((string)($_POST['profile_email'] ?? ''));
+                $profilePhone = trim((string)($_POST['profile_phone'] ?? ''));
 
-            if ($profileEmail !== '' && !filter_var($profileEmail, FILTER_VALIDATE_EMAIL)) {
-                throw new RuntimeException('Format email tidak valid.');
-            }
-
-            // Pastikan email tidak dipakai user lain.
-            if ($profileEmail !== '') {
-                $checkEmail = $profileDb->prepare("SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1");
-                $checkEmail->execute([$profileEmail, $profileUserId]);
-                if ($checkEmail->fetchColumn()) {
-                    throw new RuntimeException('Email sudah digunakan oleh user lain.');
-                }
-            }
-
-            $photoPath = null;
-            if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-                if ($_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
-                    throw new RuntimeException('Upload foto profil gagal.');
+                if ($profileName === '') {
+                    throw new RuntimeException('Nama lengkap wajib diisi.');
                 }
 
-                if ((int)$_FILES['profile_photo']['size'] > 2 * 1024 * 1024) {
-                    throw new RuntimeException('Ukuran foto maksimal 2 MB.');
+                if ($profileEmail !== '' && !filter_var($profileEmail, FILTER_VALIDATE_EMAIL)) {
+                    throw new RuntimeException('Format email tidak valid.');
                 }
 
-                $tmp = $_FILES['profile_photo']['tmp_name'];
-                $mime = function_exists('mime_content_type') ? mime_content_type($tmp) : '';
-                $allowed = [
-                    'image/jpeg' => 'jpg',
-                    'image/png'  => 'png',
-                    'image/webp' => 'webp'
-                ];
-
-                if (!isset($allowed[$mime])) {
-                    throw new RuntimeException('Foto harus JPG, PNG, atau WEBP.');
-                }
-
-                $uploadDir = __DIR__ . '/images/uploads/profile/';
-                if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-                    throw new RuntimeException('Folder upload foto profil tidak dapat dibuat.');
-                }
-
-                $extension = $allowed[$mime];
-                $filename = 'profile_' . $profileUserId . '_' . time() . '.' . $extension;
-                $destination = $uploadDir . $filename;
-
-                if (!move_uploaded_file($tmp, $destination)) {
-                    throw new RuntimeException('Foto profil tidak dapat disimpan.');
-                }
-
-                $photoPath = 'images/uploads/profile/' . $filename;
-            }
-
-            if ($photoPath !== null) {
-                $updateProfile = $profileDb->prepare("
-                    UPDATE users
-                    SET full_name = ?, email = ?, phone = ?, profile_photo = ?
-                    WHERE id = ?
-                ");
-                $updateProfile->execute([
-                    $profileName,
-                    $profileEmail !== '' ? $profileEmail : null,
-                    $profilePhone !== '' ? $profilePhone : null,
-                    $photoPath,
-                    $profileUserId
-                ]);
-            } else {
-                $updateProfile = $profileDb->prepare("
-                    UPDATE users
-                    SET full_name = ?, email = ?, phone = ?
-                    WHERE id = ?
-                ");
-                $updateProfile->execute([
-                    $profileName,
-                    $profileEmail !== '' ? $profileEmail : null,
-                    $profilePhone !== '' ? $profilePhone : null,
-                    $profileUserId
-                ]);
-            }
-
-            // Update session supaya nama/avatar langsung berubah tanpa login ulang.
-            $_SESSION['full_name'] = $profileName;
-            if ($profileEmail !== '') {
-                $_SESSION['email'] = $profileEmail;
-            }
-            $_SESSION['phone'] = $profilePhone;
-
-            $profileMessage = 'Profile berhasil diperbarui.';
-            $profileMessageType = 'success';
-
-            // Password bersifat opsional pada form Edit Profile.
-            $currentPassword = (string)($_POST['current_password'] ?? '');
-            $newPassword = (string)($_POST['new_password'] ?? '');
-            $confirmPassword = (string)($_POST['confirm_password'] ?? '');
-
-            if ($currentPassword !== '' || $newPassword !== '' || $confirmPassword !== '') {
-                if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
-                    throw new RuntimeException('Lengkapi semua kolom password untuk mengganti password.');
-                }
-                if (strlen($newPassword) < 8) {
-                    throw new RuntimeException('Password baru minimal 8 karakter.');
-                }
-                if ($newPassword !== $confirmPassword) {
-                    throw new RuntimeException('Konfirmasi password tidak cocok.');
-                }
-
-                $passwordColumn = null;
-                foreach (['password', 'password_hash', 'user_password'] as $candidateColumn) {
-                    $checkColumn = $profileDb->prepare("
-                        SELECT COUNT(*) FROM information_schema.columns
-                        WHERE table_schema = DATABASE()
-                          AND table_name = 'users'
-                          AND column_name = ?
-                    ");
-                    $checkColumn->execute([$candidateColumn]);
-                    if ((int)$checkColumn->fetchColumn() > 0) {
-                        $passwordColumn = $candidateColumn;
-                        break;
+                // Pastikan email tidak dipakai user lain.
+                if ($profileEmail !== '') {
+                    $checkEmail = $profileDb->prepare("SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1");
+                    $checkEmail->execute([$profileEmail, $profileUserId]);
+                    if ($checkEmail->fetchColumn()) {
+                        throw new RuntimeException('Email sudah digunakan oleh user lain.');
                     }
                 }
 
-                if ($passwordColumn === null) {
-                    throw new RuntimeException('Kolom password pada tabel users tidak ditemukan.');
+                $photoPath = null;
+                if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                    if ($_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
+                        throw new RuntimeException('Upload foto profil gagal.');
+                    }
+
+                    if ((int)$_FILES['profile_photo']['size'] > 2 * 1024 * 1024) {
+                        throw new RuntimeException('Ukuran foto maksimal 2 MB.');
+                    }
+
+                    $tmp = $_FILES['profile_photo']['tmp_name'];
+                    $mime = function_exists('mime_content_type') ? mime_content_type($tmp) : '';
+                    $allowed = [
+                        'image/jpeg' => 'jpg',
+                        'image/png'  => 'png',
+                        'image/webp' => 'webp'
+                    ];
+
+                    if (!isset($allowed[$mime])) {
+                        throw new RuntimeException('Foto harus JPG, PNG, atau WEBP.');
+                    }
+
+                    $uploadDir = __DIR__ . '/images/uploads/profile/';
+                    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+                        throw new RuntimeException('Folder upload foto profil tidak dapat dibuat.');
+                    }
+
+                    $extension = $allowed[$mime];
+                    $filename = 'profile_' . $profileUserId . '_' . time() . '.' . $extension;
+                    $destination = $uploadDir . $filename;
+
+                    if (!move_uploaded_file($tmp, $destination)) {
+                        throw new RuntimeException('Foto profil tidak dapat disimpan.');
+                    }
+
+                    $photoPath = 'images/uploads/profile/' . $filename;
                 }
 
-                $passwordStmt = $profileDb->prepare("SELECT `" . $passwordColumn . "` FROM users WHERE id = ? LIMIT 1");
-                $passwordStmt->execute([$profileUserId]);
-                $storedPassword = (string)$passwordStmt->fetchColumn();
-
-                if ($storedPassword === '' || !password_verify($currentPassword, $storedPassword)) {
-                    throw new RuntimeException('Password saat ini tidak benar.');
+                if ($photoPath !== null) {
+                    $updateProfile = $profileDb->prepare("
+                        UPDATE users
+                        SET full_name = ?, email = ?, phone = ?, profile_photo = ?
+                        WHERE id = ?
+                    ");
+                    $updateProfile->execute([
+                        $profileName,
+                        $profileEmail !== '' ? $profileEmail : null,
+                        $profilePhone !== '' ? $profilePhone : null,
+                        $photoPath,
+                        $profileUserId
+                    ]);
+                } else {
+                    $updateProfile = $profileDb->prepare("
+                        UPDATE users
+                        SET full_name = ?, email = ?, phone = ?
+                        WHERE id = ?
+                    ");
+                    $updateProfile->execute([
+                        $profileName,
+                        $profileEmail !== '' ? $profileEmail : null,
+                        $profilePhone !== '' ? $profilePhone : null,
+                        $profileUserId
+                    ]);
                 }
 
-                $updatePassword = $profileDb->prepare(
-                    "UPDATE users SET `" . $passwordColumn . "` = ? WHERE id = ?"
-                );
-                $updatePassword->execute([
-                    password_hash($newPassword, PASSWORD_DEFAULT),
-                    $profileUserId
-                ]);
+                // Update session supaya nama/avatar langsung berubah tanpa login ulang.
+                $_SESSION['full_name'] = $profileName;
+                if ($profileEmail !== '') {
+                    $_SESSION['email'] = $profileEmail;
+                }
+                $_SESSION['phone'] = $profilePhone;
 
-                $profileMessage = 'Profile dan password berhasil diperbarui.';
+                $profileMessage = 'Profile berhasil diperbarui.';
+                $profileMessageType = 'success';
+
+                // Password bersifat opsional pada form Edit Profile.
+                $currentPassword = (string)($_POST['current_password'] ?? '');
+                $newPassword = (string)($_POST['new_password'] ?? '');
+                $confirmPassword = (string)($_POST['confirm_password'] ?? '');
+
+                if ($currentPassword !== '' || $newPassword !== '' || $confirmPassword !== '') {
+                    if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+                        throw new RuntimeException('Lengkapi semua kolom password untuk mengganti password.');
+                    }
+                    if (strlen($newPassword) < 8) {
+                        throw new RuntimeException('Password baru minimal 8 karakter.');
+                    }
+                    if ($newPassword !== $confirmPassword) {
+                        throw new RuntimeException('Konfirmasi password tidak cocok.');
+                    }
+
+                    $passwordColumn = null;
+                    foreach (['password', 'password_hash', 'user_password'] as $candidateColumn) {
+                        $checkColumn = $profileDb->prepare("
+                            SELECT COUNT(*) FROM information_schema.columns
+                            WHERE table_schema = DATABASE()
+                              AND table_name = 'users'
+                              AND column_name = ?
+                        ");
+                        $checkColumn->execute([$candidateColumn]);
+                        if ((int)$checkColumn->fetchColumn() > 0) {
+                            $passwordColumn = $candidateColumn;
+                            break;
+                        }
+                    }
+
+                    if ($passwordColumn === null) {
+                        throw new RuntimeException('Kolom password pada tabel users tidak ditemukan.');
+                    }
+
+                    $passwordStmt = $profileDb->prepare("SELECT `" . $passwordColumn . "` FROM users WHERE id = ? LIMIT 1");
+                    $passwordStmt->execute([$profileUserId]);
+                    $storedPassword = (string)$passwordStmt->fetchColumn();
+
+                    if ($storedPassword === '' || !password_verify($currentPassword, $storedPassword)) {
+                        throw new RuntimeException('Password saat ini tidak benar.');
+                    }
+
+                    $updatePassword = $profileDb->prepare(
+                        "UPDATE users SET `" . $passwordColumn . "` = ? WHERE id = ?"
+                    );
+                    $updatePassword->execute([
+                        password_hash($newPassword, PASSWORD_DEFAULT),
+                        $profileUserId
+                    ]);
+
+                    $profileMessage = 'Profile dan password berhasil diperbarui.';
+                }
             }
+
+            // Ambil data profile terbaru.
+            $profileStmt = $profileDb->prepare("
+                SELECT id, username, email, full_name, phone, role, profile_photo
+                FROM users
+                WHERE id = ?
+                LIMIT 1
+            ");
+            $profileStmt->execute([$profileUserId]);
+            $profileData = $profileStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        } catch (Throwable $e) {
+            $profileData = $profileData ?? [];
+            $profileMessage = $e->getMessage();
+            $profileMessageType = 'danger';
         }
-
-        // Ambil data profile terbaru.
-        $profileStmt = $profileDb->prepare("
-            SELECT id, username, email, full_name, phone, role, profile_photo
-            FROM users
-            WHERE id = ?
-            LIMIT 1
-        ");
-        $profileStmt->execute([$profileUserId]);
-        $profileData = $profileStmt->fetch(PDO::FETCH_ASSOC) ?: [];
-
-    } catch (Throwable $e) {
-        $profileData = $profileData ?? [];
-        $profileMessage = $e->getMessage();
-        $profileMessageType = 'danger';
     }
-}
 
-$profileFullName = trim((string)($profileData['full_name'] ?? $_SESSION['full_name'] ?? 'User')) ?: 'User';
-$profileUsername = trim((string)($profileData['username'] ?? $_SESSION['username'] ?? ''));
-$profileEmail = trim((string)($profileData['email'] ?? $_SESSION['email'] ?? ''));
-$profilePhone = trim((string)($profileData['phone'] ?? $_SESSION['phone'] ?? ''));
-$profilePhoto = trim((string)($profileData['profile_photo'] ?? ''));
-$profileInitial = strtoupper(substr($profileFullName, 0, 1));
+    $profileFullName = trim((string)($profileData['full_name'] ?? $_SESSION['full_name'] ?? 'User')) ?: 'User';
+    $profileUsername = trim((string)($profileData['username'] ?? $_SESSION['username'] ?? ''));
+    $profileEmail = trim((string)($profileData['email'] ?? $_SESSION['email'] ?? ''));
+    $profilePhone = trim((string)($profileData['phone'] ?? $_SESSION['phone'] ?? ''));
+    $profilePhoto = trim((string)($profileData['profile_photo'] ?? ''));
+    $profileInitial = strtoupper(substr($profileFullName, 0, 1));
+
+}
 
 /*
  * PERSISTENT NOTIFICATION READ STATE
