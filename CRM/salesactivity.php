@@ -589,8 +589,14 @@ if (!empty($search)) {
 }
 
 if (!empty($filterMonth)) {
-    $where .= " AND DATE_FORMAT(sa.created_at, '%Y-%m') = ?";
-    $params[] = $filterMonth;
+    // Gunakan range tanggal agar tidak terjadi konflik collation
+    // antara hasil DATE_FORMAT() dan parameter string dari PHP.
+    $monthStart = $filterMonth . '-01';
+    $monthEnd = date('Y-m-d', strtotime($monthStart . ' +1 month'));
+
+    $where .= " AND sa.created_at >= ? AND sa.created_at < ?";
+    $params[] = $monthStart;
+    $params[] = $monthEnd;
 }
 
 // Filter Jenis Prospek
