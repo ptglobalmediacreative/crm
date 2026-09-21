@@ -1,6 +1,6 @@
 <?php
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
 
 require_once 'config.php';
@@ -218,12 +218,15 @@ function hexToRgba($hex, $alpha) {
 }
 
 if ($filterSalesId > 0) {
-    $chartQuery = "SELECT DATE(sa.created_at) as date, COUNT(*) as total 
+    $chartStart = $filterMonth . '-01';
+    $chartEnd = date('Y-m-d', strtotime($chartStart . ' +1 month'));
+
+    $chartQuery = "SELECT DATE(sa.created_at) as date, COUNT(*) as total
                    FROM sales_activities sa
-                   WHERE DATE_FORMAT(sa.created_at, '%Y-%m') = ? AND sa.sales_id = ? 
+                   WHERE sa.created_at >= ? AND sa.created_at < ? AND sa.sales_id = ?
                    GROUP BY DATE(sa.created_at) ORDER BY date ASC";
     $stmt = $db->prepare($chartQuery);
-    $stmt->execute([$filterMonth, $filterSalesId]);
+    $stmt->execute([$chartStart, $chartEnd, $filterSalesId]);
     $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $dataMap = [];
@@ -271,12 +274,15 @@ if ($filterSalesId > 0) {
         $sId = $sales['id'];
         $sName = $sales['full_name'];
 
-        $chartQuery = "SELECT DATE(sa.created_at) as date, COUNT(*) as total 
+        $chartStart = $filterMonth . '-01';
+        $chartEnd = date('Y-m-d', strtotime($chartStart . ' +1 month'));
+
+        $chartQuery = "SELECT DATE(sa.created_at) as date, COUNT(*) as total
                        FROM sales_activities sa
-                       WHERE DATE_FORMAT(sa.created_at, '%Y-%m') = ? AND sa.sales_id = ? 
+                       WHERE sa.created_at >= ? AND sa.created_at < ? AND sa.sales_id = ?
                        GROUP BY DATE(sa.created_at) ORDER BY date ASC";
         $stmt = $db->prepare($chartQuery);
-        $stmt->execute([$filterMonth, $sId]);
+        $stmt->execute([$chartStart, $chartEnd, $sId]);
         $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $dataMap = [];
