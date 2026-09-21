@@ -40,6 +40,8 @@ function notificationEmailTable(PDO $db): void
             status ENUM('processing','sent','failed') NOT NULL DEFAULT 'processing',
             sent_at DATETIME NULL,
             error_message TEXT NULL,
+            locked_at DATETIME NULL,
+            attempts INT UNSIGNED NOT NULL DEFAULT 0,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                 ON UPDATE CURRENT_TIMESTAMP,
@@ -107,22 +109,95 @@ function claimNotificationEmail(
 ): int {
     notificationEmailTable($db);
 
-    $stmt = $db->prepare("
-        INSERT IGNORE INTO notification_email_logs
-            (user_id, notification_key, recipient_email, subject, status)
-        VALUES (?, ?, ?, ?, 'processing')
-    ");
+    /*
+     * Compatibility untuk tabel lama yang sudah terlanjur dibuat sebelum
+     * locked_at / attempts ditambahkan.
+     */
+    try {
+        $db->exec("ALTER TABLE notification_email_logs ADD COLUMN locked_at DATETIME NULL AFTER error_message");
+    } catch (Throwable $ignored) {}
 
-    $stmt->execute([
-        $userId,
-        $notificationKey,
-        $email,
-        $subject
-    ]);
+    try {
+        $db->exec("ALTER TABLE notification_email_logs ADD COLUMN attempts INT UNSIGNED NOT NULL DEFAULT 0 AFTER locked_at");
+    } catch (Throwable $ignored) {}
 
-    return $stmt->rowCount() === 1
-        ? (int)$db->lastInsertId()
-        : 0;
+    $db->beginTransaction();
+
+    try {
+        $stmt = $db->prepare("
+            SELECT id, status, locked_at
+            FROM notification_email_logs
+            WHERE user_id = ? AND notification_key = ?
+            LIMIT 1
+            FOR UPDATE
+        ");
+        $stmt->execute([$userId, $notificationKey]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            $stmt = $db->prepare("
+                INSERT INTO notification_email_logs
+                    (user_id, notification_key, recipient_email, subject, status, locked_at, attempts)
+                VALUES (?, ?, ?, ?, 'processing', NOW(), 1)
+            ");
+            $stmt->execute([
+                $userId,
+                $notificationKey,
+                $email,
+                $subject
+            ]);
+
+            $id = (int)$db->lastInsertId();
+            $db->commit();
+            return $id;
+        }
+
+        $status = (string)$row['status'];
+
+        // Sudah pernah berhasil dikirim: NEVER resend.
+        if ($status === 'sent') {
+            $db->commit();
+            return 0;
+        }
+
+        // Sedang diproses worker/request lain.
+        // Jika lock masih baru, jangan kirim dua kali.
+        if ($status === 'processing') {
+            $lockedAt = !empty($row['locked_at']) ? strtotime($row['locked_at']) : 0;
+            $lockAge = $lockedAt > 0 ? (time() - $lockedAt) : PHP_INT_MAX;
+
+            if ($lockAge < 600) { // 10 menit
+                $db->commit();
+                return 0;
+            }
+
+            // Lock stale karena worker sebelumnya kemungkinan crash.
+            // Ambil alih setelah 10 menit.
+        }
+
+        // failed atau processing yang stale: boleh retry.
+        $stmt = $db->prepare("
+            UPDATE notification_email_logs
+            SET recipient_email = ?,
+                subject = ?,
+                status = 'processing',
+                locked_at = NOW(),
+                attempts = attempts + 1,
+                error_message = NULL
+            WHERE id = ?
+        ");
+        $stmt->execute([$email, $subject, (int)$row['id']]);
+
+        $id = (int)$row['id'];
+        $db->commit();
+        return $id;
+
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        throw $e;
+    }
 }
 
 function sendNotificationEmail(
@@ -279,6 +354,7 @@ HTML;
                 UPDATE notification_email_logs
                 SET status = 'sent',
                     sent_at = NOW(),
+                    locked_at = NULL,
                     error_message = NULL
                 WHERE id = ?
             ");
@@ -289,6 +365,7 @@ HTML;
         $stmt = $db->prepare("
             UPDATE notification_email_logs
             SET status = 'failed',
+                locked_at = NULL,
                 error_message = ?
             WHERE id = ?
         ");
