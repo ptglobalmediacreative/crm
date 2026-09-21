@@ -1,6 +1,11 @@
 <?php
 /**
  * Config untuk PT Ganda Elang Tangguh
+ *
+ * Catatan:
+ * 1. Jangan gunakan password DB/email yang pernah dibagikan di chat.
+ * 2. Isi DB_PASS dengan password database aktif.
+ * 3. Isi SMTP_PASS dengan password email Hostinger aktif.
  */
 
 // ============================================
@@ -9,15 +14,12 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u475225363_crmget');
 define('DB_USER', 'u475225363_crmget');
-
-// MASUKKAN PASSWORD DATABASE KAMU DI SINI
 define('DB_PASS', 'GETGroup2023');
 
 // ============================================
 // APLIKASI
 // ============================================
-$httpHost = $_SERVER['HTTP_HOST'] ?? 'gandaelang.com';
-
+$httpHost = $_SERVER['HTTP_HOST'] ?? 'gandaelang.co.id';
 define('APP_URL', 'https://' . $httpHost);
 define('APP_NAME', 'GET CRM - PT Ganda Elang Tangguh');
 define('APP_EMAIL', 'itsupport@gandaelang.co.id');
@@ -27,23 +29,17 @@ define('APP_EMAIL', 'itsupport@gandaelang.co.id');
 // ============================================
 define('SMTP_HOST', 'smtp.hostinger.com');
 define('SMTP_PORT', 465);
-
 define('SMTP_USER', 'itsupport@gandaelang.co.id');
-
-// MASUKKAN PASSWORD EMAIL HOSTINGER KAMU DI SINI
 define('SMTP_PASS', 'Natanael110405!');
-
 define('SMTP_FROM', 'itsupport@gandaelang.co.id');
 define('SMTP_FROM_NAME', 'PT Ganda Elang Tangguh');
-
 
 // ============================================
 // KONEKSI DATABASE
 // ============================================
 try {
-
     $db = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+        'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
         DB_USER,
         DB_PASS,
         [
@@ -52,140 +48,81 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false
         ]
     );
-
 } catch (PDOException $e) {
-
-    error_log('[GET CRM DATABASE] ' . $e->getMessage());
-
-    die('Koneksi database gagal. Silakan hubungi administrator.');
-
+    error_log('[GET CRM DB] ' . $e->getMessage());
+    die('Koneksi database gagal. Silakan hubungi IT Support.');
 }
-
 
 // ============================================
 // SESSION
 // ============================================
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-
 // ============================================
 // FUNGSI BANTUAN
 // ============================================
-
-function bersihkan($data)
-{
-    return htmlspecialchars(
-        strip_tags(trim($data)),
-        ENT_QUOTES,
-        'UTF-8'
-    );
+function bersihkan($data) {
+    return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
 }
 
-
-function hashPassword($password)
-{
+function hashPassword($password) {
     return password_hash($password, PASSWORD_DEFAULT);
 }
 
-
-function verifyPassword($password, $hash)
-{
+function verifyPassword($password, $hash) {
     return password_verify($password, $hash);
 }
 
-
-function redirect($url)
-{
-    header("Location: " . $url);
+function redirect($url) {
+    header('Location: ' . $url);
     exit();
 }
 
-
-function isLoggedIn()
-{
-    return isset($_SESSION['user_id'])
-        && !empty($_SESSION['user_id']);
+function isLoggedIn() {
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
-
-function setFlash($message, $type = 'success')
-{
+function setFlash($message, $type = 'success') {
     $_SESSION['flash'] = [
         'message' => $message,
         'type' => $type
     ];
 }
 
-
-function showFlash()
-{
+function showFlash() {
     if (isset($_SESSION['flash'])) {
-
         $msg = $_SESSION['flash']['message'];
         $type = $_SESSION['flash']['type'];
-
         $icon = $type === 'success'
             ? 'fa-check-circle'
-            : (
-                $type === 'danger'
-                    ? 'fa-exclamation-circle'
-                    : 'fa-info-circle'
-            );
+            : ($type === 'danger' ? 'fa-exclamation-circle' : 'fa-info-circle');
 
         unset($_SESSION['flash']);
 
-        return "
-            <div class='alert alert-{$type} alert-dismissible fade show' role='alert'>
-
-                <i class='fas {$icon} alert-icon'></i>
-
-                {$msg}
-
-                <button
-                    type='button'
-                    class='btn-close'
-                    data-bs-dismiss='alert'>
-                </button>
-
-            </div>
-        ";
+        return "<div class='alert alert-{$type} alert-dismissible fade show' role='alert'>
+                    <i class='fas {$icon} alert-icon'></i>
+                    {$msg}
+                    <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+                </div>";
     }
 
     return '';
 }
 
-
-function getRole()
-{
+function getRole() {
     return $_SESSION['role'] ?? null;
 }
 
-
-function generateToken()
-{
+function generateToken() {
     return bin2hex(random_bytes(32));
 }
 
-
 // ============================================
-// PHPMailer AUTOLOAD
+// LOAD PHPMailer
 // ============================================
-//
-// Struktur yang kita gunakan:
-//
-// CRM/
-// ├── config.php
-// ├── forgot_password.php
-// └── vendor/
-//     ├── autoload.php
-//     └── phpmailer/
-//
-
-function loadPHPMailer()
-{
+function loadPHPMailer() {
     static $loaded = false;
 
     if ($loaded) {
@@ -194,179 +131,123 @@ function loadPHPMailer()
 
     $autoload = __DIR__ . '/vendor/autoload.php';
 
-    if (!file_exists($autoload)) {
-
-        error_log(
-            '[GET CRM EMAIL] Composer autoload tidak ditemukan: '
-            . $autoload
-        );
-
+    if (!is_file($autoload)) {
+        error_log('[GET CRM EMAIL] vendor/autoload.php tidak ditemukan: ' . $autoload);
         return false;
     }
 
     require_once $autoload;
 
-    if (!class_exists('\PHPMailer\PHPMailer\PHPMailer')) {
-
-        error_log(
-            '[GET CRM EMAIL] Class PHPMailer tidak ditemukan setelah autoload.'
-        );
-
+    if (!class_exists('\\PHPMailer\\PHPMailer\\PHPMailer')) {
+        error_log('[GET CRM EMAIL] Class PHPMailer tidak ditemukan.');
         return false;
     }
 
     $loaded = true;
-
     return true;
 }
 
-
 // ============================================
-// FUNCTION KIRIM EMAIL
+// FUNGSI KIRIM EMAIL - PHPMailer SMTP
 // ============================================
-
-function sendEmail(
-    $to,
-    $subject,
-    $message,
-    $from = null,
-    $fromName = null
-) {
-
-    // ----------------------------------------
-    // LOAD PHPMailer
-    // ----------------------------------------
+function sendEmail($to, $subject, $message, $from = null, $fromName = null) {
 
     if (!loadPHPMailer()) {
-
-        error_log(
-            '[GET CRM EMAIL] PHPMailer gagal dimuat.'
-        );
-
         return false;
     }
-
-
-    // ----------------------------------------
-    // DEFAULT SENDER
-    // ----------------------------------------
 
     $from = $from ?? SMTP_FROM;
     $fromName = $fromName ?? SMTP_FROM_NAME;
 
-
-    // ----------------------------------------
-    // VALIDASI EMAIL
-    // ----------------------------------------
-
-    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-
-        error_log(
-            '[GET CRM EMAIL] Email tujuan tidak valid: '
-            . $to
-        );
-
-        return false;
-    }
-
-
-    // ----------------------------------------
-    // PHPMailer
-    // ----------------------------------------
-
     $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
 
     try {
-
-        // SMTP
+        // ----------------------------------------
+        // SMTP HOSTINGER
+        // ----------------------------------------
         $mail->isSMTP();
-
         $mail->Host = SMTP_HOST;
-
         $mail->SMTPAuth = true;
-
         $mail->Username = SMTP_USER;
-
         $mail->Password = SMTP_PASS;
 
-
-        // SSL
-        $mail->SMTPSecure =
-            \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
-
+        // Hostinger SMTP port 465 = SSL
+        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
         $mail->Port = SMTP_PORT;
 
+        // Timeout supaya proses tidak menggantung terlalu lama
+        $mail->Timeout = 30;
+        $mail->SMTPKeepAlive = false;
 
-        // ------------------------------------
-        // CHARACTER SET
-        // ------------------------------------
+        // ----------------------------------------
+        // DEBUG
+        // 0 = normal
+        // 2 = aktif untuk troubleshooting
+        // ----------------------------------------
+        $mail->SMTPDebug = 0;
 
-        $mail->CharSet = 'UTF-8';
-
-        $mail->Encoding = 'base64';
-
-
-        // ------------------------------------
+        // ----------------------------------------
         // SENDER
-        // ------------------------------------
+        // ----------------------------------------
+        $mail->setFrom($from, $fromName);
 
-        $mail->setFrom(
-            $from,
-            $fromName
-        );
-
-
-        // ------------------------------------
+        // ----------------------------------------
         // RECIPIENT
-        // ------------------------------------
-
+        // ----------------------------------------
         $mail->addAddress($to);
 
-
-        // ------------------------------------
+        // ----------------------------------------
         // EMAIL CONTENT
-        // ------------------------------------
-
+        // ----------------------------------------
         $mail->isHTML(true);
-
+        $mail->CharSet = 'UTF-8';
+        $mail->Encoding = 'base64';
         $mail->Subject = $subject;
-
         $mail->Body = $message;
 
-
-        // Plain text fallback
-        $mail->AltBody = strip_tags(
-            html_entity_decode($message)
+        // Versi text jika client email tidak membaca HTML
+        $mail->AltBody = trim(
+            html_entity_decode(
+                strip_tags(
+                    preg_replace('/<br\s*\/?>/i', "\n", $message)
+                ),
+                ENT_QUOTES,
+                'UTF-8'
+            )
         );
 
-
-        // ------------------------------------
+        // ----------------------------------------
         // SEND
-        // ------------------------------------
-
+        // ----------------------------------------
         $mail->send();
 
         return true;
 
-
     } catch (\Throwable $e) {
-
         error_log(
-            '[GET CRM EMAIL] '
-            . $e->getMessage()
+            '[GET CRM EMAIL] Gagal kirim email ke ' .
+            $to .
+            ' | Subject: ' .
+            $subject .
+            ' | Error: ' .
+            $e->getMessage()
         );
 
         return false;
     }
 }
 
-
 // ============================================
-// FUNGSI PERMISSION - LENGKAP
+// FUNGSI PERMISSION
 // ============================================
 
-function hasPermission($module, $action = 'view')
-{
+/**
+ * Cek apakah user memiliki akses ke module tertentu.
+ *
+ * @param string $module Nama module
+ * @param string $action view, add, edit, delete
+ */
+function hasPermission($module, $action = 'view') {
     global $db;
 
     if (!isLoggedIn()) {
@@ -375,129 +256,105 @@ function hasPermission($module, $action = 'view')
 
     $role = $_SESSION['role'] ?? 'user';
 
-
-    // IT Support punya akses penuh
+    // IT Support memiliki akses penuh
     if ($role === 'it_support') {
         return true;
     }
 
-
-    // Ambil permission
     $stmt = $db->prepare("
         SELECT p.*
         FROM permissions p
-
-        JOIN modules m
-            ON m.id = p.module_id
-
+        JOIN modules m ON m.id = p.module_id
         WHERE m.module_name = ?
           AND p.role_name = ?
     ");
 
-    $stmt->execute([
-        $module,
-        $role
-    ]);
-
+    $stmt->execute([$module, $role]);
     $perm = $stmt->fetch();
-
 
     if (!$perm) {
         return false;
     }
 
-
     switch ($action) {
-
         case 'view':
-            return $perm['can_view'] == 1;
+            return (int)$perm['can_view'] === 1;
 
         case 'add':
-            return $perm['can_add'] == 1;
+            return (int)$perm['can_add'] === 1;
 
         case 'edit':
-            return $perm['can_edit'] == 1;
+            return (int)$perm['can_edit'] === 1;
 
         case 'delete':
-            return $perm['can_delete'] == 1;
+            return (int)$perm['can_delete'] === 1;
 
         default:
             return false;
     }
 }
 
-
-// ============================================
-// MENU ACCESS
-// ============================================
-
-function canAccessMenu($module)
-{
+/**
+ * Cek apakah user bisa mengakses menu.
+ */
+function canAccessMenu($module) {
     return hasPermission($module, 'view');
 }
 
-
-function canAdd($module)
-{
+/**
+ * Cek apakah user bisa menambah data.
+ */
+function canAdd($module) {
     return hasPermission($module, 'add');
 }
 
-
-function canEdit($module)
-{
+/**
+ * Cek apakah user bisa mengedit data.
+ */
+function canEdit($module) {
     return hasPermission($module, 'edit');
 }
 
-
-function canDelete($module)
-{
+/**
+ * Cek apakah user bisa menghapus data.
+ */
+function canDelete($module) {
     return hasPermission($module, 'delete');
 }
 
-
-// ============================================
-// ROLE
-// ============================================
-
-function hasRole($roles)
-{
+/**
+ * Cek apakah user memiliki salah satu role.
+ */
+function hasRole($roles) {
     if (!isLoggedIn()) {
         return false;
     }
 
     if (is_array($roles)) {
-
-        return in_array(
-            $_SESSION['role'],
-            $roles
-        );
+        return in_array($_SESSION['role'], $roles, true);
     }
 
     return $_SESSION['role'] === $roles;
 }
 
-
-function isFullAccess()
-{
+/**
+ * Cek apakah user punya akses penuh.
+ */
+function isFullAccess() {
     return hasRole('it_support');
 }
 
-
-function canManageUser()
-{
-    return hasRole([
-        'it_support',
-        'admin'
-    ]);
+/**
+ * Cek apakah user bisa mengelola user.
+ */
+function canManageUser() {
+    return hasRole(['it_support', 'admin']);
 }
 
-
-// ============================================
-// AMBIL MENU USER
-// ============================================
-
-function getUserMenus()
-{
+/**
+ * Ambil menu yang boleh diakses user.
+ */
+function getUserMenus() {
     global $db;
 
     if (!isLoggedIn()) {
@@ -506,10 +363,8 @@ function getUserMenus()
 
     $role = $_SESSION['role'] ?? 'user';
 
-
-    // IT Support
+    // IT Support bisa melihat semua menu utama
     if ($role === 'it_support') {
-
         $stmt = $db->query("
             SELECT *
             FROM modules
@@ -521,164 +376,83 @@ function getUserMenus()
         return $stmt->fetchAll();
     }
 
-
-    // User berdasarkan permission
+    // Menu berdasarkan permission
     $stmt = $db->prepare("
         SELECT m.*
         FROM modules m
-
-        JOIN permissions p
-            ON p.module_id = m.id
-
+        JOIN permissions p ON p.module_id = m.id
         WHERE p.role_name = ?
           AND p.can_view = 1
           AND m.is_main_menu = 1
           AND m.is_active = 1
-
         ORDER BY m.module_order
     ");
 
-    $stmt->execute([
-        $role
-    ]);
+    $stmt->execute([$role]);
 
     return $stmt->fetchAll();
 }
 
-
-// ============================================
-// MENU NAMES
-// ============================================
-
-function getUserMenuNames()
-{
+/**
+ * Ambil daftar nama menu yang boleh diakses.
+ */
+function getUserMenuNames() {
     $menus = getUserMenus();
-
-    return array_column(
-        $menus,
-        'module_name'
-    );
+    return array_column($menus, 'module_name');
 }
 
-
-// ============================================
-// REQUIRE PERMISSION
-// ============================================
-
-function requirePermission(
-    $module,
-    $action = 'view'
-) {
-
+/**
+ * Cek permission halaman.
+ */
+function requirePermission($module, $action = 'view') {
     if (!isLoggedIn()) {
-
-        setFlash(
-            'Silakan login dulu!',
-            'warning'
-        );
-
+        setFlash('Silakan login dulu!', 'warning');
         redirect('login.php');
     }
 
-
     if (!hasPermission($module, $action)) {
-
-        setFlash(
-            'Anda tidak memiliki akses ke halaman ini!',
-            'danger'
-        );
-
+        setFlash('Anda tidak memiliki akses ke halaman ini!', 'danger');
         redirect('dashboard.php');
     }
 }
-
 
 // ============================================
 // FUNGSI UNTUK VIEW
 // ============================================
 
-function showIf(
-    $module,
-    $action = 'view'
-) {
-
-    return hasPermission(
-        $module,
-        $action
-    );
+function showIf($module, $action = 'view') {
+    return hasPermission($module, $action);
 }
 
-
-function showAddButton($module)
-{
-    return hasPermission(
-        $module,
-        'add'
-    );
+function showAddButton($module) {
+    return hasPermission($module, 'add');
 }
 
-
-function showEditButton($module)
-{
-    return hasPermission(
-        $module,
-        'edit'
-    );
+function showEditButton($module) {
+    return hasPermission($module, 'edit');
 }
 
-
-function showDeleteButton($module)
-{
-    return hasPermission(
-        $module,
-        'delete'
-    );
+function showDeleteButton($module) {
+    return hasPermission($module, 'delete');
 }
-
 
 // ============================================
-// CUSTOMER / HELPER
+// FUNGSI CUSTOMER / FORMAT
 // ============================================
 
-function formatTanggal($date)
-{
-    return date(
-        'd/m/Y H:i',
-        strtotime($date)
-    );
+function formatTanggal($date) {
+    return date('d/m/Y H:i', strtotime($date));
 }
 
-
-function formatRupiah($number)
-{
-    return 'Rp ' .
-        number_format(
-            $number,
-            0,
-            ',',
-            '.'
-        );
+function formatRupiah($number) {
+    return 'Rp ' . number_format($number, 0, ',', '.');
 }
 
-
-function createSlug($string)
-{
+function createSlug($string) {
     $string = strtolower($string);
+    $string = preg_replace('/[^a-z0-9-]/', '-', $string);
+    $string = preg_replace('/-+/', '-', $string);
 
-    $string = preg_replace(
-        '/[^a-z0-9-]/',
-        '-',
-        $string
-    );
-
-    $string = preg_replace(
-        '/-+/',
-        '-',
-        $string
-    );
-
-    return trim(
-        $string,
-        '-'
-    );
+    return trim($string, '-');
 }
+?>
