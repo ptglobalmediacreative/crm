@@ -9,7 +9,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u475225363_crmget');
 define('DB_USER', 'u475225363_crmget');
-define('DB_PASS', 'Crmget22!');
+define('DB_PASS', 'GETGroup22');
 
 // ============================================
 // APLIKASI
@@ -21,10 +21,10 @@ define('APP_EMAIL', 'itsupport@gandaelang.co.id');
 // ============================================
 // EMAIL CONFIGURATION (SMTP)
 // ============================================
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
+define('SMTP_HOST', 'smtp.hostinger.com');
+define('SMTP_PORT', 465);
 define('SMTP_USER', 'itsupport@gandaelang.co.id');
-define('SMTP_PASS', 'Natanael110405@');
+define('SMTP_PASS', 'GANTI_DENGAN_PASSWORD_EMAIL_BARU');
 define('SMTP_FROM', 'itsupport@gandaelang.co.id');
 define('SMTP_FROM_NAME', 'PT Ganda Elang Tangguh');
 
@@ -102,18 +102,57 @@ function generateToken() {
 }
 
 // ============================================
-// FUNCTION KIRIM EMAIL
+// FUNCTION KIRIM EMAIL - PHPMailer SMTP
 // ============================================
 function sendEmail($to, $subject, $message, $from = null, $fromName = null) {
+
+    $autoload = __DIR__ . '/vendor/autoload.php';
+
+    if (!is_file($autoload)) {
+        error_log('[GET CRM EMAIL] vendor/autoload.php tidak ditemukan.');
+        return false;
+    }
+
+    require_once $autoload;
+
     $from = $from ?? SMTP_FROM;
     $fromName = $fromName ?? SMTP_FROM_NAME;
-    
-    $headers = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-type: text/html; charset=utf-8\r\n";
-    $headers .= "From: " . $fromName . " <" . $from . ">\r\n";
-    $headers .= "Reply-To: " . $from . "\r\n";
-    
-    return mail($to, $subject, $message, $headers);
+
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+
+    try {
+        // SMTP Hostinger
+        $mail->isSMTP();
+        $mail->Host       = SMTP_HOST;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = SMTP_USER;
+        $mail->Password   = SMTP_PASS;
+
+        // Hostinger: port 465 dengan SSL/TLS
+        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+        $mail->Port       = SMTP_PORT;
+
+        // Sender
+        $mail->setFrom($from, $fromName);
+
+        // Recipient
+        $mail->addAddress($to);
+
+        // HTML email
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = $subject;
+        $mail->Body    = $message;
+
+        // Kirim
+        $mail->send();
+
+        return true;
+
+    } catch (\Throwable $e) {
+        error_log('[GET CRM EMAIL] ' . $e->getMessage());
+        return false;
+    }
 }
 
 // ============================================
