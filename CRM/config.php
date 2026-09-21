@@ -150,10 +150,10 @@ function loadPHPMailer() {
 // ============================================
 // FUNGSI KIRIM EMAIL - PHPMailer SMTP
 // ============================================
-function sendEmail($to, $subject, $message, $from = null, $fromName = null) {
-
+function sendEmail($to, $subject, $message, $from = null, $fromName = null)
+{
     if (!loadPHPMailer()) {
-        return false;
+        die('<pre>ERROR: PHPMailer tidak berhasil dimuat.</pre>');
     }
 
     $from = $from ?? SMTP_FROM;
@@ -162,74 +162,102 @@ function sendEmail($to, $subject, $message, $from = null, $fromName = null) {
     $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
 
     try {
-        // ----------------------------------------
+
+        // ================================
         // SMTP HOSTINGER
-        // ----------------------------------------
+        // ================================
         $mail->isSMTP();
-        $mail->Host = SMTP_HOST;
-        $mail->SMTPAuth = true;
-        $mail->Username = SMTP_USER;
-        $mail->Password = SMTP_PASS;
 
-        // Hostinger SMTP port 465 = SSL
+        $mail->Host       = 'smtp.hostinger.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'itsupport@gandaelang.co.id';
+        $mail->Password   = SMTP_PASS;
+
+        // Port 465 = SSL
         $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
-        $mail->Port = SMTP_PORT;
+        $mail->Port       = 465;
 
-        // Timeout supaya proses tidak menggantung terlalu lama
+        // ================================
+        // DEBUG SMTP
+        // ================================
+        $mail->SMTPDebug = 2;
+
+        $mail->Debugoutput = function ($str, $level) {
+            echo '<div style="
+                background:#111;
+                color:#00ff88;
+                padding:10px;
+                margin:5px 0;
+                font-family:monospace;
+                font-size:13px;
+                white-space:pre-wrap;
+            ">' . htmlspecialchars($str) . '</div>';
+        };
+
+        // ================================
+        // TIMEOUT
+        // ================================
         $mail->Timeout = 30;
-        $mail->SMTPKeepAlive = false;
 
-        // ----------------------------------------
-        // DEBUG
-        // 0 = normal
-        // 2 = aktif untuk troubleshooting
-        // ----------------------------------------
-        $mail->SMTPDebug = 0;
-
-        // ----------------------------------------
-        // SENDER
-        // ----------------------------------------
-        $mail->setFrom($from, $fromName);
-
-        // ----------------------------------------
-        // RECIPIENT
-        // ----------------------------------------
-        $mail->addAddress($to);
-
-        // ----------------------------------------
-        // EMAIL CONTENT
-        // ----------------------------------------
-        $mail->isHTML(true);
-        $mail->CharSet = 'UTF-8';
-        $mail->Encoding = 'base64';
-        $mail->Subject = $subject;
-        $mail->Body = $message;
-
-        // Versi text jika client email tidak membaca HTML
-        $mail->AltBody = trim(
-            html_entity_decode(
-                strip_tags(
-                    preg_replace('/<br\s*\/?>/i', "\n", $message)
-                ),
-                ENT_QUOTES,
-                'UTF-8'
-            )
+        // ================================
+        // FROM
+        // ================================
+        $mail->setFrom(
+            $from,
+            $fromName
         );
 
-        // ----------------------------------------
+        // ================================
+        // TO
+        // ================================
+        $mail->addAddress($to);
+
+        // ================================
+        // CONTENT
+        // ================================
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+
+        $mail->Subject = $subject;
+        $mail->Body    = $message;
+
+        $mail->AltBody = strip_tags($message);
+
+        // ================================
         // SEND
-        // ----------------------------------------
+        // ================================
         $mail->send();
+
+        echo '<div style="
+            background:#d1fae5;
+            color:#065f46;
+            padding:15px;
+            margin:15px 0;
+            font-family:Arial;
+            border-radius:8px;
+        ">
+            <strong>EMAIL BERHASIL DIKIRIM</strong>
+        </div>';
 
         return true;
 
     } catch (\Throwable $e) {
+
+        echo '<div style="
+            background:#fee2e2;
+            color:#991b1b;
+            padding:15px;
+            margin:15px 0;
+            font-family:Arial;
+            border-radius:8px;
+        ">
+            <strong>SMTP ERROR</strong><br><br>'
+            . htmlspecialchars($e->getMessage()) .
+            '
+        </div>';
+
         error_log(
-            '[GET CRM EMAIL] Gagal kirim email ke ' .
-            $to .
-            ' | Subject: ' .
-            $subject .
-            ' | Error: ' .
+            '[GET CRM EMAIL] ' .
             $e->getMessage()
         );
 
