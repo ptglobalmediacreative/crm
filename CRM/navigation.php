@@ -1211,6 +1211,18 @@ $notifReadItems = array_values(array_filter(
 $notifUnread = count($notifUnreadItems);
 
 /* ==========================================================
+   EMAIL NOTIFICATION — BELUM DIBACA + BACKGROUND WORKER
+   ----------------------------------------------------------
+   NORMAL REQUEST:
+     Notification unread -> email 1x/user/notification_key
+
+   BACKGROUND WORKER:
+     process_notifications.php sets GET_CRM_NOTIFICATION_WORKER
+     and runs this same navigation engine for each active user.
+     Jadi daftar notification tidak dibuat ulang di worker.
+   ==========================================================
+
+/* ==========================================================
    EMAIL NOTIFICATION — BELUM DIBACA
    ----------------------------------------------------------
    Semua notification yang tampil di tab "Belum Dibaca"
@@ -1248,13 +1260,35 @@ if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
         ");
 
         // Ambil email user aktif.
-        $emailUserStmt = $notifDb->prepare("
-            SELECT id, email, full_name
-            FROM users
-            WHERE id = ?
-              AND (is_active = 1 OR is_active IS NULL)
-            LIMIT 1
-        ");
+        $hasIsActive = false;
+        try {
+            $checkActiveColumn = $notifDb->query("
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'users'
+                  AND column_name = 'is_active'
+            ");
+            $hasIsActive = (int)$checkActiveColumn->fetchColumn() > 0;
+        } catch (Throwable $ignored) {}
+
+        if ($hasIsActive) {
+            $emailUserStmt = $notifDb->prepare("
+                SELECT id, email, full_name
+                FROM users
+                WHERE id = ?
+                  AND is_active = 1
+                LIMIT 1
+            ");
+        } else {
+            $emailUserStmt = $notifDb->prepare("
+                SELECT id, email, full_name
+                FROM users
+                WHERE id = ?
+                LIMIT 1
+            ");
+        }
+
         $emailUserStmt->execute([$notifUserId]);
         $emailUser = $emailUserStmt->fetch(PDO::FETCH_ASSOC);
 
