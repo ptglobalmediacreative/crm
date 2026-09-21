@@ -123,27 +123,56 @@ function generateToken() {
 // LOAD PHPMailer
 // ============================================
 function loadPHPMailer() {
+
     static $loaded = false;
 
     if ($loaded) {
         return true;
     }
 
-    $autoload = __DIR__ . '/vendor/autoload.php';
+    // Vendor berada SATU LEVEL DI ATAS folder CRM
+    $autoload = dirname(__DIR__) . '/vendor/autoload.php';
 
-    if (!is_file($autoload)) {
-        error_log('[GET CRM EMAIL] vendor/autoload.php tidak ditemukan: ' . $autoload);
-        return false;
+    if (!file_exists($autoload)) {
+        die(
+            '<pre style="
+                background:#111;
+                color:#ff5555;
+                padding:20px;
+                font-family:monospace;
+            ">' .
+            "PHPMailer ERROR\n\n" .
+            "autoload.php tidak ditemukan.\n\n" .
+            "PHP mencari:\n" .
+            htmlspecialchars($autoload) .
+            "\n\n" .
+            "Folder config.php:\n" .
+            htmlspecialchars(__DIR__) .
+            '</pre>'
+        );
     }
 
     require_once $autoload;
 
     if (!class_exists('\\PHPMailer\\PHPMailer\\PHPMailer')) {
-        error_log('[GET CRM EMAIL] Class PHPMailer tidak ditemukan.');
-        return false;
+        die(
+            '<pre style="
+                background:#111;
+                color:#ff5555;
+                padding:20px;
+                font-family:monospace;
+            ">' .
+            "PHPMailer ERROR\n\n" .
+            "autoload.php ditemukan,\n" .
+            "tetapi class PHPMailer tidak ditemukan.\n\n" .
+            "Autoload:\n" .
+            htmlspecialchars($autoload) .
+            '</pre>'
+        );
     }
 
     $loaded = true;
+
     return true;
 }
 
