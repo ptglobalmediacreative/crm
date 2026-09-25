@@ -322,7 +322,7 @@ function getTRNote(PDO $db, string $trNumber, string $status): string
             $stmt = $db->prepare("SELECT catatan FROM tr_approval_history WHERE trf_number = ? AND status = 'rejected' AND TRIM(COALESCE(catatan, '')) <> '' ORDER BY id DESC LIMIT 1");
             $stmt->execute([$trNumber]);
             $reason = trim((string)$stmt->fetchColumn());
-            return $reason !== '' ? 'Rejected: ' . $reason : 'Rejected: Tidak ada alasan reject yang tersimpan.';
+            return 'Rejected — Lihat alasan';
         }
 
         $stmt = $db->prepare("SELECT * FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
@@ -366,7 +366,7 @@ function getTRNote(PDO $db, string $trNumber, string $status): string
         if (empty($additionalCostItems)) { $missing[] = 'Additional Cost'; }
 
         return !empty($missing)
-            ? 'Data belum lengkap! Section yang belum diisi: ' . implode(', ', $missing)
+            ? 'Data belum lengkap — Buka Detail TR'
             : 'Segera di Approve';
     } catch (Exception $e) {
         return 'Data belum dapat diverifikasi.';
@@ -430,8 +430,8 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
     <link rel="stylesheet" href="css/transactionrequest.css?v=20260918-2">
     <link rel="stylesheet" href="css/footer.css">
     <style>
-        .tr-note { display:flex; align-items:flex-start; gap:8px; font-size:12px; line-height:1.5; padding:9px 11px; border-radius:8px; border:1px solid rgba(0,0,0,.08); background:#f8f9fa; color:#495057; }
-        .tr-note i { margin-top:2px; flex:0 0 auto; }
+        .tr-note { display:flex; align-items:center; justify-content:center; gap:7px; font-size:11.5px; line-height:1.3; padding:7px 9px; min-height:34px; border-radius:8px; border:1px solid rgba(0,0,0,.08); background:#f8f9fa; color:#495057; text-align:center; white-space:nowrap; }
+        .tr-note i { flex:0 0 auto; font-size:12px; }
         .tr-note-pending { color:#8a5a00; background:#fff8e1; border-color:rgba(245,158,11,.25); }
         .tr-note-approved { color:#166534; background:#ecfdf3; border-color:rgba(34,197,94,.22); }
         .tr-note-rejected { color:#991b1b; background:#fef2f2; border-color:rgba(239,68,68,.22); }
