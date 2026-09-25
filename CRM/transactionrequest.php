@@ -318,7 +318,13 @@ unset($request);
 function getTRNote(PDO $db, string $trNumber, string $status): string
 {
     try {
-        if (strtolower($status) === 'rejected') {
+        $normalizedStatus = strtolower(trim($status));
+
+        if ($normalizedStatus === 'approved') {
+            return 'TR Sudah Selesai, Silahkan Completed Sales Activity Anda !!';
+        }
+
+        if ($normalizedStatus === 'rejected') {
             $stmt = $db->prepare("SELECT catatan FROM tr_approval_history WHERE trf_number = ? AND status = 'rejected' AND TRIM(COALESCE(catatan, '')) <> '' ORDER BY id DESC LIMIT 1");
             $stmt->execute([$trNumber]);
             $reason = trim((string)$stmt->fetchColumn());
@@ -433,7 +439,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
         .tr-note { display:flex; align-items:center; justify-content:center; gap:7px; font-size:11.5px; line-height:1.3; padding:7px 9px; min-height:34px; border-radius:8px; border:1px solid rgba(0,0,0,.08); background:#f8f9fa; color:#495057; text-align:center; white-space:nowrap; }
         .tr-note i { flex:0 0 auto; font-size:12px; }
         .tr-note-pending { color:#8a5a00; background:#fff8e1; border-color:rgba(245,158,11,.25); }
-        .tr-note-approved { color:#166534; background:#ecfdf3; border-color:rgba(34,197,94,.22); }
+        .tr-note-approved { color:#0b5ed7; background:#eef6ff; border-color:rgba(13,110,253,.20); }
         .tr-note-rejected { color:#991b1b; background:#fef2f2; border-color:rgba(239,68,68,.22); }
     </style>
 </head>
