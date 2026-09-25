@@ -435,36 +435,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/transactionrequest.css?v=20260918-2">
     <link rel="stylesheet" href="css/footer.css">
-    <style>
-        .tr-note {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: inherit;
-            font-weight: inherit;
-            line-height: 1.35;
-            padding: 6px 10px;
-            min-height: 32px;
-            border-radius: 6px;
-            border: 1px solid #dee2e6;
-            background: #f8f9fa;
-            color: #495057;
-            text-align: center;
-            white-space: normal;
-        }
-        .tr-note i {
-            flex: 0 0 auto;
-            font-size: 12px;
-        }
-        .tr-note-pending,
-        .tr-note-approved,
-        .tr-note-rejected {
-            background: #f8f9fa;
-            color: #495057;
-            border-color: #dee2e6;
-        }
-    </style>
+    
 </head>
 <body class="page-transactionrequest">
 
