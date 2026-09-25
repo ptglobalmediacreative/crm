@@ -436,11 +436,34 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
     <link rel="stylesheet" href="css/transactionrequest.css?v=20260918-2">
     <link rel="stylesheet" href="css/footer.css">
     <style>
-        .tr-note { display:flex; align-items:center; justify-content:center; gap:7px; font-size:11.5px; line-height:1.3; padding:7px 9px; min-height:34px; border-radius:8px; border:1px solid rgba(0,0,0,.08); background:#f8f9fa; color:#495057; text-align:center; white-space:nowrap; }
-        .tr-note i { flex:0 0 auto; font-size:12px; }
-        .tr-note-pending { color:#8a5a00; background:#fff8e1; border-color:rgba(245,158,11,.25); }
-        .tr-note-approved { color:#0b5ed7; background:#eef6ff; border-color:rgba(13,110,253,.20); }
-        .tr-note-rejected { color:#991b1b; background:#fef2f2; border-color:rgba(239,68,68,.22); }
+        .tr-note {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: 1.35;
+            padding: 6px 10px;
+            min-height: 32px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            background: #f8f9fa;
+            color: #495057;
+            text-align: center;
+            white-space: normal;
+        }
+        .tr-note i {
+            flex: 0 0 auto;
+            font-size: 12px;
+        }
+        .tr-note-pending,
+        .tr-note-approved,
+        .tr-note-rejected {
+            background: #f8f9fa;
+            color: #495057;
+            border-color: #dee2e6;
+        }
     </style>
 </head>
 <body class="page-transactionrequest">
@@ -617,7 +640,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                             </span>
                                         </td>
                                         <td style="min-width: 280px; max-width: 420px;">
-                                            <div class="tr-note <?= $request['status'] === 'rejected' ? 'tr-note-rejected' : ($request['status'] === 'approved' ? 'tr-note-approved' : 'tr-note-pending') ?>">
+                                            <div class="current-approver tr-note <?= $request['status'] === 'rejected' ? 'tr-note-rejected' : ($request['status'] === 'approved' ? 'tr-note-approved' : 'tr-note-pending') ?>">
                                                 <i class="fas <?= $request['status'] === 'rejected' ? 'fa-comment-slash' : ($request['status'] === 'approved' ? 'fa-circle-check' : 'fa-note-sticky') ?>"></i>
                                                 <span><?= htmlspecialchars($request['note'] ?? '-') ?></span>
                                             </div>
