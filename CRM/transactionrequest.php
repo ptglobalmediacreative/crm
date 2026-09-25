@@ -306,6 +306,73 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $requests = $stmt->fetchAll();
 
+// NOTE dibuat berdasarkan TR Number masing-masing agar alasan Pending/Rejected tepat.
+foreach ($requests as &$request) {
+    $request['note'] = getTRNote($db, (string)($request['tr_number'] ?? ''), (string)($request['status'] ?? 'pending'));
+}
+unset($request);
+
+// ============================================
+// NOTE STATUS / KELENGKAPAN PER TR NUMBER
+// ============================================
+function getTRNote(PDO $db, string $trNumber, string $status): string
+{
+    try {
+        if (strtolower($status) === 'rejected') {
+            $stmt = $db->prepare("SELECT catatan FROM tr_approval_history WHERE trf_number = ? AND status = 'rejected' AND TRIM(COALESCE(catatan, '')) <> '' ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$trNumber]);
+            $reason = trim((string)$stmt->fetchColumn());
+            return $reason !== '' ? 'Rejected: ' . $reason : 'Rejected: Tidak ada alasan reject yang tersimpan.';
+        }
+
+        $stmt = $db->prepare("SELECT * FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$trNumber]);
+        $detailTR = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stmt = $db->prepare("SELECT unit_id, qty, price FROM tr_detail_units WHERE trf_number = ? ORDER BY id ASC");
+        $stmt->execute([$trNumber]);
+        $detailUnits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $db->prepare("SELECT amount FROM tr_term_of_payments WHERE trf_number = ? ORDER BY id ASC");
+        $stmt->execute([$trNumber]);
+        $termPayments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $db->prepare("SELECT id FROM tr_additional_cost_items WHERE trf_number = ? ORDER BY id ASC");
+        $stmt->execute([$trNumber]);
+        $additionalCostItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $missing = [];
+        if (!$detailTR || trim((string)($detailTR['deskripsi'] ?? '')) === '') {
+            $missing[] = 'Deskripsi (Summary)';
+        }
+        if (empty($detailUnits)) {
+            $missing[] = 'Detail Unit';
+        } else {
+            foreach ($detailUnits as $unit) {
+                if ((int)($unit['unit_id'] ?? 0) <= 0) { $missing[] = 'Detail Unit - Produk'; break; }
+                if ((int)($unit['qty'] ?? 0) <= 0) { $missing[] = 'Detail Unit - Quantity'; break; }
+                if ((float)($unit['price'] ?? 0) <= 0) { $missing[] = 'Detail Unit - Harga'; break; }
+            }
+        }
+        if (empty($termPayments)) {
+            $missing[] = 'Term of Payment';
+        } else {
+            $hasPositivePayment = false;
+            foreach ($termPayments as $payment) {
+                if ((float)($payment['amount'] ?? 0) > 0) { $hasPositivePayment = true; break; }
+            }
+            if (!$hasPositivePayment) { $missing[] = 'Term of Payment - Nominal'; }
+        }
+        if (empty($additionalCostItems)) { $missing[] = 'Additional Cost'; }
+
+        return !empty($missing)
+            ? 'Data belum lengkap! Section yang belum diisi: ' . implode(', ', $missing)
+            : 'Segera di Approve';
+    } catch (Exception $e) {
+        return 'Data belum dapat diverifikasi.';
+    }
+}
+
 // ============================================
 // STATISTIK
 // ============================================
@@ -362,6 +429,13 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/transactionrequest.css?v=20260918-2">
     <link rel="stylesheet" href="css/footer.css">
+    <style>
+        .tr-note { display:flex; align-items:flex-start; gap:8px; font-size:12px; line-height:1.5; padding:9px 11px; border-radius:8px; border:1px solid rgba(0,0,0,.08); background:#f8f9fa; color:#495057; }
+        .tr-note i { margin-top:2px; flex:0 0 auto; }
+        .tr-note-pending { color:#8a5a00; background:#fff8e1; border-color:rgba(245,158,11,.25); }
+        .tr-note-approved { color:#166534; background:#ecfdf3; border-color:rgba(34,197,94,.22); }
+        .tr-note-rejected { color:#991b1b; background:#fef2f2; border-color:rgba(239,68,68,.22); }
+    </style>
 </head>
 <body class="page-transactionrequest">
 
@@ -493,6 +567,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                 <th>Sales</th>
                                 <th>Next Approver</th>
                                 <th>Status</th>
+                                <th>Note</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -535,6 +610,12 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                                 <?= $statusLabel ?>
                                             </span>
                                         </td>
+                                        <td style="min-width: 280px; max-width: 420px;">
+                                            <div class="tr-note <?= $request['status'] === 'rejected' ? 'tr-note-rejected' : ($request['status'] === 'approved' ? 'tr-note-approved' : 'tr-note-pending') ?>">
+                                                <i class="fas <?= $request['status'] === 'rejected' ? 'fa-comment-slash' : ($request['status'] === 'approved' ? 'fa-circle-check' : 'fa-note-sticky') ?>"></i>
+                                                <span><?= htmlspecialchars($request['note'] ?? '-') ?></span>
+                                            </div>
+                                        </td>
                                         <td>
                                             <?php if ($userRole !== 'sales'): ?>
                                                 <?php if ($isApproved): ?>
@@ -555,7 +636,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
+                                    <td colspan="9" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data transaction request
                                     </td>
                                 </tr>
