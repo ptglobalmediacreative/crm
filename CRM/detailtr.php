@@ -1062,28 +1062,17 @@ $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 // ============================================
 // CEK KELENGKAPAN DATA
 // ============================================
-$isDataComplete = true;
-$missingSections = [];
+// Gunakan validasi yang SAMA dengan validasi approval agar
+// informasi "Data belum lengkap" yang dilihat semua user
+// selalu konsisten dengan syarat approval.
+$missingSections = validateTRApprovalData(
+    $detailTR,
+    $detailUnits,
+    $termPayments,
+    $additionalCostItems
+);
 
-if (empty($detailTR['deskripsi'])) {
-    $isDataComplete = false;
-    $missingSections[] = 'Deskripsi (Summary)';
-}
-
-if (count($detailUnits) == 0) {
-    $isDataComplete = false;
-    $missingSections[] = 'Detail Unit';
-}
-
-if (count($termPayments) == 0) {
-    $isDataComplete = false;
-    $missingSections[] = 'Term of Payment';
-}
-
-if (count($additionalCostItems) == 0) {
-    $isDataComplete = false;
-    $missingSections[] = 'Additional Cost (minimal 1 item)';
-}
+$isDataComplete = empty($missingSections);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -1124,6 +1113,21 @@ if (count($additionalCostItems) == 0) {
         </div>
 
         <?= showFlash() ?>
+
+        <?php if (!$isDataComplete): ?>
+            <div class="alert alert-warning d-flex align-items-start gap-3 mb-4" role="alert" style="border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.35);">
+                <div style="font-size: 22px; line-height: 1; margin-top: 2px;">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <strong style="font-size: 16px;">Data belum lengkap!</strong>
+                    <div class="mt-1">
+                        Section yang belum diisi:
+                        <strong><?= htmlspecialchars(implode(', ', $missingSections)) ?></strong>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- TAB NAVIGATION -->
         <div class="tab-nav">
