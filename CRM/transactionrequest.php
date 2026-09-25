@@ -256,7 +256,7 @@ if (!empty($search)) {
 }
 
 if ($next_approver_filter !== 'all') {
-    $where .= " AND $nextApproverSql = ?";
+    $where .= " AND (($nextApproverSql) COLLATE utf8mb4_unicode_ci) = (? COLLATE utf8mb4_unicode_ci)";
     $params[] = $next_approver_filter;
 }
 
