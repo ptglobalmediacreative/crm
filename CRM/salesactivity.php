@@ -456,6 +456,18 @@ function getJenisProspek($db, $salesActivityId) {
     
     $jenis_tugas = $lastActivity['jenis_tugas'];
 
+    // Negosiasi yang sudah Complete tanpa TR Number berarti
+    // Request TR Number = No. Kondisi ini otomatis menjadi Lost Deal.
+    // TR Number tidak dibuat saat Request = No, sehingga pengecekan
+    // status completed + tr_number kosong menjadi penanda yang aman.
+    if (
+        $jenis_tugas === 'Negosiasi'
+        && ($lastActivity['status'] ?? '') === 'completed'
+        && trim((string)($lastActivity['tr_number'] ?? '')) === ''
+    ) {
+        return 'Lost Deal';
+    }
+
     // Customer Deal = Deal pada Delivery Order menjadi prioritas.
     // Jadi Jenis Prospek tetap Deal walaupun ada aktivitas setelah Delivery Order.
     $stmtDealPriority = $db->prepare("SELECT dtr.customer_deal
