@@ -293,6 +293,13 @@ $sql = "SELECT ad.tr_number,
                    ) THEN 'approved'
                    ELSE 'pending'
                END as status,
+               (
+                   SELECT dtr_cd.customer_deal
+                   FROM detail_transaction_requests dtr_cd
+                   WHERE dtr_cd.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+                   ORDER BY dtr_cd.id DESC
+                   LIMIT 1
+               ) as customer_deal,
                $nextApproverSql as next_approver
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
@@ -321,7 +328,25 @@ function getTRNote(PDO $db, string $trNumber, string $status): string
         $normalizedStatus = strtolower(trim($status));
 
         if ($normalizedStatus === 'approved') {
-            return 'TR Sudah Selesai, Silahkan Completed Sales Activity Anda !!';
+            $stmtCustomerDeal = $db->prepare("
+                SELECT customer_deal
+                FROM detail_transaction_requests
+                WHERE trf_number = ?
+                ORDER BY id DESC
+                LIMIT 1
+            ");
+            $stmtCustomerDeal->execute([$trNumber]);
+            $customerDeal = strtolower(trim((string)$stmtCustomerDeal->fetchColumn()));
+
+            if ($customerDeal === 'yes') {
+                return 'TR Sudah Selesai, Silahkan Completed Sales Activity Anda !!';
+            }
+
+            if ($customerDeal === 'no') {
+                return 'Customer Deal = Tidak (No)';
+            }
+
+            return 'TR Sudah di Approve, Silahkan pilih Customer Deal Ya atau Tidak !!';
         }
 
         if ($normalizedStatus === 'rejected') {
@@ -567,6 +592,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                 <th>Sales</th>
                                 <th>Next Approver</th>
                                 <th>Status</th>
+                                <th>Customer Deal</th>
                                 <th>Note</th>
                                 <th>Action</th>
                             </tr>
@@ -610,6 +636,28 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                                 <?= $statusLabel ?>
                                             </span>
                                         </td>
+                                        <td>
+                                            <?php
+                                                $customerDeal = strtolower(trim((string)($request['customer_deal'] ?? '')));
+                                                if ($customerDeal === 'yes') {
+                                                    $customerDealLabel = 'Yes';
+                                                    $customerDealClass = 'approved';
+                                                    $customerDealIcon = 'fa-handshake';
+                                                } elseif ($customerDeal === 'no') {
+                                                    $customerDealLabel = 'No';
+                                                    $customerDealClass = 'rejected';
+                                                    $customerDealIcon = 'fa-ban';
+                                                } else {
+                                                    $customerDealLabel = 'Pending';
+                                                    $customerDealClass = 'pending';
+                                                    $customerDealIcon = 'fa-clock';
+                                                }
+                                            ?>
+                                            <span class="badge-status-tr <?= $customerDealClass ?>">
+                                                <i class="fas <?= $customerDealIcon ?>"></i>
+                                                <?= $customerDealLabel ?>
+                                            </span>
+                                        </td>
                                         <td style="min-width: 280px; max-width: 420px;">
                                             <div class="current-approver tr-note <?= $request['status'] === 'rejected' ? 'tr-note-rejected' : ($request['status'] === 'approved' ? 'tr-note-approved' : 'tr-note-pending') ?>">
                                                 <i class="fas <?= $request['status'] === 'rejected' ? 'fa-comment-slash' : ($request['status'] === 'approved' ? 'fa-circle-check' : 'fa-note-sticky') ?>"></i>
@@ -636,7 +684,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
+                                    <td colspan="10" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data transaction request
                                     </td>
                                 </tr>
