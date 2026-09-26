@@ -2856,3 +2856,9 @@ button {
   color: #93c5fd;
   text-decoration: underline;
 }
+
+.page-transactionrequest .table-custom th,
+.page-transactionrequest .table-custom td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
