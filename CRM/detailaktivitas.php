@@ -460,6 +460,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')");
                 $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number]);
                 
+                // Jika Negosiasi di-Complete dengan Request TR Number = No,
+                // otomatis tandai Sales Activity sebagai Lost Deal.
+                if ($detail['jenis_tugas'] === 'Negosiasi' && $request_tr_number === 'no') {
+                    $updateProspek = $db->prepare("UPDATE sales_activities SET jenis_prospek = 'Lost Deal' WHERE id = ?");
+                    $updateProspek->execute([(int)$detail['sales_activity_id']]);
+                }
+                
                 // AUTO CREATE DETAIL TRANSACTION REQUEST
                 if (!empty($tr_number)) {
                     $checkTR = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
