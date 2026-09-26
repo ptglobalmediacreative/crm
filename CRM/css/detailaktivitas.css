@@ -2509,3 +2509,12 @@ textarea,
 button {
   max-width: 100%;
 }
+
+#trNumberFieldAdd .tr-number-display {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 12px 15px;
+  line-height: 1.5;
+}
