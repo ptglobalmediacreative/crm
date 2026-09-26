@@ -2410,3 +2410,59 @@ button {
     padding: 10px 14px !important;
   }
 }
+
+/* =========================================================
+   SELECT2 FIX — ACCOUNT MANAGEMENT IN SALES ACTIVITY
+   Select2 dropdown must be above modal-content.
+   ========================================================= */
+
+#modalActivity .select2-container {
+  z-index: 12010 !important;
+}
+
+#modalActivity .select2-container--open {
+  z-index: 12010 !important;
+}
+
+#modalActivity .select2-dropdown {
+  z-index: 12011 !important;
+}
+
+#modalActivity .select2-results {
+  position: relative;
+  z-index: 12012 !important;
+}
+
+#modalActivity .select2-search--dropdown {
+  position: relative;
+  z-index: 12012 !important;
+}
+
+#modalActivity .select2-search__field {
+  position: relative;
+  z-index: 12013 !important;
+  pointer-events: auto !important;
+}
+
+#modalActivity .select2-results__option {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Keep Select2 dropdown visible when the modal body scrolls */
+#modalActivity .modal-content {
+  overflow: visible !important;
+}
+
+#modalActivity .modal-body {
+  overflow-x: visible !important;
+}
+
+/* But keep the modal itself above the application navigation */
+#modalActivity {
+  z-index: 12000 !important;
+}
+
+#modalActivity .modal-dialog {
+  z-index: 12001 !important;
+}
