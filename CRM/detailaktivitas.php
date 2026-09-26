@@ -425,10 +425,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (strlen($deskripsi) < 50) $errors[] = 'Deskripsi minimal 50 karakter!';
         
-        // Generate TR Number jika jenis_tugas = Negosiasi
+        // Negosiasi baru tidak membuat TR Number baru jika sudah ada TR Number dari Negosiasi sebelumnya.
+        // Jika sudah ada TR Number, aktivitas Negosiasi baru memakai TR Number lama.
+        // Jika belum ada TR Number, nilainya tetap NULL dan baru bisa dibuat saat Complete.
         $tr_number = NULL;
+        
         if ($jenis_tugas === 'Negosiasi') {
-            $tr_number = generateTRNumber($db);
+            $stmt = $db->prepare("SELECT tr_number FROM activity_details
+                                  WHERE sales_activity_id = ?
+                                    AND jenis_tugas = 'Negosiasi'
+                                    AND tr_number IS NOT NULL
+                                    AND TRIM(tr_number) <> ''
+                                  ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$leadsId]);
+            $tr_number = $stmt->fetchColumn() ?: NULL;
         }
         
         // Untuk Kontrak, Delivery Order, dan After Sales ambil TR Number dari Negosiasi sebelumnya
@@ -502,6 +512,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $tr_number = NULL;
         $customer_deal = NULL;
         $customer_deal_keterangan = NULL;
+        $request_tr_number = strtolower(trim((string)($_POST['request_tr_number'] ?? '')));
         
         $errors = [];
         if (strlen($result) < 50) $errors[] = 'Result minimal 50 karakter!';
@@ -513,6 +524,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (!$detail) {
             $errors[] = 'Data detail tidak ditemukan!';
+        }
+        
+        // Negosiasi: pertahankan TR Number lama jika aktivitas ini sudah memiliki TR Number.
+        // Request TR Number hanya diperlukan jika Negosiasi belum memiliki TR Number.
+        if ($detail && $detail['jenis_tugas'] === 'Negosiasi') {
+            $existingTrNumber = trim((string)($detail['tr_number'] ?? ''));
+            
+            if ($existingTrNumber !== '') {
+                // Sudah ada TR Number: jangan generate TR baru dan gunakan nomor lama.
+                $tr_number = $existingTrNumber;
+            } else {
+                if (!in_array($request_tr_number, ['yes', 'no'], true)) {
+                    $errors[] = 'Silakan pilih Request TR Number: Yes atau No.';
+                } elseif ($request_tr_number === 'yes') {
+                    $tr_number = generateTRNumber($db);
+                } else {
+                    // Request = No: tetap NULL, jangan membuat TR.
+                    $tr_number = NULL;
+                }
+            }
         }
         
         // Delivery Order: Customer Deal diambil otomatis dari detail_transaction_requests
@@ -1118,8 +1149,8 @@ foreach ($detailsList as $d) {
                         
                         <div class="mb-3" id="trNumberFieldAdd" style="display: none;">
                             <label class="form-label">Transaction Request Form</label>
-                            <div class="tr-number-display">
-                                <?= htmlspecialchars(generateTRNumber($db)) ?>
+                            <div class="tr-number-display text-muted">
+                                TR Number akan dibuat saat aktivitas Negosiasi di-Complete dan memilih Request TR Number = Yes.
                             </div>
                         </div>
                         
@@ -1151,6 +1182,23 @@ foreach ($detailsList as $d) {
                     <div class="modal-body">
                         <input type="hidden" name="action" value="complete">
                         <input type="hidden" name="detail_id" id="completeDetailId" value="">
+                        
+                        <div class="mb-3" id="requestTRNumberField" style="display: none;">
+                            <label class="form-label">Request TR Number <span class="text-danger">*</span></label>
+                            <select name="request_tr_number" id="request_tr_number" class="form-select">
+                                <option value="">Pilih</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                            <small class="text-muted">Pilih Yes jika aktivitas Negosiasi perlu dibuatkan Transaction Request Number.</small>
+                        </div>
+                        
+                        <div class="mb-3" id="generatedTRNumberField" style="display: none;">
+                            <label class="form-label">TR Number</label>
+                            <div class="tr-number-display" id="generatedTRNumberDisplay">
+                                TR Number akan dibuat saat proses Complete.
+                            </div>
+                        </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Result <span class="text-danger">*</span> <small class="text-muted">(Minimal 50 karakter)</small></label>
@@ -1344,6 +1392,44 @@ foreach ($detailsList as $d) {
         
         function completeDetail(data) {
             document.getElementById('completeDetailId').value = data.id;
+            
+            var requestTRField = document.getElementById('requestTRNumberField');
+            var requestTRSelect = document.getElementById('request_tr_number');
+            var generatedTRField = document.getElementById('generatedTRNumberField');
+            var generatedTRDisplay = document.getElementById('generatedTRNumberDisplay');
+            
+            requestTRField.style.display = 'none';
+            requestTRSelect.required = false;
+            requestTRSelect.value = '';
+            generatedTRField.style.display = 'none';
+            generatedTRDisplay.textContent = 'TR Number akan dibuat saat proses Complete.';
+            
+            if (data.jenis_tugas === 'Negosiasi') {
+                var existingTR = (data.tr_number || '').toString().trim();
+                
+                if (existingTR !== '') {
+                    // Sudah punya TR Number: tampilkan nomor lama dan jangan minta Request TR lagi.
+                    requestTRField.style.display = 'none';
+                    requestTRSelect.required = false;
+                    generatedTRField.style.display = 'block';
+                    generatedTRDisplay.innerHTML = '<i class="fas fa-link"></i> Menggunakan TR Number yang sudah ada: <a href="detailtr.php?tr_number=' + encodeURIComponent(existingTR) + '" target="_blank" style="color:#2980b9;font-weight:600;">' + existingTR + '</a>';
+                } else {
+                    // Belum punya TR Number: baru tampilkan pilihan Request TR Number.
+                    requestTRField.style.display = 'block';
+                    requestTRSelect.required = true;
+                    
+                    requestTRSelect.onchange = function() {
+                        if (this.value === 'yes') {
+                            generatedTRField.style.display = 'block';
+                            generatedTRDisplay.innerHTML = '<i class="fas fa-info-circle"></i> TR Number akan dibuat otomatis saat Anda menekan Complete.';
+                        } else {
+                            generatedTRField.style.display = 'none';
+                        }
+                    };
+                }
+            } else {
+                requestTRSelect.onchange = null;
+            }
             
             var existingContainer = document.getElementById('negosiasiInfoContainer');
             if (existingContainer) {
