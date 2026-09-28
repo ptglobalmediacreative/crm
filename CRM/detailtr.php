@@ -1884,7 +1884,7 @@ $isDataComplete = empty($missingSections);
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div id="mediatorFormContainer" style="display: none; margin-bottom: 20px; padding: 20px; border-radius: 12px;">
+                <div id="mediatorFormContainer" class="section-edit-form" style="display: none;">
                     <form method="POST" id="mediatorForm">
                         <input type="hidden" name="action" value="save_mediator">
                         
@@ -1913,61 +1913,64 @@ $isDataComplete = empty($missingSections);
                     <?php if (count($mediators) > 0): ?>
                         <?php $totalMediatorAmount = 0; ?>
                         <?php foreach ($mediators as $index => $med): ?>
-                            <?php $totalMediatorAmount += $med['amount']; ?>
-                            <div class="card mb-3" style="border: 1px solid #e0e4ea; border-radius: 10px;">
-                                <div class="card-header" style="background: #f8f9fa; border-bottom: 1px solid #e0e4ea; border-radius: 10px 10px 0 0; padding: 10px 15px;">
-                                    <strong style="color: #0e1a2b;">
-                                        <i class="fas fa-user-tie" style="color: #ffd700;"></i> 
+                            <?php $totalMediatorAmount += (float)($med['amount'] ?? 0); ?>
+
+                            <div class="mediator-view-item">
+                                <div class="mediator-view-header">
+                                    <strong>
+                                        <i class="fas fa-user-tie"></i>
                                         Mediator <?= $index + 1 ?>
                                     </strong>
                                 </div>
-                                <div class="card-body" style="padding: 15px;">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="info-label">Name</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['name'] ?? '-') ?: '-' ?></div>
-                                            
-                                            <div class="info-label">Nama Perusahaan</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['company_name'] ?? '-') ?: '-' ?></div>
-                                            
-                                            <div class="info-label">Jabatan</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['position'] ?? '-') ?: '-' ?></div>
-                                            
-                                            <div class="info-label">Nomor HP</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['phone_number'] ?? '-') ?: '-' ?></div>
-                                            
-                                            <div class="info-label">ID Card No</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['id_card_no'] ?? '-') ?: '-' ?></div>
-                                            
-                                            <div class="info-label">NPWP No</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['npwp_no'] ?? '-') ?: '-' ?></div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="info-label">Bank Name</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['bank_name'] ?? '-') ?: '-' ?></div>
-                                            
-                                            <div class="info-label">Bank Account</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['bank_account'] ?? '-') ?: '-' ?></div>
-                                            
-                                            <div class="info-label">Amount</div>
-                                            <div class="info-value">
-                                                <strong style="color: #27ae60;">
-                                                    Rp <?= number_format($med['amount'], 0, ',', '.') ?>
-                                                </strong>
-                                            </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="info-label">Name</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['name'] ?? '-') ?: '-' ?></div>
+
+                                        <div class="info-label">Nama Perusahaan</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['company_name'] ?? '-') ?: '-' ?></div>
+
+                                        <div class="info-label">Jabatan</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['position'] ?? '-') ?: '-' ?></div>
+
+                                        <div class="info-label">Nomor HP</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['phone_number'] ?? '-') ?: '-' ?></div>
+
+                                        <div class="info-label">ID Card No</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['id_card_no'] ?? '-') ?: '-' ?></div>
+
+                                        <div class="info-label">NPWP No</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['npwp_no'] ?? '-') ?: '-' ?></div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="info-label">Bank Name</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['bank_name'] ?? '-') ?: '-' ?></div>
+
+                                        <div class="info-label">Bank Account</div>
+                                        <div class="info-value"><?= htmlspecialchars($med['bank_account'] ?? '-') ?: '-' ?></div>
+
+                                        <div class="info-label">Amount</div>
+                                        <div class="info-value">
+                                            <strong class="mediator-amount">
+                                                Rp <?= number_format((float)($med['amount'] ?? 0), 0, ',', '.') ?>
+                                            </strong>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
+                            <?php if ($index < count($mediators) - 1): ?>
+                                <hr class="mediator-divider">
+                            <?php endif; ?>
                         <?php endforeach; ?>
-                        
-                        <hr>
-                        
-                        <div class="row">
+
+                        <div class="row mt-3">
                             <div class="col-md-12">
                                 <div class="total-box">
                                     <span class="total-label">Total Mediator Fee</span>
-                                    <span class="total-value">Rp <?= number_format($totalMediatorFee, 0, ',', '.') ?></span>
+                                    <span class="total-value">Rp <?= number_format($totalMediatorAmount, 0, ',', '.') ?></span>
                                 </div>
                             </div>
                         </div>
