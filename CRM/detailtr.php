@@ -910,6 +910,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deleteStmt->execute([$tr_number]);
             
             $mediator_names = $_POST['mediator_name'] ?? [];
+            $mediator_company_names = $_POST['mediator_company_name'] ?? [];
+            $mediator_positions = $_POST['mediator_position'] ?? [];
+            $mediator_phone_numbers = $_POST['mediator_phone_number'] ?? [];
             $mediator_id_cards = $_POST['mediator_id_card'] ?? [];
             $mediator_npwps = $_POST['mediator_npwp'] ?? [];
             $mediator_bank_names = $_POST['mediator_bank_name'] ?? [];
@@ -917,16 +920,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mediator_amounts = $_POST['mediator_amount'] ?? [];
             
             foreach ($mediator_names as $index => $name) {
-                if (!empty($name)) {
-                    $id_card = $mediator_id_cards[$index] ?? '';
-                    $npwp = $mediator_npwps[$index] ?? '';
-                    $bank_name = $mediator_bank_names[$index] ?? '';
-                    $bank_account = $mediator_bank_accounts[$index] ?? '';
+                if (!empty(trim((string)$name))) {
+                    $company_name = trim((string)($mediator_company_names[$index] ?? ''));
+                    $position = trim((string)($mediator_positions[$index] ?? ''));
+                    $phone_number = trim((string)($mediator_phone_numbers[$index] ?? ''));
+                    $id_card = trim((string)($mediator_id_cards[$index] ?? ''));
+                    $npwp = trim((string)($mediator_npwps[$index] ?? ''));
+                    $bank_name = trim((string)($mediator_bank_names[$index] ?? ''));
+                    $bank_account = trim((string)($mediator_bank_accounts[$index] ?? ''));
                     $amount = (float)($mediator_amounts[$index] ?? 0);
                     
-                    $insertSql = "INSERT INTO tr_mediators (trf_number, name, id_card_no, npwp_no, bank_name, bank_account, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                    $insertSql = "INSERT INTO tr_mediators (trf_number, name, company_name, position, phone_number, id_card_no, npwp_no, bank_name, bank_account, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                     $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([$tr_number, $name, $id_card, $npwp, $bank_name, $bank_account, $amount]);
+                    $insertStmt->execute([$tr_number, $name, $company_name, $position, $phone_number, $id_card, $npwp, $bank_name, $bank_account, $amount]);
                 }
             }
             
@@ -1919,20 +1925,29 @@ $isDataComplete = empty($missingSections);
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="info-label">Name</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['name']) ?></div>
+                                            <div class="info-value"><?= htmlspecialchars($med['name'] ?? '-') ?: '-' ?></div>
+                                            
+                                            <div class="info-label">Nama Perusahaan</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['company_name'] ?? '-') ?: '-' ?></div>
+                                            
+                                            <div class="info-label">Jabatan</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['position'] ?? '-') ?: '-' ?></div>
+                                            
+                                            <div class="info-label">Nomor HP</div>
+                                            <div class="info-value"><?= htmlspecialchars($med['phone_number'] ?? '-') ?: '-' ?></div>
                                             
                                             <div class="info-label">ID Card No</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['id_card_no']) ?: '-' ?></div>
+                                            <div class="info-value"><?= htmlspecialchars($med['id_card_no'] ?? '-') ?: '-' ?></div>
                                             
                                             <div class="info-label">NPWP No</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['npwp_no']) ?: '-' ?></div>
+                                            <div class="info-value"><?= htmlspecialchars($med['npwp_no'] ?? '-') ?: '-' ?></div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="info-label">Bank Name</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['bank_name']) ?: '-' ?></div>
+                                            <div class="info-value"><?= htmlspecialchars($med['bank_name'] ?? '-') ?: '-' ?></div>
                                             
                                             <div class="info-label">Bank Account</div>
-                                            <div class="info-value"><?= htmlspecialchars($med['bank_account']) ?: '-' ?></div>
+                                            <div class="info-value"><?= htmlspecialchars($med['bank_account'] ?? '-') ?: '-' ?></div>
                                             
                                             <div class="info-label">Amount</div>
                                             <div class="info-value">
@@ -2721,32 +2736,50 @@ $isDataComplete = empty($missingSections);
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="mediator_name[]" class="form-control" value="${data ? data.name : ''}">
+                        <label class="form-label">Name *</label>
+                        <input type="text" name="mediator_name[]" class="form-control" placeholder="Nama mediator" value="${data ? data.name : ''}" required>
                     </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nama Perusahaan</label>
+                        <input type="text" name="mediator_company_name[]" class="form-control" placeholder="Nama perusahaan" value="${data ? data.company_name : ''}">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Jabatan</label>
+                        <input type="text" name="mediator_position[]" class="form-control" placeholder="Jabatan" value="${data ? data.position : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nomor HP</label>
+                        <input type="tel" name="mediator_phone_number[]" class="form-control" placeholder="Nomor HP" value="${data ? data.phone_number : ''}">
+                    </div>
+                </div>
+                
+                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">ID Card No</label>
                         <input type="text" name="mediator_id_card[]" class="form-control" value="${data ? data.id_card_no : ''}">
                     </div>
-                </div>
-                
-                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">NPWP No</label>
                         <input type="text" name="mediator_npwp[]" class="form-control" value="${data ? data.npwp_no : ''}">
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Bank Name</label>
-                        <input type="text" name="mediator_bank_name[]" class="form-control" value="${data ? data.bank_name : ''}">
-                    </div>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <input type="text" name="mediator_bank_name[]" class="form-control" value="${data ? data.bank_name : ''}">
+                    </div>
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Bank Account</label>
                         <input type="text" name="mediator_bank_account[]" class="form-control" value="${data ? data.bank_account : ''}">
                     </div>
-                    <div class="col-md-6 mb-3">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
                         <label class="form-label">Amount</label>
                         <input type="number" name="mediator_amount[]" class="form-control" min="0" step="0.01" value="${data ? data.amount : 0}">
                     </div>
@@ -2779,6 +2812,9 @@ $isDataComplete = empty($missingSections);
                 <?php foreach ($mediators as $med): ?>
                     addMediatorRow({
                         name: <?= json_encode((string)($med['name'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        company_name: <?= json_encode((string)($med['company_name'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        position: <?= json_encode((string)($med['position'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
+                        phone_number: <?= json_encode((string)($med['phone_number'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
                         id_card_no: <?= json_encode((string)($med['id_card_no'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
                         npwp_no: <?= json_encode((string)($med['npwp_no'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
                         bank_name: <?= json_encode((string)($med['bank_name'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
