@@ -453,12 +453,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
+        // Delivery Order sekarang langsung mendapatkan DI Number saat aktivitas dibuat
+        // (status masih In Progress), jika Customer Deal pada TR = Yes.
+        $di_number = NULL;
+
+        if ($jenis_tugas === 'Delivery Order') {
+            if (empty($tr_number)) {
+                $errors[] = 'TR Number untuk Delivery Order tidak ditemukan!';
+            } else {
+                $dealStmt = $db->prepare("SELECT dtr.customer_deal
+                                           FROM detail_transaction_requests dtr
+                                           WHERE dtr.trf_number = ?
+                                             AND dtr.customer_deal IN ('yes', 'no', 'Yes', 'No')
+                                           ORDER BY dtr.id DESC
+                                           LIMIT 1");
+                $dealStmt->execute([$tr_number]);
+                $dealData = $dealStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$dealData) {
+                    $errors[] = 'Customer Deal pada Detail TR belum diisi untuk TR Number ini.';
+                } elseif (strtolower(trim((string)$dealData['customer_deal'])) === 'yes') {
+                    $di_number = generateDINumber($db);
+                }
+            }
+        }
+
         if (empty($errors)) {
             $db->beginTransaction();
             
             try {
-                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')");
-                $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number]);
+                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, di_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'in_progress')");
+                $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number, $di_number]);
+
+                // Untuk Delivery Order, DI Number dan record DI langsung dibuat
+                // saat aktivitas masih In Progress.
+                if ($jenis_tugas === 'Delivery Order' && !empty($di_number)) {
+                    $activityDetailId = (int)$db->lastInsertId();
+
+                    $checkDI = $db->prepare("SELECT id FROM detail_delivery_instructions WHERE di_number = ?");
+                    $checkDI->execute([$di_number]);
+                    $existingDI = $checkDI->fetch();
+
+                    if (!$existingDI) {
+                        $insertDI = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, no_so, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, NULL, 'pending', 1, NOW(), NOW())");
+                        $insertDI->execute([$di_number, $leadsId, $activityDetailId]);
+                    }
+                }
                 
                 // Jika Negosiasi di-Complete dengan Request TR Number = No,
                 // otomatis tandai Sales Activity sebagai Lost Deal.
@@ -580,7 +620,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $customer_deal_keterangan = trim((string)($dealData['customer_deal_keterangan'] ?? ''));
 
                     if ($customer_deal === 'yes') {
-                        $di_number = generateDINumber($db);
+                        // Jika DI sudah dibuat saat Delivery Order ditambahkan,
+                        // gunakan DI Number yang sama saat Complete.
+                        $existingDiNumber = trim((string)($detail['di_number'] ?? ''));
+                        $di_number = $existingDiNumber !== '' ? $existingDiNumber : generateDINumber($db);
                     }
                 }
             }
