@@ -1579,7 +1579,6 @@ textarea.form-control {
   color: #71809a;
 }
 
-
 /* =========================================================
    PAGE TYPOGRAPHY CONSISTENCY — RESPONSIVE OVERRIDE
    This layer intentionally keeps labels compact but readable.
@@ -1908,7 +1907,6 @@ textarea.form-control {
     font-size: 12px !important;
   }
 }
-
 
 /* =========================================================
    CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
@@ -2497,7 +2495,6 @@ textarea {
     width: auto !important;
   }
 }
-
 
 /* =========================================================
    CRM RESPONSIVE SYSTEM — FINAL OVERRIDE
@@ -3250,19 +3247,478 @@ body {
    CRM RESPONSIVE SYSTEM — FINAL CONSISTENCY PASS
    Dashboard reference / all devices
    ========================================================= */
-html,body{max-width:100%;overflow-x:hidden}
-.content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box;padding:28px 30px 52px}
-.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box}
-@media (min-width:1600px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (max-width:1199px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:24px}.page-header,.hero-row{gap:16px}.page-header h4,.page-title h4,.hero h1{font-size:23px}}
-@media (max-width:991px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:100%;margin-left:0;padding:22px 20px 44px}.page-header,.hero-row{align-items:flex-start;flex-wrap:wrap}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%;justify-content:flex-start;flex-wrap:wrap}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-grid{grid-template-columns:1fr}.card-header-custom{align-items:flex-start}.card-header-custom form{width:100%;margin-left:0}.card-header-custom form input{flex:1 1 auto;min-width:0;width:auto!important}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
-@media (max-width:767px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:18px 16px 38px}.page-header,.hero-row{margin-bottom:16px}.page-header h4,.page-title h4,.hero h1{font-size:21px}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat-card{min-height:112px;padding:15px}.kpi{min-height:104px;padding:13px}.detail-grid,.two-col,.form-grid,.form-row,.split-grid{grid-template-columns:1fr!important}.info-item{flex-direction:column;gap:7px}.info-label{width:auto!important}.card-header-custom form{flex-wrap:wrap}.card-header-custom form input,.card-header-custom form select{width:100%!important;min-width:0;flex:1 1 100%}}
-@media (max-width:575px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:16px 12px 32px}.page-header,.hero-row{flex-direction:column;align-items:stretch;gap:12px}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%}.page-actions>*,.header-actions>*,.filters>*{flex:1 1 auto;min-width:0}.stat-grid,.kpis{grid-template-columns:1fr;gap:9px}.card-header-custom{padding:12px}.card-header-custom h6{width:100%}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto}.table-custom th,.table-custom td{padding-left:10px!important;padding-right:10px!important}}
-@media (max-width:380px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:10px;padding-right:10px}.page-header h4,.page-title h4,.hero h1{font-size:19px}.page-actions,.header-actions,.filters{flex-direction:column;align-items:stretch}.page-actions>*,.header-actions>*,.filters>*{width:100%}}
-footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{box-sizing:border-box;max-width:none;width:calc(100% - 245px);margin-left:245px}
-@media (min-width:1600px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (min-width:992px) and (max-width:1599px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:30px;padding-right:30px}}
-@media (max-width:991px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{width:100%;margin-left:0;padding-left:20px;padding-right:20px}}
-@media (max-width:767px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:16px;padding-right:16px}}
-@media (max-width:575px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:12px;padding-right:12px}}
-img,video,canvas,iframe,table{max-width:100%}input,select,textarea,button{max-width:100%}
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.content {
+  width: calc(100% - 245px);
+  margin-left: 245px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 28px 30px 52px;
+}
+.page-account-management .content,
+.page-data-user .content,
+.page-deliveryinstruction .content,
+.page-detailaktivitas .content,
+.page-detaildi .content,
+.page-detailtr .content,
+.page-produk .content,
+.page-salesactivity .content,
+.page-transactionrequest .content {
+  width: calc(100% - 245px);
+  margin-left: 245px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+@media (min-width: 1600px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
+  }
+}
+@media (max-width: 1199px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 24px;
+  }
+  .page-header,
+  .hero-row {
+    gap: 16px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 23px;
+  }
+}
+@media (max-width: 991px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: 100%;
+    margin-left: 0;
+    padding: 22px 20px 44px;
+  }
+  .page-header,
+  .hero-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .page-header > div:last-child,
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-header-custom {
+    align-items: flex-start;
+  }
+  .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+  .card-header-custom form input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (max-width: 767px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 18px 16px 38px;
+  }
+  .page-header,
+  .hero-row {
+    margin-bottom: 16px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 21px;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .stat-card {
+    min-height: 112px;
+    padding: 15px;
+  }
+  .kpi {
+    min-height: 104px;
+    padding: 13px;
+  }
+  .detail-grid,
+  .two-col,
+  .form-grid,
+  .form-row,
+  .split-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .info-item {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .info-label {
+    width: auto !important;
+  }
+  .card-header-custom form {
+    flex-wrap: wrap;
+  }
+  .card-header-custom form input,
+  .card-header-custom form select {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}
+@media (max-width: 575px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 16px 12px 32px;
+  }
+  .page-header,
+  .hero-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header > div:last-child,
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+  }
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .card-header-custom {
+    padding: 12px;
+  }
+  .card-header-custom h6 {
+    width: 100%;
+  }
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .table-custom th,
+  .table-custom td {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+@media (max-width: 380px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 19px;
+  }
+  .page-actions,
+  .header-actions,
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    width: 100%;
+  }
+}
+footer:not(.modal-footer),
+.page-footer,
+.crm-footer,
+.site-footer {
+  box-sizing: border-box;
+  max-width: none;
+  width: calc(100% - 245px);
+  margin-left: 245px;
+}
+@media (min-width: 1600px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
+  }
+}
+@media (min-width: 992px) and (max-width: 1599px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+}
+@media (max-width: 991px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+@media (max-width: 767px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@media (max-width: 575px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+img,
+video,
+canvas,
+iframe,
+table {
+  max-width: 100%;
+}
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+/* =========================================================
+   DETAIL DI — FORM INPUT DARK THEME (PARITY WITH DETAIL TR)
+   Pastikan seluruh area input/edit tidak kembali menjadi putih
+   akibat Bootstrap atau inline style pada form.
+   ========================================================= */
+#editDataPenjualan,
+#unitForm,
+#accessoriesForm,
+#logisticsForm,
+#productSupportForm,
+#editDataPenjualan form,
+#unitForm,
+#accessoriesForm,
+#logisticsForm,
+#productSupportForm,
+[id*="edit"] form,
+[id*="Form"] form {
+  color: #dbe5f5;
+}
+
+#editDataPenjualan,
+#editDataPenjualan form,
+#editDataPenjualan .row,
+#editDataPenjualan .mb-3,
+#unitForm,
+#accessoriesForm,
+#logisticsForm,
+#productSupportForm {
+  background: transparent;
+}
+
+/* Semua input/select/textarea mengikuti tampilan Detail TR */
+#editDataPenjualan input.form-control,
+#editDataPenjualan select.form-select,
+#editDataPenjualan textarea.form-control,
+#unitForm input.form-control,
+#unitForm select.form-select,
+#unitForm textarea.form-control,
+#accessoriesForm input.form-control,
+#accessoriesForm select.form-select,
+#accessoriesForm textarea.form-control,
+#logisticsForm input.form-control,
+#logisticsForm select.form-select,
+#logisticsForm textarea.form-control,
+#productSupportForm input.form-control,
+#productSupportForm select.form-select,
+#productSupportForm textarea.form-control,
+.card-custom input.form-control,
+.card-custom select.form-select,
+.card-custom textarea.form-control {
+  background-color: #0a1427 !important;
+  background: #0a1427 !important;
+  color: #dbe5f5 !important;
+  border: 1px solid rgba(148, 163, 184, 0.15) !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+  font-size: 11px;
+  padding: 9px 11px;
+}
+
+#editDataPenjualan input.form-control:focus,
+#editDataPenjualan select.form-select:focus,
+#editDataPenjualan textarea.form-control:focus,
+#unitForm input.form-control:focus,
+#unitForm select.form-select:focus,
+#unitForm textarea.form-control:focus,
+#accessoriesForm input.form-control:focus,
+#accessoriesForm select.form-select:focus,
+#accessoriesForm textarea.form-control:focus,
+#logisticsForm input.form-control:focus,
+#logisticsForm select.form-select:focus,
+#logisticsForm textarea.form-control:focus,
+#productSupportForm input.form-control:focus,
+#productSupportForm select.form-select:focus,
+#productSupportForm textarea.form-control:focus,
+.card-custom input.form-control:focus,
+.card-custom select.form-select:focus,
+.card-custom textarea.form-control:focus {
+  background: #0b172c !important;
+  color: #fff !important;
+  border-color: rgba(96, 165, 250, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  outline: none;
+}
+
+/* Placeholder */
+.card-custom input.form-control::placeholder,
+.card-custom textarea.form-control::placeholder {
+  color: #52627d !important;
+  opacity: 1;
+}
+
+/* Readonly / disabled tetap dark, bukan putih/abu Bootstrap */
+.card-custom input.form-control:disabled,
+.card-custom input.form-control[readonly],
+.card-custom select.form-select:disabled,
+.card-custom textarea.form-control:disabled,
+.card-custom textarea.form-control[readonly] {
+  background: #081426 !important;
+  color: #9aa8bd !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+  opacity: 0.9 !important;
+}
+
+/* Dropdown select */
+.card-custom select.form-select option,
+#editDataPenjualan select.form-select option,
+#unitForm select.form-select option,
+#accessoriesForm select.form-select option,
+#logisticsForm select.form-select option,
+#productSupportForm select.form-select option {
+  background: #0b1222 !important;
+  color: #dbe5f5 !important;
+}
+
+/* Label input */
+.card-custom .form-label {
+  color: #71809a !important;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  font-weight: 700;
+}
+
+/* Override inline Bootstrap/legacy white edit container */
+#editDataPenjualan[style*="background: #f8f9fa"],
+#editDataPenjualan[style*="background:#f8f9fa"] {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border: 1px solid rgba(148, 163, 184, 0.12) !important;
+}
+
+/* Dynamic rows */
+.card-custom .unit-row,
+.card-custom .accessory-row,
+.card-custom .support-row,
+.card-custom .logistics-row {
+  background: rgba(8, 16, 31, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.11) !important;
+  color: #cbd5e1 !important;
+}
