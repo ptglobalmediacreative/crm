@@ -489,6 +489,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Customer Deal hanya dapat diisi setelah seluruh approval selesai.');
             }
 
+            // Customer Deal hanya boleh dipilih SATU KALI.
+            // Setelah Sales memilih Yes atau No, pilihan tersebut dikunci
+            // dan tidak boleh diubah lagi.
+            $existingCustomerDeal = strtolower(trim((string)($lockedDetail['customer_deal'] ?? '')));
+            if (in_array($existingCustomerDeal, ['yes', 'no'], true)) {
+                throw new Exception('Customer Deal sudah dipilih dan tidak dapat diubah lagi.');
+            }
+
             // Pastikan TR Number memang terhubung dengan Activity Number yang sedang dibuka.
             $checkActivity = $db->prepare("
                 SELECT id
@@ -1322,7 +1330,11 @@ $isDataComplete = empty($missingSections);
                 <?php
                     $customerDeal = strtolower(trim((string)($detailTR['customer_deal'] ?? '')));
                     $customerDealKeterangan = (string)($detailTR['customer_deal_keterangan'] ?? '');
+                    // Customer Deal hanya bisa dipilih satu kali.
+                    // Jika sudah Yes/No, tombol pilihan disembunyikan dan
+                    // hanya status final yang ditampilkan.
                     $canSetCustomerDeal = (
+                        $customerDeal === '' &&
                         $userRole === 'sales' &&
                         isset($request['sales_user_id']) &&
                         (int)$request['sales_user_id'] === (int)$userId
