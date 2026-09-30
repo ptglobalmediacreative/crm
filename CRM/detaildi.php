@@ -1893,14 +1893,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if (count($diUnits) > 0): ?>
                 <?php foreach ($diUnits as $unit): ?>
                     addUnitRow({
-                        lokasi_unit: '<?= addslashes($unit['lokasi_unit']) ?>',
-                        cabang: '<?= addslashes($unit['cabang']) ?>',
-                        kode_unit: '<?= addslashes($unit['kode_unit']) ?>',
-                        brand: '<?= addslashes($unit['brand']) ?>',
-                        tipe: '<?= addslashes($unit['tipe']) ?>',
-                        serial_number: '<?= addslashes($unit['serial_number']) ?>',
-                        engine_number: '<?= addslashes($unit['engine_number']) ?>',
-                        keterangan: '<?= addslashes($unit['keterangan']) ?>'
+                        lokasi_unit: <?= json_encode($unit['lokasi_unit'] ?? '') ?>,
+                        cabang: <?= json_encode($unit['cabang'] ?? '') ?>,
+                        kode_unit: <?= json_encode($unit['kode_unit'] ?? '') ?>,
+                        brand: <?= json_encode($unit['brand'] ?? '') ?>,
+                        tipe: <?= json_encode($unit['tipe'] ?? '') ?>,
+                        serial_number: <?= json_encode($unit['serial_number'] ?? '') ?>,
+                        engine_number: <?= json_encode($unit['engine_number'] ?? '') ?>,
+                        keterangan: <?= json_encode($unit['keterangan'] ?? '') ?>
                     });
                 <?php endforeach; ?>
             <?php else: ?>
@@ -1911,11 +1911,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php foreach ($diAccessories as $acc): ?>
                     addAccessoryRow({
                         id: <?= (int)$acc['id'] ?>,
-                        no: '<?= addslashes($acc['no']) ?>',
-                        uraian: '<?= addslashes($acc['uraian']) ?>',
-                        satuan: '<?= addslashes($acc['satuan']) ?>',
-                        jumlah: '<?= $acc['jumlah'] ?>',
-                        keterangan: '<?= addslashes($acc['keterangan']) ?>'
+                        no: <?= json_encode($acc['no'] ?? '') ?>,
+                        uraian: <?= json_encode($acc['uraian'] ?? '') ?>,
+                        satuan: <?= json_encode($acc['satuan'] ?? '') ?>,
+                        jumlah: <?= json_encode($acc['jumlah'] ?? '') ?>,
+                        keterangan: <?= json_encode($acc['keterangan'] ?? '') ?>
                     });
                 <?php endforeach; ?>
             <?php else: ?>
