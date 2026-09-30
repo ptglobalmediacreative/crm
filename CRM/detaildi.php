@@ -752,7 +752,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .part-summary span{display:block;font-size:12px;color:#6c757d;margin-bottom:4px}
         .part-summary strong{font-size:14px;color:#212529}
         .detail-part-table th,.logistics-comparison-table th{white-space:nowrap;background:#f8f9fa}
-        .table-total-row{background:#f8f9fa}
+        .table-total-row{background:#0a1427 !important;color:#e8eef8}
         .comparison-note{background:#eef6ff;border:1px solid #cfe2ff;color:#24558a;padding:10px 13px;border-radius:8px;margin-bottom:15px;font-size:13px}
         .vendor-data-row{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px}
         .vendor-data-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}

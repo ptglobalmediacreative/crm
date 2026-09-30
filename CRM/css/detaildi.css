@@ -4241,3 +4241,25 @@ body.page-detaildi .table > :not(caption) > * > * {
   color: #cbd5e1;
   border-color: rgba(148, 163, 184, 0.08);
 }
+
+/* FINAL FIX — Grand Total row was still white because the inline PHP
+   rule .table-total-row{background:#f8f9fa} is applied to the TR itself. */
+body.page-detaildi .detail-part-table tr.table-total-row,
+body.page-detaildi .logistics-comparison-table tr.table-total-row {
+  background: linear-gradient(145deg, #0a1427, #07101f) !important;
+  background-color: #0a1427 !important;
+  color: #e8eef8 !important;
+}
+
+body.page-detaildi .detail-part-table tr.table-total-row td,
+body.page-detaildi .logistics-comparison-table tr.table-total-row td {
+  background: #0a1427 !important;
+  background-color: #0a1427 !important;
+  color: #e8eef8 !important;
+  border-top: 1px solid rgba(96, 165, 250, 0.12) !important;
+}
+
+body.page-detaildi .detail-part-table tr.table-total-row strong,
+body.page-detaildi .logistics-comparison-table tr.table-total-row strong {
+  color: #e8eef8 !important;
+}
