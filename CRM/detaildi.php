@@ -78,7 +78,7 @@ $di_number = isset($_GET['di_number']) ? bersihkan($_GET['di_number']) : '';
 $activeTab = isset($_GET['tab']) ? bersihkan($_GET['tab']) : 'data_penjualan';
 
 // Validasi tab
-$validTabs = ['data_penjualan', 'data_customer', 'data_unit', 'aksesoris', 'logistik', 'product_support'];
+$validTabs = ['data_penjualan', 'data_customer', 'data_unit', 'aksesoris', 'logistik', 'detail_part', 'komparasi_logistik', 'product_support'];
 if (!in_array($activeTab, $validTabs)) {
     $activeTab = 'data_penjualan';
 }
@@ -314,6 +314,42 @@ try {
     $diSupports = [];
 }
 
+// ============================================
+// AMBIL DATA DETAIL PART
+// ============================================
+$diParts = [];
+try {
+    $sqlPart = "SELECT * FROM di_parts WHERE di_number = ? ORDER BY id ASC";
+    $stmtPart = $db->prepare($sqlPart);
+    $stmtPart->execute([$di_number]);
+    $diParts = $stmtPart->fetchAll();
+} catch (Exception $e) {
+    $diParts = [];
+}
+
+// ============================================
+// AMBIL DATA KOMPARASI LOGISTIK
+// ============================================
+$diLogisticsComparisons = [];
+try {
+    $sqlLogComp = "SELECT * FROM di_logistics_comparisons WHERE di_number = ? ORDER BY id ASC";
+    $stmtLogComp = $db->prepare($sqlLogComp);
+    $stmtLogComp->execute([$di_number]);
+    $diLogisticsComparisons = $stmtLogComp->fetchAll();
+} catch (Exception $e) {
+    $diLogisticsComparisons = [];
+}
+
+$selectedLogisticsVendor = null;
+foreach ($diLogisticsComparisons as $comparison) {
+    if ((int)($comparison['is_selected'] ?? 0) === 1) {
+        $selectedLogisticsVendor = $comparison;
+        break;
+    }
+}
+
+$jumlahUnitDI = count($diUnits);
+
 // Group supports by type
 $supportsGrouped = [
     'free_filter_engine' => [],
@@ -334,7 +370,7 @@ foreach ($diSupports as $support) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    $editActions = ['save_data_penjualan', 'save_units', 'save_accessories', 'save_logistics', 'save_product_support'];
+    $editActions = ['save_data_penjualan', 'save_units', 'save_accessories', 'save_logistics', 'save_product_support', 'save_parts', 'save_logistics_comparison'];
     if (in_array($action, $editActions) && !$canEdit) {
         if ($hasBeenApproved) {
             setFlash('DI ini sudah di-approve, data tidak bisa diedit lagi!', 'danger');
@@ -591,6 +627,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=product_support");
     }
+
+    // ============================================
+    // SAVE DETAIL PART
+    // ============================================
+    if ($action === 'save_parts') {
+        try {
+            $db->beginTransaction();
+
+            $deleteSql = "DELETE FROM di_parts WHERE di_number = ?";
+            $deleteStmt = $db->prepare($deleteSql);
+            $deleteStmt->execute([$di_number]);
+
+            $partNumbers = $_POST['part_number'] ?? [];
+            $descriptions = $_POST['description'] ?? [];
+            $prices = $_POST['price'] ?? [];
+            $qtys = $_POST['qty'] ?? [];
+            $units = $_POST['unit'] ?? [];
+
+            $insertSql = "INSERT INTO di_parts (di_number, part_number, description, price, qty, unit, total_amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+            $insertStmt = $db->prepare($insertSql);
+
+            foreach ($partNumbers as $index => $partNumber) {
+                $description = trim($descriptions[$index] ?? '');
+                $price = (float)($prices[$index] ?? 0);
+                $qty = (float)($qtys[$index] ?? 0);
+                $unit = trim($units[$index] ?? '');
+
+                if ($partNumber !== '' || $description !== '') {
+                    $totalAmount = $price * $qty * $jumlahUnitDI;
+                    $insertStmt->execute([
+                        $di_number,
+                        trim($partNumber),
+                        $description,
+                        $price,
+                        $qty,
+                        $unit,
+                        $totalAmount
+                    ]);
+                }
+            }
+
+            resetDIApprovalHistory($db, $di_number);
+            $db->commit();
+            setFlash('Detail Part berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            setFlash('Gagal menyimpan detail part: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=detail_part");
+    }
+
+    // ============================================
+    // SAVE KOMPARASI LOGISTIK
+    // ============================================
+    if ($action === 'save_logistics_comparison') {
+        try {
+            $db->beginTransaction();
+
+            $deleteSql = "DELETE FROM di_logistics_comparisons WHERE di_number = ?";
+            $deleteStmt = $db->prepare($deleteSql);
+            $deleteStmt->execute([$di_number]);
+
+            $vendors = $_POST['vendor_name'] ?? [];
+            $paymentMethods = $_POST['payment_method'] ?? [];
+            $etas = $_POST['eta_kirim'] ?? [];
+            $prices = $_POST['harga'] ?? [];
+            $notes = $_POST['keterangan_komparasi'] ?? [];
+            $selectedIndex = isset($_POST['selected_vendor']) ? (int)$_POST['selected_vendor'] : -1;
+
+            $insertSql = "INSERT INTO di_logistics_comparisons (di_number, vendor_name, payment_method, eta_kirim, harga, keterangan, is_selected, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+            $insertStmt = $db->prepare($insertSql);
+
+            foreach ($vendors as $index => $vendor) {
+                $vendor = trim($vendor);
+                $paymentMethod = trim($paymentMethods[$index] ?? '');
+                $eta = !empty($etas[$index]) ? $etas[$index] : null;
+                $harga = (float)($prices[$index] ?? 0);
+                $keterangan = trim($notes[$index] ?? '');
+
+                if ($vendor !== '' || $paymentMethod !== '' || $eta !== null || $harga > 0 || $keterangan !== '') {
+                    $isSelected = ($index === $selectedIndex) ? 1 : 0;
+                    $insertStmt->execute([
+                        $di_number,
+                        $vendor,
+                        $paymentMethod,
+                        $eta,
+                        $harga,
+                        $keterangan,
+                        $isSelected
+                    ]);
+                }
+            }
+
+            resetDIApprovalHistory($db, $di_number);
+            $db->commit();
+            setFlash('Komparasi Logistik berhasil disimpan!', 'success');
+        } catch (Exception $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            setFlash('Gagal menyimpan komparasi logistik: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=komparasi_logistik");
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -607,6 +745,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/detaildi.css">
+
+    <style>
+        .part-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+        .part-summary>div{background:#f8f9fa;border:1px solid #e9ecef;border-radius:10px;padding:12px 16px;min-width:190px}
+        .part-summary span{display:block;font-size:12px;color:#6c757d;margin-bottom:4px}
+        .part-summary strong{font-size:14px;color:#212529}
+        .detail-part-table th,.logistics-comparison-table th{white-space:nowrap;background:#f8f9fa}
+        .table-total-row{background:#f8f9fa}
+        .comparison-note{background:#eef6ff;border:1px solid #cfe2ff;color:#24558a;padding:10px 13px;border-radius:8px;margin-bottom:15px;font-size:13px}
+        .vendor-data-row{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px}
+        .vendor-data-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+        .vendor-label{font-weight:700;font-size:15px}
+        .selected-vendor-row{background:#f0fdf4}
+        .selected-check{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;background:#198754;color:#fff}
+        .not-selected{color:#adb5bd}
+        .selected-vendor-box{margin-top:18px;padding:18px;border-radius:12px;background:#f8f9fa;border:1px solid #e9ecef}
+        .selected-vendor-title{font-size:13px;font-weight:700;color:#198754;margin-bottom:8px}
+        .selected-vendor-name{font-size:18px;font-weight:800;margin-bottom:8px}
+        .selected-vendor-detail{font-size:13px;color:#495057}
+        .selected-vendor-note{margin-top:10px;padding-top:10px;border-top:1px solid #dee2e6;font-size:13px;color:#495057}
+        .part-total-display{font-weight:700;background:#f8f9fa}
+        .vendor-check-wrap{display:flex;align-items:center;justify-content:center;height:100%}
+        .vendor-check{width:20px;height:20px;cursor:pointer}
+    </style>
 </head>
 <body>
 
@@ -655,6 +817,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <li class="nav-item" role="presentation">
                     <a class="nav-link <?= $activeTab == 'logistik' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=logistik">
                         <i class="fas fa-truck"></i> Logistik
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'detail_part' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=detail_part">
+                        <i class="fas fa-cogs"></i> Detail Part
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link <?= $activeTab == 'komparasi_logistik' ? 'active' : '' ?>" href="detaildi.php?di_number=<?= urlencode($di_number) ?>&tab=komparasi_logistik">
+                        <i class="fas fa-scale-balanced"></i> Komparasi Logistik
                     </a>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -1081,6 +1253,140 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <!-- ============================================ -->
+        <!-- TAB CONTENT: DETAIL PART -->
+        <!-- ============================================ -->
+        <?php if ($activeTab == 'detail_part'): ?>
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-cogs"></i> Detail Part</h6>
+                <?php if ($canEdit): ?>
+                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editParts', 'viewParts')">
+                    <i class="fas fa-edit"></i> <?= count($diParts) > 0 ? 'Edit Detail Part' : 'Tambah Detail Part' ?>
+                </button>
+                <?php endif; ?>
+            </div>
+            <div class="card-body-custom">
+                <div class="part-summary">
+                    <div><span>Jumlah Unit DI</span><strong><?= (int)$jumlahUnitDI ?> Unit</strong></div>
+                    <div><span>Rumus Total</span><strong>Price × Qty × Jumlah Unit</strong></div>
+                </div>
+
+                <div id="editParts" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:20px; border-radius:10px;">
+                    <form method="POST" id="partsForm">
+                        <input type="hidden" name="action" value="save_parts">
+                        <div id="partRows"></div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-secondary-custom btn-sm" onclick="addPartRow()">
+                                <i class="fas fa-plus"></i> Tambah Part
+                            </button>
+                        </div>
+                        <hr>
+                        <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan Detail Part</button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editParts', 'viewParts')"><i class="fas fa-times"></i> Batal</button>
+                    </form>
+                </div>
+
+                <div id="viewParts">
+                    <?php if (count($diParts) > 0): ?>
+                    <div class="table-responsive">
+                        <table class="table table-bordered detail-part-table">
+                            <thead><tr>
+                                <th style="width:50px">No</th><th>Part Number</th><th>Description</th><th>Price</th><th>Qty</th><th>Unit</th><th>Jumlah Unit</th><th>Total Amount</th>
+                            </tr></thead>
+                            <tbody>
+                            <?php $grandTotalParts = 0; foreach ($diParts as $idx => $part): $grandTotalParts += (float)$part['total_amount']; ?>
+                                <tr>
+                                    <td><?= $idx + 1 ?></td>
+                                    <td><?= htmlspecialchars($part['part_number']) ?></td>
+                                    <td><?= htmlspecialchars($part['description']) ?></td>
+                                    <td>Rp <?= number_format((float)$part['price'], 0, ',', '.') ?></td>
+                                    <td><?= rtrim(rtrim(number_format((float)$part['qty'], 2, ',', '.'), '0'), ',') ?></td>
+                                    <td><?= htmlspecialchars($part['unit'] ?: '-') ?></td>
+                                    <td><?= (int)$jumlahUnitDI ?></td>
+                                    <td><strong>Rp <?= number_format((float)$part['total_amount'], 0, ',', '.') ?></strong></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <tr class="table-total-row"><td colspan="7" class="text-end"><strong>Grand Total</strong></td><td><strong>Rp <?= number_format($grandTotalParts, 0, ',', '.') ?></strong></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php else: ?>
+                    <div class="text-center py-4 text-muted"><i class="fas fa-cogs me-2"></i> Belum ada data detail part</div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ============================================ -->
+        <!-- TAB CONTENT: KOMPARASI LOGISTIK -->
+        <!-- ============================================ -->
+        <?php if ($activeTab == 'komparasi_logistik'): ?>
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h6><i class="fas fa-scale-balanced"></i> Komparasi Harga Logistik Unit</h6>
+                <?php if ($canEdit): ?>
+                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editLogisticsComparison', 'viewLogisticsComparison')">
+                    <i class="fas fa-edit"></i> <?= count($diLogisticsComparisons) > 0 ? 'Edit Komparasi' : 'Tambah Vendor' ?>
+                </button>
+                <?php endif; ?>
+            </div>
+            <div class="card-body-custom">
+                <div id="editLogisticsComparison" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:20px; border-radius:10px;">
+                    <form method="POST" id="logisticsComparisonForm">
+                        <input type="hidden" name="action" value="save_logistics_comparison">
+                        <div class="comparison-note"><i class="fas fa-info-circle"></i> Centang satu vendor sebagai vendor yang dipilih. Sistem akan menyimpan hanya satu vendor terpilih.</div>
+                        <div id="vendorRows"></div>
+                        <button type="button" class="btn btn-secondary-custom btn-sm mt-3" onclick="addVendorRow()"><i class="fas fa-plus"></i> Tambah Vendor</button>
+                        <hr>
+                        <button type="submit" class="btn btn-primary-custom"><i class="fas fa-save"></i> Simpan Komparasi</button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="toggleSection('editLogisticsComparison', 'viewLogisticsComparison')"><i class="fas fa-times"></i> Batal</button>
+                    </form>
+                </div>
+
+                <div id="viewLogisticsComparison">
+                    <?php if (count($diLogisticsComparisons) > 0): ?>
+                    <div class="table-responsive">
+                        <table class="table table-bordered logistics-comparison-table">
+                            <thead><tr><th style="width:70px">Pilih</th><th>Vendor</th><th>Metode Pembayaran</th><th>ETA Kirim</th><th>Harga</th><th>Keterangan</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($diLogisticsComparisons as $idx => $vendor): ?>
+                                <tr class="<?= (int)$vendor['is_selected'] === 1 ? 'selected-vendor-row' : '' ?>">
+                                    <td class="text-center"><?= (int)$vendor['is_selected'] === 1 ? '<span class="selected-check"><i class="fas fa-check"></i></span>' : '<span class="not-selected">-</span>' ?></td>
+                                    <td><strong>Vendor <?= chr(65 + $idx) ?></strong><br><?= htmlspecialchars($vendor['vendor_name']) ?></td>
+                                    <td><?= htmlspecialchars($vendor['payment_method'] ?: '-') ?></td>
+                                    <td><?= $vendor['eta_kirim'] ? date('d/m/Y', strtotime($vendor['eta_kirim'])) : '-' ?></td>
+                                    <td>Rp <?= number_format((float)$vendor['harga'], 0, ',', '.') ?></td>
+                                    <td><?= htmlspecialchars($vendor['keterangan'] ?: '-') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="selected-vendor-box">
+                        <div class="selected-vendor-title"><i class="fas fa-circle-check"></i> Vendor Terpilih</div>
+                        <?php if ($selectedLogisticsVendor): ?>
+                            <?php $selectedIndex = 0; foreach ($diLogisticsComparisons as $i => $v) { if ((int)$v['is_selected'] === 1) { $selectedIndex = $i; break; } } ?>
+                            <div class="selected-vendor-name">Vendor <?= chr(65 + $selectedIndex) ?> — <?= htmlspecialchars($selectedLogisticsVendor['vendor_name']) ?></div>
+                            <div class="selected-vendor-detail">
+                                Metode Pembayaran: <strong><?= htmlspecialchars($selectedLogisticsVendor['payment_method'] ?: '-') ?></strong> &nbsp; | &nbsp;
+                                ETA Kirim: <strong><?= $selectedLogisticsVendor['eta_kirim'] ? date('d/m/Y', strtotime($selectedLogisticsVendor['eta_kirim'])) : '-' ?></strong> &nbsp; | &nbsp;
+                                Harga: <strong>Rp <?= number_format((float)$selectedLogisticsVendor['harga'], 0, ',', '.') ?></strong>
+                            </div>
+                            <?php if (!empty($selectedLogisticsVendor['keterangan'])): ?><div class="selected-vendor-note"><?= htmlspecialchars($selectedLogisticsVendor['keterangan']) ?></div><?php endif; ?>
+                        <?php else: ?>
+                            <div class="text-muted">Belum ada vendor yang dipilih.</div>
+                        <?php endif; ?>
+                    </div>
+                    <?php else: ?>
+                    <div class="text-center py-4 text-muted"><i class="fas fa-truck-fast me-2"></i> Belum ada komparasi harga logistik</div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ============================================ -->
         <!-- TAB CONTENT: PRODUCT SUPPORT -->
         <!-- ============================================ -->
         <?php if ($activeTab == 'product_support'): ?>
@@ -1359,6 +1665,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             container.appendChild(rowDiv);
         }
         
+        let partRowCount = 0;
+        const jumlahUnitDI = <?= (int)$jumlahUnitDI ?>;
+
+        function formatRupiahNumber(value) {
+            const number = Number(value) || 0;
+            return 'Rp ' + new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(number);
+        }
+
+        function updatePartTotal(row) {
+            const price = parseFloat(row.querySelector('[name="price[]"]')?.value || 0);
+            const qty = parseFloat(row.querySelector('[name="qty[]"]')?.value || 0);
+            const total = price * qty * jumlahUnitDI;
+            const totalInput = row.querySelector('[name="total_amount_display[]"]');
+            if (totalInput) totalInput.value = formatRupiahNumber(total);
+        }
+
+        function addPartRow(data = null) {
+            partRowCount++;
+            const container = document.getElementById('partRows');
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'data-row part-data-row';
+            rowDiv.id = 'partRow_' + partRowCount;
+            rowDiv.innerHTML = `
+                <div class="data-header">
+                    <strong><i class="fas fa-cogs"></i> Part ${partRowCount}</strong>
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removePartRow('partRow_${partRowCount}')"><i class="fas fa-trash"></i> Hapus</button>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-2"><label class="form-label">Part Number</label><input type="text" name="part_number[]" class="form-control" value="${data ? escapeHtml(data.part_number) : ''}" required></div>
+                    <div class="col-md-5 mb-2"><label class="form-label">Description</label><input type="text" name="description[]" class="form-control" value="${data ? escapeHtml(data.description) : ''}"></div>
+                    <div class="col-md-4 mb-2"><label class="form-label">Price</label><input type="number" name="price[]" class="form-control" min="0" step="0.01" value="${data ? data.price : 0}" oninput="updatePartTotal(this.closest('.part-data-row'))"></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-2"><label class="form-label">Qty</label><input type="number" name="qty[]" class="form-control" min="0" step="0.01" value="${data ? data.qty : 1}" oninput="updatePartTotal(this.closest('.part-data-row'))"></div>
+                    <div class="col-md-3 mb-2"><label class="form-label">Unit</label><input type="text" name="unit[]" class="form-control" value="${data ? escapeHtml(data.unit) : ''}" placeholder="PCS / SET / LITER"></div>
+                    <div class="col-md-3 mb-2"><label class="form-label">Jumlah Unit DI</label><input type="text" class="form-control" value="${jumlahUnitDI}" readonly></div>
+                    <div class="col-md-3 mb-2"><label class="form-label">Total Amount</label><input type="text" name="total_amount_display[]" class="form-control part-total-display" value="Rp 0" readonly></div>
+                </div>`;
+            container.appendChild(rowDiv);
+            updatePartTotal(rowDiv);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        }
+
+        function removePartRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+            renumberRows('part-data-row', 'Part');
+        }
+
+        function addVendorRow(data = null) {
+            const container = document.getElementById('vendorRows');
+            const index = container.querySelectorAll('.vendor-data-row').length;
+            const letter = String.fromCharCode(65 + index);
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'vendor-data-row';
+            rowDiv.innerHTML = `
+                <div class="vendor-data-header">
+                    <div class="vendor-label"><i class="fas fa-truck"></i> Vendor ${letter}</div>
+                    <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeVendorRow(this)"><i class="fas fa-trash"></i> Hapus</button>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-2"><label class="form-label">Nama Vendor</label><input type="text" name="vendor_name[]" class="form-control" value="${data ? escapeHtml(data.vendor_name) : ''}" required></div>
+                    <div class="col-md-3 mb-2"><label class="form-label">Metode Pembayaran</label><input type="text" name="payment_method[]" class="form-control" value="${data ? escapeHtml(data.payment_method) : ''}" placeholder="Cash / Transfer / Tempo"></div>
+                    <div class="col-md-2 mb-2"><label class="form-label">ETA Kirim</label><input type="date" name="eta_kirim[]" class="form-control" value="${data ? data.eta_kirim : ''}"></div>
+                    <div class="col-md-2 mb-2"><label class="form-label">Harga</label><input type="number" name="harga[]" class="form-control" min="0" step="0.01" value="${data ? data.harga : 0}"></div>
+                    <div class="col-md-2 mb-2"><label class="form-label">Pilih</label><div class="vendor-check-wrap"><input type="checkbox" name="selected_vendor" value="${index}" class="vendor-check" ${data && Number(data.is_selected) === 1 ? 'checked' : ''} onchange="selectSingleVendor(this)"></div></div>
+                </div>
+                <div class="row"><div class="col-md-12 mb-1"><label class="form-label">Keterangan</label><textarea name="keterangan_komparasi[]" class="form-control" rows="2" placeholder="Keterangan vendor...">${data ? escapeHtml(data.keterangan) : ''}</textarea></div></div>`;
+            container.appendChild(rowDiv);
+        }
+
+        function selectSingleVendor(checkbox) {
+            document.querySelectorAll('#vendorRows .vendor-check').forEach(cb => {
+                if (cb !== checkbox) cb.checked = false;
+            });
+        }
+
+        function removeVendorRow(button) {
+            const row = button.closest('.vendor-data-row');
+            if (row) row.remove();
+            renumberVendors();
+        }
+
+        function renumberVendors() {
+            document.querySelectorAll('#vendorRows .vendor-data-row').forEach((row, index) => {
+                const label = row.querySelector('.vendor-label');
+                if (label) label.innerHTML = `<i class="fas fa-truck"></i> Vendor ${String.fromCharCode(65 + index)}`;
+                const checkbox = row.querySelector('.vendor-check');
+                if (checkbox) checkbox.value = index;
+            });
+        }
+
+        function renumberRows(selector, prefix) {
+            document.querySelectorAll('.' + selector).forEach((row, index) => {
+                const title = row.querySelector('.data-header strong');
+                if (title) title.innerHTML = `<i class="fas fa-cogs"></i> ${prefix} ${index + 1}`;
+            });
+        }
+
         function addInputRow(containerId, inputName) {
             const container = document.getElementById(containerId);
             const newInput = document.createElement('input');
@@ -1416,6 +1824,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php else: ?>
                 addAccessoryRow();
             <?php endif; ?>
+            if (document.getElementById('partRows')) {
+                <?php if (count($diParts) > 0): ?>
+                    <?php foreach ($diParts as $part): ?>
+                        addPartRow({part_number: <?= json_encode($part['part_number']) ?>, description: <?= json_encode($part['description']) ?>, price: <?= json_encode($part['price']) ?>, qty: <?= json_encode($part['qty']) ?>, unit: <?= json_encode($part['unit']) ?>});
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    addPartRow();
+                <?php endif; ?>
+            }
+
+            if (document.getElementById('vendorRows')) {
+                <?php if (count($diLogisticsComparisons) > 0): ?>
+                    <?php foreach ($diLogisticsComparisons as $vendor): ?>
+                        addVendorRow({vendor_name: <?= json_encode($vendor['vendor_name']) ?>, payment_method: <?= json_encode($vendor['payment_method']) ?>, eta_kirim: <?= json_encode($vendor['eta_kirim']) ?>, harga: <?= json_encode($vendor['harga']) ?>, keterangan: <?= json_encode($vendor['keterangan']) ?>, is_selected: <?= (int)$vendor['is_selected'] ?>});
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    addVendorRow();
+                <?php endif; ?>
+            }
         });
     </script>
 </body>
