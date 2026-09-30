@@ -3722,3 +3722,306 @@ button {
   border-color: rgba(148, 163, 184, 0.11) !important;
   color: #cbd5e1 !important;
 }
+
+/* =========================================================
+   DETAIL DI — BLUE CRM INPUT POLISH
+   Override Bootstrap / inline white backgrounds so every
+   input area follows the existing dark-blue CRM theme.
+   ========================================================= */
+
+/* Semua area form/edit baru maupun lama */
+.page-detaildi #editParts,
+.page-detaildi #editParts form,
+.page-detaildi #editLogisticsComparison,
+.page-detaildi #editLogisticsComparison form,
+.page-detaildi #partsForm,
+.page-detaildi #logisticsComparisonForm {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.97),
+    rgba(7, 14, 28, 0.99)
+  ) !important;
+  color: #dbe5f5 !important;
+}
+
+/* Override inline style background:#f8f9fa */
+.page-detaildi #editParts[style*="background:#f8f9fa"],
+.page-detaildi #editParts[style*="background: #f8f9fa"],
+.page-detaildi #editLogisticsComparison[style*="background:#f8f9fa"],
+.page-detaildi #editLogisticsComparison[style*="background: #f8f9fa"] {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.97),
+    rgba(7, 14, 28, 0.99)
+  ) !important;
+  border: 1px solid rgba(96, 165, 250, 0.12) !important;
+}
+
+/* Semua input di Detail DI — termasuk Detail Part & Komparasi Vendor */
+.page-detaildi input.form-control,
+.page-detaildi select.form-select,
+.page-detaildi textarea.form-control,
+.page-detaildi input[type="text"],
+.page-detaildi input[type="number"],
+.page-detaildi input[type="date"],
+.page-detaildi input[type="email"],
+.page-detaildi input[type="tel"],
+.page-detaildi input[type="search"] {
+  background-color: #081426 !important;
+  background: #081426 !important;
+  color: #dbe5f5 !important;
+  border: 1px solid rgba(96, 165, 250, 0.16) !important;
+  border-radius: 9px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.015) !important;
+  caret-color: #60a5fa;
+}
+
+/* Saat input aktif */
+.page-detaildi input.form-control:focus,
+.page-detaildi select.form-select:focus,
+.page-detaildi textarea.form-control:focus,
+.page-detaildi input[type="text"]:focus,
+.page-detaildi input[type="number"]:focus,
+.page-detaildi input[type="date"]:focus,
+.page-detaildi input[type="email"]:focus,
+.page-detaildi input[type="tel"]:focus,
+.page-detaildi input[type="search"]:focus {
+  background-color: #0b172c !important;
+  background: #0b172c !important;
+  color: #f8fbff !important;
+  border-color: rgba(96, 165, 250, 0.52) !important;
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+  outline: none !important;
+}
+
+/* Placeholder */
+.page-detaildi input.form-control::placeholder,
+.page-detaildi textarea.form-control::placeholder,
+.page-detaildi input::placeholder {
+  color: #52627d !important;
+  opacity: 1 !important;
+}
+
+/* Readonly / disabled */
+.page-detaildi input.form-control[readonly],
+.page-detaildi input.form-control:disabled,
+.page-detaildi select.form-select:disabled,
+.page-detaildi textarea.form-control[readonly],
+.page-detaildi textarea.form-control:disabled {
+  background: #071223 !important;
+  color: #8fa0b8 !important;
+  border-color: rgba(148, 163, 184, 0.11) !important;
+  opacity: 1 !important;
+}
+
+/* Dropdown option */
+.page-detaildi select.form-select option,
+.page-detaildi select option {
+  background: #0b1222 !important;
+  color: #dbe5f5 !important;
+}
+
+/* Input group juga mengikuti tema CRM */
+.page-detaildi .input-group .form-control,
+.page-detaildi .input-group .form-select,
+.page-detaildi .input-group-text {
+  background: #081426 !important;
+  color: #dbe5f5 !important;
+  border-color: rgba(96, 165, 250, 0.16) !important;
+}
+
+.page-detaildi .input-group-text {
+  color: #71809a !important;
+}
+
+/* Label */
+.page-detaildi #editParts .form-label,
+.page-detaildi #editLogisticsComparison .form-label {
+  color: #8e9bb5 !important;
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  font-weight: 700;
+}
+
+/* Baris Detail Part */
+.page-detaildi #partRows .data-row,
+.page-detaildi .part-data-row {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border: 1px solid rgba(148, 163, 184, 0.12) !important;
+  color: #dbe5f5 !important;
+}
+
+/* Baris Vendor */
+.page-detaildi #vendorRows .vendor-data-row {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border: 1px solid rgba(96, 165, 250, 0.13) !important;
+  color: #dbe5f5 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+.page-detaildi #vendorRows .vendor-data-header {
+  border-bottom-color: rgba(148, 163, 184, 0.1) !important;
+}
+
+.page-detaildi #vendorRows .vendor-label {
+  color: #e8eef8 !important;
+}
+
+.page-detaildi #vendorRows .vendor-label i {
+  color: #60a5fa !important;
+}
+
+/* Catatan / info komparasi */
+.page-detaildi .comparison-note {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border: 1px solid rgba(96, 165, 250, 0.16) !important;
+  color: #9fc5ff !important;
+}
+
+/* Kotak vendor terpilih */
+.page-detaildi .selected-vendor-box {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border: 1px solid rgba(96, 165, 250, 0.14) !important;
+  color: #dbe5f5 !important;
+}
+
+.page-detaildi .selected-vendor-title {
+  color: #60a5fa !important;
+}
+
+.page-detaildi .selected-vendor-name {
+  color: #f1f5f9 !important;
+}
+
+.page-detaildi .selected-vendor-detail,
+.page-detaildi .selected-vendor-note {
+  color: #aebbd0 !important;
+}
+
+.page-detaildi .selected-vendor-note {
+  border-top-color: rgba(148, 163, 184, 0.1) !important;
+}
+
+/* Tabel Detail Part & Komparasi Logistik */
+.page-detaildi .detail-part-table,
+.page-detaildi .logistics-comparison-table {
+  --bs-table-bg: transparent !important;
+  --bs-table-color: #cbd5e1 !important;
+  --bs-table-border-color: rgba(148, 163, 184, 0.08) !important;
+  color: #cbd5e1 !important;
+  background: transparent !important;
+}
+
+.page-detaildi .detail-part-table th,
+.page-detaildi .logistics-comparison-table th {
+  background: rgba(5, 12, 25, 0.55) !important;
+  color: #71809a !important;
+  border-color: rgba(148, 163, 184, 0.09) !important;
+}
+
+.page-detaildi .detail-part-table td,
+.page-detaildi .logistics-comparison-table td {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.07) !important;
+}
+
+.page-detaildi .detail-part-table tbody tr:hover td,
+.page-detaildi .logistics-comparison-table tbody tr:hover td {
+  background: rgba(59, 130, 246, 0.045) !important;
+  color: #eef5ff !important;
+}
+
+.page-detaildi .logistics-comparison-table .selected-vendor-row td {
+  background: rgba(52, 211, 153, 0.055) !important;
+}
+
+.page-detaildi .table-total-row td {
+  background: rgba(5, 12, 25, 0.38) !important;
+  color: #e8eef8 !important;
+  border-top: 1px solid rgba(96, 165, 250, 0.12) !important;
+}
+
+/* Checkbox vendor */
+.page-detaildi .vendor-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0;
+  border-radius: 5px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: #071223 !important;
+  cursor: pointer;
+  position: relative;
+  transition: 0.18s;
+}
+
+.page-detaildi .vendor-check:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
+.page-detaildi .vendor-check:checked {
+  background: #2563eb !important;
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.page-detaildi .vendor-check:checked::after {
+  content: "✓";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -54%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Garis pemisah di dalam form */
+.page-detaildi #editParts hr,
+.page-detaildi #editLogisticsComparison hr {
+  border-color: rgba(148, 163, 184, 0.1) !important;
+  opacity: 1 !important;
+}
+
+/* Date input icon mengikuti dark theme */
+.page-detaildi input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.75) sepia(0.15) saturate(0.8);
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+/* Hapus kemungkinan background putih dari elemen Bootstrap di form */
+.page-detaildi #editParts *,
+.page-detaildi #editLogisticsComparison * {
+  --bs-form-control-bg: #081426;
+  --bs-body-bg: #07101f;
+}
+
+/* Tetap responsif */
+@media (max-width: 767px) {
+  .page-detaildi #editParts,
+  .page-detaildi #editLogisticsComparison {
+    padding: 14px !important;
+  }
+
+  .page-detaildi #vendorRows .vendor-data-row {
+    padding: 13px !important;
+  }
+}
