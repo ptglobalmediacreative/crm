@@ -1890,51 +1890,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         document.addEventListener('DOMContentLoaded', function() {
-            <?php if (count($diUnits) > 0): ?>
-                <?php foreach ($diUnits as $unit): ?>
-                    addUnitRow({
-                        lokasi_unit: <?= json_encode($unit['lokasi_unit'] ?? '') ?>,
-                        cabang: <?= json_encode($unit['cabang'] ?? '') ?>,
-                        kode_unit: <?= json_encode($unit['kode_unit'] ?? '') ?>,
-                        brand: <?= json_encode($unit['brand'] ?? '') ?>,
-                        tipe: <?= json_encode($unit['tipe'] ?? '') ?>,
-                        serial_number: <?= json_encode($unit['serial_number'] ?? '') ?>,
-                        engine_number: <?= json_encode($unit['engine_number'] ?? '') ?>,
-                        keterangan: <?= json_encode($unit['keterangan'] ?? '') ?>
-                    });
-                <?php endforeach; ?>
-            <?php else: ?>
-                addUnitRow();
-            <?php endif; ?>
-            
-            <?php if (count($diAccessories) > 0): ?>
-                <?php foreach ($diAccessories as $acc): ?>
-                    addAccessoryRow({
-                        id: <?= (int)$acc['id'] ?>,
-                        no: <?= json_encode($acc['no'] ?? '') ?>,
-                        uraian: <?= json_encode($acc['uraian'] ?? '') ?>,
-                        satuan: <?= json_encode($acc['satuan'] ?? '') ?>,
-                        jumlah: <?= json_encode($acc['jumlah'] ?? '') ?>,
-                        keterangan: <?= json_encode($acc['keterangan'] ?? '') ?>
-                    });
-                <?php endforeach; ?>
-            <?php else: ?>
-                addAccessoryRow();
-            <?php endif; ?>
-            if (document.getElementById('partRows')) {
+            // =====================================================
+            // LOAD DATA LAMA KE FORM EDIT
+            // Hanya jalankan initializer jika container form memang
+            // ada di tab yang sedang aktif. Ini mengikuti pola Data Unit.
+            // =====================================================
+
+            const unitRows = document.getElementById('unitRows');
+            if (unitRows) {
+                <?php if (count($diUnits) > 0): ?>
+                    <?php foreach ($diUnits as $unit): ?>
+                        addUnitRow({
+                            lokasi_unit: <?= json_encode($unit['lokasi_unit'] ?? '') ?>,
+                            cabang: <?= json_encode($unit['cabang'] ?? '') ?>,
+                            kode_unit: <?= json_encode($unit['kode_unit'] ?? '') ?>,
+                            brand: <?= json_encode($unit['brand'] ?? '') ?>,
+                            tipe: <?= json_encode($unit['tipe'] ?? '') ?>,
+                            serial_number: <?= json_encode($unit['serial_number'] ?? '') ?>,
+                            engine_number: <?= json_encode($unit['engine_number'] ?? '') ?>,
+                            keterangan: <?= json_encode($unit['keterangan'] ?? '') ?>
+                        });
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    addUnitRow();
+                <?php endif; ?>
+            }
+
+            const accessoryRows = document.getElementById('accessoryRows');
+            if (accessoryRows) {
+                <?php if (count($diAccessories) > 0): ?>
+                    <?php foreach ($diAccessories as $acc): ?>
+                        addAccessoryRow({
+                            id: <?= (int)$acc['id'] ?>,
+                            no: <?= json_encode($acc['no'] ?? '') ?>,
+                            uraian: <?= json_encode($acc['uraian'] ?? '') ?>,
+                            satuan: <?= json_encode($acc['satuan'] ?? '') ?>,
+                            jumlah: <?= json_encode($acc['jumlah'] ?? '') ?>,
+                            keterangan: <?= json_encode($acc['keterangan'] ?? '') ?>
+                        });
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    addAccessoryRow();
+                <?php endif; ?>
+            }
+
+            const partRows = document.getElementById('partRows');
+            if (partRows) {
                 <?php if (count($diParts) > 0): ?>
                     <?php foreach ($diParts as $part): ?>
-                        addPartRow({id: <?= (int)$part['id'] ?>, part_number: <?= json_encode($part['part_number']) ?>, description: <?= json_encode($part['description']) ?>, price: <?= json_encode($part['price']) ?>, qty: <?= json_encode($part['qty']) ?>});
+                        addPartRow({
+                            id: <?= (int)$part['id'] ?>,
+                            part_number: <?= json_encode($part['part_number'] ?? '') ?>,
+                            description: <?= json_encode($part['description'] ?? '') ?>,
+                            price: <?= json_encode($part['price'] ?? 0) ?>,
+                            qty: <?= json_encode($part['qty'] ?? 0) ?>
+                        });
                     <?php endforeach; ?>
                 <?php else: ?>
                     addPartRow();
                 <?php endif; ?>
             }
 
-            if (document.getElementById('vendorRows')) {
+            const vendorRows = document.getElementById('vendorRows');
+            if (vendorRows) {
                 <?php if (count($diLogisticsComparisons) > 0): ?>
                     <?php foreach ($diLogisticsComparisons as $vendor): ?>
-                        addVendorRow({id: <?= (int)$vendor['id'] ?>, vendor_name: <?= json_encode($vendor['vendor_name']) ?>, payment_method: <?= json_encode($vendor['payment_method']) ?>, eta_kirim: <?= json_encode($vendor['eta_kirim']) ?>, harga: <?= json_encode($vendor['harga']) ?>, keterangan: <?= json_encode($vendor['keterangan']) ?>});
+                        addVendorRow({
+                            id: <?= (int)$vendor['id'] ?>,
+                            vendor_name: <?= json_encode($vendor['vendor_name'] ?? '') ?>,
+                            payment_method: <?= json_encode($vendor['payment_method'] ?? '') ?>,
+                            eta_kirim: <?= json_encode($vendor['eta_kirim'] ?? '') ?>,
+                            harga: <?= json_encode($vendor['harga'] ?? 0) ?>,
+                            keterangan: <?= json_encode($vendor['keterangan'] ?? '') ?>
+                        });
                     <?php endforeach; ?>
                 <?php else: ?>
                     addVendorRow();
