@@ -522,42 +522,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_accessories') {
         try {
             $db->beginTransaction();
-            
-            $deleteSql = "DELETE FROM di_accessories WHERE di_number = ?";
-            $deleteStmt = $db->prepare($deleteSql);
-            $deleteStmt->execute([$di_number]);
-            
+
+            $ids = $_POST['id'] ?? [];
             $nos = $_POST['no'] ?? [];
             $uraians = $_POST['uraian'] ?? [];
             $satuans = $_POST['satuan'] ?? [];
             $jumlahs = $_POST['jumlah'] ?? [];
             $keterangans = $_POST['keterangan'] ?? [];
-            
+            $submittedIds = [];
+
+            $updateStmt = $db->prepare("UPDATE di_accessories
+                SET no = ?, uraian = ?, satuan = ?, jumlah = ?, keterangan = ?, updated_at = NOW()
+                WHERE id = ? AND di_number = ?");
+            $insertStmt = $db->prepare("INSERT INTO di_accessories
+                (di_number, no, uraian, satuan, jumlah, keterangan, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
+
             foreach ($nos as $index => $no) {
-                if (!empty($no) || !empty($uraians[$index])) {
-                    $insertSql = "INSERT INTO di_accessories (di_number, no, uraian, satuan, jumlah, keterangan, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())";
-                    $insertStmt = $db->prepare($insertSql);
-                    $insertStmt->execute([
-                        $di_number,
-                        $no,
-                        $uraians[$index] ?? '',
-                        $satuans[$index] ?? '',
-                        (int)($jumlahs[$index] ?? 0),
-                        $keterangans[$index] ?? ''
-                    ]);
+                $id = (int)($ids[$index] ?? 0);
+                $uraian = trim($uraians[$index] ?? '');
+                $satuan = trim($satuans[$index] ?? '');
+                $jumlah = max(0, (int)($jumlahs[$index] ?? 0));
+                $keterangan = trim($keterangans[$index] ?? '');
+
+                if ($no !== '' || $uraian !== '') {
+                    if ($id > 0) {
+                        $updateStmt->execute([$no, $uraian, $satuan, $jumlah, $keterangan, $id, $di_number]);
+                        $submittedIds[] = $id;
+                    } else {
+                        $insertStmt->execute([$di_number, $no, $uraian, $satuan, $jumlah, $keterangan]);
+                        $submittedIds[] = (int)$db->lastInsertId();
+                    }
                 }
             }
-            
+
+            if (count($submittedIds) > 0) {
+                $placeholders = implode(',', array_fill(0, count($submittedIds), '?'));
+                $params = array_merge([$di_number], $submittedIds);
+                $deleteStmt = $db->prepare("DELETE FROM di_accessories WHERE di_number = ? AND id NOT IN ($placeholders)");
+                $deleteStmt->execute($params);
+            } else {
+                $deleteStmt = $db->prepare("DELETE FROM di_accessories WHERE di_number = ?");
+                $deleteStmt->execute([$di_number]);
+            }
+
             resetDIApprovalHistory($db, $di_number);
             $db->commit();
             setFlash('Data Aksesoris berhasil disimpan!', 'success');
         } catch (Exception $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) $db->rollBack();
             setFlash('Gagal menyimpan data aksesoris: ' . $e->getMessage(), 'danger');
         }
         redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=aksesoris");
     }
-    
+
+
     // ============================================
     // SAVE LOGISTICS
     // ============================================
@@ -635,37 +654,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
 
-            $deleteSql = "DELETE FROM di_parts WHERE di_number = ?";
-            $deleteStmt = $db->prepare($deleteSql);
-            $deleteStmt->execute([$di_number]);
-
+            $ids = $_POST['id'] ?? [];
             $partNumbers = $_POST['part_number'] ?? [];
             $descriptions = $_POST['description'] ?? [];
             $prices = $_POST['price'] ?? [];
             $qtys = $_POST['qty'] ?? [];
-            $units = $_POST['unit'] ?? [];
+            $submittedIds = [];
 
-            $insertSql = "INSERT INTO di_parts (di_number, part_number, description, price, qty, unit, total_amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
-            $insertStmt = $db->prepare($insertSql);
+            // unit tetap disimpan kosong di database untuk kompatibilitas
+            // dengan struktur tabel lama; field ini tidak lagi ditampilkan.
+            $updateStmt = $db->prepare("UPDATE di_parts
+                SET part_number = ?, description = ?, price = ?, qty = ?, total_amount = ?, updated_at = NOW()
+                WHERE id = ? AND di_number = ?");
+            $insertStmt = $db->prepare("INSERT INTO di_parts
+                (di_number, part_number, description, price, qty, unit, total_amount, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, '', ?, NOW(), NOW())");
 
             foreach ($partNumbers as $index => $partNumber) {
+                $id = (int)($ids[$index] ?? 0);
+                $partNumber = trim($partNumber);
                 $description = trim($descriptions[$index] ?? '');
-                $price = (float)($prices[$index] ?? 0);
-                $qty = (float)($qtys[$index] ?? 0);
-                $unit = trim($units[$index] ?? '');
+                $price = max(0, (float)($prices[$index] ?? 0));
+                $qty = max(0, (float)($qtys[$index] ?? 0));
+                $totalAmount = $price * $qty * $jumlahUnitDI;
 
                 if ($partNumber !== '' || $description !== '') {
-                    $totalAmount = $price * $qty * $jumlahUnitDI;
-                    $insertStmt->execute([
-                        $di_number,
-                        trim($partNumber),
-                        $description,
-                        $price,
-                        $qty,
-                        $unit,
-                        $totalAmount
-                    ]);
+                    if ($id > 0) {
+                        $updateStmt->execute([$partNumber, $description, $price, $qty, $totalAmount, $id, $di_number]);
+                        $submittedIds[] = $id;
+                    } else {
+                        $insertStmt->execute([$di_number, $partNumber, $description, $price, $qty, $totalAmount]);
+                        $submittedIds[] = (int)$db->lastInsertId();
+                    }
                 }
+            }
+
+            if (count($submittedIds) > 0) {
+                $placeholders = implode(',', array_fill(0, count($submittedIds), '?'));
+                $params = array_merge([$di_number], $submittedIds);
+                $deleteStmt = $db->prepare("DELETE FROM di_parts WHERE di_number = ? AND id NOT IN ($placeholders)");
+                $deleteStmt->execute($params);
+            } else {
+                $deleteStmt = $db->prepare("DELETE FROM di_parts WHERE di_number = ?");
+                $deleteStmt->execute([$di_number]);
             }
 
             resetDIApprovalHistory($db, $di_number);
@@ -678,6 +709,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=detail_part");
     }
 
+
     // ============================================
     // SAVE KOMPARASI LOGISTIK
     // ============================================
@@ -685,39 +717,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
 
-            $deleteSql = "DELETE FROM di_logistics_comparisons WHERE di_number = ?";
-            $deleteStmt = $db->prepare($deleteSql);
-            $deleteStmt->execute([$di_number]);
-
+            $ids = $_POST['id'] ?? [];
             $vendors = $_POST['vendor_name'] ?? [];
             $paymentMethods = $_POST['payment_method'] ?? [];
             $etas = $_POST['eta_kirim'] ?? [];
             $prices = $_POST['harga'] ?? [];
             $notes = $_POST['keterangan_komparasi'] ?? [];
-            $selectedIndex = isset($_POST['selected_vendor']) ? (int)$_POST['selected_vendor'] : -1;
+            $submittedIds = [];
 
-            $insertSql = "INSERT INTO di_logistics_comparisons (di_number, vendor_name, payment_method, eta_kirim, harga, keterangan, is_selected, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
-            $insertStmt = $db->prepare($insertSql);
+            $updateStmt = $db->prepare("UPDATE di_logistics_comparisons
+                SET vendor_name = ?, payment_method = ?, eta_kirim = ?, harga = ?, keterangan = ?, updated_at = NOW()
+                WHERE id = ? AND di_number = ?");
+            $insertStmt = $db->prepare("INSERT INTO di_logistics_comparisons
+                (di_number, vendor_name, payment_method, eta_kirim, harga, keterangan, is_selected, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 0, NOW(), NOW())");
 
             foreach ($vendors as $index => $vendor) {
+                $id = (int)($ids[$index] ?? 0);
                 $vendor = trim($vendor);
                 $paymentMethod = trim($paymentMethods[$index] ?? '');
                 $eta = !empty($etas[$index]) ? $etas[$index] : null;
-                $harga = (float)($prices[$index] ?? 0);
+                $harga = max(0, (float)($prices[$index] ?? 0));
                 $keterangan = trim($notes[$index] ?? '');
 
                 if ($vendor !== '' || $paymentMethod !== '' || $eta !== null || $harga > 0 || $keterangan !== '') {
-                    $isSelected = ($index === $selectedIndex) ? 1 : 0;
-                    $insertStmt->execute([
-                        $di_number,
-                        $vendor,
-                        $paymentMethod,
-                        $eta,
-                        $harga,
-                        $keterangan,
-                        $isSelected
-                    ]);
+                    if ($id > 0) {
+                        $updateStmt->execute([$vendor, $paymentMethod, $eta, $harga, $keterangan, $id, $di_number]);
+                        $submittedIds[] = $id;
+                    } else {
+                        $insertStmt->execute([$di_number, $vendor, $paymentMethod, $eta, $harga, $keterangan]);
+                        $submittedIds[] = (int)$db->lastInsertId();
+                    }
                 }
+            }
+
+            if (count($submittedIds) > 0) {
+                $placeholders = implode(',', array_fill(0, count($submittedIds), '?'));
+                $params = array_merge([$di_number], $submittedIds);
+                $deleteStmt = $db->prepare("DELETE FROM di_logistics_comparisons WHERE di_number = ? AND id NOT IN ($placeholders)");
+                $deleteStmt->execute($params);
+            } else {
+                $deleteStmt = $db->prepare("DELETE FROM di_logistics_comparisons WHERE di_number = ?");
+                $deleteStmt->execute([$di_number]);
             }
 
             resetDIApprovalHistory($db, $di_number);
@@ -726,6 +767,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             if ($db->inTransaction()) $db->rollBack();
             setFlash('Gagal menyimpan komparasi logistik: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=komparasi_logistik");
+    }
+
+    // ============================================
+    // PILIH VENDOR SETELAH DATA KOMPARASI TERSIMPAN
+    // ============================================
+    if ($action === 'select_logistics_vendor') {
+        try {
+            $db->beginTransaction();
+
+            $selectedVendorId = (int)($_POST['selected_vendor_id'] ?? 0);
+
+            if ($selectedVendorId > 0) {
+                $checkVendor = $db->prepare("SELECT id FROM di_logistics_comparisons WHERE id = ? AND di_number = ?");
+                $checkVendor->execute([$selectedVendorId, $di_number]);
+                if (!$checkVendor->fetch()) {
+                    throw new Exception('Vendor tidak ditemukan untuk DI ini.');
+                }
+            }
+
+            $resetSelected = $db->prepare("UPDATE di_logistics_comparisons SET is_selected = 0, updated_at = NOW() WHERE di_number = ?");
+            $resetSelected->execute([$di_number]);
+
+            if ($selectedVendorId > 0) {
+                $setSelected = $db->prepare("UPDATE di_logistics_comparisons SET is_selected = 1, updated_at = NOW() WHERE id = ? AND di_number = ?");
+                $setSelected->execute([$selectedVendorId, $di_number]);
+            }
+
+            resetDIApprovalHistory($db, $di_number);
+            $db->commit();
+            setFlash('Vendor terpilih berhasil diperbarui!', 'success');
+        } catch (Exception $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            setFlash('Gagal memilih vendor: ' . $e->getMessage(), 'danger');
         }
         redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=komparasi_logistik");
     }
@@ -1266,10 +1342,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
             </div>
             <div class="card-body-custom">
-                <div class="part-summary">
-                    <div><span>Jumlah Unit DI</span><strong><?= (int)$jumlahUnitDI ?> Unit</strong></div>
-                    <div><span>Rumus Total</span><strong>Price × Qty × Jumlah Unit</strong></div>
-                </div>
 
                 <div id="editParts" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:20px; border-radius:10px;">
                     <form method="POST" id="partsForm">
@@ -1291,7 +1363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="table-responsive">
                         <table class="table table-bordered detail-part-table">
                             <thead><tr>
-                                <th style="width:50px">No</th><th>Part Number</th><th>Description</th><th>Price</th><th>Qty</th><th>Unit</th><th>Jumlah Unit</th><th>Total Amount</th>
+                                <th style="width:50px">No</th><th>Part Number</th><th>Description</th><th>Price</th><th>Qty</th><th>Jumlah Unit</th><th>Total Amount</th>
                             </tr></thead>
                             <tbody>
                             <?php $grandTotalParts = 0; foreach ($diParts as $idx => $part): $grandTotalParts += (float)$part['total_amount']; ?>
@@ -1301,12 +1373,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <td><?= htmlspecialchars($part['description']) ?></td>
                                     <td>Rp <?= number_format((float)$part['price'], 0, ',', '.') ?></td>
                                     <td><?= rtrim(rtrim(number_format((float)$part['qty'], 2, ',', '.'), '0'), ',') ?></td>
-                                    <td><?= htmlspecialchars($part['unit'] ?: '-') ?></td>
                                     <td><?= (int)$jumlahUnitDI ?></td>
                                     <td><strong>Rp <?= number_format((float)$part['total_amount'], 0, ',', '.') ?></strong></td>
                                 </tr>
                             <?php endforeach; ?>
-                            <tr class="table-total-row"><td colspan="7" class="text-end"><strong>Grand Total</strong></td><td><strong>Rp <?= number_format($grandTotalParts, 0, ',', '.') ?></strong></td></tr>
+                            <tr class="table-total-row"><td colspan="6" class="text-end"><strong>Grand Total</strong></td><td><strong>Rp <?= number_format($grandTotalParts, 0, ',', '.') ?></strong></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1335,7 +1406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div id="editLogisticsComparison" style="display:none; margin-bottom:20px; background:#f8f9fa; padding:20px; border-radius:10px;">
                     <form method="POST" id="logisticsComparisonForm">
                         <input type="hidden" name="action" value="save_logistics_comparison">
-                        <div class="comparison-note"><i class="fas fa-info-circle"></i> Centang satu vendor sebagai vendor yang dipilih. Sistem akan menyimpan hanya satu vendor terpilih.</div>
+                        <div class="comparison-note"><i class="fas fa-info-circle"></i> Input dan simpan data semua vendor terlebih dahulu. Pemilihan vendor dilakukan setelah data tersimpan.</div>
                         <div id="vendorRows"></div>
                         <button type="button" class="btn btn-secondary-custom btn-sm mt-3" onclick="addVendorRow()"><i class="fas fa-plus"></i> Tambah Vendor</button>
                         <hr>
@@ -1348,12 +1419,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if (count($diLogisticsComparisons) > 0): ?>
                     <div class="table-responsive">
                         <table class="table table-bordered logistics-comparison-table">
-                            <thead><tr><th style="width:70px">Pilih</th><th>Vendor</th><th>Metode Pembayaran</th><th>ETA Kirim</th><th>Harga</th><th>Keterangan</th></tr></thead>
+                            <thead><tr><th style="width:90px">Vendor</th><th>Nama Vendor</th><th>Metode Pembayaran</th><th>ETA Kirim</th><th>Harga</th><th>Keterangan</th></tr></thead>
                             <tbody>
                             <?php foreach ($diLogisticsComparisons as $idx => $vendor): ?>
                                 <tr class="<?= (int)$vendor['is_selected'] === 1 ? 'selected-vendor-row' : '' ?>">
-                                    <td class="text-center"><?= (int)$vendor['is_selected'] === 1 ? '<span class="selected-check"><i class="fas fa-check"></i></span>' : '<span class="not-selected">-</span>' ?></td>
-                                    <td><strong>Vendor <?= chr(65 + $idx) ?></strong><br><?= htmlspecialchars($vendor['vendor_name']) ?></td>
+                                    <td><strong>Vendor <?= chr(65 + $idx) ?></strong></td>
+                                    <td><?= htmlspecialchars($vendor['vendor_name']) ?></td>
                                     <td><?= htmlspecialchars($vendor['payment_method'] ?: '-') ?></td>
                                     <td><?= $vendor['eta_kirim'] ? date('d/m/Y', strtotime($vendor['eta_kirim'])) : '-' ?></td>
                                     <td>Rp <?= number_format((float)$vendor['harga'], 0, ',', '.') ?></td>
@@ -1362,6 +1433,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endforeach; ?>
                             </tbody>
                         </table>
+
+                        <form method="POST" class="vendor-selection-form">
+                            <input type="hidden" name="action" value="select_logistics_vendor">
+                            <div class="comparison-note">
+                                <i class="fas fa-circle-check"></i>
+                                Pilih vendor setelah seluruh data komparasi tersimpan.
+                            </div>
+                            <div class="vendor-selection-list">
+                                <?php foreach ($diLogisticsComparisons as $idx => $vendor): ?>
+                                    <label class="vendor-selection-item <?= (int)$vendor['is_selected'] === 1 ? 'active' : '' ?>">
+                                        <input type="radio" name="selected_vendor_id" value="<?= (int)$vendor['id'] ?>" <?= (int)$vendor['is_selected'] === 1 ? 'checked' : '' ?>>
+                                        <span><strong>Vendor <?= chr(65 + $idx) ?></strong> — <?= htmlspecialchars($vendor['vendor_name']) ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <button type="submit" class="btn btn-primary-custom mt-3">
+                                <i class="fas fa-check-circle"></i> Simpan Vendor Terpilih
+                            </button>
+                        </form>
                     </div>
                     <div class="selected-vendor-box">
                         <div class="selected-vendor-title"><i class="fas fa-circle-check"></i> Vendor Terpilih</div>
@@ -1632,7 +1722,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'data-row';
             rowDiv.id = 'accessoryRow_' + accessoryRowCount;
+
+            const satuanValue = data ? String(data.satuan || '') : '';
+            const satuanOptions = ['PCS', 'SET', 'UNIT', 'BOX', 'PAIR', 'LOT', 'LITER', 'METER'];
+            const customOption = satuanValue && !satuanOptions.includes(satuanValue.toUpperCase())
+                ? `<option value="${escapeHtml(satuanValue)}" selected>${escapeHtml(satuanValue)}</option>` : '';
+
             rowDiv.innerHTML = `
+                <input type="hidden" name="id[]" value="${data && data.id ? data.id : 0}">
                 <div class="data-header">
                     <strong><i class="fas fa-tools"></i> Aksesoris ${accessoryRowCount}</strong>
                     <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeRow('accessoryRow_${accessoryRowCount}')">
@@ -1642,29 +1739,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="row">
                     <div class="col-md-2 mb-2">
                         <label class="form-label">No</label>
-                        <input type="text" name="no[]" class="form-control" value="${data ? data.no : ''}">
+                        <input type="text" name="no[]" class="form-control" value="${data ? escapeHtml(data.no) : ''}">
                     </div>
                     <div class="col-md-4 mb-2">
                         <label class="form-label">Uraian</label>
-                        <input type="text" name="uraian[]" class="form-control" value="${data ? data.uraian : ''}">
+                        <input type="text" name="uraian[]" class="form-control" value="${data ? escapeHtml(data.uraian) : ''}">
                     </div>
                     <div class="col-md-2 mb-2">
                         <label class="form-label">Satuan</label>
-                        <input type="text" name="satuan[]" class="form-control" value="${data ? data.satuan : ''}">
+                        <select name="satuan[]" class="form-select">
+                            <option value="">Pilih Satuan</option>
+                            ${customOption}
+                            ${satuanOptions.map(opt => `<option value="${opt}" ${satuanValue.toUpperCase() === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                        </select>
                     </div>
                     <div class="col-md-2 mb-2">
                         <label class="form-label">Jumlah</label>
-                        <input type="number" name="jumlah[]" class="form-control" min="0" value="${data ? data.jumlah : 0}">
+                        <input type="number" name="jumlah[]" class="form-control" min="0" step="1" value="${data ? data.jumlah : 0}">
                     </div>
                     <div class="col-md-2 mb-2">
                         <label class="form-label">Keterangan</label>
-                        <input type="text" name="keterangan[]" class="form-control" value="${data ? data.keterangan : ''}">
+                        <input type="text" name="keterangan[]" class="form-control" value="${data ? escapeHtml(data.keterangan) : ''}">
                     </div>
                 </div>
             `;
             container.appendChild(rowDiv);
         }
-        
+
         let partRowCount = 0;
         const jumlahUnitDI = <?= (int)$jumlahUnitDI ?>;
 
@@ -1688,6 +1789,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             rowDiv.className = 'data-row part-data-row';
             rowDiv.id = 'partRow_' + partRowCount;
             rowDiv.innerHTML = `
+                <input type="hidden" name="id[]" value="${data && data.id ? data.id : 0}">
                 <div class="data-header">
                     <strong><i class="fas fa-cogs"></i> Part ${partRowCount}</strong>
                     <button type="button" class="btn btn-danger-custom btn-sm" onclick="removePartRow('partRow_${partRowCount}')"><i class="fas fa-trash"></i> Hapus</button>
@@ -1698,10 +1800,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="col-md-4 mb-2"><label class="form-label">Price</label><input type="number" name="price[]" class="form-control" min="0" step="0.01" value="${data ? data.price : 0}" oninput="updatePartTotal(this.closest('.part-data-row'))"></div>
                 </div>
                 <div class="row">
-                    <div class="col-md-3 mb-2"><label class="form-label">Qty</label><input type="number" name="qty[]" class="form-control" min="0" step="0.01" value="${data ? data.qty : 1}" oninput="updatePartTotal(this.closest('.part-data-row'))"></div>
-                    <div class="col-md-3 mb-2"><label class="form-label">Unit</label><input type="text" name="unit[]" class="form-control" value="${data ? escapeHtml(data.unit) : ''}" placeholder="PCS / SET / LITER"></div>
-                    <div class="col-md-3 mb-2"><label class="form-label">Jumlah Unit DI</label><input type="text" class="form-control" value="${jumlahUnitDI}" readonly></div>
-                    <div class="col-md-3 mb-2"><label class="form-label">Total Amount</label><input type="text" name="total_amount_display[]" class="form-control part-total-display" value="Rp 0" readonly></div>
+                    <div class="col-md-4 mb-2"><label class="form-label">Qty</label><input type="number" name="qty[]" class="form-control" min="0" step="0.01" value="${data ? data.qty : 1}" oninput="updatePartTotal(this.closest('.part-data-row'))"></div>
+                    <div class="col-md-4 mb-2"><label class="form-label">Jumlah Unit</label><input type="text" class="form-control" value="${jumlahUnitDI}" readonly></div>
+                    <div class="col-md-4 mb-2"><label class="form-label">Total Amount</label><input type="text" name="total_amount_display[]" class="form-control part-total-display" value="Rp 0" readonly></div>
                 </div>`;
             container.appendChild(rowDiv);
             updatePartTotal(rowDiv);
@@ -1724,6 +1825,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'vendor-data-row';
             rowDiv.innerHTML = `
+                <input type="hidden" name="id[]" value="${data && data.id ? data.id : 0}">
                 <div class="vendor-data-header">
                     <div class="vendor-label"><i class="fas fa-truck"></i> Vendor ${letter}</div>
                     <button type="button" class="btn btn-danger-custom btn-sm" onclick="removeVendorRow(this)"><i class="fas fa-trash"></i> Hapus</button>
@@ -1731,15 +1833,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="row">
                     <div class="col-md-3 mb-2"><label class="form-label">Nama Vendor</label><input type="text" name="vendor_name[]" class="form-control" value="${data ? escapeHtml(data.vendor_name) : ''}" required></div>
                     <div class="col-md-3 mb-2"><label class="form-label">Metode Pembayaran</label><input type="text" name="payment_method[]" class="form-control" value="${data ? escapeHtml(data.payment_method) : ''}" placeholder="Cash / Transfer / Tempo"></div>
-                    <div class="col-md-2 mb-2"><label class="form-label">ETA Kirim</label><input type="date" name="eta_kirim[]" class="form-control" value="${data ? data.eta_kirim : ''}"></div>
-                    <div class="col-md-2 mb-2"><label class="form-label">Harga</label><input type="number" name="harga[]" class="form-control" min="0" step="0.01" value="${data ? data.harga : 0}"></div>
-                    <div class="col-md-2 mb-2"><label class="form-label">Pilih</label><div class="vendor-check-wrap"><input type="checkbox" name="selected_vendor" value="${index}" class="vendor-check" ${data && Number(data.is_selected) === 1 ? 'checked' : ''} onchange="selectSingleVendor(this)"></div></div>
+                    <div class="col-md-3 mb-2"><label class="form-label">ETA Kirim</label><input type="date" name="eta_kirim[]" class="form-control" value="${data ? data.eta_kirim : ''}"></div>
+                    <div class="col-md-3 mb-2"><label class="form-label">Harga</label><input type="number" name="harga[]" class="form-control" min="0" step="0.01" value="${data ? data.harga : 0}"></div>
                 </div>
                 <div class="row"><div class="col-md-12 mb-1"><label class="form-label">Keterangan</label><textarea name="keterangan_komparasi[]" class="form-control" rows="2" placeholder="Keterangan vendor...">${data ? escapeHtml(data.keterangan) : ''}</textarea></div></div>`;
             container.appendChild(rowDiv);
         }
 
-        function selectSingleVendor(checkbox) {
+(checkbox) {
             document.querySelectorAll('#vendorRows .vendor-check').forEach(cb => {
                 if (cb !== checkbox) cb.checked = false;
             });
@@ -1814,6 +1915,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if (count($diAccessories) > 0): ?>
                 <?php foreach ($diAccessories as $acc): ?>
                     addAccessoryRow({
+                        id: <?= (int)$acc['id'] ?>,
                         no: '<?= addslashes($acc['no']) ?>',
                         uraian: '<?= addslashes($acc['uraian']) ?>',
                         satuan: '<?= addslashes($acc['satuan']) ?>',
@@ -1827,7 +1929,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (document.getElementById('partRows')) {
                 <?php if (count($diParts) > 0): ?>
                     <?php foreach ($diParts as $part): ?>
-                        addPartRow({part_number: <?= json_encode($part['part_number']) ?>, description: <?= json_encode($part['description']) ?>, price: <?= json_encode($part['price']) ?>, qty: <?= json_encode($part['qty']) ?>, unit: <?= json_encode($part['unit']) ?>});
+                        addPartRow({id: <?= (int)$part['id'] ?>, part_number: <?= json_encode($part['part_number']) ?>, description: <?= json_encode($part['description']) ?>, price: <?= json_encode($part['price']) ?>, qty: <?= json_encode($part['qty']) ?>});
                     <?php endforeach; ?>
                 <?php else: ?>
                     addPartRow();
@@ -1837,7 +1939,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (document.getElementById('vendorRows')) {
                 <?php if (count($diLogisticsComparisons) > 0): ?>
                     <?php foreach ($diLogisticsComparisons as $vendor): ?>
-                        addVendorRow({vendor_name: <?= json_encode($vendor['vendor_name']) ?>, payment_method: <?= json_encode($vendor['payment_method']) ?>, eta_kirim: <?= json_encode($vendor['eta_kirim']) ?>, harga: <?= json_encode($vendor['harga']) ?>, keterangan: <?= json_encode($vendor['keterangan']) ?>, is_selected: <?= (int)$vendor['is_selected'] ?>});
+                        addVendorRow({id: <?= (int)$vendor['id'] ?>, vendor_name: <?= json_encode($vendor['vendor_name']) ?>, payment_method: <?= json_encode($vendor['payment_method']) ?>, eta_kirim: <?= json_encode($vendor['eta_kirim']) ?>, harga: <?= json_encode($vendor['harga']) ?>, keterangan: <?= json_encode($vendor['keterangan']) ?>});
                     <?php endforeach; ?>
                 <?php else: ?>
                     addVendorRow();
