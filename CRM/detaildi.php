@@ -770,7 +770,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .vendor-check{width:20px;height:20px;cursor:pointer}
     </style>
 </head>
-<body>
+<body class="page-detaildi">
 
     <?php require_once 'navigation.php'; ?>
 

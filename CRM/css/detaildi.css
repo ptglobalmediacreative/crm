@@ -4025,3 +4025,219 @@ button {
     padding: 13px !important;
   }
 }
+
+/* =========================================================
+   DETAIL DI — FINAL BLUE CRM OVERRIDE
+   Root cause fix:
+   - detaildi.php now uses <body class="page-detaildi">
+   - overrides legacy inline white backgrounds
+   - keeps every edit/input section in the dark-blue CRM theme
+   ========================================================= */
+
+/* Main page/card surfaces */
+body.page-detaildi,
+body.page-detaildi .content {
+  background: #07101f !important;
+  color: #dbe5f5;
+}
+
+body.page-detaildi .card-custom,
+body.page-detaildi .card-body-custom {
+  background: linear-gradient(
+    145deg,
+    rgba(12, 23, 43, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  color: #dbe5f5 !important;
+}
+
+/* ALL edit containers that previously used #f8f9fa */
+body.page-detaildi #editDataPenjualan,
+body.page-detaildi #editUnits,
+body.page-detaildi #editAccessories,
+body.page-detaildi #editLogistics,
+body.page-detaildi #editParts,
+body.page-detaildi #editLogisticsComparison,
+body.page-detaildi #editProductSupport {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.97),
+    rgba(7, 14, 28, 0.99)
+  ) !important;
+  border: 1px solid rgba(148, 163, 184, 0.12) !important;
+  color: #dbe5f5 !important;
+  border-radius: 13px !important;
+}
+
+/* Remove the white summary cards in Detail Part */
+body.page-detaildi .part-summary > div {
+  background: linear-gradient(
+    145deg,
+    rgba(12, 23, 43, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border: 1px solid rgba(96, 165, 250, 0.13) !important;
+  color: #dbe5f5 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+body.page-detaildi .part-summary span {
+  color: #71809a !important;
+}
+
+body.page-detaildi .part-summary strong {
+  color: #e8eef8 !important;
+}
+
+/* Dynamic Unit rows */
+body.page-detaildi .unit-row {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border: 1px solid rgba(148, 163, 184, 0.11) !important;
+  color: #dbe5f5 !important;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 12px;
+}
+
+/* Dynamic Part rows */
+body.page-detaildi .data-row,
+body.page-detaildi .part-data-row {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+  color: #dbe5f5 !important;
+}
+
+/* Vendor rows */
+body.page-detaildi .vendor-data-row {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.96),
+    rgba(7, 14, 28, 0.98)
+  ) !important;
+  border: 1px solid rgba(96, 165, 250, 0.13) !important;
+  color: #dbe5f5 !important;
+}
+
+/* Inputs — including dynamically created inputs */
+body.page-detaildi .form-control,
+body.page-detaildi .form-select,
+body.page-detaildi input,
+body.page-detaildi textarea,
+body.page-detaildi select {
+  background-color: #081426 !important;
+  background: #081426 !important;
+  color: #dbe5f5 !important;
+  border-color: rgba(96, 165, 250, 0.16) !important;
+}
+
+body.page-detaildi .form-control:focus,
+body.page-detaildi .form-select:focus,
+body.page-detaildi input:focus,
+body.page-detaildi textarea:focus,
+body.page-detaildi select:focus {
+  background-color: #0b172c !important;
+  background: #0b172c !important;
+  color: #f8fbff !important;
+  border-color: rgba(96, 165, 250, 0.52) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+body.page-detaildi input::placeholder,
+body.page-detaildi textarea::placeholder {
+  color: #52627d !important;
+  opacity: 1 !important;
+}
+
+body.page-detaildi select option {
+  background: #0b1222 !important;
+  color: #dbe5f5 !important;
+}
+
+/* Labels inside every edit form */
+body.page-detaildi .form-label,
+body.page-detaildi label {
+  color: #8e9bb5 !important;
+}
+
+/* Tables */
+body.page-detaildi .detail-part-table,
+body.page-detaildi .logistics-comparison-table {
+  --bs-table-bg: transparent !important;
+  --bs-table-color: #cbd5e1 !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+}
+
+body.page-detaildi .detail-part-table th,
+body.page-detaildi .logistics-comparison-table th {
+  background: rgba(5, 12, 25, 0.55) !important;
+  color: #71809a !important;
+}
+
+body.page-detaildi .detail-part-table td,
+body.page-detaildi .logistics-comparison-table td {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+}
+
+/* Legacy white inline blocks */
+body.page-detaildi [style*="background: #f8f9fa"],
+body.page-detaildi [style*="background:#f8f9fa"],
+body.page-detaildi [style*="background: #fff"],
+body.page-detaildi [style*="background:#fff"],
+body.page-detaildi [style*="background: white"],
+body.page-detaildi [style*="background:white"] {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 39, 0.97),
+    rgba(7, 14, 28, 0.99)
+  ) !important;
+  color: #dbe5f5 !important;
+}
+
+/* Specific legacy elements from the inline PHP <style> */
+body.page-detaildi .selected-vendor-box,
+body.page-detaildi .part-total-display {
+  background: #0a1427 !important;
+  color: #dbe5f5 !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+body.page-detaildi .comparison-note {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(96, 165, 250, 0.16) !important;
+  color: #9fc5ff !important;
+}
+
+body.page-detaildi .selected-vendor-row {
+  background: rgba(52, 211, 153, 0.055) !important;
+}
+
+body.page-detaildi .selected-vendor-title {
+  color: #60a5fa !important;
+}
+
+body.page-detaildi .selected-vendor-name {
+  color: #f1f5f9 !important;
+}
+
+body.page-detaildi .selected-vendor-detail,
+body.page-detaildi .selected-vendor-note {
+  color: #aebbd0 !important;
+}
+
+/* Prevent Bootstrap table cells from becoming white */
+body.page-detaildi .table > :not(caption) > * > * {
+  --bs-table-bg: transparent;
+  background-color: transparent !important;
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.08);
+}
