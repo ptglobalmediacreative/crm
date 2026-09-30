@@ -1840,11 +1840,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             container.appendChild(rowDiv);
         }
 
-(checkbox) {
-            document.querySelectorAll('#vendorRows .vendor-check').forEach(cb => {
-                if (cb !== checkbox) cb.checked = false;
-            });
-        }
 
         function removeVendorRow(button) {
             const row = button.closest('.vendor-data-row');
