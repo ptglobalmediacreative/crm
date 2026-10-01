@@ -4357,3 +4357,60 @@ body.page-detaildi .logistics-comparison-table tr.table-total-row strong {
 #viewDataPenjualan .info-label {
   margin-bottom: 4px !important;
 }
+
+/* =========================================================
+   DATA PENJUALAN — LINK ACTIVITY NUMBER & NO. TR
+   Soft gold, elegant, tanpa biru tua
+   ========================================================= */
+
+#editDataPenjualan .detail-link,
+#viewDataPenjualan .detail-link {
+  color: #d6b56d !important;
+  text-decoration: none !important;
+  font-weight: 700;
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+}
+
+#editDataPenjualan .detail-link::after,
+#viewDataPenjualan .detail-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: rgba(214, 181, 109, 0.45);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+#editDataPenjualan .detail-link:hover,
+#viewDataPenjualan .detail-link:hover {
+  color: #f0d28a !important;
+  opacity: 1;
+}
+
+#editDataPenjualan .detail-link:hover::after,
+#viewDataPenjualan .detail-link:hover::after {
+  transform: scaleX(1);
+}
+
+#editDataPenjualan .detail-link-disabled,
+#viewDataPenjualan .detail-link-disabled {
+  color: #7f8da5 !important;
+  text-decoration: none !important;
+  font-weight: 600;
+}
+
+#editDataPenjualan .detail-link:focus-visible,
+#viewDataPenjualan .detail-link:focus-visible {
+  outline: 2px solid rgba(214, 181, 109, 0.35);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
