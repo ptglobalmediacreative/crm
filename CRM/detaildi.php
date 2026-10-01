@@ -926,6 +926,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .approval-flow-item.rejected .approval-flow-icon{background:#dc3545;color:#fff}
         @media(max-width:1100px){.approval-flow-list{grid-template-columns:repeat(4,minmax(120px,1fr))}}
         @media(max-width:700px){.approval-flow-list{grid-template-columns:repeat(2,minmax(130px,1fr))}}
+        .detail-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: color .2s ease, text-decoration .2s ease;
+        }
+        .detail-link:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        .detail-link-disabled {
+            color: inherit;
+        }
     </style>
 </head>
 <body class="page-detaildi">
@@ -1016,7 +1030,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="row">
                             <div class="col-md-2 mb-3">
                                 <label class="form-label">Activity Number</label>
-                                <input type="text" class="form-control" value="<?= htmlspecialchars($request['activity_number'] ?? '-') ?>" readonly>
+                                <?php if (!empty($request['activity_number']) && !empty($request['sales_activity_id'])): ?>
+                                    <a href="detailaktivitas.php?leads_id=<?= urlencode($request['sales_activity_id']) ?>" class="detail-link" title="Buka Detail Activity">
+                                        <?= htmlspecialchars($request['activity_number']) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="detail-link-disabled">-</span>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-2 mb-3">
                                 <label class="form-label">No. DI</label>
@@ -1024,7 +1044,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="col-md-2 mb-3">
                                 <label class="form-label">No. TR</label>
-                                <input type="text" class="form-control" value="<?= htmlspecialchars($request['tr_number'] ?? '-') ?>" readonly>
+                                <?php if (!empty($request['tr_number'])): ?>
+                                    <a href="detailtr.php?tr_number=<?= urlencode($request['tr_number']) ?>" class="detail-link" title="Buka Detail TR">
+                                        <?= htmlspecialchars($request['tr_number']) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="detail-link-disabled">-</span>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-2 mb-3">
                                 <label class="form-label">Tanggal</label>
@@ -1053,7 +1079,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-2">
                             <div class="info-label">Activity Number</div>
-                            <div class="info-value"><strong><?= htmlspecialchars($request['activity_number'] ?? '-') ?></strong></div>
+                            <div class="info-value">
+                                    <?php if (!empty($request['activity_number']) && !empty($request['sales_activity_id'])): ?>
+                                        <a href="detailaktivitas.php?leads_id=<?= urlencode($request['sales_activity_id']) ?>" class="detail-link" title="Buka Detail Activity">
+                                            <strong><?= htmlspecialchars($request['activity_number']) ?></strong>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="detail-link-disabled">-</span>
+                                    <?php endif; ?>
+                                </div>
                         </div>
                         <div class="col-md-2">
                             <div class="info-label">No. DI</div>
@@ -1061,7 +1095,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="col-md-2">
                             <div class="info-label">No. TR</div>
-                            <div class="info-value"><strong><?= htmlspecialchars($request['tr_number'] ?? '-') ?></strong></div>
+                            <div class="info-value">
+                                    <?php if (!empty($request['tr_number'])): ?>
+                                        <a href="detailtr.php?tr_number=<?= urlencode($request['tr_number']) ?>" class="detail-link" title="Buka Detail TR">
+                                            <strong><?= htmlspecialchars($request['tr_number']) ?></strong>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="detail-link-disabled">-</span>
+                                    <?php endif; ?>
+                                </div>
                         </div>
                         <div class="col-md-2">
                             <div class="info-label">Tanggal</div>
