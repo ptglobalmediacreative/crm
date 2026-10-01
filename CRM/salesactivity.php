@@ -481,6 +481,19 @@ function getJenisProspek($db, $salesActivityId) {
     $stmtDealPriority->execute([$salesActivityId]);
     $priorityDeal = strtolower(trim((string)$stmtDealPriority->fetchColumn()));
 
+    // After Sales punya aturan khusus:
+    // - Jika sebelumnya Deal, tetap Deal.
+    // - Jika sebelumnya Lost Deal (customer_deal = no), kembali menjadi Prospect.
+    // - Jika belum pernah ada Deal/Lost Deal, menjadi Prospect.
+    // Pengecekan ini harus dilakukan sebelum aturan Lost Deal umum.
+    if ($jenis_tugas === 'After Sales') {
+        if ($priorityDeal === 'yes') {
+            return 'Deal';
+        }
+
+        return 'Prospect';
+    }
+
     if ($priorityDeal === 'yes') return 'Deal';
     if ($priorityDeal === 'no') return 'Lost Deal';
     

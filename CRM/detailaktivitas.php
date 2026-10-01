@@ -526,10 +526,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $tr_number = $stmt->fetchColumn() ?: NULL;
         }
         
-        // Untuk Kontrak, Delivery Order, dan After Sales ambil TR Number dari Negosiasi sebelumnya
-        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'Delivery Order' || $jenis_tugas === 'After Sales') {
-            $stmt = $db->prepare("SELECT tr_number FROM activity_details 
-                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+        // Kontrak / Delivery Order tetap mengambil TR dari Negosiasi.
+        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'Delivery Order') {
+            $stmt = $db->prepare("SELECT tr_number FROM activity_details
+                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi'
                                   ORDER BY id DESC LIMIT 1");
             $stmt->execute([$leadsId]);
             $tr_negosiasi = $stmt->fetchColumn();
@@ -537,7 +537,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $tr_number = $tr_negosiasi;
             }
         }
-        
+
+        // After Sales:
+        // - Sebelumnya Deal -> tarik TR Number dari data Deal sebelumnya.
+        // - Sebelumnya Lost Deal / belum pernah Deal -> kosong.
+        // Jangan otomatis mengambil TR hanya karena ada Negosiasi lama.
+        if ($jenis_tugas === 'After Sales') {
+            $tr_number = NULL;
+
+            $stmt = $db->prepare("
+                SELECT ad.tr_number,
+                       LOWER(TRIM(dtr.customer_deal)) AS customer_deal
+                FROM activity_details ad
+                INNER JOIN detail_transaction_requests dtr
+                    ON dtr.trf_number = ad.tr_number
+                WHERE ad.sales_activity_id = ?
+                  AND ad.tr_number IS NOT NULL
+                  AND TRIM(ad.tr_number) <> ''
+                  AND dtr.customer_deal IS NOT NULL
+                  AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
+                ORDER BY ad.id DESC, dtr.id DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$leadsId]);
+            $previousDeal = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($previousDeal && $previousDeal['customer_deal'] === 'yes') {
+                $tr_number = trim((string)($previousDeal['tr_number'] ?? ''));
+                if ($tr_number === '') {
+                    $tr_number = NULL;
+                }
+            }
+        }
+
         // Delivery Order sekarang langsung mendapatkan DI Number saat aktivitas dibuat
         // (status masih In Progress), jika Customer Deal pada TR = Yes.
         $di_number = NULL;
@@ -569,6 +601,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, di_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'in_progress')");
                 $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number, $di_number]);
+
+                // After Sales setelah Lost Deal / tanpa Deal baru kembali menjadi Prospect.
+                // Jika sebelumnya Deal, status Deal tetap dipertahankan.
+                if ($jenis_tugas === 'After Sales') {
+                    $stmtAfterSalesStatus = $db->prepare("
+                        SELECT LOWER(TRIM(dtr.customer_deal))
+                        FROM activity_details ad
+                        INNER JOIN detail_transaction_requests dtr
+                            ON dtr.trf_number = ad.tr_number
+                        WHERE ad.sales_activity_id = ?
+                          AND ad.id <> ?
+                          AND ad.tr_number IS NOT NULL
+                          AND TRIM(ad.tr_number) <> ''
+                          AND dtr.customer_deal IS NOT NULL
+                          AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
+                        ORDER BY ad.id DESC, dtr.id DESC
+                        LIMIT 1
+                    ");
+                    $newActivityDetailId = (int)$db->lastInsertId();
+                    $stmtAfterSalesStatus->execute([$leadsId, $newActivityDetailId]);
+                    $previousDealStatus = $stmtAfterSalesStatus->fetchColumn();
+
+                    if ($previousDealStatus !== 'yes') {
+                        $updateProspekAfterSales = $db->prepare(
+                            "UPDATE sales_activities SET jenis_prospek = 'Prospect' WHERE id = ?"
+                        );
+                        $updateProspekAfterSales->execute([$leadsId]);
+                    }
+                }
+
 
                 // Untuk Delivery Order, DI Number dan record DI langsung dibuat
                 // saat aktivitas masih In Progress.
@@ -718,32 +780,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // Untuk Kontrak dan After Sales ambil TR & DI Number dari Delivery Order sebelumnya
-        if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales')) {
-            $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details 
-                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Delivery Order' 
+        // ============================================================
+        // AFTER SALES: TR/DI hanya diwariskan jika status sebelumnya DEAL.
+        // Jika sebelumnya Lost Deal atau belum pernah Deal, tetap kosong.
+        // ============================================================
+        if ($detail && $detail['jenis_tugas'] === 'After Sales') {
+            $tr_number = NULL;
+            $di_number = NULL;
+
+            $stmt = $db->prepare("
+                SELECT ad.tr_number,
+                       ad.di_number,
+                       LOWER(TRIM(dtr.customer_deal)) AS customer_deal
+                FROM activity_details ad
+                INNER JOIN detail_transaction_requests dtr
+                    ON dtr.trf_number = ad.tr_number
+                WHERE ad.sales_activity_id = ?
+                  AND ad.tr_number IS NOT NULL
+                  AND TRIM(ad.tr_number) <> ''
+                  AND dtr.customer_deal IS NOT NULL
+                  AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
+                ORDER BY ad.id DESC, dtr.id DESC
+                LIMIT 1
+            ");
+            $stmt->execute([(int)$detail['sales_activity_id']]);
+            $previousDeal = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($previousDeal && $previousDeal['customer_deal'] === 'yes') {
+                $tr_number = trim((string)($previousDeal['tr_number'] ?? ''));
+                $di_number = trim((string)($previousDeal['di_number'] ?? ''));
+
+                if ($tr_number === '') $tr_number = NULL;
+                if ($di_number === '') $di_number = NULL;
+            }
+        } elseif ($detail && $detail['jenis_tugas'] === 'Kontrak') {
+            // Kontrak tetap mengikuti Delivery Order sebelumnya,
+            // lalu fallback ke Negosiasi.
+            $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details
+                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Delivery Order'
                                   ORDER BY id DESC LIMIT 1");
             $stmt->execute([$detail['sales_activity_id']]);
             $doData = $stmt->fetch();
-            
+
             if ($doData) {
                 $tr_number = $doData['tr_number'];
                 $di_number = $doData['di_number'];
             } else {
-                // Fallback: cari dari Negosiasi
-                $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details 
-                                      WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+                $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details
+                                      WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi'
                                       ORDER BY id DESC LIMIT 1");
                 $stmt->execute([$detail['sales_activity_id']]);
                 $negosiasiData = $stmt->fetch();
-                
+
                 if ($negosiasiData) {
                     $tr_number = $negosiasiData['tr_number'];
                     $di_number = $negosiasiData['di_number'];
                 }
             }
         }
-        
+
         // Upload file (multiple)
         $attachment_files = [];
         if (!empty($_FILES['attachment_file']['name']) && is_array($_FILES['attachment_file']['name'])) {
