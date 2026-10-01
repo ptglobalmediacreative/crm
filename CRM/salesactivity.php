@@ -16,6 +16,12 @@ if (!isLoggedIn()) {
 requirePermission('sales_activity', 'view');
 
 // ============================================
+// AMBIL MENU YANG BOLEH DIAKSES USER
+// ============================================
+$userMenus = getUserMenus();
+$menuNames = array_column($userMenus, 'module_name');
+
+// ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
 function getRoleLabel($role) {
@@ -34,106 +40,153 @@ function getRoleLabel($role) {
 }
 
 // ============================================
-// FUNGSI GENERATE LEADS NUMBER
-// ============================================
-function generateLeadsNumber($db) {
-    $tahun = date('Y');
-    $bulan = date('n');
-    $bulanRomawi = getBulanRomawi($bulan);
-
-    // Ambil nomor terbesar pada periode berjalan.
-    // Tidak bergantung pada ID terakhir sehingga tetap benar setelah penghapusan.
-    $pattern = "%/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
-
-    $stmt = $db->prepare("
-        SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(leads_number, '/', 1) AS UNSIGNED)), 0)
-        FROM sales_activities
-        WHERE leads_number LIKE ?
-    ");
-    $stmt->execute([$pattern]);
-    $lastSequence = (int)$stmt->fetchColumn();
-
-    $sequence = str_pad((string)($lastSequence + 1), 4, '0', STR_PAD_LEFT);
-
-    return "{$sequence}/GET-ACT/JKT/{$bulanRomawi}/{$tahun}";
-}
-
-// ============================================
-// FUNGSI KONVERSI BULAN KE ROMAWI
+// FUNGSI GENERATE NOMOR
 // ============================================
 function getBulanRomawi($month) {
     $romawi = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
     return $romawi[(int)$month];
 }
 
-// ============================================
-// RENUMBER SEMUA ACTIVITY NUMBER
-// Format: 0001/GET-ACT/JKT/IX/2026
-// Diurutkan PER PERIODE berdasarkan created_at, lalu id.
-// ============================================
-function renumberAllActivityNumbers($db) {
-    $stmt = $db->query("
-        SELECT id, leads_number,
-               SUBSTRING_INDEX(leads_number, '/GET-ACT/JKT/', -1) AS period
-        FROM sales_activities
-        WHERE leads_number IS NOT NULL
-          AND TRIM(leads_number) <> ''
-        ORDER BY period ASC, created_at ASC, id ASC
+function generateTRNumber($db) {
+    $tahun = date('Y');
+    $bulanRomawi = getBulanRomawi(date('n'));
+    $prefix = "/GET-TR/JKT/{$bulanRomawi}/{$tahun}";
+
+    $stmt = $db->prepare("
+        SELECT MAX(CAST(SUBSTRING_INDEX(tr_number, '/', 1) AS UNSIGNED))
+        FROM activity_details
+        WHERE tr_number LIKE ?
     ");
+    $stmt->execute(['%' . $prefix]);
+    $maxSequence = (int)$stmt->fetchColumn();
 
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    if (!$rows) return 0;
-
-    $sequenceByPeriod = [];
-    $mapping = [];
-
-    foreach ($rows as $row) {
-        $period = $row['period'];
-        if (!isset($sequenceByPeriod[$period])) {
-            $sequenceByPeriod[$period] = 1;
-        }
-
-        $mapping[(int)$row['id']] = [
-            'old' => $row['leads_number'],
-            'new' => str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
-                   . '/GET-ACT/JKT/' . $period
-        ];
-        $sequenceByPeriod[$period]++;
-    }
-
-    $needsUpdate = false;
-    foreach ($mapping as $item) {
-        if ($item['old'] !== $item['new']) {
-            $needsUpdate = true;
-            break;
-        }
-    }
-    if (!$needsUpdate) return 0;
-
-    // Nomor sementara mencegah benturan UNIQUE KEY saat 0002 -> 0001, dst.
-    $token = '__ACT_RENUMBER_' . bin2hex(random_bytes(8)) . '__';
-
-    $stmtTemp = $db->prepare("UPDATE sales_activities SET leads_number = ? WHERE id = ?");
-    foreach ($mapping as $id => $item) {
-        $stmtTemp->execute([$token . $id, $id]);
-    }
-
-    $stmtFinal = $db->prepare("UPDATE sales_activities SET leads_number = ? WHERE id = ?");
-    foreach ($mapping as $id => $item) {
-        $stmtFinal->execute([$item['new'], $id]);
-    }
-
-    return count($mapping);
+    return str_pad((string)($maxSequence + 1), 4, '0', STR_PAD_LEFT)
+        . $prefix;
 }
 
+function generateDINumber($db) {
+    $tahun = date('Y');
+    $bulanRomawi = getBulanRomawi(date('n'));
+    $prefix = "/GET-DI/JKT/{$bulanRomawi}/{$tahun}";
+
+    $stmt = $db->prepare("
+        SELECT MAX(CAST(SUBSTRING_INDEX(di_number, '/', 1) AS UNSIGNED))
+        FROM activity_details
+        WHERE di_number LIKE ?
+    ");
+    $stmt->execute(['%' . $prefix]);
+    $maxSequence = (int)$stmt->fetchColumn();
+
+    return str_pad((string)($maxSequence + 1), 4, '0', STR_PAD_LEFT)
+        . $prefix;
+}
 
 // ============================================
-// HAPUS SEMUA DATA TRANSACTION REQUEST
-// YANG TERKAIT DENGAN TR TERTENTU
+// AMBIL DATA SALES ACTIVITY
 // ============================================
-function deleteTransactionRequestData($db, $trNumber) {
-    // activity_details menggunakan tr_number.
-    // Tabel Transaction Request menggunakan trf_number.
+$leadsId = isset($_GET['leads_id']) ? (int)$_GET['leads_id'] : 0;
+
+if (!$leadsId) {
+    setFlash('Leads ID tidak ditemukan!', 'danger');
+    redirect('salesactivity.php');
+}
+
+$stmt = $db->prepare("SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
+                      FROM sales_activities sa 
+                      LEFT JOIN accounts a ON sa.account_id = a.id 
+                      LEFT JOIN users u ON sa.sales_id = u.id
+                      WHERE sa.id = ?");
+$stmt->execute([$leadsId]);
+$activity = $stmt->fetch();
+
+if (!$activity) {
+    setFlash('Data aktivitas tidak ditemukan!', 'danger');
+    redirect('salesactivity.php');
+}
+
+// ============================================
+// AMBIL DATA USER
+// ============================================
+$fullName = $_SESSION['full_name'] ?? 'User';
+$role = $_SESSION['role'] ?? 'user';
+$userId = (int)($_SESSION['user_id'] ?? 0);
+
+// ============================================
+// HAK AKSES DETAIL AKTIVITAS
+// ============================================
+// Contact Mobile dan tombol Complete hanya boleh dilihat/dijalankan
+// oleh Sales yang memiliki Sales Activity / Detail Aktivitas ini.
+// Direktur/IT Support hanya memiliki akses melihat Contact Mobile.
+//
+// Tombol Hapus hanya boleh untuk:
+// Direktur Utama, Direktur Operasional, Direktur Sales, IT Support.
+$contactMobileViewRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'it_support'
+];
+
+$deleteActivityRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'it_support'
+];
+
+$isActivityOwnerSales = (
+    $role === 'sales'
+    && (int)($activity['sales_id'] ?? 0) === $userId
+);
+
+$canViewContactMobile = (
+    in_array($role, $contactMobileViewRoles, true)
+    || $isActivityOwnerSales
+);
+
+$canCompleteActivity = $isActivityOwnerSales;
+
+$canDeleteActivity = in_array($role, $deleteActivityRoles, true);
+
+// Hak tambah aktivitas:
+// - Direktur Utama
+// - Direktur Sales
+// - Direktur Operasional
+// - IT Support
+// - Sales yang merupakan pemilik Activity Number ini
+$addActivityRoles = [
+    'direktur_utama',
+    'direktur_sales',
+    'direktur_operasional',
+    'it_support'
+];
+
+$canAddActivity = (
+    in_array($role, $addActivityRoles, true)
+    || $isActivityOwnerSales
+);
+
+// ============================================
+// UPDATE STATUS OVERDUE OTOMATIS (WIB)
+// ============================================
+$stmt = $db->prepare("UPDATE activity_details SET status = 'overdue' 
+                      WHERE sales_activity_id = ? 
+                      AND status = 'in_progress' 
+                      AND due_date IS NOT NULL 
+                      AND due_date < DATE_ADD(NOW(), INTERVAL 7 HOUR)");
+$stmt->execute([$leadsId]);
+
+// ============================================
+// HELPER: HAPUS DATA TR YANG SUDAH TIDAK TERPAKAI
+// ============================================
+function deleteUnusedTransactionRequestData($db, $trNumber) {
+    if (empty($trNumber)) return;
+
+    $check = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE tr_number = ?");
+    $check->execute([$trNumber]);
+
+    if ((int)$check->fetchColumn() > 0) return;
+
     $tableColumns = [
         'detail_transaction_requests' => 'trf_number',
         'transaction_requests' => 'trf_number',
@@ -148,68 +201,97 @@ function deleteTransactionRequestData($db, $trNumber) {
     ];
 
     foreach ($tableColumns as $table => $column) {
-        $stmt = $db->prepare(
-            "DELETE FROM `{$table}` WHERE `{$column}` = ?"
-        );
+        $stmt = $db->prepare("DELETE FROM `{$table}` WHERE `{$column}` = ?");
         $stmt->execute([$trNumber]);
     }
 }
 
 // ============================================
-// RENUMBER SEMUA TR SETELAH ADA TR YANG DIHAPUS
-// Format: 0001/GET-TR/JKT/IX/2026
-// Nomor diurutkan ulang per bulan/periode berdasarkan
-// created_at paling awal.
+// HELPER: HAPUS DATA DI YANG SUDAH TIDAK TERPAKAI
 // ============================================
-function renumberAllTransactionRequests($db, $periods = null) {
-    // Jika period diberikan, hanya periode tersebut yang dirapikan.
-    // Ini mencegah penghapusan satu TR di bulan tertentu mengubah nomor bulan lain.
-    if ($periods !== null) {
-        $periods = array_values(array_unique(array_filter(array_map('strval', (array)$periods))));
-        foreach ($periods as $period) {
-            if (!preg_match('/^[IVXLCDM]+\\/\\d{4}$/', $period)) {
-                throw new RuntimeException('Periode TR tidak valid: ' . $period);
-            }
+function deleteUnusedDeliveryInstructionData($db, $diNumber) {
+    if (empty($diNumber)) return;
+
+    $check = $db->prepare("SELECT COUNT(*) FROM activity_details WHERE di_number = ?");
+    $check->execute([$diNumber]);
+
+    if ((int)$check->fetchColumn() > 0) return;
+
+    $tableColumns = [
+        'di_approval_history' => 'di_number',
+        'di_units' => 'di_number',
+        'di_accessories' => 'di_number',
+        'di_logistics' => 'di_number',
+        'di_product_supports' => 'di_number',
+        'detail_delivery_instructions' => 'di_number'
+    ];
+
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("DELETE FROM `{$table}` WHERE `{$column}` = ?");
+        $stmt->execute([$diNumber]);
+    }
+}
+
+// ============================================
+// HELPER: RENUMBER TR SELURUH DATABASE
+// ============================================
+function renumberAllTransactionRequestsFromActivities($db, $period = null) {
+    // Hanya renumber periode yang memang berubah. Jangan menyentuh TR bulan lain.
+    if ($period !== null) {
+        $period = trim((string)$period);
+        if (!preg_match('/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)\/\d{4}$/', $period)) {
+            throw new RuntimeException('Periode TR tidak valid untuk renumber: ' . $period);
         }
-        if (!$periods) return 0;
     }
 
-    $where = "ad.tr_number IS NOT NULL AND TRIM(ad.tr_number) <> ''";
+    $sql = "
+        SELECT
+            tr_number AS old_tr,
+            MIN(created_at) AS first_created_at
+        FROM activity_details
+        WHERE tr_number IS NOT NULL
+          AND TRIM(tr_number) <> ''
+    ";
     $params = [];
 
-    if ($periods !== null) {
-        $placeholders = implode(',', array_fill(0, count($periods), '?'));
-        $where .= " AND SUBSTRING_INDEX(ad.tr_number, '/GET-TR/JKT/', -1) IN ($placeholders)";
-        $params = $periods;
+    if ($period !== null) {
+        $sql .= " AND tr_number LIKE ? ";
+        $params[] = '%/GET-TR/JKT/' . $period;
     }
 
-    $stmt = $db->prepare("\n        SELECT\n            ad.tr_number AS old_tr,\n            SUBSTRING_INDEX(ad.tr_number, '/GET-TR/JKT/', -1) AS period,\n            MIN(ad.created_at) AS first_created_at\n        FROM activity_details ad\n        WHERE {$where}\n        GROUP BY ad.tr_number\n        ORDER BY period ASC, first_created_at ASC, old_tr ASC\n    ");
+    $sql .= " GROUP BY tr_number ORDER BY first_created_at ASC, old_tr ASC";
+
+    $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     if (!$rows) return 0;
 
+    if ($period === null) {
+        foreach ($rows as &$row) {
+            if (preg_match('#^\d{4}/GET-TR/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($row['old_tr']), $m)) {
+                $row['period'] = $m[1];
+            } else {
+                throw new RuntimeException('Periode TR tidak dapat ditentukan untuk: ' . $row['old_tr']);
+            }
+        }
+        unset($row);
+        usort($rows, static function ($a, $b) {
+            return [$a['period'], $a['first_created_at'], $a['old_tr']] <=>
+                   [$b['period'], $b['first_created_at'], $b['old_tr']];
+        });
+    } else {
+        foreach ($rows as &$row) $row['period'] = $period;
+        unset($row);
+    }
+
     $mapping = [];
-    $sequenceByPeriod = [];
-
+    $sequence = 0;
     foreach ($rows as $row) {
-        $period = $row['period'];
-        if (!preg_match('/^[IVXLCDM]+\\/\\d{4}$/', $period)) {
-            throw new RuntimeException('Ditemukan TR dengan periode tidak valid: ' . $period);
-        }
-
-        if (!isset($sequenceByPeriod[$period])) {
-            $sequenceByPeriod[$period] = 1;
-        }
-
-        $newTr = str_pad((string)$sequenceByPeriod[$period], 4, '0', STR_PAD_LEFT)
-            . '/GET-TR/JKT/' . $period;
-
-        if (strlen($newTr) > 50) {
-            throw new RuntimeException('TR baru melebihi batas VARCHAR(50): ' . $newTr);
-        }
-
-        $mapping[$row['old_tr']] = $newTr;
-        $sequenceByPeriod[$period]++;
+        $sequence++;
+        $mapping[$row['old_tr']] =
+            str_pad((string)$sequence, 4, '0', STR_PAD_LEFT) .
+            '/GET-TR/JKT/' . $row['period'];
     }
 
     $tableColumns = [
@@ -226,183 +308,643 @@ function renumberAllTransactionRequests($db, $periods = null) {
         'tr_term_of_payments' => 'trf_number'
     ];
 
-    // Temporary key sengaja dibuat < 50 karakter.
-    // Format: __TRTMP_ + 16 hex + _ + 24 hex = 49 karakter.
-    $token = '__TRTMP_' . bin2hex(random_bytes(8)) . '_';
-    if (strlen($token) + 24 > 50) {
-        throw new RuntimeException('Temporary TR key melebihi batas database.');
-    }
-
+    // Temporary key dijamin <= 50 karakter.
+    $token = '__TRTMP_' . bin2hex(random_bytes(8));
     $temporaryMap = [];
 
-    // Tahap 1: nomor lama -> nomor sementara.
+    // Tahap 1: semua old number -> temporary number.
     foreach ($mapping as $oldTr => $newTr) {
-        $temporaryTr = $token . substr(hash('sha256', $oldTr), 0, 24);
+        $temporaryTr = $token . '_' . substr(hash('sha256', $oldTr), 0, 24);
         if (strlen($temporaryTr) > 50) {
-            throw new RuntimeException('Temporary TR value melebihi VARCHAR(50).');
+            throw new RuntimeException('Temporary TR number melebihi 50 karakter.');
         }
         $temporaryMap[$oldTr] = $temporaryTr;
 
         foreach ($tableColumns as $table => $column) {
-            $stmt = $db->prepare(
-                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
-            );
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
             $stmt->execute([$temporaryTr, $oldTr]);
         }
     }
 
-    // Tahap 2: nomor sementara -> nomor final.
+    // Tahap 2: temporary number -> nomor final.
     foreach ($mapping as $oldTr => $newTr) {
         $temporaryTr = $temporaryMap[$oldTr];
-
         foreach ($tableColumns as $table => $column) {
-            $stmt = $db->prepare(
-                "UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?"
-            );
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
             $stmt->execute([$newTr, $temporaryTr]);
         }
     }
 
-    // SAFETY CHECK: tidak boleh ada temporary marker yang tertinggal.
-    // Jika ada, lempar exception agar transaction di caller melakukan rollback.
+    // Safety check: tidak boleh ada temporary TR yang tertinggal.
     foreach ($tableColumns as $table => $column) {
-        $stmt = $db->prepare(
-            "SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` LIKE ?"
-        );
+        $stmt = $db->prepare("SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` LIKE ?");
         $stmt->execute([$token . '%']);
         if ((int)$stmt->fetchColumn() > 0) {
-            throw new RuntimeException(
-                "Renumber TR gagal: temporary marker masih tersisa di {$table}. Perubahan dibatalkan."
-            );
+            throw new RuntimeException('Temporary TR masih tersisa di tabel ' . $table . '. Transaction dibatalkan.');
         }
-    }
-
-    // Audit mapping bersifat opsional.
-    try {
-        if ($periods === null) {
-            $db->exec("DELETE FROM tr_renumber_map");
-        }
-
-        $insertMap = $db->prepare(
-            "INSERT INTO tr_renumber_map (old_tr, new_tr) VALUES (?, ?)"
-        );
-        foreach ($mapping as $oldTr => $newTr) {
-            $insertMap->execute([$oldTr, $newTr]);
-        }
-    } catch (PDOException $e) {
-        // Tabel audit tidak wajib tersedia.
     }
 
     return count($mapping);
 }
 
 // ============================================
-// HAPUS SALES ACTIVITY + DETAIL + TR TERKAIT
-// LALU RENUMBER TR SECARA OTOMATIS
+// HELPER: RENUMBER DI SELURUH DATABASE
 // ============================================
-function deleteSalesActivityAndRelatedData($db, $salesActivityId) {
-    $db->beginTransaction();
-
-    try {
-        // Pastikan activity ada dan lock row selama proses.
-        $stmt = $db->prepare("
-            SELECT id
-            FROM sales_activities
-            WHERE id = ?
-            FOR UPDATE
-        ");
-        $stmt->execute([$salesActivityId]);
-
-        if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
-            throw new RuntimeException('Sales Activity tidak ditemukan.');
+function renumberAllDeliveryInstructions($db, $period = null) {
+    if ($period !== null) {
+        $period = trim((string)$period);
+        if (!preg_match('/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)\/\d{4}$/', $period)) {
+            throw new RuntimeException('Periode DI tidak valid untuk renumber: ' . $period);
         }
+    }
 
-        // Simpan daftar TR sebelum detail dihapus.
-        $stmt = $db->prepare("
-            SELECT DISTINCT tr_number
-            FROM activity_details
-            WHERE sales_activity_id = ?
-              AND tr_number IS NOT NULL
-              AND TRIM(tr_number) <> ''
-        ");
-        $stmt->execute([$salesActivityId]);
-        $trNumbers = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $sql = "
+        SELECT
+            di_number AS old_di,
+            MIN(created_at) AS first_created_at
+        FROM activity_details
+        WHERE di_number IS NOT NULL
+          AND TRIM(di_number) <> ''
+    ";
+    $params = [];
+    if ($period !== null) {
+        $sql .= " AND di_number LIKE ? ";
+        $params[] = '%/GET-DI/JKT/' . $period;
+    }
+    $sql .= " GROUP BY di_number ORDER BY first_created_at ASC, old_di ASC";
 
-        // Hitung detail untuk feedback.
-        $stmt = $db->prepare("
-            SELECT COUNT(*)
-            FROM activity_details
-            WHERE sales_activity_id = ?
-        ");
-        $stmt->execute([$salesActivityId]);
-        $detailCount = (int)$stmt->fetchColumn();
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!$rows) return 0;
 
-        // 1. Hapus detail.
-        $stmt = $db->prepare("
-            DELETE FROM activity_details
-            WHERE sales_activity_id = ?
-        ");
-        $stmt->execute([$salesActivityId]);
+    if ($period === null) {
+        foreach ($rows as &$row) {
+            if (preg_match('#^\d{4}/GET-DI/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($row['old_di']), $m)) {
+                $row['period'] = $m[1];
+            } else {
+                throw new RuntimeException('Periode DI tidak dapat ditentukan untuk: ' . $row['old_di']);
+            }
+        }
+        unset($row);
+        usort($rows, static function ($a, $b) {
+            return [$a['period'], $a['first_created_at'], $a['old_di']] <=>
+                   [$b['period'], $b['first_created_at'], $b['old_di']];
+        });
+    } else {
+        foreach ($rows as &$row) $row['period'] = $period;
+        unset($row);
+    }
 
-        // 2. Hapus activity induk.
-        $stmt = $db->prepare("
-            DELETE FROM sales_activities
-            WHERE id = ?
-        ");
-        $stmt->execute([$salesActivityId]);
+    $mapping = [];
+    $sequence = 0;
+    foreach ($rows as $row) {
+        $sequence++;
+        $mapping[$row['old_di']] =
+            str_pad((string)$sequence, 4, '0', STR_PAD_LEFT) .
+            '/GET-DI/JKT/' . $row['period'];
+    }
 
-        // 3. Hapus TR yang sudah tidak digunakan activity lain.
-        foreach ($trNumbers as $trNumber) {
-            $check = $db->prepare("
-                SELECT COUNT(*)
-                FROM activity_details
-                WHERE tr_number = ?
+    $tableColumns = [
+        'activity_details' => 'di_number',
+        'detail_delivery_instructions' => 'di_number',
+        'di_approval_history' => 'di_number',
+        'di_units' => 'di_number',
+        'di_accessories' => 'di_number',
+        'di_logistics' => 'di_number',
+        'di_product_supports' => 'di_number'
+    ];
+
+    $token = '__DITMP_' . bin2hex(random_bytes(8));
+    $temporaryMap = [];
+
+    foreach ($mapping as $oldDi => $newDi) {
+        $temporaryDi = $token . '_' . substr(hash('sha256', $oldDi), 0, 24);
+        if (strlen($temporaryDi) > 50) {
+            throw new RuntimeException('Temporary DI number melebihi 50 karakter.');
+        }
+        $temporaryMap[$oldDi] = $temporaryDi;
+
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
+            $stmt->execute([$temporaryDi, $oldDi]);
+        }
+    }
+
+    foreach ($mapping as $oldDi => $newDi) {
+        $temporaryDi = $temporaryMap[$oldDi];
+        foreach ($tableColumns as $table => $column) {
+            $stmt = $db->prepare("UPDATE `{$table}` SET `{$column}` = ? WHERE `{$column}` = ?");
+            $stmt->execute([$newDi, $temporaryDi]);
+        }
+    }
+
+    // Safety check: tidak boleh ada temporary DI yang tertinggal.
+    foreach ($tableColumns as $table => $column) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` LIKE ?");
+        $stmt->execute([$token . '%']);
+        if ((int)$stmt->fetchColumn() > 0) {
+            throw new RuntimeException('Temporary DI masih tersisa di tabel ' . $table . '. Transaction dibatalkan.');
+        }
+    }
+
+    return count($mapping);
+}
+
+// ============================================
+// PROSES TAMBAH DETAIL AKTIVITAS
+// ============================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    
+    if ($action === 'add') {
+        // Tambah Aktivitas hanya boleh untuk:
+        // Direktur Utama, Direktur Sales, Direktur Operasional,
+        // IT Support, atau Sales yang merupakan pemilik Activity Number ini.
+        if (!$canAddActivity) {
+            setFlash('Anda tidak memiliki akses untuk menambah aktivitas pada Activity Number ini!', 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        }
+        
+        $subject = bersihkan($_POST['subject']);
+        $jenis_tugas = bersihkan($_POST['jenis_tugas']);
+        $deskripsi = trim($_POST['deskripsi']);
+        $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : NULL;
+        
+        $errors = [];
+        if (empty($subject)) $errors[] = 'Subject wajib diisi!';
+        if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
+        if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
+        if (strlen($deskripsi) < 50) $errors[] = 'Deskripsi minimal 50 karakter!';
+        
+        // ============================================================
+        // SYARAT KONTRAK & DELIVERY ORDER
+        // ============================================================
+        // Kontrak / Delivery Order hanya boleh dibuat jika sebelumnya
+        // sudah ada Negosiasi yang:
+        // 1. memiliki TR Number, dan
+        // 2. Customer Deal = yes (Deal).
+        // Negosiasi tanpa TR atau masih Hot Prospect tidak boleh lanjut.
+        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'Delivery Order') {
+            $eligibleStmt = $db->prepare("
+                SELECT ad.id, ad.tr_number, dtr.customer_deal
+                FROM activity_details ad
+                INNER JOIN detail_transaction_requests dtr
+                    ON dtr.trf_number = ad.tr_number
+                WHERE ad.sales_activity_id = ?
+                  AND ad.jenis_tugas = 'Negosiasi'
+                  AND ad.tr_number IS NOT NULL
+                  AND TRIM(ad.tr_number) <> ''
+                  AND LOWER(TRIM(COALESCE(dtr.customer_deal, ''))) = 'yes'
+                ORDER BY ad.id DESC, dtr.id DESC
+                LIMIT 1
             ");
-            $check->execute([$trNumber]);
+            $eligibleStmt->execute([$leadsId]);
+            $eligibleNegosiasi = $eligibleStmt->fetch(PDO::FETCH_ASSOC);
 
-            if ((int)$check->fetchColumn() === 0) {
-                deleteTransactionRequestData($db, $trNumber);
+            if (!$eligibleNegosiasi) {
+                $errors[] = $jenis_tugas === 'Kontrak'
+                    ? 'Kontrak hanya dapat dibuat jika sudah ada Negosiasi dengan TR Number dan Hasil Deal.'
+                    : 'Delivery Order hanya dapat dibuat jika sudah ada Negosiasi dengan TR Number dan Hasil Deal.';
             }
         }
 
-        // 4. Renumber hanya periode TR yang terdampak.
-        $trPeriods = [];
-        foreach ($trNumbers as $trNumber) {
-            if (preg_match('#^[0-9]{4}/GET-TR/JKT/([IVXLCDM]+/[0-9]{4})$#', trim($trNumber), $m)) {
-                $trPeriods[] = $m[1];
+        // Negosiasi baru tidak membuat TR Number baru jika sudah ada TR Number dari Negosiasi sebelumnya.
+        // Jika sudah ada TR Number, aktivitas Negosiasi baru memakai TR Number lama.
+        // Jika belum ada TR Number, nilainya tetap NULL dan baru bisa dibuat saat Complete.
+        $tr_number = NULL;
+        
+        if ($jenis_tugas === 'Negosiasi') {
+            $stmt = $db->prepare("SELECT tr_number FROM activity_details
+                                  WHERE sales_activity_id = ?
+                                    AND jenis_tugas = 'Negosiasi'
+                                    AND tr_number IS NOT NULL
+                                    AND TRIM(tr_number) <> ''
+                                  ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$leadsId]);
+            $tr_number = $stmt->fetchColumn() ?: NULL;
+        }
+        
+        // Untuk Kontrak, Delivery Order, dan After Sales ambil TR Number dari Negosiasi sebelumnya
+        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'Delivery Order' || $jenis_tugas === 'After Sales') {
+            $stmt = $db->prepare("SELECT tr_number FROM activity_details 
+                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+                                  ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$leadsId]);
+            $tr_negosiasi = $stmt->fetchColumn();
+            if ($tr_negosiasi) {
+                $tr_number = $tr_negosiasi;
             }
         }
-        $trPeriods = array_values(array_unique($trPeriods));
+        
+        // Delivery Order sekarang langsung mendapatkan DI Number saat aktivitas dibuat
+        // (status masih In Progress), jika Customer Deal pada TR = Yes.
+        $di_number = NULL;
 
-        if ($trPeriods) {
-            renumberAllTransactionRequests($db, $trPeriods);
+        if ($jenis_tugas === 'Delivery Order') {
+            if (empty($tr_number)) {
+                $errors[] = 'TR Number untuk Delivery Order tidak ditemukan!';
+            } else {
+                $dealStmt = $db->prepare("SELECT dtr.customer_deal
+                                           FROM detail_transaction_requests dtr
+                                           WHERE dtr.trf_number = ?
+                                             AND dtr.customer_deal IN ('yes', 'no', 'Yes', 'No')
+                                           ORDER BY dtr.id DESC
+                                           LIMIT 1");
+                $dealStmt->execute([$tr_number]);
+                $dealData = $dealStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$dealData) {
+                    $errors[] = 'Customer Deal pada Detail TR belum diisi untuk TR Number ini.';
+                } elseif (strtolower(trim((string)$dealData['customer_deal'])) === 'yes') {
+                    $di_number = generateDINumber($db);
+                }
+            }
         }
 
-        // 5. Renumber Activity Number.
-        renumberAllActivityNumbers($db);
+        if (empty($errors)) {
+            $db->beginTransaction();
+            
+            try {
+                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, di_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'in_progress')");
+                $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number, $di_number]);
 
-        // Semua perubahan baru dipermanenkan di sini.
-        $db->commit();
+                // Untuk Delivery Order, DI Number dan record DI langsung dibuat
+                // saat aktivitas masih In Progress.
+                if ($jenis_tugas === 'Delivery Order' && !empty($di_number)) {
+                    $activityDetailId = (int)$db->lastInsertId();
 
-        return [
-            'success' => true,
-            'tr_count' => count($trNumbers),
-            'detail_count' => $detailCount
-        ];
+                    $checkDI = $db->prepare("SELECT id FROM detail_delivery_instructions WHERE di_number = ?");
+                    $checkDI->execute([$di_number]);
+                    $existingDI = $checkDI->fetch();
 
-    } catch (Throwable $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
+                    if (!$existingDI) {
+                        $insertDI = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, no_so, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, NULL, 'pending', 1, NOW(), NOW())");
+                        $insertDI->execute([$di_number, $leadsId, $activityDetailId]);
+                    }
+                }
+                
+                // Jika Negosiasi di-Complete dengan Request TR Number = No,
+                // otomatis tandai Sales Activity sebagai Lost Deal.
+                if ($detail['jenis_tugas'] === 'Negosiasi' && $request_tr_number === 'no') {
+                    $updateProspek = $db->prepare("UPDATE sales_activities SET jenis_prospek = 'Lost Deal' WHERE id = ?");
+                    $updateProspek->execute([(int)$detail['sales_activity_id']]);
+                }
+                
+                // AUTO CREATE DETAIL TRANSACTION REQUEST
+                if (!empty($tr_number)) {
+                    $checkTR = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+                    $checkTR->execute([$tr_number]);
+                    $existingTR = $checkTR->fetch();
+                    
+                    if (!$existingTR) {
+                        $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                        $insertTR->execute([$tr_number]);
+                    }
+                }
+                
+                $db->commit();
+                
+                setFlash('Aktivitas berhasil ditambahkan!', 'success');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            } catch (Exception $e) {
+                $db->rollBack();
+                setFlash('Gagal menyimpan data: ' . $e->getMessage(), 'danger');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            }
+        } else {
+            setFlash(implode('<br>', $errors), 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
-        throw $e;
+    }
+    
+    if ($action === 'complete') {
+        $detail_id = (int)$_POST['detail_id'];
+        
+        // Complete HANYA boleh dilakukan oleh Sales yang memiliki
+        // Sales Activity / Detail Aktivitas tersebut.
+        $checkOwner = $db->prepare("
+            SELECT sa.sales_id
+            FROM activity_details ad
+            JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+            WHERE ad.id = ?
+              AND ad.sales_activity_id = ?
+        ");
+        $checkOwner->execute([$detail_id, $leadsId]);
+        $ownerData = $checkOwner->fetch();
+
+        if (
+            !$isActivityOwnerSales
+            || !$ownerData
+            || (int)$ownerData['sales_id'] !== $userId
+        ) {
+            setFlash('Hanya Sales yang memiliki Detail Aktivitas ini yang dapat melakukan Complete!', 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        }
+        
+        $result = trim($_POST['result'] ?? '');
+        $di_number = NULL;
+        $tr_number = NULL;
+        $customer_deal = NULL;
+        $customer_deal_keterangan = NULL;
+        $request_tr_number = strtolower(trim((string)($_POST['request_tr_number'] ?? '')));
+        
+        $errors = [];
+        if (strlen($result) < 50) $errors[] = 'Result minimal 50 karakter!';
+        
+        // Ambil data detail untuk cek jenis_tugas
+        $stmt = $db->prepare("SELECT * FROM activity_details WHERE id = ?");
+        $stmt->execute([$detail_id]);
+        $detail = $stmt->fetch();
+        
+        if (!$detail) {
+            $errors[] = 'Data detail tidak ditemukan!';
+        }
+        
+        // Negosiasi: pertahankan TR Number lama jika aktivitas ini sudah memiliki TR Number.
+        // Request TR Number hanya diperlukan jika Negosiasi belum memiliki TR Number.
+        if ($detail && $detail['jenis_tugas'] === 'Negosiasi') {
+            $existingTrNumber = trim((string)($detail['tr_number'] ?? ''));
+            
+            if ($existingTrNumber !== '') {
+                // Sudah ada TR Number: jangan generate TR baru dan gunakan nomor lama.
+                $tr_number = $existingTrNumber;
+            } else {
+                if (!in_array($request_tr_number, ['yes', 'no'], true)) {
+                    $errors[] = 'Silakan pilih Request TR Number: Yes atau No.';
+                } elseif ($request_tr_number === 'yes') {
+                    $tr_number = generateTRNumber($db);
+                } else {
+                    // Request = No: tetap NULL, jangan membuat TR.
+                    $tr_number = NULL;
+                }
+            }
+        }
+        
+        // Delivery Order: Customer Deal diambil otomatis dari detail_transaction_requests
+        // berdasarkan TR Number + Activity Number (sales_activity_id).
+        if ($detail && $detail['jenis_tugas'] === 'Delivery Order') {
+            $tr_number = trim((string)($detail['tr_number'] ?? ''));
+
+            if ($tr_number === '') {
+                $errors[] = 'TR Number untuk Delivery Order tidak ditemukan!';
+            } else {
+                $dealStmt = $db->prepare("SELECT dtr.customer_deal, dtr.customer_deal_keterangan
+                                           FROM detail_transaction_requests dtr
+                                           INNER JOIN activity_details ad
+                                               ON ad.tr_number = dtr.trf_number
+                                           WHERE dtr.trf_number = ?
+                                             AND ad.sales_activity_id = ?
+                                             AND dtr.customer_deal IN ('yes', 'no', 'Yes', 'No')
+                                           ORDER BY dtr.id DESC, ad.id DESC
+                                           LIMIT 1");
+                $dealStmt->execute([$tr_number, (int)$detail['sales_activity_id']]);
+                $dealData = $dealStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$dealData) {
+                    $errors[] = 'Customer Deal pada Detail TR belum diisi untuk TR Number dan Activity Number ini.';
+                } else {
+                    $customer_deal = strtolower(trim((string)$dealData['customer_deal']));
+                    $customer_deal_keterangan = trim((string)($dealData['customer_deal_keterangan'] ?? ''));
+
+                    if ($customer_deal === 'yes') {
+                        // Jika DI sudah dibuat saat Delivery Order ditambahkan,
+                        // gunakan DI Number yang sama saat Complete.
+                        $existingDiNumber = trim((string)($detail['di_number'] ?? ''));
+                        $di_number = $existingDiNumber !== '' ? $existingDiNumber : generateDINumber($db);
+                    }
+                }
+            }
+        }
+        
+        // Untuk Kontrak dan After Sales ambil TR & DI Number dari Delivery Order sebelumnya
+        if ($detail && ($detail['jenis_tugas'] === 'Kontrak' || $detail['jenis_tugas'] === 'After Sales')) {
+            $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details 
+                                  WHERE sales_activity_id = ? AND jenis_tugas = 'Delivery Order' 
+                                  ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$detail['sales_activity_id']]);
+            $doData = $stmt->fetch();
+            
+            if ($doData) {
+                $tr_number = $doData['tr_number'];
+                $di_number = $doData['di_number'];
+            } else {
+                // Fallback: cari dari Negosiasi
+                $stmt = $db->prepare("SELECT tr_number, di_number FROM activity_details 
+                                      WHERE sales_activity_id = ? AND jenis_tugas = 'Negosiasi' 
+                                      ORDER BY id DESC LIMIT 1");
+                $stmt->execute([$detail['sales_activity_id']]);
+                $negosiasiData = $stmt->fetch();
+                
+                if ($negosiasiData) {
+                    $tr_number = $negosiasiData['tr_number'];
+                    $di_number = $negosiasiData['di_number'];
+                }
+            }
+        }
+        
+        // Upload file (multiple)
+        $attachment_files = [];
+        if (!empty($_FILES['attachment_file']['name']) && is_array($_FILES['attachment_file']['name'])) {
+            $target_dir = "uploads/attachments/";
+            if (!file_exists($target_dir)) {
+                mkdir($target_dir, 0777, true);
+            }
+            
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
+            $max_file_size = 5 * 1024 * 1024; // 5MB
+            
+            foreach ($_FILES['attachment_file']['name'] as $key => $filename) {
+                if ($_FILES['attachment_file']['error'][$key] === UPLOAD_ERR_OK) {
+                    $file_extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                    $file_size = $_FILES['attachment_file']['size'][$key];
+                    
+                    if (!in_array($file_extension, $allowed_extensions)) {
+                        $errors[] = 'Format file ' . $filename . ' tidak didukung!';
+                    } elseif ($file_size > $max_file_size) {
+                        $errors[] = 'File ' . $filename . ' melebihi ukuran maksimal 5MB!';
+                    } else {
+                        $new_filename = $target_dir . time() . '_' . uniqid() . '_' . $key . '.' . $file_extension;
+                        if (move_uploaded_file($_FILES['attachment_file']['tmp_name'][$key], $new_filename)) {
+                            $attachment_files[] = $new_filename;
+                        } else {
+                            $errors[] = 'Gagal mengupload file ' . $filename . '!';
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (empty($attachment_files)) {
+            $errors[] = 'Attachment File wajib diupload minimal 1 file!';
+        }
+        
+        $attachment_file = !empty($attachment_files) ? implode(',', $attachment_files) : NULL;
+        
+        if (empty($errors)) {
+            $db->beginTransaction();
+            
+            try {
+                // Update activity_details. Customer Deal tidak lagi disimpan di sini;
+                // sumber utamanya adalah detail_transaction_requests.
+                $stmt = $db->prepare("UPDATE activity_details SET result = ?, attachment_file = ?, di_number = ?, tr_number = COALESCE(?, tr_number), status = 'completed', completed_at = NOW() WHERE id = ?");
+                $stmt->execute([$result, $attachment_file, $di_number, $tr_number, $detail_id]);
+                
+                // AUTO CREATE DETAIL DELIVERY INSTRUCTION
+                if (!empty($di_number)) {
+                    $salesActivityId = $detail['sales_activity_id'];
+                    
+                    $checkDI = $db->prepare("SELECT id FROM detail_delivery_instructions WHERE di_number = ?");
+                    $checkDI->execute([$di_number]);
+                    $existingDI = $checkDI->fetch();
+                    
+                    if (!$existingDI) {
+                        $insertDI = $db->prepare("INSERT INTO detail_delivery_instructions (di_number, sales_activity_id, activity_detail_id, no_so, status, current_approval_order, created_at, updated_at) VALUES (?, ?, ?, NULL, 'pending', 1, NOW(), NOW())");
+                        $insertDI->execute([$di_number, $salesActivityId, $detail_id]);
+                    } else {
+                        $updateDI = $db->prepare("UPDATE detail_delivery_instructions SET activity_detail_id = ?, sales_activity_id = ?, updated_at = NOW() WHERE di_number = ?");
+                        $updateDI->execute([$detail_id, $salesActivityId, $di_number]);
+                    }
+                }
+                
+                // AUTO CREATE DETAIL TRANSACTION REQUEST
+                if (!empty($tr_number)) {
+                    $salesActivityId = $detail['sales_activity_id'];
+                    
+                    $checkTR = $db->prepare("SELECT id FROM detail_transaction_requests WHERE trf_number = ?");
+                    $checkTR->execute([$tr_number]);
+                    $existingTR = $checkTR->fetch();
+                    
+                    if (!$existingTR) {
+                        $insertTR = $db->prepare("INSERT INTO detail_transaction_requests (trf_number, status, created_at, updated_at) VALUES (?, 'pending', NOW(), NOW())");
+                        $insertTR->execute([$tr_number]);
+                    }
+                }
+                
+                $db->commit();
+                
+                setFlash('Aktivitas berhasil diselesaikan!', 'success');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            } catch (Exception $e) {
+                $db->rollBack();
+                setFlash('Gagal menyimpan data: ' . $e->getMessage(), 'danger');
+                redirect('detailaktivitas.php?leads_id=' . $leadsId);
+            }
+        } else {
+            setFlash(implode('<br>', $errors), 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        }
+    }
+    
+    if ($action === 'delete') {
+        // Hapus Detail Aktivitas hanya boleh untuk:
+        // Direktur Utama, Direktur Operasional, Direktur Sales, IT Support.
+        if (!$canDeleteActivity) {
+            setFlash('Anda tidak memiliki akses untuk menghapus Detail Aktivitas!', 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        }
+
+        $detail_id = (int)($_POST['detail_id'] ?? 0);
+
+        if ($detail_id <= 0) {
+            setFlash('Detail aktivitas tidak valid!', 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        }
+
+        $db->beginTransaction();
+
+        try {
+            // Lock dan pastikan detail benar-benar milik leads ini.
+            $stmt = $db->prepare("
+                SELECT ad.*
+                FROM activity_details ad
+                WHERE ad.id = ?
+                  AND ad.sales_activity_id = ?
+                FOR UPDATE
+            ");
+            $stmt->execute([$detail_id, $leadsId]);
+            $detailToDelete = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$detailToDelete) {
+                throw new RuntimeException('Detail aktivitas tidak ditemukan.');
+            }
+
+            $trNumber = $detailToDelete['tr_number'] ?? null;
+            $diNumber = $detailToDelete['di_number'] ?? null;
+
+            $attachmentFiles = [];
+            if (!empty($detailToDelete['attachment_file'])) {
+                $attachmentFiles = array_filter(
+                    array_map('trim', explode(',', $detailToDelete['attachment_file']))
+                );
+            }
+
+            // Hapus detail aktivitas.
+            $stmt = $db->prepare("
+                DELETE FROM activity_details
+                WHERE id = ?
+                  AND sales_activity_id = ?
+            ");
+            $stmt->execute([$detail_id, $leadsId]);
+
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('Detail aktivitas gagal dihapus.');
+            }
+
+            // Hapus DI/TR hanya bila sudah tidak direferensikan detail lain.
+            deleteUnusedDeliveryInstructionData($db, $diNumber);
+            deleteUnusedTransactionRequestData($db, $trNumber);
+
+            // Rapikan hanya periode yang terdampak, dalam transaction yang sama.
+            $trPeriod = null;
+            if (!empty($trNumber) && preg_match('#^\d{4}/GET-TR/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($trNumber), $m)) {
+                $trPeriod = $m[1] . '/' . substr(trim($trNumber), -4);
+            }
+
+            $diPeriod = null;
+            if (!empty($diNumber) && preg_match('#^\d{4}/GET-DI/JKT/(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)/\d{4}$#', trim($diNumber), $m)) {
+                $diPeriod = $m[1] . '/' . substr(trim($diNumber), -4);
+            }
+
+            if ($trPeriod !== null) {
+                renumberAllTransactionRequestsFromActivities($db, $trPeriod);
+            }
+            if ($diPeriod !== null) {
+                renumberAllDeliveryInstructions($db, $diPeriod);
+            }
+
+            $db->commit();
+
+            // File fisik dihapus setelah commit.
+            foreach ($attachmentFiles as $attachmentPath) {
+                $safePath = str_replace(['..', '\\'], '', $attachmentPath);
+                if (
+                    strpos($safePath, 'uploads/attachments/') === 0 &&
+                    is_file($safePath)
+                ) {
+                    @unlink($safePath);
+                }
+            }
+
+            setFlash(
+                'Aktivitas berhasil dihapus dan nomor TR/DI telah dirapikan!',
+                'success'
+            );
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            setFlash('Gagal menghapus data: ' . $e->getMessage(), 'danger');
+            redirect('detailaktivitas.php?leads_id=' . $leadsId);
+        }
     }
 }
 
 // ============================================
-// AMBIL CUSTOMER DEAL DARI DETAIL TR
-// Sumber data: detail_transaction_requests
-// Pencocokan wajib berdasarkan TR Number + Activity Number
-// (sales_activity_id) agar tidak tertukar antar activity.
+// HELPER: AMBIL CUSTOMER DEAL DARI DETAIL TR
 // ============================================
 function getCustomerDealFromTR($db, $trNumber, $salesActivityId) {
     $trNumber = trim((string)$trNumber);
@@ -412,18 +954,16 @@ function getCustomerDealFromTR($db, $trNumber, $salesActivityId) {
         return null;
     }
 
-    $stmt = $db->prepare("
-        SELECT dtr.customer_deal, dtr.customer_deal_keterangan
-        FROM detail_transaction_requests dtr
-        INNER JOIN activity_details ad
-            ON ad.tr_number = dtr.trf_number
-        WHERE dtr.trf_number = ?
-          AND ad.sales_activity_id = ?
-          AND dtr.customer_deal IS NOT NULL
-          AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
-        ORDER BY dtr.id DESC, ad.id DESC
-        LIMIT 1
-    ");
+    // activity_details menjadi bridge untuk memastikan TR memang milik Activity Number ini.
+    $stmt = $db->prepare("SELECT dtr.customer_deal, dtr.customer_deal_keterangan
+                          FROM detail_transaction_requests dtr
+                          INNER JOIN activity_details ad
+                              ON ad.tr_number = dtr.trf_number
+                          WHERE dtr.trf_number = ?
+                            AND ad.sales_activity_id = ?
+                            AND dtr.customer_deal IN ('yes', 'no', 'Yes', 'No')
+                          ORDER BY dtr.id DESC, ad.id DESC
+                          LIMIT 1");
     $stmt->execute([$trNumber, $salesActivityId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -432,7 +972,6 @@ function getCustomerDealFromTR($db, $trNumber, $salesActivityId) {
     }
 
     $deal = strtolower(trim((string)$row['customer_deal']));
-
     return [
         'customer_deal' => $deal === 'yes' ? 'yes' : 'no',
         'customer_deal_label' => $deal === 'yes' ? 'Deal' : 'No',
@@ -441,731 +980,151 @@ function getCustomerDealFromTR($db, $trNumber, $salesActivityId) {
 }
 
 // ============================================
-// FUNGSI MENENTUKAN JENIS PROSPEK
+// AMBIL DATA DETAIL AKTIVITAS
 // ============================================
-function getJenisProspek($db, $salesActivityId) {
-    $stmt = $db->prepare("SELECT ad.* FROM activity_details ad 
-                          WHERE ad.sales_activity_id = ? 
-                          ORDER BY ad.id DESC LIMIT 1");
-    $stmt->execute([$salesActivityId]);
-    $lastActivity = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$lastActivity) {
-        return null;
-    }
-    
-    $jenis_tugas = $lastActivity['jenis_tugas'];
+$details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id = ? ORDER BY created_at DESC");
+$details->execute([$leadsId]);
+$detailsList = $details->fetchAll();
 
-    // Negosiasi yang sudah Complete tanpa TR Number berarti
-    // Request TR Number = No. Kondisi ini otomatis menjadi Lost Deal.
-    // TR Number tidak dibuat saat Request = No, sehingga pengecekan
-    // status completed + tr_number kosong menjadi penanda yang aman.
-    if (
-        $jenis_tugas === 'Negosiasi'
-        && ($lastActivity['status'] ?? '') === 'completed'
-        && trim((string)($lastActivity['tr_number'] ?? '')) === ''
-    ) {
-        return 'Lost Deal';
-    }
+// Jika Customer Deal pada Delivery Order = Deal, maka Jenis Prospek
+// Sales Activity ini otomatis menjadi Deal.
+$hasCustomerDeal = false;
+$hasCustomerLostDeal = false;
+foreach ($detailsList as $d) {
+    $trNumberForDeal = trim((string)($d['tr_number'] ?? ''));
+    if ($trNumberForDeal === '') continue;
 
-    // Customer Deal = Deal pada Delivery Order menjadi prioritas.
-    // Jadi Jenis Prospek tetap Deal walaupun ada aktivitas setelah Delivery Order.
-    $stmtDealPriority = $db->prepare("SELECT dtr.customer_deal
-                                      FROM detail_transaction_requests dtr
-                                      INNER JOIN activity_details ad ON ad.tr_number = dtr.trf_number
-                                      WHERE ad.sales_activity_id = ?
-                                            AND dtr.customer_deal IS NOT NULL
-                                        AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
-                                      ORDER BY dtr.id DESC, ad.id DESC
-                                      LIMIT 1");
-    $stmtDealPriority->execute([$salesActivityId]);
-    $priorityDeal = strtolower(trim((string)$stmtDealPriority->fetchColumn()));
+    $stmtDealSync = $db->prepare("SELECT dtr.customer_deal
+                                  FROM detail_transaction_requests dtr
+                                  INNER JOIN activity_details adtr ON adtr.tr_number = dtr.trf_number
+                                  WHERE dtr.trf_number = ?
+                                    AND adtr.sales_activity_id = ?
+                                    AND dtr.customer_deal IS NOT NULL
+                                    AND LOWER(TRIM(dtr.customer_deal)) IN ('yes', 'no')
+                                  ORDER BY dtr.id DESC, adtr.id DESC
+                                  LIMIT 1");
+    $stmtDealSync->execute([$trNumberForDeal, $leadsId]);
+    $dealSync = strtolower(trim((string)$stmtDealSync->fetchColumn()));
 
-    if ($priorityDeal === 'yes') return 'Deal';
-    if ($priorityDeal === 'no') return 'Lost Deal';
-    
-    // Delivery Order:
-    // Jangan lagi membaca activity_details.customer_deal (legacy).
-    // Customer Deal harus berasal dari detail_transaction_requests
-    // yang cocok dengan TR Number dan Activity Number.
-    if ($jenis_tugas === 'Delivery Order') {
-        $dealInfo = getCustomerDealFromTR(
-            $db,
-            $lastActivity['tr_number'] ?? '',
-            $salesActivityId
-        );
-
-        if (!$dealInfo) {
-            return null;
-        }
-
-        if ($dealInfo['customer_deal'] === 'yes') {
-            return 'Deal';
-        }
-
-        if ($dealInfo['customer_deal'] === 'no') {
-            return 'Lost Deal';
-        }
-
-        return null;
+    if ($dealSync === 'yes') {
+        $hasCustomerDeal = true;
+        break;
     }
-    
-    // Negosiasi = Hot Prospect
-    if ($jenis_tugas === 'Negosiasi') {
-        return 'Hot Prospect';
-    }
-    
-    // Kontrak = Hot Prospect
-    if ($jenis_tugas === 'Kontrak') {
-        return 'Hot Prospect';
-    }
-    
-    // Prospecting = Prospect
-    if ($jenis_tugas === 'Prospecting') {
-        return 'Prospect';
-    }
-    
-    // Perkenalan = Suspect
-    if ($jenis_tugas === 'Perkenalan') {
-        return 'Suspect';
-    }
-    
-    // Visit/Meeting = Suspect
-    if ($jenis_tugas === 'Visit/Meeting') {
-        return 'Suspect';
-    }
-    
-    // After Sales:
-    // Jika belum ada Deal/Lost Deal dari Customer Deal sebelumnya,
-    // maka Jenis Prospek menjadi Prospect. Jika sudah ada Deal/Lost Deal,
-    // hasil tersebut sudah dikembalikan oleh priority check di atas.
-    if ($jenis_tugas === 'After Sales') {
-        return 'Prospect';
-    }
-    
-    return null;
+    if ($dealSync === 'no') $hasCustomerLostDeal = true;
 }
 
-// ============================================
-// FUNGSI MENENTUKAN STATUS
-// ============================================
-function getStatusProspek($db, $salesActivityId) {
-    $stmt = $db->prepare("SELECT ad.status FROM activity_details ad 
-                          WHERE ad.sales_activity_id = ? 
-                          ORDER BY ad.id DESC");
-    $stmt->execute([$salesActivityId]);
-    $allStatus = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    
-    if (empty($allStatus)) {
-        return null;
-    }
-    
-    if (in_array('overdue', $allStatus)) {
-        return 'Overdue';
-    }
-    
-    if (in_array('in_progress', $allStatus)) {
-        return 'In Progress';
-    }
-    
-    return 'Completed';
+if ($hasCustomerDeal) {
+    $stmtUpdateProspek = $db->prepare("UPDATE sales_activities SET jenis_prospek = 'Deal' WHERE id = ?");
+    $stmtUpdateProspek->execute([$leadsId]);
+} elseif ($hasCustomerLostDeal) {
+    $stmtUpdateProspek = $db->prepare("UPDATE sales_activities SET jenis_prospek = 'Lost Deal' WHERE id = ?");
+    $stmtUpdateProspek->execute([$leadsId]);
 }
 
-// ============================================
-// FILTER & PAGINATION
-// ============================================
-$userRole = $_SESSION['role'] ?? 'user';
-$userId = (int)($_SESSION['user_id'] ?? 0);
-
-$fullReportRoles = [
-    'direktur_utama',
-    'direktur_operasional',
-    'direktur_sales',
-    'sales_manager',
-    'it_support'
-];
-$canViewAllReport = in_array($userRole, $fullReportRoles, true);
-
-/*
- * Hak melihat Contact Mobile PIC pada Detail Aktivitas:
- * - Direktur Utama
- * - Direktur Operasional
- * - Direktur Sales
- * - IT Support
- * - Sales yang menginput activity tersebut
- *
- * Sales Manager dan role lainnya tidak dapat melihat Contact Mobile.
- */
-$contactMobileViewRoles = [
-    'direktur_utama',
-    'direktur_operasional',
-    'direktur_sales',
-    'it_support'
-];
-$canViewContactMobileByRole = in_array($userRole, $contactMobileViewRoles, true);
-
-$limit = 10;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$offset = ($page - 1) * $limit;
-
-$search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
-$filterMonth = isset($_GET['month']) ? bersihkan($_GET['month']) : '';
-$filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
-$filterJenisProspek = isset($_GET['jenis_prospek']) ? bersihkan($_GET['jenis_prospek']) : '';
-$filterStatus = isset($_GET['status']) ? bersihkan($_GET['status']) : '';
-
-if ($filterMonth !== '' && !preg_match('/^\d{4}-\d{2}$/', $filterMonth)) {
-    $filterMonth = '';
+// Customer Deal ditampilkan berdasarkan Detail TR (TR Number + Activity Number),
+// bukan lagi berdasarkan kolom legacy activity_details.customer_deal.
+$customerDealByDetailId = [];
+foreach ($detailsList as $idx => $d) {
+    $dealInfo = getCustomerDealFromTR($db, $d['tr_number'] ?? '', $leadsId);
+    $detailsList[$idx]['customer_deal_from_tr'] = $dealInfo['customer_deal'] ?? null;
+    $detailsList[$idx]['customer_deal_label_from_tr'] = $dealInfo['customer_deal_label'] ?? null;
+    $detailsList[$idx]['customer_deal_keterangan_from_tr'] = $dealInfo['customer_deal_keterangan'] ?? '';
+    $customerDealByDetailId[(int)$d['id']] = $dealInfo;
 }
 
-if (!$canViewAllReport) {
-    $filterSalesId = $userId;
-}
-
-$where = "WHERE 1=1";
-$params = [];
-
-if (!$canViewAllReport) {
-    $where .= " AND sa.sales_id = ?";
-    $params[] = $userId;
-} elseif ($filterSalesId > 0) {
-    $where .= " AND sa.sales_id = ?";
-    $params[] = $filterSalesId;
-}
-
-if (!empty($search)) {
-    $where .= " AND (sa.leads_number LIKE ? OR a.nama_pt LIKE ? OR a.nama_pic LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%"]);
-}
-
-if (!empty($filterMonth)) {
-    // Gunakan range tanggal agar tidak terjadi konflik collation
-    // antara hasil DATE_FORMAT() dan parameter string dari PHP.
-    $monthStart = $filterMonth . '-01';
-    $monthEnd = date('Y-m-d', strtotime($monthStart . ' +1 month'));
-
-    $where .= " AND sa.created_at >= ? AND sa.created_at < ?";
-    $params[] = $monthStart;
-    $params[] = $monthEnd;
-}
-
-// Filter Jenis Prospek
-if (!empty($filterJenisProspek)) {
-    $where .= " AND sa.jenis_prospek = ?";
-    $params[] = $filterJenisProspek;
-}
-
-// Filter Status
-if (!empty($filterStatus)) {
-    $where .= " AND sa.status = ?";
-    $params[] = $filterStatus;
-}
-
-// ============================================
-// EXPORT TO EXCEL
-// ============================================
-if (isset($_GET['export']) && $_GET['export'] === 'excel') {
-
-    /*
-     * SECURITY / DATA SCOPE EXPORT
-     *
-     * Full report roles:
-     * - direktur_utama
-     * - direktur_operasional
-     * - direktur_sales
-     * - sales_manager
-     * - it_support
-     *
-     * User selain role di atas hanya boleh export
-     * Sales Activity miliknya sendiri berdasarkan
-     * sales_activities.sales_id = session user_id.
-     *
-     * Jangan menggunakan $where / $params dari halaman
-     * secara langsung di sini. Export membangun scope
-     * sendiri agar parameter URL tidak dapat memperluas
-     * akses user non-full-report.
-     */
-
-    $exportWhere = "WHERE 1=1";
-    $exportParams = [];
-
-    // ============================================
-    // SCOPE BERDASARKAN ROLE
-    // ============================================
-    if (!$canViewAllReport) {
-        // User biasa: WAJIB hanya data milik dirinya sendiri.
-        $exportWhere .= " AND sa.sales_id = ?";
-        $exportParams[] = $userId;
-    } elseif ($filterSalesId > 0) {
-        // Full access: boleh memilih Sales tertentu.
-        $exportWhere .= " AND sa.sales_id = ?";
-        $exportParams[] = $filterSalesId;
-    }
-
-    // ============================================
-    // FILTER SEARCH
-    // ============================================
-    if (!empty($search)) {
-        $exportWhere .= " AND (
-            sa.leads_number LIKE ?
-            OR a.nama_pt LIKE ?
-            OR a.nama_pic LIKE ?
-        )";
-
-        $exportParams[] = "%{$search}%";
-        $exportParams[] = "%{$search}%";
-        $exportParams[] = "%{$search}%";
-    }
-
-    // ============================================
-    // FILTER PERIODE
-    // ============================================
-    if (!empty($filterMonth)) {
-        $monthStart = $filterMonth . '-01';
-        $monthEnd = date('Y-m-d', strtotime($monthStart . ' +1 month'));
-
-        $exportWhere .= " AND sa.created_at >= ? AND sa.created_at < ?";
-        $exportParams[] = $monthStart;
-        $exportParams[] = $monthEnd;
-    }
-
-    // ============================================
-    // FILTER JENIS PROSPEK
-    // ============================================
-    if (!empty($filterJenisProspek)) {
-        $exportWhere .= " AND sa.jenis_prospek = ?";
-        $exportParams[] = $filterJenisProspek;
-    }
-
-    // ============================================
-    // FILTER STATUS
-    // ============================================
-    if (!empty($filterStatus)) {
-        $exportWhere .= " AND sa.status = ?";
-        $exportParams[] = $filterStatus;
-    }
-
-    // ============================================
-    // QUERY EXPORT
-    // ============================================
-    $exportSql = "
-        SELECT
-            sa.*,
-            a.nama_pt,
-            a.badan_usaha,
-            a.bidang_usaha,
-            a.nama_pic,
-            a.no_hp_pic,
-            a.email_pic,
-            u.full_name AS sales_name
-        FROM sales_activities sa
-        LEFT JOIN accounts a
-            ON sa.account_id = a.id
-        LEFT JOIN users u
-            ON sa.sales_id = u.id
-        {$exportWhere}
-        ORDER BY sa.created_at DESC
-    ";
-
-    $stmt = $db->prepare($exportSql);
-    $stmt->execute($exportParams);
-    $exportActivities = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // ============================================
-    // HEADER FILE EXCEL
-    // ============================================
-    header('Content-Type: application/vnd.ms-excel');
-    header('Content-Disposition: attachment; filename="Data_Sales_Activity_' . date('Y-m-d') . '.xls"');
-    header('Cache-Control: max-age=0');
-
-    echo '<html>';
-    echo '<head><meta charset="UTF-8"></head>';
-    echo '<body>';
-
-    echo '<h2>Data Sales Activity - PT Ganda Elang Tangguh</h2>';
-    echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . ' WIB</p>';
-
-    // ============================================
-    // INFORMASI SCOPE EXPORT
-    // ============================================
-    if (!$canViewAllReport) {
-        $exportUserName = $_SESSION['full_name'] ?? 'User';
-
-        echo '<p>Sales: <strong>'
-            . htmlspecialchars($exportUserName)
-            . '</strong></p>';
-    } elseif ($filterSalesId > 0) {
-        // Ambil nama Sales langsung berdasarkan filter agar
-        // export tidak bergantung pada $salesUsers yang
-        // didefinisikan setelah blok export ini.
-        $salesNameStmt = $db->prepare(
-            "SELECT full_name FROM users WHERE id = ? LIMIT 1"
-        );
-        $salesNameStmt->execute([$filterSalesId]);
-        $exportSalesName = $salesNameStmt->fetchColumn() ?: '-';
-
-        echo '<p>Sales: <strong>'
-            . htmlspecialchars($exportSalesName)
-            . '</strong></p>';
-    } else {
-        echo '<p>Sales: <strong>Semua Sales</strong></p>';
-    }
-
-    echo '<p>Filter Periode: '
-        . ($filterMonth !== ''
-            ? date('F Y', strtotime($filterMonth . '-01'))
-            : 'All Periode')
-        . '</p>';
-
-    if (!empty($filterJenisProspek)) {
-        echo '<p>Filter Jenis Prospek: '
-            . htmlspecialchars($filterJenisProspek)
-            . '</p>';
-    }
-
-    if (!empty($filterStatus)) {
-        echo '<p>Filter Status: '
-            . htmlspecialchars($filterStatus)
-            . '</p>';
-    }
-
-    if (!empty($search)) {
-        echo '<p>Pencarian: '
-            . htmlspecialchars($search)
-            . '</p>';
-    }
-
-    // ============================================
-    // TABLE EXCEL
-    // ============================================
-    echo '<table border="1" cellpadding="5" cellspacing="0">';
-    echo '<thead>';
-    echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
-    echo '<th>No</th>';
-    echo '<th>Activity Number</th>';
-    echo '<th>Nama Perusahaan</th>';
-    echo '<th>Business Segment</th>';
-    echo '<th>Jenis Prospek</th>';
-    echo '<th>Status</th>';
-    echo '<th>Nama PIC</th>';
-    echo '<th>Last Activity</th>';
-    echo '<th>Sales</th>';
-    echo '<th>Tanggal Dibuat</th>';
-    echo '</tr>';
-    echo '</thead>';
-    echo '<tbody>';
-
-    $no = 1;
-
-    foreach ($exportActivities as $act) {
-        $jenisProspek = getJenisProspek($db, $act['id']) ?? '-';
-        $statusProspek = getStatusProspek($db, $act['id']) ?? '-';
-
-        $lastActivityStmtExport = $db->prepare("
-            SELECT jenis_tugas
-            FROM activity_details
-            WHERE sales_activity_id = ?
-            ORDER BY id DESC
-            LIMIT 1
-        ");
-        $lastActivityStmtExport->execute([$act['id']]);
-        $lastActivity = $lastActivityStmtExport->fetchColumn() ?: '-';
-
-        $namaPerusahaan = trim(
-            ($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? '')
-        );
-        $namaPerusahaan = $namaPerusahaan !== '' ? $namaPerusahaan : '-';
-
-        echo '<tr>';
-        echo '<td>' . $no++ . '</td>';
-        echo '<td>' . htmlspecialchars($act['leads_number'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($namaPerusahaan) . '</td>';
-        echo '<td>' . htmlspecialchars($act['bidang_usaha'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($jenisProspek) . '</td>';
-        echo '<td>' . htmlspecialchars($statusProspek) . '</td>';
-        echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($lastActivity) . '</td>';
-        echo '<td>' . htmlspecialchars($act['sales_name'] ?? '-') . '</td>';
-        echo '<td>'
-            . (!empty($act['created_at'])
-                ? date('d-m-Y H:i', strtotime($act['created_at']))
-                : '-')
-            . '</td>';
-        echo '</tr>';
-    }
-
-    if (empty($exportActivities)) {
-        echo '<tr>';
-        echo '<td colspan="10" style="text-align:center;">Tidak ada data Sales Activity</td>';
-        echo '</tr>';
-    }
-
-    echo '</tbody>';
-    echo '</table>';
-    echo '</body>';
-    echo '</html>';
-
-    exit;
-}
-
-// ============================================
-// AMBIL SEMUA DATA UNTUK CHART (tanpa pagination)
-// ============================================
-$chartSql = "SELECT sa.id FROM sales_activities sa 
-             LEFT JOIN accounts a ON sa.account_id = a.id 
-             $where";
-$stmt = $db->prepare($chartSql);
-$stmt->execute($params);
-$chartActivities = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-// Hitung rekap untuk chart
-$prospekCounts = [
-    'Suspect' => 0,
-    'Prospect' => 0,
-    'Hot Prospect' => 0,
-    'Deal' => 0,
-    'Lost Deal' => 0
-];
-
-$statusCounts = [
-    'In Progress' => 0,
-    'Completed' => 0,
-    'Overdue' => 0
-];
-
-foreach ($chartActivities as $saId) {
-    $jp = getJenisProspek($db, $saId);
-    if ($jp && isset($prospekCounts[$jp])) {
-        $prospekCounts[$jp]++;
-    }
-    
-    $sp = getStatusProspek($db, $saId);
-    if ($sp && isset($statusCounts[$sp])) {
-        $statusCounts[$sp]++;
+$deliveryOrderCompleted = [];
+foreach ($detailsList as $d) {
+    if ($d['jenis_tugas'] === 'Delivery Order' && $d['status'] === 'completed') {
+        $deliveryOrderCompleted[] = $d;
     }
 }
 
-$countSql = "SELECT COUNT(*) FROM sales_activities sa LEFT JOIN accounts a ON sa.account_id = a.id $where";
-$stmt = $db->prepare($countSql);
-$stmt->execute($params);
-$totalData = $stmt->fetchColumn();
-$totalPages = max(1, (int)ceil($totalData / $limit));
-if ($page > $totalPages) {
-    $page = $totalPages;
-    $offset = ($page - 1) * $limit;
-}
-
-$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
-        FROM sales_activities sa 
-        LEFT JOIN accounts a ON sa.account_id = a.id 
-        LEFT JOIN users u ON sa.sales_id = u.id
-        $where 
-        ORDER BY sa.created_at DESC 
-        LIMIT $limit OFFSET $offset";
-$stmt = $db->prepare($sql);
-$stmt->execute($params);
-$activities = $stmt->fetchAll();
-
-// Ambil Jenis Tugas terakhir dari activity_details untuk setiap Sales Activity.
-// Diambil berdasarkan Activity Number / sales_activity_id masing-masing.
-$lastActivityStmt = $db->prepare("
-    SELECT jenis_tugas
-    FROM activity_details
-    WHERE sales_activity_id = ?
-    ORDER BY id DESC
-    LIMIT 1
-");
-
-foreach ($activities as &$act) {
-    $lastActivityStmt->execute([$act['id']]);
-    $act['last_activity'] = $lastActivityStmt->fetchColumn() ?: null;
-    $act['jenis_prospek'] = getJenisProspek($db, $act['id']);
-    $act['status_prospek'] = getStatusProspek($db, $act['id']);
-    $stmt = $db->prepare("UPDATE sales_activities SET jenis_prospek = ?, status = ? WHERE id = ?");
-    $stmt->execute([$act['jenis_prospek'], $act['status_prospek'], $act['id']]);
-}
-unset($act);
-
-// ============================================
-// AMBIL DATA ACCOUNTS UNTUK DROPDOWN
-// ============================================
-if (!$canViewAllReport) {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
-                    FROM accounts
-                    WHERE sales_id = ?
-                    ORDER BY nama_pt ASC";
-    $stmt = $db->prepare($sqlAccounts);
-    $stmt->execute([$userId]);
-    $accountsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} else {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
-                    FROM accounts ORDER BY nama_pt ASC";
-    $accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
-}
-
-$salesUsers = $db->query("SELECT id, full_name FROM users WHERE role IN ('sales', 'sales_manager') ORDER BY full_name ASC")->fetchAll(PDO::FETCH_ASSOC);
-
-// ============================================
-// PROSES TAMBAH SALES ACTIVITY
-// ============================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
-    
-    if ($action === 'add') {
-        if (!canAdd('sales_activity')) {
-            setFlash('Anda tidak memiliki akses untuk menambah aktivitas!', 'danger');
-            redirect('salesactivity.php');
-        }
-        
-        $account_id = (int)$_POST['account_id'];
-        
-        $stmt = $db->prepare("SELECT sales_id FROM accounts WHERE id = ?");
-        $stmt->execute([$account_id]);
-        $accountSalesId = $stmt->fetchColumn();
-        
-        if (!$canViewAllReport) {
-            if ((int)$accountSalesId !== $userId) {
-                setFlash('Anda tidak bisa menambahkan aktivitas untuk account milik user lain!', 'danger');
-                redirect('salesactivity.php');
-            }
-            $sales_id = $userId;
-        } else {
-            $sales_id = $accountSalesId ? (int)$accountSalesId : NULL;
-        }
-        
-        $leads_number = generateLeadsNumber($db);
-        
-        $errors = [];
-        if (empty($account_id)) $errors[] = 'Account wajib dipilih!';
-        
-        if (empty($errors)) {
-            $stmt = $db->prepare("INSERT INTO sales_activities (leads_number, account_id, sales_id) VALUES (?, ?, ?)");
-            $stmt->execute([$leads_number, $account_id, $sales_id]);
-            
-            setFlash('Sales Activity berhasil ditambahkan! Leads Number: ' . $leads_number, 'success');
-            redirect('salesactivity.php');
-        } else {
-            setFlash(implode('<br>', $errors), 'danger');
-            redirect('salesactivity.php');
-        }
-    }
-    
-    if ($action === 'delete') {
-        if (!in_array($userRole, ['direktur_utama', 'direktur_operasional', 'direktur_sales', 'it_support'], true)) {
-            setFlash('Anda tidak memiliki akses untuk menghapus aktivitas!', 'danger');
-            redirect('salesactivity.php');
-        }
-        
-        $id = (int)($_POST['id'] ?? 0);
-        if ($id <= 0) {
-            setFlash('ID Sales Activity tidak valid!', 'danger');
-            redirect('salesactivity.php');
-        }
-
-        try {
-            $result = deleteSalesActivityAndRelatedData($db, $id);
-
-            setFlash(
-                'Sales Activity berhasil dihapus. Data Detail Aktivitas dan Transaction Request terkait sudah dibersihkan, lalu nomor TR dan Activity Number yang tersisa sudah dirapikan kembali.',
-                'success'
-            );
-        } catch (Throwable $e) {
-            error_log('Gagal menghapus Sales Activity #' . $id . ': ' . $e->getMessage());
-            setFlash('Gagal menghapus Sales Activity dan data TR terkait. Tidak ada perubahan yang disimpan. Silakan cek error log server.', 'danger');
-        }
-
-        redirect('salesactivity.php');
+$negosiasiCompleted = [];
+foreach ($detailsList as $d) {
+    if ($d['jenis_tugas'] === 'Negosiasi' && $d['status'] === 'completed') {
+        $negosiasiCompleted[] = $d;
     }
 }
-
-$fullName = $_SESSION['full_name'] ?? 'User';
-$role = $_SESSION['role'] ?? 'user';
-
-$filterQuery = '';
-if ($filterMonth !== '') $filterQuery .= '&month=' . urlencode($filterMonth);
-if ($canViewAllReport && $filterSalesId > 0) $filterQuery .= '&sales_id=' . (int)$filterSalesId;
-if ($filterJenisProspek !== '') $filterQuery .= '&jenis_prospek=' . urlencode($filterJenisProspek);
-if ($filterStatus !== '') $filterQuery .= '&status=' . urlencode($filterStatus);
-if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sales Activity - PT Ganda Elang Tangguh</title>
-<link rel="icon" type="image/webp" href="images/favicon.webp">
-<link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="css/salesactivity.css">
-<link rel="stylesheet" href="css/footer.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Detail Aktivitas - PT Ganda Elang Tangguh</title>
+    
+    <link rel="icon" type="image/webp" href="images/favicon.webp">
+    <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/detailaktivitas.css">
+    <link rel="stylesheet" href="css/footer.css">
+
 </head>
 <body>
-<div class="app page-salesactivity">
-<?php require_once 'navigation.php'; ?>
-<main class="content">
-<div class="page-header">
-    <div class="page-title">
-        <h4><span><i class="fas fa-chart-line"></i></span> Sales Activity</h4>
-    </div>
-    <div class="header-actions">
-        <a href="salesactivity.php?export=excel<?= $filterMonth !== '' ? '&month=' . urlencode($filterMonth) : '' ?><?= $canViewAllReport && $filterSalesId > 0 ? '&sales_id=' . (int)$filterSalesId : '' ?><?= $filterJenisProspek !== '' ? '&jenis_prospek=' . urlencode($filterJenisProspek) : '' ?><?= $filterStatus !== '' ? '&status=' . urlencode($filterStatus) : '' ?><?= $search !== '' ? '&search=' . urlencode($search) : '' ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
-        <?php if (canAdd('sales_activity')): ?><button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalActivity"><i class="fas fa-plus me-2"></i>Tambah Aktivitas</button><?php endif; ?>
-    </div>
-</div>
-<div class="chart-grid">
-    <div class="chart-card"><h6><i class="fas fa-chart-pie"></i> Rekap Jenis Prospek</h6><div class="chart-wrapper"><canvas id="chartJenisProspek"></canvas></div></div>
-    <div class="chart-card"><h6><i class="fas fa-tasks"></i> Rekap Status</h6><div class="chart-wrapper"><canvas id="chartStatus"></canvas></div></div>
-</div>
-        <!-- TABLE -->
+
+    <?php require_once 'navigation.php'; ?>
+
+    <main class="content">
+        
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-title">
+                <h4><span><i class="fas fa-chart-bar"></i></span> Detail Aktivitas</h4>
+            </div>
+            <div class="page-actions">
+                <a href="salesactivity.php" class="btn btn-secondary-custom">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </a>
+                <?php if ($canAddActivity): ?>
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAddDetail">
+                        <i class="fas fa-plus"></i> Tambah Aktivitas
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- INFO LEADS -->
+        <div class="info-card">
+            <div class="info-item">
+                <div class="info-label">Leads Number</div>
+                <div class="info-value"><strong><?= htmlspecialchars($activity['leads_number']) ?></strong></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Nama PT</div>
+                <div class="info-value"><?= htmlspecialchars($activity['nama_pt']) ?></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Badan Usaha</div>
+                <div class="info-value"><?= htmlspecialchars($activity['badan_usaha'] ?? '-') ?></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Business Segment</div>
+                <div class="info-value"><?= htmlspecialchars($activity['bidang_usaha'] ?? '-') ?></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Nama PIC</div>
+                <div class="info-value"><?= htmlspecialchars($activity['nama_pic'] ?? '-') ?></div>
+            </div>
+            <?php if ($canViewContactMobile): ?>
+                <div class="info-item">
+                    <div class="info-label">Contact Mobile</div>
+                    <div class="info-value"><?= htmlspecialchars($activity['no_hp_pic'] ?? '-') ?></div>
+                </div>
+            <?php endif; ?>
+            <div class="info-item">
+                <div class="info-label">Sales</div>
+                <div class="info-value"><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></div>
+            </div>
+        </div>
+
+        <!-- TABLE DETAIL -->
         <div class="card-custom">
             <div class="card-header-custom">
-                <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
-                <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
-                    <label class="period-filter-control" aria-label="Pilih periode">
-        <span id="salesActivityPeriodLabel"><?= $filterMonth !== '' ? htmlspecialchars(date('F Y', strtotime($filterMonth . '-01'))) : 'All Periode' ?></span>
-        <i class="fas fa-calendar-alt"></i>
-        <input type="month" name="month" id="salesActivityMonthPicker"
-               value="<?= htmlspecialchars($filterMonth) ?>">
-    </label>
-                    
-                    <select name="jenis_prospek" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
-                        <option value="">Semua Prospek</option>
-                        <option value="Suspect" <?= $filterJenisProspek === 'Suspect' ? 'selected' : '' ?>>Suspect</option>
-                        <option value="Prospect" <?= $filterJenisProspek === 'Prospect' ? 'selected' : '' ?>>Prospect</option>
-                        <option value="Hot Prospect" <?= $filterJenisProspek === 'Hot Prospect' ? 'selected' : '' ?>>Hot Prospect</option>
-                        <option value="Deal" <?= $filterJenisProspek === 'Deal' ? 'selected' : '' ?>>Deal</option>
-                        <option value="Lost Deal" <?= $filterJenisProspek === 'Lost Deal' ? 'selected' : '' ?>>Lost Deal</option>
-                    </select>
-                    
-                    <select name="status" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
-                        <option value="">Semua Status</option>
-                        <option value="In Progress" <?= $filterStatus === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-                        <option value="Completed" <?= $filterStatus === 'Completed' ? 'selected' : '' ?>>Completed</option>
-                        <option value="Overdue" <?= $filterStatus === 'Overdue' ? 'selected' : '' ?>>Overdue</option>
-                    </select>
-                    
-                    <?php if ($canViewAllReport): ?>
-                    <select name="sales_id" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
-                        <option value="0">Semua Sales</option>
-                        <?php foreach ($salesUsers as $s): ?>
-                            <option value="<?= $s['id'] ?>" <?= $filterSalesId == $s['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($s['full_name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php endif; ?>
-                    
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 180px;">
-                    <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
-                    <?php if (!empty($search) || $filterMonth !== '' || ($canViewAllReport && $filterSalesId > 0) || !empty($filterJenisProspek) || !empty($filterStatus)): ?>
-                        <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i> Reset</a>
-                    <?php endif; ?>
-                </form>
+                <h6><i class="fas fa-list"></i> Daftar Aktivitas</h6>
             </div>
             <div class="card-body-custom">
                 <?= showFlash() ?>
@@ -1174,104 +1133,95 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                         <thead>
                             <tr>
                                 <th>No</th>
-                                <th>Activity Number</th>
-                                <th>Nama Perusahaan</th>
-                                <th>Business Segment</th>
-                                <th>Jenis Prospek</th>
+                                <th>Subject</th>
+                                <th>Account</th>
+                                <th>Jenis Tugas</th>
+                                <th>TR Number</th>
+                                <th>DI Number</th>
+                                <th>Keterangan</th>
+                                <th>Due Date</th>
                                 <th>Status</th>
-                                <th>Nama PIC</th>
-                                <th>Last Activity</th>
                                 <th>Sales</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (count($activities) > 0): ?>
-                                <?php $no = $offset + 1; ?>
-                                <?php foreach ($activities as $act): ?>
+                            <?php if (count($detailsList) > 0): ?>
+                                <?php $no = 1; ?>
+                                <?php foreach ($detailsList as $detail): ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
+                                        <td><strong><?= htmlspecialchars($detail['subject']) ?></strong></td>
+                                        <td><?= htmlspecialchars($activity['nama_pt']) ?></td>
                                         <td>
-                                            <a href="detailaktivitas.php?leads_id=<?= $act['id'] ?>" style="color: #2980b9; text-decoration: none; font-weight: 700;">
-                                                <?= htmlspecialchars($act['leads_number']) ?>
-                                            </a>
+                                            <span class="badge-tugas <?= str_replace('/', '\/', str_replace(' ', '.', $detail['jenis_tugas'])) ?>">
+                                                <?= htmlspecialchars($detail['jenis_tugas']) ?>
+                                            </span>
                                         </td>
-                                        <td><?= htmlspecialchars(trim(($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? '')) ?: '-') ?></td>
-                                        <td><?= htmlspecialchars($act['bidang_usaha'] ?? '-') ?></td>
                                         <td>
-                                            <?php 
-                                                $jenisProspek = $act['jenis_prospek'] ?? null;
-                                                $badgeClass = '';
-                                                switch ($jenisProspek) {
-                                                    case 'Suspect': $badgeClass = 'suspect'; break;
-                                                    case 'Prospect': $badgeClass = 'prospect'; break;
-                                                    case 'Hot Prospect': $badgeClass = 'hot-prospect'; break;
-                                                    case 'Deal': $badgeClass = 'deal-prospek'; break;
-                                                    case 'Lost Deal': $badgeClass = 'lost-deal'; break;
-                                                }
-                                            ?>
-                                            <?php if ($jenisProspek): ?>
-                                                <span class="badge-prospek <?= $badgeClass ?>"><?= htmlspecialchars($jenisProspek) ?></span>
+                                            <?php if (!empty($detail['tr_number'])): ?>
+                                                <a href="detailtr.php?tr_number=<?= urlencode($detail['tr_number']) ?>" 
+                                                   style="color: #2980b9; text-decoration: none; font-weight: 600;"
+                                                   target="_blank">
+                                                    <?= htmlspecialchars($detail['tr_number']) ?>
+                                                </a>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php 
-                                                $statusProspek = $act['status_prospek'] ?? null;
-                                                $badgeStatusClass = '';
-                                                switch ($statusProspek) {
-                                                    case 'In Progress': $badgeStatusClass = 'in-progress'; break;
-                                                    case 'Completed': $badgeStatusClass = 'completed'; break;
-                                                    case 'Overdue': $badgeStatusClass = 'overdue'; break;
-                                                }
-                                            ?>
-                                            <?php if ($statusProspek): ?>
-                                                <span class="badge-status-prospek <?= $badgeStatusClass ?>"><?= htmlspecialchars($statusProspek) ?></span>
+                                            <?php if (!empty($detail['di_number'])): ?>
+                                                <a href="detaildi.php?di_number=<?= urlencode($detail['di_number']) ?>" 
+                                                   style="color: #27ae60; text-decoration: none; font-weight: 600;"
+                                                   target="_blank">
+                                                    <?= htmlspecialchars($detail['di_number']) ?>
+                                                </a>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= htmlspecialchars($act['nama_pic'] ?? '-') ?></td>
                                         <td>
-                                            <?php if (!empty($act['last_activity'])): ?>
-                                                <span class="last-activity"><?= htmlspecialchars($act['last_activity']) ?></span>
+                                            <?php $dealInfo = $customerDealByDetailId[(int)$detail['id']] ?? null; ?>
+                                            <?php if ($dealInfo && $dealInfo['customer_deal'] === 'yes'): ?>
+                                                <span class="badge-status completed">Deal</span>
+                                            <?php elseif ($dealInfo && $dealInfo['customer_deal'] === 'no'): ?>
+                                                <span class="badge-status overdue">No</span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= htmlspecialchars($act['sales_name'] ?? '-') ?></td>
+                                        <td><?= $detail['due_date'] ? date('d-m-Y', strtotime($detail['due_date'])) : '-' ?></td>
                                         <td>
-                                            <?php
-                                                /*
-                                                 * Jangan kirim nomor HP PIC ke browser untuk user
-                                                 * yang tidak mempunyai hak akses. Sales hanya boleh
-                                                 * melihat Contact Mobile pada activity yang dia input sendiri.
-                                                 */
-                                                $isInputtingSales = (
-                                                    $userRole === 'sales'
-                                                    && (int)($act['sales_id'] ?? 0) === $userId
-                                                );
-                                                $canViewThisContactMobile = (
-                                                    $canViewContactMobileByRole
-                                                    || $isInputtingSales
-                                                );
-
-                                                $detailAct = $act;
-                                                $detailAct['can_view_contact_mobile'] = $canViewThisContactMobile;
-
-                                                if (!$canViewThisContactMobile) {
-                                                    $detailAct['no_hp_pic'] = null;
-                                                }
-                                            ?>
+                                            <span class="badge-status <?= $detail['status'] ?>">
+                                                <?php 
+                                                    if ($detail['status'] === 'completed') {
+                                                        echo 'Completed';
+                                                    } elseif ($detail['status'] === 'overdue') {
+                                                        echo 'Overdue';
+                                                    } else {
+                                                        echo 'In Progress';
+                                                    }
+                                                ?>
+                                            </span>
+                                        </td>
+                                        <td><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></td>
+                                        <td>
                                             <div class="d-flex gap-1">
-                                                <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($detailAct, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) ?>)">
+                                                <button class="btn-action detail" onclick="viewDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <?php if (canDelete('sales_activity')): ?>
-                                                    <button class="btn-action delete" onclick="deleteActivity(<?= $act['id'] ?>)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                <?php if ($detail['status'] === 'in_progress' || $detail['status'] === 'overdue'): ?>
+                                                    <?php if ($canCompleteActivity): ?>
+                                                        <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+
+                                                    <?php if ($canDeleteActivity): ?>
+                                                        <button class="btn-action delete" onclick="deleteDetail(<?= $detail['id'] ?>)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -1279,8 +1229,8 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
-                                        <i class="fas fa-inbox me-2"></i> Belum ada data aktivitas
+                                    <td colspan="11" class="text-center py-4 text-muted">
+                                        <i class="fas fa-inbox me-2"></i> Belum ada aktivitas
                                     </td>
                                 </tr>
                             <?php endif; ?>
@@ -1288,101 +1238,63 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                     </table>
                 </div>
             </div>
-            <?php if ($totalPages > 1): ?>
-                <div class="card-footer bg-transparent border-top p-3">
-                    <nav>
-                        <ul class="pagination pagination-sm justify-content-end mb-0">
-                            <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?><?= $filterQuery ?>">Prev</a></li>
-                            <?php endif; ?>
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?><?= $filterQuery ?>"><?= $i ?></a>
-                                </li>
-                            <?php endfor; ?>
-                            <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?><?= $filterQuery ?>">Next</a></li>
-                            <?php endif; ?>
-                        </ul>
-                    </nav>
-                </div>
-            <?php endif; ?>
         </div>
-    <?php require_once 'footer.php'; ?>
-</main>
-</div>
-</div>
-    <!-- MODAL TAMBAH ACTIVITY -->
-    <div class="modal fade" id="modalActivity" tabindex="-1">
+
+        <!-- FOOTER -->
+        <?php require_once 'footer.php'; ?>
+
+    </div>
+
+    <!-- MODAL TAMBAH DETAIL -->
+    <div class="modal fade" id="modalAddDetail" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-plus"></i> Tambah Aktivitas</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" id="formActivity">
+                <form method="POST" action="detailaktivitas.php?leads_id=<?= $leadsId ?>">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="add">
                         
                         <div class="mb-3">
-                            <label class="form-label">Activity Number</label>
-                            <div class="leads-number-display">
-                                <?= generateLeadsNumber($db) ?>
-                            </div>
-                            <small class="text-muted">Generate otomatis saat disimpan</small>
+                            <label class="form-label">Subject <span class="text-danger">*</span></label>
+                            <input type="text" name="subject" class="form-control" placeholder="Masukkan subject" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Account Management <span class="text-danger">*</span></label>
-                            <select name="account_id" id="account_id" class="form-select select2-account" required style="width: 100%;">
-                                <option value="">-- Pilih Account (Ketik untuk mencari) --</option>
-                                <?php foreach ($accountsList as $acc): ?>
-                                    <option value="<?= $acc['id'] ?>" 
-                                        data-badan_usaha="<?= htmlspecialchars($acc['badan_usaha'] ?? 'PT') ?>"
-                                        data-bidang_usaha="<?= htmlspecialchars($acc['bidang_usaha'] ?? '-') ?>"
-                                        data-nama_pic="<?= htmlspecialchars($acc['nama_pic'] ?? '-') ?>"
-                                        data-no_hp_pic="<?= htmlspecialchars($acc['no_hp_pic'] ?? '-') ?>"
-                                        data-sales_id="<?= $acc['sales_id'] ?? '' ?>">
-                                        <?= htmlspecialchars($acc['nama_pt']) ?>
-                                    </option>
-                                <?php endforeach; ?>
+                            <label class="form-label">Jenis Tugas <span class="text-danger">*</span></label>
+                            <select name="jenis_tugas" id="jenis_tugas_add" class="form-select" required>
+                                <option value="">Pilih Jenis Tugas</option>
+                                <option value="Perkenalan">Perkenalan</option>
+                                <option value="Visit/Meeting">Visit/Meeting</option>
+                                <option value="Prospecting">Prospecting</option>
+                                <option value="Negosiasi">Negosiasi</option>
+                                <option value="Kontrak">Kontrak</option>
+                                <option value="Delivery Order">Delivery Order</option>
+                                <option value="After Sales">After Sales</option>
                             </select>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Badan Usaha</label>
-                                <input type="text" id="badan_usaha" class="form-control" readonly>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Business Segment</label>
-                                <input type="text" id="bidang_usaha" class="form-control" readonly>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi <span class="text-danger">*</span> <small class="text-muted">(Minimal 50 karakter)</small></label>
+                            <textarea name="deskripsi" id="deskripsi_add" class="form-control" rows="5" placeholder="Masukkan deskripsi minimal 50 karakter..." minlength="50" required></textarea>
+                            <small class="text-muted" id="wordCountAdd">0 karakter</small>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Nama PIC</label>
-                                <input type="text" id="nama_pic" class="form-control" readonly>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Contact Mobile Phone</label>
-                                <input type="text" id="no_hp_pic" class="form-control" readonly>
+                        
+                        <div class="mb-3" id="trNumberFieldAdd" style="display: none;">
+                            <label class="form-label">Transaction Request Form</label>
+                            <div class="tr-number-display text-muted">
+                                TR Number akan dibuat saat aktivitas Negosiasi di-Complete dan memilih Request TR Number = Yes.
                             </div>
                         </div>
                         
-                        <?php if ($userRole !== 'sales'): ?>
+                        <div id="negosiasiInfoAdd" style="display: none;"></div>
+                        
                         <div class="mb-3">
-                            <label class="form-label">Sales <small class="text-muted">(Otomatis dari Account)</small></label>
-                            <input type="text" id="sales_name_display" class="form-control" readonly>
-                            <input type="hidden" name="sales_id" id="sales_id_hidden" value="">
+                            <label class="form-label">Due Date <span class="text-danger">*</span></label>
+                            <input type="date" name="due_date" class="form-control" required>
                         </div>
-                        <?php else: ?>
-                            <input type="hidden" name="sales_id" value="<?= $userId ?>">
-                            <div class="mb-3">
-                                <label class="form-label">Sales</label>
-                                <input type="text" class="form-control" value="<?= htmlspecialchars($fullName) ?> (Sales)" readonly>
-                            </div>
-                        <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
@@ -1393,15 +1305,68 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
         </div>
     </div>
 
-    <!-- MODAL DETAIL -->
-    <div class="modal fade" id="modalDetail" tabindex="-1">
+    <!-- MODAL COMPLETE -->
+    <div class="modal fade" id="modalComplete" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-chart-bar" style="color:#ffd700;"></i> Detail Aktivitas</h5>
+                    <h5 class="modal-title"><i class="fas fa-check-circle" style="color:#27ae60;"></i> Complete Aktivitas</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="detailBody"></div>
+                <form method="POST" enctype="multipart/form-data" action="detailaktivitas.php?leads_id=<?= $leadsId ?>" id="formComplete">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="complete">
+                        <input type="hidden" name="detail_id" id="completeDetailId" value="">
+                        
+                        <div class="mb-3" id="requestTRNumberField" style="display: none;">
+                            <label class="form-label">Request TR Number <span class="text-danger">*</span></label>
+                            <select name="request_tr_number" id="request_tr_number" class="form-select">
+                                <option value="">Pilih</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                            <small class="text-muted">Pilih Yes jika aktivitas Negosiasi perlu dibuatkan Transaction Request Number.</small>
+                        </div>
+                        
+                        <div class="mb-3" id="generatedTRNumberField" style="display: none;">
+                            <label class="form-label">TR Number</label>
+                            <div class="tr-number-display" id="generatedTRNumberDisplay">
+                                TR Number akan dibuat saat proses Complete.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Result <span class="text-danger">*</span> <small class="text-muted">(Minimal 50 karakter)</small></label>
+                            <textarea name="result" id="result_complete" class="form-control" rows="5" placeholder="Masukkan result minimal 50 karakter..." minlength="50" required></textarea>
+                            <small class="text-muted" id="wordCountComplete">0 karakter</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Attachment File <span class="text-danger">*</span> <small class="text-muted">(Bisa pilih banyak file)</small></label>
+                            <input type="file" name="attachment_file[]" id="attachment_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" multiple required>
+                            <small class="text-muted">Tahan tombol Ctrl untuk memilih banyak file (JPG, PNG, PDF, DOC, XLS) - Maksimal 5MB per file</small>
+                        </div>
+                        
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Complete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETAIL VIEW -->
+    <div class="modal fade" id="modalViewDetail" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-eye" style="color:#ffd700;"></i> Detail Aktivitas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="viewDetailBody"></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
                 </div>
@@ -1410,7 +1375,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
     </div>
 
     <!-- MODAL DELETE -->
-    <div class="modal fade" id="modalDelete" tabindex="-1">
+    <div class="modal fade" id="modalDeleteDetail" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1419,265 +1384,253 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                 </div>
                 <div class="modal-body">
                     <p>Apakah Anda yakin ingin menghapus aktivitas ini?</p>
-                    <p class="text-muted small">Data yang dihapus tidak dapat dikembalikan!</p>
                 </div>
                 <div class="modal-footer">
-                    <form method="POST">
+                    <form method="POST" action="detailaktivitas.php?leads_id=<?= $leadsId ?>">
                         <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="id" id="deleteId" value="">
+                        <input type="hidden" name="detail_id" id="deleteDetailId" value="">
                         <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Hapus</button>
                     </form>
                 </div>
             </div>
         </div>
-    </div>
-
+    </main>
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function(){
-            const input = document.getElementById('salesActivityMonthPicker');
-            if(input){
-                input.addEventListener('change', function(){
-                    const label = document.getElementById('salesActivityPeriodLabel');
-                    if (label && this.value) {
-                        const parts = this.value.split('-');
-                        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-                        label.textContent = months[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
-                    } else if (label) {
-                        label.textContent = 'All Periode';
-                    }
-                    this.form.submit();
-                });
+        var deliveryOrderCompletedList = <?= json_encode(array_values($deliveryOrderCompleted)) ?>;
+        var negosiasiCompletedList = <?= json_encode(array_values($negosiasiCompleted)) ?>;
+        
+        document.getElementById('deskripsi_add').addEventListener('input', function() {
+            var chars = this.value.length;
+            document.getElementById('wordCountAdd').textContent = chars + ' karakter';
+            if (chars < 50) {
+                document.getElementById('wordCountAdd').style.color = '#e74c3c';
+            } else {
+                document.getElementById('wordCountAdd').style.color = '#27ae60';
             }
         });
-
-        $(document).ready(function() {
-            $('.select2-account').select2({
-                placeholder: '-- Pilih Account (Ketik untuk mencari) --',
-                allowClear: true,
-                dropdownParent: $('#modalActivity')
-            });
+        
+        document.getElementById('result_complete').addEventListener('input', function() {
+            var chars = this.value.length;
+            document.getElementById('wordCountComplete').textContent = chars + ' karakter';
+            if (chars < 50) {
+                document.getElementById('wordCountComplete').style.color = '#e74c3c';
+            } else {
+                document.getElementById('wordCountComplete').style.color = '#27ae60';
+            }
+        });
+        
+        document.getElementById('jenis_tugas_add').addEventListener('change', function() {
+            var trNumberField = document.getElementById('trNumberFieldAdd');
+            var negosiasiInfoAdd = document.getElementById('negosiasiInfoAdd');
             
-            $('.select2-account').on('change', function() {
-                var selectedOption = $(this).find('option:selected');
-                if (selectedOption.val()) {
-                    $('#badan_usaha').val(selectedOption.data('badan_usaha'));
-                    $('#bidang_usaha').val(selectedOption.data('bidang_usaha'));
-                    $('#nama_pic').val(selectedOption.data('nama_pic'));
-                    $('#no_hp_pic').val(selectedOption.data('no_hp_pic'));
+            if (this.value === 'Negosiasi') {
+                trNumberField.style.display = 'block';
+                negosiasiInfoAdd.style.display = 'none';
+                negosiasiInfoAdd.innerHTML = '';
+            } else if (this.value === 'Kontrak' || this.value === 'Delivery Order' || this.value === 'After Sales') {
+                trNumberField.style.display = 'none';
+                negosiasiInfoAdd.style.display = 'block';
+                
+                var infoHtml = '';
+                if (negosiasiCompletedList.length > 0) {
+                    var lastNegosiasi = negosiasiCompletedList[negosiasiCompletedList.length - 1];
                     
-                    var salesId = selectedOption.data('sales_id');
-                    if (salesId) {
-                        $('#sales_id_hidden').val(salesId);
-                        var salesName = '';
-                        <?php foreach ($salesUsers as $s): ?>
-                        if (salesId == <?= $s['id'] ?>) {
-                            salesName = '<?= htmlspecialchars($s['full_name']) ?>';
-                        }
-                        <?php endforeach; ?>
-                        $('#sales_name_display').val(salesName);
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-link"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    
+                    if (lastNegosiasi.tr_number) {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastNegosiasi.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastNegosiasi.tr_number + '</a></div>';
                     } else {
-                        $('#sales_id_hidden').val('');
-                        $('#sales_name_display').val('Tidak ada Sales terdaftar');
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
                     }
+                    
+                    infoHtml += '</div>';
                 } else {
-                    $('#badan_usaha').val('');
-                    $('#bidang_usaha').val('');
-                    $('#nama_pic').val('');
-                    $('#no_hp_pic').val('');
-                    $('#sales_id_hidden').val('');
-                    $('#sales_name_display').val('');
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-info-circle"></i>Data dari Negosiasi Sebelumnya</h6>';
+                    infoHtml += '<div class="text-muted">Tidak ada data Negosiasi yang completed.</div>';
+                    infoHtml += '</div>';
                 }
-            });
-        });
-
-        // CHART JENIS PROSPEK
-        const ctxProspek = document.getElementById('chartJenisProspek').getContext('2d');
-        new Chart(ctxProspek, {
-            type: 'doughnut',
-            data: {
-                labels: [
-                    'Suspect (<?= $prospekCounts['Suspect'] ?>)',
-                    'Prospect (<?= $prospekCounts['Prospect'] ?>)',
-                    'Hot Prospect (<?= $prospekCounts['Hot Prospect'] ?>)',
-                    'Deal (<?= $prospekCounts['Deal'] ?>)',
-                    'Lost Deal (<?= $prospekCounts['Lost Deal'] ?>)'
-                ],
-                datasets: [{
-                    data: [
-                        <?= $prospekCounts['Suspect'] ?>,
-                        <?= $prospekCounts['Prospect'] ?>,
-                        <?= $prospekCounts['Hot Prospect'] ?>,
-                        <?= $prospekCounts['Deal'] ?>,
-                        <?= $prospekCounts['Lost Deal'] ?>
-                    ],
-                    backgroundColor: ['#3498db', '#9b59b6', '#f39c12', '#27ae60', '#e74c3c'],
-                    borderWidth: 3,
-                    borderColor: '#ffffff',
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { usePointStyle: true, padding: 15, font: { family: 'Inter', size: 12, weight: '600' } }
-                    }
-                }
+                
+                negosiasiInfoAdd.innerHTML = infoHtml;
+            } else {
+                trNumberField.style.display = 'none';
+                negosiasiInfoAdd.style.display = 'none';
+                negosiasiInfoAdd.innerHTML = '';
             }
         });
-
-        // CHART STATUS
-        const ctxStatus = document.getElementById('chartStatus').getContext('2d');
-        new Chart(ctxStatus, {
-            type: 'doughnut',
-            data: {
-                labels: [
-                    'In Progress (<?= $statusCounts['In Progress'] ?>)',
-                    'Completed (<?= $statusCounts['Completed'] ?>)',
-                    'Overdue (<?= $statusCounts['Overdue'] ?>)'
-                ],
-                datasets: [{
-                    data: [
-                        <?= $statusCounts['In Progress'] ?>,
-                        <?= $statusCounts['Completed'] ?>,
-                        <?= $statusCounts['Overdue'] ?>
-                    ],
-                    backgroundColor: ['#2980b9', '#27ae60', '#c0392b'],
-                    borderWidth: 3,
-                    borderColor: '#ffffff',
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { usePointStyle: true, padding: 15, font: { family: 'Inter', size: 12, weight: '600' } }
-                    }
-                }
-            }
-        });
-
-        function detailActivity(data) {
-            // Escape nilai sebelum dimasukkan ke HTML.
-            const esc = (value) => String(value ?? '-').replace(/[&<>"']/g, function(char) {
-                return ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                })[char];
-            });
-
-            const jenisProspek = data.jenis_prospek || '-';
-            const statusProspek = data.status_prospek || '-';
-            const statusClass = statusProspek.toLowerCase().replace(/\s+/g, '-');
-            const prospekClass = jenisProspek.toLowerCase().replace(/\s+/g, '-');
-            const canViewContactMobile = data.can_view_contact_mobile === true;
-
-            const contactMobileField = canViewContactMobile
-                ? `<div class="activity-detail-field"><span class="activity-detail-label">Contact Mobile</span><span class="activity-detail-value">${esc(data.no_hp_pic)}</span></div>`
-                : '';
-
-            let tanggalDibuat = '-';
-            if (data.created_at) {
-                const date = new Date(data.created_at);
-                if (!Number.isNaN(date.getTime())) {
-                    tanggalDibuat = date.toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric'
-                    }) + ' pukul ' + date.toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                }
-            }
-
-            const html = `
-                <div class="activity-detail-head">
-                    <div class="activity-detail-head-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="activity-detail-head-main">
-                        <div class="activity-detail-eyebrow">Activity Number</div>
-                        <div class="activity-detail-number">${esc(data.leads_number)}</div>
+        
+        function viewDetail(data) {
+            var html = `
+                <div class="info-card" style="margin-bottom: 0;">
+                    <div class="info-item">
+                        <div class="info-label">Subject</div>
+                        <div class="info-value"><strong>${data.subject}</strong></div>
                     </div>
-                    <div class="activity-detail-head-status">
-                        <span class="detail-prospek-badge ${esc(prospekClass)}">${esc(jenisProspek)}</span>
-                        <span class="detail-status-badge ${esc(statusClass)}">${esc(statusProspek)}</span>
+                    <div class="info-item">
+                        <div class="info-label">Jenis Tugas</div>
+                        <div class="info-value">${data.jenis_tugas}</div>
                     </div>
-                </div>
-
-                <div class="activity-detail-section">
-                    <div class="activity-detail-section-title">
-                        <span class="activity-detail-section-icon"><i class="fas fa-briefcase"></i></span>
-                        <div><strong>Informasi Aktivitas</strong><small>Ringkasan aktivitas sales</small></div>
+                    <div class="info-item">
+                        <div class="info-label">Deskripsi</div>
+                        <div class="info-value">${data.deskripsi}</div>
                     </div>
-                    <div class="activity-detail-grid activity-detail-grid-3">
-                        <div class="activity-detail-field"><span class="activity-detail-label">Jenis Prospek</span><span class="activity-detail-value">${esc(jenisProspek)}</span></div>
-                        <div class="activity-detail-field"><span class="activity-detail-label">Status</span><span class="activity-detail-value">${esc(statusProspek)}</span></div>
-                        <div class="activity-detail-field"><span class="activity-detail-label">Tanggal Dibuat</span><span class="activity-detail-value">${esc(tanggalDibuat)}</span></div>
+                    <div class="info-item">
+                        <div class="info-label">Due Date</div>
+                        <div class="info-value">${data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID') : '-'}</div>
                     </div>
-                </div>
-
-                <div class="activity-detail-section">
-                    <div class="activity-detail-section-title">
-                        <span class="activity-detail-section-icon"><i class="fas fa-building"></i></span>
-                        <div><strong>Informasi Perusahaan</strong><small>Data account / perusahaan</small></div>
-                    </div>
-                    <div class="activity-detail-grid activity-detail-grid-3">
-                        <div class="activity-detail-field"><span class="activity-detail-label">Nama PT</span><span class="activity-detail-value">${esc(data.nama_pt)}</span></div>
-                        <div class="activity-detail-field"><span class="activity-detail-label">Badan Usaha</span><span class="activity-detail-value">${esc(data.badan_usaha)}</span></div>
-                        <div class="activity-detail-field"><span class="activity-detail-label">Business Segment</span><span class="activity-detail-value">${esc(data.bidang_usaha)}</span></div>
-                    </div>
-                </div>
-
-                <div class="activity-detail-section">
-                    <div class="activity-detail-section-title">
-                        <span class="activity-detail-section-icon"><i class="fas fa-user-tie"></i></span>
-                        <div><strong>Informasi PIC</strong><small>Kontak utama customer</small></div>
-                    </div>
-                    <div class="activity-detail-grid activity-detail-grid-3">
-                        <div class="activity-detail-field"><span class="activity-detail-label">Nama PIC</span><span class="activity-detail-value">${esc(data.nama_pic)}</span></div>
-                        ${contactMobileField}
-                        <div class="activity-detail-field"><span class="activity-detail-label">Email PIC</span><span class="activity-detail-value">${esc(data.email_pic)}</span></div>
-                    </div>
-                </div>
-
-                <div class="activity-detail-section activity-detail-section-last">
-                    <div class="activity-detail-section-title">
-                        <span class="activity-detail-section-icon"><i class="fas fa-user-check"></i></span>
-                        <div><strong>Sales</strong><small>Penanggung jawab aktivitas</small></div>
-                    </div>
-                    <div class="activity-detail-sales">
-                        <div class="activity-detail-sales-avatar"><i class="fas fa-user"></i></div>
-                        <div><span class="activity-detail-label">Sales</span><div class="activity-detail-sales-name">${esc(data.sales_name)}</div></div>
+                    ${data.tr_number ? `
+                    <div class="info-item">
+                        <div class="info-label">TR Number</div>
+                        <div class="info-value"><a href="detailtr.php?tr_number=${encodeURIComponent(data.tr_number)}" style="color: #2980b9; font-weight: 600;" target="_blank">${data.tr_number}</a></div>
+                    </div>` : ''}
+                    ${data.di_number ? `
+                    <div class="info-item">
+                        <div class="info-label">DI Number</div>
+                        <div class="info-value"><a href="detaildi.php?di_number=${encodeURIComponent(data.di_number)}" style="color: #27ae60; font-weight: 600;" target="_blank">${data.di_number}</a></div>
+                    </div>` : ''}
+                    ${data.customer_deal_label_from_tr ? `
+                    <div class="info-item">
+                        <div class="info-label">Keterangan</div>
+                        <div class="info-value">${data.customer_deal_label_from_tr}${data.customer_deal_keterangan_from_tr ? ' - ' + data.customer_deal_keterangan_from_tr : ''}</div>
+                    </div>` : ''}
+                    ${data.result ? `
+                    <div class="info-item">
+                        <div class="info-label">Result</div>
+                        <div class="info-value">${data.result}</div>
+                    </div>` : ''}
+                    ${data.attachment_file ? `
+                    <div class="info-item">
+                        <div class="info-label">Attachment</div>
+                        <div class="info-value">
+                            ${data.attachment_file.split(',').map(function(file, index) {
+                                return '<a href="' + file.trim() + '" target="_blank" class="me-2"><i class="fas fa-file me-1"></i>File ' + (index + 1) + '</a>';
+                            }).join('')}
+                        </div>
+                    </div>` : ''}
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">
+                            ${data.status === 'completed' ? 'Completed' : data.status === 'overdue' ? 'Overdue' : 'In Progress'}
+                        </div>
                     </div>
                 </div>
             `;
-
-            document.getElementById('detailBody').innerHTML = html;
-            const modal = new bootstrap.Modal(document.getElementById('modalDetail'));
+            document.getElementById('viewDetailBody').innerHTML = html;
+            var modal = new bootstrap.Modal(document.getElementById('modalViewDetail'));
             modal.show();
         }
-
-        function deleteActivity(id) {
-            document.getElementById('deleteId').value = id;
-            var modal = new bootstrap.Modal(document.getElementById('modalDelete'));
+        
+        function completeDetail(data) {
+            document.getElementById('completeDetailId').value = data.id;
+            
+            var requestTRField = document.getElementById('requestTRNumberField');
+            var requestTRSelect = document.getElementById('request_tr_number');
+            var generatedTRField = document.getElementById('generatedTRNumberField');
+            var generatedTRDisplay = document.getElementById('generatedTRNumberDisplay');
+            
+            requestTRField.style.display = 'none';
+            requestTRSelect.required = false;
+            requestTRSelect.value = '';
+            generatedTRField.style.display = 'none';
+            generatedTRDisplay.textContent = 'TR Number akan dibuat saat proses Complete.';
+            
+            if (data.jenis_tugas === 'Negosiasi') {
+                var existingTR = (data.tr_number || '').toString().trim();
+                
+                if (existingTR !== '') {
+                    // Sudah punya TR Number: tampilkan nomor lama dan jangan minta Request TR lagi.
+                    requestTRField.style.display = 'none';
+                    requestTRSelect.required = false;
+                    generatedTRField.style.display = 'block';
+                    generatedTRDisplay.innerHTML = '<i class="fas fa-link"></i> Menggunakan TR Number yang sudah ada: <a href="detailtr.php?tr_number=' + encodeURIComponent(existingTR) + '" target="_blank" style="color:#2980b9;font-weight:600;">' + existingTR + '</a>';
+                } else {
+                    // Belum punya TR Number: baru tampilkan pilihan Request TR Number.
+                    requestTRField.style.display = 'block';
+                    requestTRSelect.required = true;
+                    
+                    requestTRSelect.onchange = function() {
+                        if (this.value === 'yes') {
+                            generatedTRField.style.display = 'block';
+                            generatedTRDisplay.innerHTML = '<i class="fas fa-info-circle"></i> TR Number akan dibuat otomatis saat Anda menekan Complete.';
+                        } else {
+                            generatedTRField.style.display = 'none';
+                        }
+                    };
+                }
+            } else {
+                requestTRSelect.onchange = null;
+            }
+            
+            var existingContainer = document.getElementById('negosiasiInfoContainer');
+            if (existingContainer) {
+                existingContainer.remove();
+            }
+            
+            if (data.jenis_tugas === 'Kontrak' || data.jenis_tugas === 'After Sales') {
+                var infoHtml = '';
+                
+                if (deliveryOrderCompletedList.length > 0) {
+                    var lastDO = deliveryOrderCompletedList[deliveryOrderCompletedList.length - 1];
+                    
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-link"></i>Data dari Delivery Order Sebelumnya</h6>';
+                    
+                    if (lastDO.tr_number) {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> <a href="detailtr.php?tr_number=' + encodeURIComponent(lastDO.tr_number) + '" style="color: #2980b9;" target="_blank">' + lastDO.tr_number + '</a></div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>TR Number:</strong> -</div>';
+                    }
+                    
+                    if (lastDO.di_number) {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> <a href="detaildi.php?di_number=' + encodeURIComponent(lastDO.di_number) + '" style="color: #27ae60;" target="_blank">' + lastDO.di_number + '</a></div>';
+                    } else {
+                        infoHtml += '<div class="mb-2"><strong>DI Number:</strong> -</div>';
+                    }
+                    
+                    if (lastDO.customer_deal_label_from_tr) {
+                        infoHtml += '<div class="mb-0"><strong>Keterangan:</strong> ' + lastDO.customer_deal_label_from_tr + (lastDO.customer_deal_keterangan_from_tr ? ' - ' + lastDO.customer_deal_keterangan_from_tr : '') + '</div>';
+                    } else {
+                        infoHtml += '<div class="mb-0"><strong>Keterangan:</strong> -</div>';
+                    }
+                    
+                    infoHtml += '</div>';
+                } else {
+                    infoHtml += '<div class="info-negosiasi-container">';
+                    infoHtml += '<h6><i class="fas fa-info-circle"></i>Data dari Delivery Order Sebelumnya</h6>';
+                    infoHtml += '<div class="text-muted">Tidak ada data Delivery Order yang completed.</div>';
+                    infoHtml += '</div>';
+                }
+                
+                var modalBody = document.querySelector('#modalComplete .modal-body');
+                var infoContainer = document.createElement('div');
+                infoContainer.id = 'negosiasiInfoContainer';
+                infoContainer.innerHTML = infoHtml;
+                
+                var attachmentField = document.getElementById('attachment_file').closest('.mb-3');
+                attachmentField.after(infoContainer);
+            }
+            
+            var modal = new bootstrap.Modal(document.getElementById('modalComplete'));
+            modal.show();
+        }
+        
+        document.getElementById('modalComplete').addEventListener('hidden.bs.modal', function() {
+            var infoContainer = document.getElementById('negosiasiInfoContainer');
+            if (infoContainer) {
+                infoContainer.remove();
+            }
+        });
+        
+        function deleteDetail(id) {
+            document.getElementById('deleteDetailId').value = id;
+            var modal = new bootstrap.Modal(document.getElementById('modalDeleteDetail'));
             modal.show();
         }
     </script>
-</body>
-</html>
 </body>
 </html>
