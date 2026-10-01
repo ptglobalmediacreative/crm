@@ -644,32 +644,179 @@ if (!empty($filterStatus)) {
 // EXPORT TO EXCEL
 // ============================================
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+
+    /*
+     * SECURITY / DATA SCOPE EXPORT
+     *
+     * Full report roles:
+     * - direktur_utama
+     * - direktur_operasional
+     * - direktur_sales
+     * - sales_manager
+     * - it_support
+     *
+     * User selain role di atas hanya boleh export
+     * Sales Activity miliknya sendiri berdasarkan
+     * sales_activities.sales_id = session user_id.
+     *
+     * Jangan menggunakan $where / $params dari halaman
+     * secara langsung di sini. Export membangun scope
+     * sendiri agar parameter URL tidak dapat memperluas
+     * akses user non-full-report.
+     */
+
+    $exportWhere = "WHERE 1=1";
+    $exportParams = [];
+
+    // ============================================
+    // SCOPE BERDASARKAN ROLE
+    // ============================================
+    if (!$canViewAllReport) {
+        // User biasa: WAJIB hanya data milik dirinya sendiri.
+        $exportWhere .= " AND sa.sales_id = ?";
+        $exportParams[] = $userId;
+    } elseif ($filterSalesId > 0) {
+        // Full access: boleh memilih Sales tertentu.
+        $exportWhere .= " AND sa.sales_id = ?";
+        $exportParams[] = $filterSalesId;
+    }
+
+    // ============================================
+    // FILTER SEARCH
+    // ============================================
+    if (!empty($search)) {
+        $exportWhere .= " AND (
+            sa.leads_number LIKE ?
+            OR a.nama_pt LIKE ?
+            OR a.nama_pic LIKE ?
+        )";
+
+        $exportParams[] = "%{$search}%";
+        $exportParams[] = "%{$search}%";
+        $exportParams[] = "%{$search}%";
+    }
+
+    // ============================================
+    // FILTER PERIODE
+    // ============================================
+    if (!empty($filterMonth)) {
+        $monthStart = $filterMonth . '-01';
+        $monthEnd = date('Y-m-d', strtotime($monthStart . ' +1 month'));
+
+        $exportWhere .= " AND sa.created_at >= ? AND sa.created_at < ?";
+        $exportParams[] = $monthStart;
+        $exportParams[] = $monthEnd;
+    }
+
+    // ============================================
+    // FILTER JENIS PROSPEK
+    // ============================================
+    if (!empty($filterJenisProspek)) {
+        $exportWhere .= " AND sa.jenis_prospek = ?";
+        $exportParams[] = $filterJenisProspek;
+    }
+
+    // ============================================
+    // FILTER STATUS
+    // ============================================
+    if (!empty($filterStatus)) {
+        $exportWhere .= " AND sa.status = ?";
+        $exportParams[] = $filterStatus;
+    }
+
+    // ============================================
+    // QUERY EXPORT
+    // ============================================
+    $exportSql = "
+        SELECT
+            sa.*,
+            a.nama_pt,
+            a.badan_usaha,
+            a.bidang_usaha,
+            a.nama_pic,
+            a.no_hp_pic,
+            a.email_pic,
+            u.full_name AS sales_name
+        FROM sales_activities sa
+        LEFT JOIN accounts a
+            ON sa.account_id = a.id
+        LEFT JOIN users u
+            ON sa.sales_id = u.id
+        {$exportWhere}
+        ORDER BY sa.created_at DESC
+    ";
+
+    $stmt = $db->prepare($exportSql);
+    $stmt->execute($exportParams);
+    $exportActivities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // ============================================
+    // HEADER FILE EXCEL
+    // ============================================
     header('Content-Type: application/vnd.ms-excel');
     header('Content-Disposition: attachment; filename="Data_Sales_Activity_' . date('Y-m-d') . '.xls"');
     header('Cache-Control: max-age=0');
-    
-    $exportSql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
-            FROM sales_activities sa 
-            LEFT JOIN accounts a ON sa.account_id = a.id 
-            LEFT JOIN users u ON sa.sales_id = u.id
-            $where 
-            ORDER BY sa.created_at DESC";
-    $stmt = $db->prepare($exportSql);
-    $stmt->execute($params);
-    $exportActivities = $stmt->fetchAll();
-    
+
     echo '<html>';
     echo '<head><meta charset="UTF-8"></head>';
     echo '<body>';
+
     echo '<h2>Data Sales Activity - PT Ganda Elang Tangguh</h2>';
     echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . ' WIB</p>';
-    echo '<p>Filter Periode: ' . ($filterMonth !== '' ? date('F Y', strtotime($filterMonth . '-01')) : 'All Periode') . '</p>';
+
+    // ============================================
+    // INFORMASI SCOPE EXPORT
+    // ============================================
+    if (!$canViewAllReport) {
+        $exportUserName = $_SESSION['full_name'] ?? 'User';
+
+        echo '<p>Sales: <strong>'
+            . htmlspecialchars($exportUserName)
+            . '</strong></p>';
+    } elseif ($filterSalesId > 0) {
+        // Ambil nama Sales langsung berdasarkan filter agar
+        // export tidak bergantung pada $salesUsers yang
+        // didefinisikan setelah blok export ini.
+        $salesNameStmt = $db->prepare(
+            "SELECT full_name FROM users WHERE id = ? LIMIT 1"
+        );
+        $salesNameStmt->execute([$filterSalesId]);
+        $exportSalesName = $salesNameStmt->fetchColumn() ?: '-';
+
+        echo '<p>Sales: <strong>'
+            . htmlspecialchars($exportSalesName)
+            . '</strong></p>';
+    } else {
+        echo '<p>Sales: <strong>Semua Sales</strong></p>';
+    }
+
+    echo '<p>Filter Periode: '
+        . ($filterMonth !== ''
+            ? date('F Y', strtotime($filterMonth . '-01'))
+            : 'All Periode')
+        . '</p>';
+
     if (!empty($filterJenisProspek)) {
-        echo '<p>Filter Jenis Prospek: ' . htmlspecialchars($filterJenisProspek) . '</p>';
+        echo '<p>Filter Jenis Prospek: '
+            . htmlspecialchars($filterJenisProspek)
+            . '</p>';
     }
+
     if (!empty($filterStatus)) {
-        echo '<p>Filter Status: ' . htmlspecialchars($filterStatus) . '</p>';
+        echo '<p>Filter Status: '
+            . htmlspecialchars($filterStatus)
+            . '</p>';
     }
+
+    if (!empty($search)) {
+        echo '<p>Pencarian: '
+            . htmlspecialchars($search)
+            . '</p>';
+    }
+
+    // ============================================
+    // TABLE EXCEL
+    // ============================================
     echo '<table border="1" cellpadding="5" cellspacing="0">';
     echo '<thead>';
     echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
@@ -686,34 +833,57 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '</tr>';
     echo '</thead>';
     echo '<tbody>';
-    
+
     $no = 1;
+
     foreach ($exportActivities as $act) {
         $jenisProspek = getJenisProspek($db, $act['id']) ?? '-';
         $statusProspek = getStatusProspek($db, $act['id']) ?? '-';
-        $lastActivityStmtExport = $db->prepare("SELECT jenis_tugas FROM activity_details WHERE sales_activity_id = ? ORDER BY id DESC LIMIT 1");
+
+        $lastActivityStmtExport = $db->prepare("
+            SELECT jenis_tugas
+            FROM activity_details
+            WHERE sales_activity_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+        ");
         $lastActivityStmtExport->execute([$act['id']]);
         $lastActivity = $lastActivityStmtExport->fetchColumn() ?: '-';
-        
+
+        $namaPerusahaan = trim(
+            ($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? '')
+        );
+        $namaPerusahaan = $namaPerusahaan !== '' ? $namaPerusahaan : '-';
+
         echo '<tr>';
         echo '<td>' . $no++ . '</td>';
-        echo '<td>' . htmlspecialchars($act['leads_number']) . '</td>';
-        $namaPerusahaan = trim(($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? ''));
-        echo '<td>' . htmlspecialchars($namaPerusahaan ?: '-') . '</td>';
+        echo '<td>' . htmlspecialchars($act['leads_number'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($namaPerusahaan) . '</td>';
         echo '<td>' . htmlspecialchars($act['bidang_usaha'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($jenisProspek) . '</td>';
         echo '<td>' . htmlspecialchars($statusProspek) . '</td>';
         echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($lastActivity) . '</td>';
         echo '<td>' . htmlspecialchars($act['sales_name'] ?? '-') . '</td>';
-        echo '<td>' . date('d-m-Y H:i', strtotime($act['created_at'])) . '</td>';
+        echo '<td>'
+            . (!empty($act['created_at'])
+                ? date('d-m-Y H:i', strtotime($act['created_at']))
+                : '-')
+            . '</td>';
         echo '</tr>';
     }
-    
+
+    if (empty($exportActivities)) {
+        echo '<tr>';
+        echo '<td colspan="10" style="text-align:center;">Tidak ada data Sales Activity</td>';
+        echo '</tr>';
+    }
+
     echo '</tbody>';
     echo '</table>';
     echo '</body>';
     echo '</html>';
+
     exit;
 }
 
@@ -922,7 +1092,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
         <h4><span><i class="fas fa-chart-line"></i></span> Sales Activity</h4>
     </div>
     <div class="header-actions">
-        <a href="salesactivity.php?export=excel<?= $filterMonth !== '' ? '&month=' . urlencode($filterMonth) : '' ?>&sales_id=<?= (int)$filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>&search=<?= urlencode($search) ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
+        <a href="salesactivity.php?export=excel<?= $filterMonth !== '' ? '&month=' . urlencode($filterMonth) : '' ?><?= $canViewAllReport && $filterSalesId > 0 ? '&sales_id=' . (int)$filterSalesId : '' ?><?= $filterJenisProspek !== '' ? '&jenis_prospek=' . urlencode($filterJenisProspek) : '' ?><?= $filterStatus !== '' ? '&status=' . urlencode($filterStatus) : '' ?><?= $search !== '' ? '&search=' . urlencode($search) : '' ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
         <?php if (canAdd('sales_activity')): ?><button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalActivity"><i class="fas fa-plus me-2"></i>Tambah Aktivitas</button><?php endif; ?>
     </div>
 </div>
