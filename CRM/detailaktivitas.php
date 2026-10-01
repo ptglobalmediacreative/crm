@@ -109,7 +109,44 @@ if (!$activity) {
 // ============================================
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
-$userId = $_SESSION['user_id'] ?? 0;
+$userId = (int)($_SESSION['user_id'] ?? 0);
+
+// ============================================
+// HAK AKSES DETAIL AKTIVITAS
+// ============================================
+// Contact Mobile dan tombol Complete hanya boleh dilihat/dijalankan
+// oleh Sales yang memiliki Sales Activity / Detail Aktivitas ini.
+// Direktur/IT Support hanya memiliki akses melihat Contact Mobile.
+//
+// Tombol Hapus hanya boleh untuk:
+// Direktur Utama, Direktur Operasional, Direktur Sales, IT Support.
+$contactMobileViewRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'it_support'
+];
+
+$deleteActivityRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'it_support'
+];
+
+$isActivityOwnerSales = (
+    $role === 'sales'
+    && (int)($activity['sales_id'] ?? 0) === $userId
+);
+
+$canViewContactMobile = (
+    in_array($role, $contactMobileViewRoles, true)
+    || $isActivityOwnerSales
+);
+
+$canCompleteActivity = $isActivityOwnerSales;
+
+$canDeleteActivity = in_array($role, $deleteActivityRoles, true);
 
 // ============================================
 // UPDATE STATUS OVERDUE OTOMATIS (WIB)
@@ -537,20 +574,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'complete') {
         $detail_id = (int)$_POST['detail_id'];
         
-        // Sales hanya bisa complete miliknya sendiri
-        if ($role === 'sales') {
-            $checkOwner = $db->prepare("SELECT sa.sales_id FROM activity_details ad 
-                                        JOIN sales_activities sa ON ad.sales_activity_id = sa.id 
-                                        WHERE ad.id = ?");
-            $checkOwner->execute([$detail_id]);
-            $ownerData = $checkOwner->fetch();
-            
-            if (!$ownerData || $ownerData['sales_id'] != $userId) {
-                setFlash('Anda tidak memiliki akses!', 'danger');
-                redirect('detailaktivitas.php?leads_id=' . $leadsId);
-            }
-        } elseif (!canEdit('sales_activity')) {
-            setFlash('Anda tidak memiliki akses!', 'danger');
+        // Complete HANYA boleh dilakukan oleh Sales yang memiliki
+        // Sales Activity / Detail Aktivitas tersebut.
+        $checkOwner = $db->prepare("
+            SELECT sa.sales_id
+            FROM activity_details ad
+            JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+            WHERE ad.id = ?
+              AND ad.sales_activity_id = ?
+        ");
+        $checkOwner->execute([$detail_id, $leadsId]);
+        $ownerData = $checkOwner->fetch();
+
+        if (
+            !$isActivityOwnerSales
+            || !$ownerData
+            || (int)$ownerData['sales_id'] !== $userId
+        ) {
+            setFlash('Hanya Sales yang memiliki Detail Aktivitas ini yang dapat melakukan Complete!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
         
@@ -749,8 +790,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        if ($role === 'sales' || !canDelete('sales_activity')) {
-            setFlash('Anda tidak memiliki akses!', 'danger');
+        // Hapus Detail Aktivitas hanya boleh untuk:
+        // Direktur Utama, Direktur Operasional, Direktur Sales, IT Support.
+        if (!$canDeleteActivity) {
+            setFlash('Anda tidak memiliki akses untuk menghapus Detail Aktivitas!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
 
@@ -1019,10 +1062,12 @@ foreach ($detailsList as $d) {
                 <div class="info-label">Nama PIC</div>
                 <div class="info-value"><?= htmlspecialchars($activity['nama_pic'] ?? '-') ?></div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Contact Mobile</div>
-                <div class="info-value"><?= htmlspecialchars($activity['no_hp_pic'] ?? '-') ?></div>
-            </div>
+            <?php if ($canViewContactMobile): ?>
+                <div class="info-item">
+                    <div class="info-label">Contact Mobile</div>
+                    <div class="info-value"><?= htmlspecialchars($activity['no_hp_pic'] ?? '-') ?></div>
+                </div>
+            <?php endif; ?>
             <div class="info-item">
                 <div class="info-label">Sales</div>
                 <div class="info-value"><?= htmlspecialchars($activity['sales_name'] ?? '-') ?></div>
@@ -1119,23 +1164,16 @@ foreach ($detailsList as $d) {
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <?php if ($detail['status'] === 'in_progress' || $detail['status'] === 'overdue'): ?>
-                                                    <?php if ($role === 'sales'): ?>
-                                                        <?php if ($activity['sales_id'] == $userId): ?>
-                                                            <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
-                                                                <i class="fas fa-check"></i>
-                                                            </button>
-                                                        <?php endif; ?>
-                                                    <?php else: ?>
-                                                        <?php if (canEdit('sales_activity')): ?>
-                                                            <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
-                                                                <i class="fas fa-check"></i>
-                                                            </button>
-                                                        <?php endif; ?>
-                                                        <?php if (canDelete('sales_activity')): ?>
-                                                            <button class="btn-action delete" onclick="deleteDetail(<?= $detail['id'] ?>)">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        <?php endif; ?>
+                                                    <?php if ($canCompleteActivity): ?>
+                                                        <button class="btn-action complete" onclick="completeDetail(<?= htmlspecialchars(json_encode($detail)) ?>)">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+
+                                                    <?php if ($canDeleteActivity): ?>
+                                                        <button class="btn-action delete" onclick="deleteDetail(<?= $detail['id'] ?>)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>
