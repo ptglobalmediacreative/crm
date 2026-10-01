@@ -686,6 +686,44 @@ try {
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/footer.css">
 <link rel="stylesheet" href="css/navigation.css">
+<style>
+.month-filter-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+.month-filter-label{
+    font-size:12px;
+    font-weight:600;
+    color:#8290aa;
+    white-space:nowrap;
+}
+.month-filter{
+    min-width:155px;
+    cursor:pointer;
+}
+.btn-filter-reset{
+    height:38px;
+    padding:0 12px;
+    border:1px solid rgba(148,163,184,.18);
+    border-radius:8px;
+    background:rgba(15,23,42,.72);
+    color:#8290aa;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.18s ease;
+}
+.btn-filter-reset:hover,.btn-filter-reset.active{
+    border-color:rgba(96,165,250,.45);
+    background:rgba(59,130,246,.10);
+    color:#dbeafe;
+}
+@media(max-width:768px){
+    .month-filter-wrap{flex-wrap:wrap;}
+    .month-filter{min-width:145px;}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -711,21 +749,24 @@ try {
 </select>
 <?php endif; ?>
 
-<select class="filter" id="filterMonth" onchange="applyFilter()">
-    <option value="" <?= $filterMonth === '' ? 'selected' : '' ?>>All Month</option>
-    <?php
-    $monthOptions = [];
-    for ($i = 0; $i < 24; $i++) {
-        $m = date('Y-m', strtotime("-{$i} months"));
-        $monthOptions[$m] = date('F Y', strtotime($m . '-01'));
-    }
-    foreach ($monthOptions as $monthValue => $monthLabel):
-    ?>
-        <option value="<?= htmlspecialchars($monthValue) ?>" <?= $filterMonth === $monthValue ? 'selected' : '' ?>>
-            <?= htmlspecialchars($monthLabel) ?>
-        </option>
-    <?php endforeach; ?>
-</select>
+<div class="month-filter-wrap">
+    <label class="month-filter-label" for="filterMonth">Periode</label>
+    <input
+        class="filter month-filter"
+        type="month"
+        id="filterMonth"
+        value="<?= htmlspecialchars($filterMonth) ?>"
+        onchange="applyFilter()"
+        aria-label="Filter tahun dan bulan"
+    >
+    <button
+        type="button"
+        class="btn-filter-reset <?= $isAllMonth ? 'active' : '' ?>"
+        onclick="resetMonthFilter()"
+    >
+        All Month
+    </button>
+</div>
 
 <button class="btn-add" onclick="location.href='account_management.php'">
     <i class="fas fa-plus me-1"></i> Add Lead
@@ -787,10 +828,18 @@ function applyFilter(){
     const m = monthEl ? monthEl.value : '';
     const params = new URLSearchParams();
     params.set('sales_id', s);
+    // Jika memilih tahun + bulan, kirim periode tersebut.
+    // Jika kosong, dashboard kembali ke All Month.
     if (m !== '') {
         params.set('month', m);
     }
     location.href = '?' + params.toString();
+}
+
+function resetMonthFilter(){
+    const monthEl = document.getElementById('filterMonth');
+    if (monthEl) monthEl.value = '';
+    applyFilter();
 }
 </script>
 </body></html>
