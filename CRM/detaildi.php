@@ -115,6 +115,7 @@ try {
 // ============================================
 $sql = "SELECT ad.di_number,
                ad.tr_number,
+               sa.leads_number AS activity_number,
                ad.due_date,
                ad.created_at as request_date,
                ad.id as activity_detail_id,
@@ -1013,23 +1014,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="hidden" name="action" value="save_data_penjualan">
                         
                         <div class="row">
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Activity Number</label>
+                                <input type="text" class="form-control" value="<?= htmlspecialchars($request['activity_number'] ?? '-') ?>" readonly>
+                            </div>
+                            <div class="col-md-2 mb-3">
                                 <label class="form-label">No. DI</label>
                                 <input type="text" class="form-control" value="<?= htmlspecialchars($di_number) ?>" readonly>
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
                                 <label class="form-label">No. TR</label>
                                 <input type="text" class="form-control" value="<?= htmlspecialchars($request['tr_number'] ?? '-') ?>" readonly>
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
                                 <label class="form-label">Tanggal</label>
                                 <input type="text" class="form-control" value="<?= date('d/m/Y', strtotime($request['request_date'])) ?>" readonly>
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
                                 <label class="form-label">No. SO *</label>
                                 <input type="text" name="no_so" class="form-control" value="<?= htmlspecialchars($request['no_so']) ?>" required>
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
                                 <label class="form-label">Sales</label>
                                 <input type="text" class="form-control" value="<?= htmlspecialchars($request['sales_name'] ?? '-') ?>" readonly>
                             </div>
@@ -1046,23 +1051,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <div id="viewDataPenjualan">
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <div class="info-label">Activity Number</div>
+                            <div class="info-value"><strong><?= htmlspecialchars($request['activity_number'] ?? '-') ?></strong></div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="info-label">No. DI</div>
                             <div class="info-value"><strong><?= htmlspecialchars($di_number) ?></strong></div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="info-label">No. TR</div>
                             <div class="info-value"><strong><?= htmlspecialchars($request['tr_number'] ?? '-') ?></strong></div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="info-label">Tanggal</div>
                             <div class="info-value"><?= date('d/m/Y', strtotime($request['request_date'])) ?></div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="info-label">No. SO</div>
                             <div class="info-value"><?= htmlspecialchars($request['no_so'] ?: '-') ?></div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="info-label">Sales</div>
                             <div class="info-value"><?= htmlspecialchars($request['sales_name'] ?? '-') ?></div>
                         </div>
