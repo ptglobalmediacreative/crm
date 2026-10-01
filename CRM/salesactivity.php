@@ -1351,26 +1351,16 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
     </div>
 
     <!-- MODAL DETAIL -->
-    <div class="modal fade detail-activity-modal" id="modalDetail" tabindex="-1" aria-labelledby="modalDetailLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal fade" id="modalDetail" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <div class="detail-modal-title-wrap">
-                        <div class="detail-modal-icon">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div>
-                            <h5 class="modal-title" id="modalDetailLabel">Detail Aktivitas</h5>
-                            <div class="detail-modal-subtitle">Informasi lengkap Sales Activity</div>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    <h5 class="modal-title"><i class="fas fa-chart-bar" style="color:#ffd700;"></i> Detail Aktivitas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="detailBody"></div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Tutup
-                    </button>
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -1536,143 +1526,100 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
         });
 
         function detailActivity(data) {
-            // Escape output agar nilai dari database aman saat dimasukkan ke HTML.
-            const esc = (value) => {
-                const div = document.createElement('div');
-                div.textContent = value ?? '-';
-                return div.innerHTML;
-            };
+            // Escape nilai sebelum dimasukkan ke HTML.
+            const esc = (value) => String(value ?? '-').replace(/[&<>"']/g, function(char) {
+                return ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                })[char];
+            });
 
-            const valueOrDash = (value) => {
-                const text = String(value ?? '').trim();
-                return text !== '' ? esc(text) : '-';
-            };
+            const jenisProspek = data.jenis_prospek || '-';
+            const statusProspek = data.status_prospek || '-';
+            const statusClass = statusProspek.toLowerCase().replace(/\s+/g, '-');
+            const prospekClass = jenisProspek.toLowerCase().replace(/\s+/g, '-');
 
-            const prospect = String(data.jenis_prospek || '').trim();
-            const status = String(data.status_prospek || '').trim();
-
-            const prospectClass = {
-                'Suspect': 'suspect',
-                'Prospect': 'prospect',
-                'Hot Prospect': 'hot-prospect',
-                'Deal': 'deal-prospek',
-                'Lost Deal': 'lost-deal'
-            }[prospect] || '';
-
-            const statusClass = {
-                'In Progress': 'in-progress',
-                'Completed': 'completed',
-                'Overdue': 'overdue'
-            }[status] || '';
-
-            let createdAt = '-';
+            let tanggalDibuat = '-';
             if (data.created_at) {
-                const parsedDate = new Date(String(data.created_at).replace(' ', 'T'));
-                if (!Number.isNaN(parsedDate.getTime())) {
-                    createdAt = parsedDate.toLocaleDateString('id-ID', {
+                const date = new Date(data.created_at);
+                if (!Number.isNaN(date.getTime())) {
+                    tanggalDibuat = date.toLocaleDateString('id-ID', {
                         day: '2-digit',
                         month: 'long',
-                        year: 'numeric',
+                        year: 'numeric'
+                    }) + ' pukul ' + date.toLocaleTimeString('id-ID', {
                         hour: '2-digit',
                         minute: '2-digit'
                     });
                 }
             }
 
-            const prospectBadge = prospect
-                ? `<span class="detail-badge prospect-badge ${prospectClass}">${esc(prospect)}</span>`
-                : '<span class="detail-empty">-</span>';
-
-            const statusBadge = status
-                ? `<span class="detail-badge status-badge ${statusClass}">${esc(status)}</span>`
-                : '<span class="detail-empty">-</span>';
-
-            const companyName = valueOrDash(data.nama_pt);
-            const businessType = valueOrDash(data.badan_usaha);
-            const businessSegment = valueOrDash(data.bidang_usaha);
-
             const html = `
-                <div class="detail-summary">
-                    <div class="detail-summary-main">
-                        <div class="detail-summary-label">ACTIVITY NUMBER</div>
-                        <div class="detail-summary-number">${valueOrDash(data.leads_number)}</div>
+                <div class="activity-detail-head">
+                    <div class="activity-detail-head-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="activity-detail-head-main">
+                        <div class="activity-detail-eyebrow">Activity Number</div>
+                        <div class="activity-detail-number">${esc(data.leads_number)}</div>
                     </div>
-                    <div class="detail-summary-status">
-                        <div class="detail-status-item">
-                            <span>Jenis Prospek</span>
-                            ${prospectBadge}
-                        </div>
-                        <div class="detail-status-item">
-                            <span>Status</span>
-                            ${statusBadge}
-                        </div>
+                    <div class="activity-detail-head-status">
+                        <span class="detail-prospek-badge ${esc(prospekClass)}">${esc(jenisProspek)}</span>
+                        <span class="detail-status-badge ${esc(statusClass)}">${esc(statusProspek)}</span>
                     </div>
                 </div>
 
-                <div class="detail-section">
-                    <div class="detail-section-title">
-                        <i class="fas fa-building"></i>
-                        <span>Informasi Perusahaan</span>
+                <div class="activity-detail-section">
+                    <div class="activity-detail-section-title">
+                        <span class="activity-detail-section-icon"><i class="fas fa-briefcase"></i></span>
+                        <div><strong>Informasi Aktivitas</strong><small>Ringkasan aktivitas sales</small></div>
                     </div>
-                    <div class="detail-grid">
-                        <div class="detail-field detail-field-wide">
-                            <span class="detail-field-label">Nama PT</span>
-                            <div class="detail-field-value">${companyName}</div>
-                        </div>
-                        <div class="detail-field">
-                            <span class="detail-field-label">Badan Usaha</span>
-                            <div class="detail-field-value">${businessType}</div>
-                        </div>
-                        <div class="detail-field">
-                            <span class="detail-field-label">Business Segment</span>
-                            <div class="detail-field-value">${businessSegment}</div>
-                        </div>
+                    <div class="activity-detail-grid activity-detail-grid-3">
+                        <div class="activity-detail-field"><span class="activity-detail-label">Jenis Prospek</span><span class="activity-detail-value">${esc(jenisProspek)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Status</span><span class="activity-detail-value">${esc(statusProspek)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Tanggal Dibuat</span><span class="activity-detail-value">${esc(tanggalDibuat)}</span></div>
                     </div>
                 </div>
 
-                <div class="detail-section">
-                    <div class="detail-section-title">
-                        <i class="fas fa-user-tie"></i>
-                        <span>Informasi PIC</span>
+                <div class="activity-detail-section">
+                    <div class="activity-detail-section-title">
+                        <span class="activity-detail-section-icon"><i class="fas fa-building"></i></span>
+                        <div><strong>Informasi Perusahaan</strong><small>Data account / perusahaan</small></div>
                     </div>
-                    <div class="detail-grid">
-                        <div class="detail-field">
-                            <span class="detail-field-label">Nama PIC</span>
-                            <div class="detail-field-value">${valueOrDash(data.nama_pic)}</div>
-                        </div>
-                        <div class="detail-field">
-                            <span class="detail-field-label">Contact Mobile</span>
-                            <div class="detail-field-value">${valueOrDash(data.no_hp_pic)}</div>
-                        </div>
-                        <div class="detail-field detail-field-wide">
-                            <span class="detail-field-label">Email PIC</span>
-                            <div class="detail-field-value">${valueOrDash(data.email_pic)}</div>
-                        </div>
+                    <div class="activity-detail-grid activity-detail-grid-3">
+                        <div class="activity-detail-field"><span class="activity-detail-label">Nama PT</span><span class="activity-detail-value">${esc(data.nama_pt)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Badan Usaha</span><span class="activity-detail-value">${esc(data.badan_usaha)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Business Segment</span><span class="activity-detail-value">${esc(data.bidang_usaha)}</span></div>
                     </div>
                 </div>
 
-                <div class="detail-section detail-section-last">
-                    <div class="detail-section-title">
-                        <i class="fas fa-user-check"></i>
-                        <span>Informasi Sales</span>
+                <div class="activity-detail-section">
+                    <div class="activity-detail-section-title">
+                        <span class="activity-detail-section-icon"><i class="fas fa-user-tie"></i></span>
+                        <div><strong>Informasi PIC</strong><small>Kontak utama customer</small></div>
                     </div>
-                    <div class="detail-grid">
-                        <div class="detail-field">
-                            <span class="detail-field-label">Sales</span>
-                            <div class="detail-field-value">${valueOrDash(data.sales_name)}</div>
-                        </div>
-                        <div class="detail-field">
-                            <span class="detail-field-label">Tanggal Dibuat</span>
-                            <div class="detail-field-value">${esc(createdAt)}</div>
-                        </div>
+                    <div class="activity-detail-grid activity-detail-grid-3">
+                        <div class="activity-detail-field"><span class="activity-detail-label">Nama PIC</span><span class="activity-detail-value">${esc(data.nama_pic)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Contact Mobile</span><span class="activity-detail-value">${esc(data.no_hp_pic)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Email PIC</span><span class="activity-detail-value">${esc(data.email_pic)}</span></div>
+                    </div>
+                </div>
+
+                <div class="activity-detail-section activity-detail-section-last">
+                    <div class="activity-detail-section-title">
+                        <span class="activity-detail-section-icon"><i class="fas fa-user-check"></i></span>
+                        <div><strong>Sales</strong><small>Penanggung jawab aktivitas</small></div>
+                    </div>
+                    <div class="activity-detail-sales">
+                        <div class="activity-detail-sales-avatar"><i class="fas fa-user"></i></div>
+                        <div><span class="activity-detail-label">Sales</span><div class="activity-detail-sales-name">${esc(data.sales_name)}</div></div>
                     </div>
                 </div>
             `;
 
             document.getElementById('detailBody').innerHTML = html;
-
-            const modalElement = document.getElementById('modalDetail');
-            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            const modal = new bootstrap.Modal(document.getElementById('modalDetail'));
             modal.show();
         }
 
