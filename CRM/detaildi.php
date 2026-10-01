@@ -754,7 +754,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (count($submittedIds) > 0) {
                 $placeholders = implode(',', array_fill(0, count($submittedIds), '?'));
                 $params = array_merge([$di_number], $submittedIds);
-                $deleteStmt = $db->prepare("DELETE FROM di_logistics_comparisons WHERE di_number = ? AND id NOT IN ($placeholders)");
+                $deleteStmt = $db->prepare("DELETE FROM di_logistics_comparisons WHERE di_number = ? AND id NOT IN ($placeholders) AND is_selected = 0");
                 $deleteStmt->execute($params);
             } else {
                 $deleteStmt = $db->prepare("DELETE FROM di_logistics_comparisons WHERE di_number = ?");
@@ -772,33 +772,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ============================================
-    // PILIH VENDOR SETELAH DATA KOMPARASI TERSIMPAN
+    // PILIH VENDOR - HANYA BOLEH SEKALI
+    // Setelah vendor dipilih, pilihan dikunci dan tidak
+    // dapat diganti lagi. Tidak ada tombol simpan terpisah.
     // ============================================
     if ($action === 'select_logistics_vendor') {
         try {
             $db->beginTransaction();
 
+            // Cek apakah DI ini sudah mempunyai vendor terpilih.
+            // Jika sudah, jangan izinkan perubahan pilihan.
+            $checkSelected = $db->prepare("SELECT id FROM di_logistics_comparisons WHERE di_number = ? AND is_selected = 1 LIMIT 1");
+            $checkSelected->execute([$di_number]);
+            if ($checkSelected->fetch()) {
+                throw new Exception('Vendor terpilih sudah dikunci dan tidak dapat diubah lagi.');
+            }
+
             $selectedVendorId = (int)($_POST['selected_vendor_id'] ?? 0);
-
-            if ($selectedVendorId > 0) {
-                $checkVendor = $db->prepare("SELECT id FROM di_logistics_comparisons WHERE id = ? AND di_number = ?");
-                $checkVendor->execute([$selectedVendorId, $di_number]);
-                if (!$checkVendor->fetch()) {
-                    throw new Exception('Vendor tidak ditemukan untuk DI ini.');
-                }
+            if ($selectedVendorId <= 0) {
+                throw new Exception('Silakan pilih vendor terlebih dahulu.');
             }
 
-            $resetSelected = $db->prepare("UPDATE di_logistics_comparisons SET is_selected = 0, updated_at = NOW() WHERE di_number = ?");
-            $resetSelected->execute([$di_number]);
-
-            if ($selectedVendorId > 0) {
-                $setSelected = $db->prepare("UPDATE di_logistics_comparisons SET is_selected = 1, updated_at = NOW() WHERE id = ? AND di_number = ?");
-                $setSelected->execute([$selectedVendorId, $di_number]);
+            $checkVendor = $db->prepare("SELECT id FROM di_logistics_comparisons WHERE id = ? AND di_number = ?");
+            $checkVendor->execute([$selectedVendorId, $di_number]);
+            if (!$checkVendor->fetch()) {
+                throw new Exception('Vendor tidak ditemukan untuk DI ini.');
             }
+
+            $setSelected = $db->prepare("UPDATE di_logistics_comparisons SET is_selected = 1, updated_at = NOW() WHERE id = ? AND di_number = ? AND is_selected = 0");
+            $setSelected->execute([$selectedVendorId, $di_number]);
 
             resetDIApprovalHistory($db, $di_number);
             $db->commit();
-            setFlash('Vendor terpilih berhasil diperbarui!', 'success');
+            setFlash('Vendor berhasil dipilih dan dikunci.', 'success');
         } catch (Exception $e) {
             if ($db->inTransaction()) $db->rollBack();
             setFlash('Gagal memilih vendor: ' . $e->getMessage(), 'danger');
@@ -1434,23 +1440,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </tbody>
                         </table>
 
-                        <form method="POST" class="vendor-selection-form">
+                        <form method="POST" class="vendor-selection-form" id="vendorSelectionForm">
                             <input type="hidden" name="action" value="select_logistics_vendor">
                             <div class="comparison-note">
                                 <i class="fas fa-circle-check"></i>
-                                Pilih vendor setelah seluruh data komparasi tersimpan.
+                                <?php if ($selectedLogisticsVendor): ?>
+                                    Vendor terpilih sudah disimpan dan dikunci. Pilihan vendor tidak dapat diubah lagi.
+                                <?php else: ?>
+                                    Pilih satu vendor. Setelah diklik, pilihan akan langsung tersimpan dan dikunci.
+                                <?php endif; ?>
                             </div>
                             <div class="vendor-selection-list">
                                 <?php foreach ($diLogisticsComparisons as $idx => $vendor): ?>
-                                    <label class="vendor-selection-item <?= (int)$vendor['is_selected'] === 1 ? 'active' : '' ?>">
-                                        <input type="radio" name="selected_vendor_id" value="<?= (int)$vendor['id'] ?>" <?= (int)$vendor['is_selected'] === 1 ? 'checked' : '' ?>>
+                                    <?php $vendorLocked = $selectedLogisticsVendor !== null; ?>
+                                    <label class="vendor-selection-item <?= (int)$vendor['is_selected'] === 1 ? 'active' : '' ?> <?= $vendorLocked ? 'locked' : '' ?>">
+                                        <input type="radio" name="selected_vendor_id" value="<?= (int)$vendor['id'] ?>"
+                                            <?= (int)$vendor['is_selected'] === 1 ? 'checked' : '' ?>
+                                            <?= $vendorLocked ? 'disabled' : 'onchange="document.getElementById(\'vendorSelectionForm\').submit();"' ?>>
                                         <span><strong>Vendor <?= chr(65 + $idx) ?></strong> — <?= htmlspecialchars($vendor['vendor_name']) ?></span>
                                     </label>
                                 <?php endforeach; ?>
                             </div>
-                            <button type="submit" class="btn btn-primary-custom mt-3">
-                                <i class="fas fa-check-circle"></i> Simpan Vendor Terpilih
-                            </button>
                         </form>
                     </div>
                     <div class="selected-vendor-box">
