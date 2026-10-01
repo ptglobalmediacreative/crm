@@ -4263,3 +4263,58 @@ body.page-detaildi .detail-part-table tr.table-total-row strong,
 body.page-detaildi .logistics-comparison-table tr.table-total-row strong {
   color: #e8eef8 !important;
 }
+
+/* =========================================================
+   DATA PENJUALAN — 2 KOLOM VERTIKAL
+   Urutan:
+   Activity Number | No. DI
+   No. TR          | Tanggal
+   No. SO          | Sales
+   ========================================================= */
+
+#editDataPenjualan > .row,
+#viewDataPenjualan > .row {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 28px !important;
+  row-gap: 4px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+#editDataPenjualan > .row > [class*="col-"],
+#viewDataPenjualan > .row > [class*="col-"] {
+  width: 100% !important;
+  max-width: none !important;
+  flex: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+#editDataPenjualan .form-label,
+#viewDataPenjualan .info-label {
+  margin-bottom: 6px;
+}
+
+#editDataPenjualan .form-control {
+  width: 100%;
+}
+
+#viewDataPenjualan .info-value {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 9px 11px;
+  background: #0a1427;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 9px;
+}
+
+@media (max-width: 767px) {
+  #editDataPenjualan > .row,
+  #viewDataPenjualan > .row {
+    grid-template-columns: 1fr !important;
+    column-gap: 0 !important;
+  }
+}
