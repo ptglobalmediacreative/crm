@@ -4444,8 +4444,8 @@ body.page-detaildi .logistics-comparison-table td:last-child {
 
 /* Header kolom Pilih */
 body.page-detaildi .logistics-comparison-table th:last-child {
-  color: #d6b56d !important;
-  background: rgba(214, 181, 109, 0.055) !important;
+  color: #71809a !important;
+  background: rgba(5, 12, 25, 0.55) !important;
 }
 
 /* Area checkbox dibuat benar-benar berada di tengah */
@@ -4478,7 +4478,7 @@ body.page-detaildi
   padding: 0 !important;
   display: inline-grid !important;
   place-content: center !important;
-  border: 1px solid rgba(214, 181, 109, 0.48) !important;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
   border-radius: 5px !important;
   background: #071223 !important;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02) !important;
@@ -4491,23 +4491,23 @@ body.page-detaildi
 }
 
 body.page-detaildi .logistics-comparison-table input.vendor-check:hover {
-  border-color: #d6b56d !important;
-  background: rgba(214, 181, 109, 0.08) !important;
-  box-shadow: 0 0 0 3px rgba(214, 181, 109, 0.08) !important;
+  border-color: rgba(96, 165, 250, 0.55) !important;
+  background: rgba(59, 130, 246, 0.045) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08) !important;
   transform: translateY(-1px);
 }
 
 body.page-detaildi .logistics-comparison-table input.vendor-check:checked {
-  background: linear-gradient(135deg, #b88a32, #d6b56d) !important;
-  border-color: #e4c77e !important;
-  box-shadow: 0 0 0 3px rgba(214, 181, 109, 0.1) !important;
+  background: #2563eb !important;
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
 }
 
 body.page-detaildi
   .logistics-comparison-table
   input.vendor-check:checked::before {
   content: "✓";
-  color: #07101f;
+  color: #fff;
   font-size: 13px;
   font-weight: 900;
   line-height: 1;
@@ -4515,15 +4515,15 @@ body.page-detaildi
 
 /* Vendor yang sudah dipilih */
 body.page-detaildi .logistics-comparison-table tr.selected-vendor-row td {
-  background: rgba(214, 181, 109, 0.055) !important;
-  border-bottom-color: rgba(214, 181, 109, 0.12) !important;
+  background: rgba(52, 211, 153, 0.055) !important;
+  border-bottom-color: rgba(148, 163, 184, 0.1) !important;
 }
 
 body.page-detaildi
   .logistics-comparison-table
   tr.selected-vendor-row
   td:last-child {
-  background: rgba(214, 181, 109, 0.1) !important;
+  background: rgba(52, 211, 153, 0.08) !important;
 }
 
 body.page-detaildi
@@ -4565,7 +4565,7 @@ body.page-detaildi .logistics-comparison-table .vendor-check:focus {
 }
 
 body.page-detaildi .logistics-comparison-table .vendor-check:focus-visible {
-  outline: 2px solid rgba(214, 181, 109, 0.38) !important;
+  outline: 2px solid rgba(96, 165, 250, 0.38) !important;
   outline-offset: 3px;
 }
 
