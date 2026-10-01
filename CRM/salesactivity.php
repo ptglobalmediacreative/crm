@@ -535,9 +535,12 @@ function getJenisProspek($db, $salesActivityId) {
         return 'Suspect';
     }
     
-    // After Sales = Deal
+    // After Sales:
+    // Jika belum ada Deal/Lost Deal dari Customer Deal sebelumnya,
+    // maka Jenis Prospek menjadi Prospect. Jika sudah ada Deal/Lost Deal,
+    // hasil tersebut sudah dikembalikan oleh priority check di atas.
     if ($jenis_tugas === 'After Sales') {
-        return 'Deal';
+        return 'Prospect';
     }
     
     return null;
