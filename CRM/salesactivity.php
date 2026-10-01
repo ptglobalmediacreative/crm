@@ -912,40 +912,6 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="css/salesactivity.css">
 <link rel="stylesheet" href="css/footer.css">
-<style>
-.period-filter-control{
-    position:relative;
-    width:160px;
-    min-width:160px;
-    height:31px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    padding:0 10px;
-    border:1px solid #ced4da;
-    border-radius:6px;
-    background:#fff;
-    color:#495057;
-    font-size:.875rem;
-    cursor:pointer;
-    user-select:none;
-}
-.period-filter-control:hover,
-.period-filter-control:focus{
-    border-color:#86b7fe;
-    outline:0;
-    box-shadow:0 0 0 .15rem rgba(13,110,253,.15);
-}
-.period-filter-control i{color:#6c757d;pointer-events:none;}
-.period-filter-control input[type="month"]{
-    position:absolute;
-    width:1px;
-    height:1px;
-    opacity:0;
-    pointer-events:none;
-}
-</style>
 </head>
 <body>
 <div class="app">
