@@ -690,6 +690,48 @@ try {
 .month-filter{
     cursor:pointer;
 }
+
+.period-filter{
+    position:relative;
+    min-width:155px;
+    height:38px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:0 12px;
+    box-sizing:border-box;
+    border:1px solid rgba(148,163,184,.18);
+    border-radius:8px;
+    background:rgba(15,23,42,.72);
+    color:#cbd5e1;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.18s ease;
+    overflow:hidden;
+}
+
+.period-filter:hover{
+    border-color:rgba(96,165,250,.45);
+    background:rgba(59,130,246,.08);
+}
+
+.period-filter i{
+    color:#8290aa;
+    font-size:12px;
+    flex:0 0 auto;
+}
+
+.period-filter input[type="month"]{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    border:0;
+    cursor:pointer;
+}
 @media(max-width:768px){
     .month-filter{min-width:145px;}
 }
@@ -719,14 +761,17 @@ try {
 </select>
 <?php endif; ?>
 
-<input
-    class="filter month-filter"
-    type="month"
-    id="filterMonth"
-    value="<?= htmlspecialchars($filterMonth) ?>"
-    onchange="applyFilter()"
-    aria-label="Filter tahun dan bulan"
->
+<div class="period-filter" onclick="openPeriodPicker(event)">
+    <span id="periodFilterLabel"><?= $filterMonth !== '' ? htmlspecialchars(date('F Y', strtotime($filterMonth . '-01'))) : 'All Periode' ?></span>
+    <i class="fas fa-calendar-alt"></i>
+    <input
+        type="month"
+        id="filterMonth"
+        value="<?= htmlspecialchars($filterMonth) ?>"
+        onchange="applyFilter()"
+        aria-label="Filter tahun dan bulan"
+    >
+</div>
 
 <button class="btn-add" onclick="location.href='account_management.php'">
     <i class="fas fa-plus me-1"></i> Add Lead
@@ -786,14 +831,32 @@ function applyFilter(){
     const monthEl = document.getElementById('filterMonth');
     const s = salesEl ? salesEl.value : <?= (int)$filterSalesId ?>;
     const m = monthEl ? monthEl.value : '';
+
     const params = new URLSearchParams();
     params.set('sales_id', s);
-    // Jika memilih tahun + bulan, kirim periode tersebut.
-    // Jika kosong, dashboard kembali ke All Month.
+
     if (m !== '') {
         params.set('month', m);
     }
+
     location.href = '?' + params.toString();
+}
+
+function openPeriodPicker(event){
+    if (event && event.target && event.target.id === 'filterMonth') return;
+
+    const monthEl = document.getElementById('filterMonth');
+    if (!monthEl) return;
+
+    if (typeof monthEl.showPicker === 'function') {
+        try {
+            monthEl.showPicker();
+            return;
+        } catch (e) {}
+    }
+
+    monthEl.focus();
+    monthEl.click();
 }
 
 </script>
