@@ -113,7 +113,8 @@ try {
 // ============================================
 // AMBIL DATA DELIVERY INSTRUCTION
 // ============================================
-$sql = "SELECT ad.di_number, 
+$sql = "SELECT ad.di_number,
+               ad.tr_number,
                ad.due_date,
                ad.created_at as request_date,
                ad.id as activity_detail_id,
@@ -1017,6 +1018,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="text" class="form-control" value="<?= htmlspecialchars($di_number) ?>" readonly>
                             </div>
                             <div class="col-md-3 mb-3">
+                                <label class="form-label">No. TR</label>
+                                <input type="text" class="form-control" value="<?= htmlspecialchars($request['tr_number'] ?? '-') ?>" readonly>
+                            </div>
+                            <div class="col-md-3 mb-3">
                                 <label class="form-label">Tanggal</label>
                                 <input type="text" class="form-control" value="<?= date('d/m/Y', strtotime($request['request_date'])) ?>" readonly>
                             </div>
@@ -1044,6 +1049,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-3">
                             <div class="info-label">No. DI</div>
                             <div class="info-value"><strong><?= htmlspecialchars($di_number) ?></strong></div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-label">No. TR</div>
+                            <div class="info-value"><strong><?= htmlspecialchars($request['tr_number'] ?? '-') ?></strong></div>
                         </div>
                         <div class="col-md-3">
                             <div class="info-label">Tanggal</div>
