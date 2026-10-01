@@ -917,7 +917,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .selected-vendor-note{margin-top:10px;padding-top:10px;border-top:1px solid #dee2e6;font-size:13px;color:#495057}
         .part-total-display{font-weight:700;background:#f8f9fa}
         .vendor-check-wrap{display:flex;align-items:center;justify-content:center;height:100%}
-        .vendor-check{width:20px;height:20px;cursor:pointer}
+        .vendor-check{width:20px;height:20px;cursor:pointer;accent-color:#c9a24d}
+        .vendor-select-column{width:82px;text-align:center!important}
+        .vendor-select-cell{text-align:center!important;vertical-align:middle!important;width:82px}
+        .vendor-inline-select-form{margin:0;display:flex;align-items:center;justify-content:center}
+        .vendor-checkbox-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0}
+        .vendor-checkbox-label input{position:absolute;opacity:0;pointer-events:none}
+        .vendor-checkmark{
+            width:20px;height:20px;border:1.5px solid #aab4c3;border-radius:6px;
+            background:#fff;display:inline-flex;align-items:center;justify-content:center;
+            transition:all .18s ease;box-shadow:0 1px 3px rgba(0,0,0,.08)
+        }
+        .vendor-checkbox-label:hover .vendor-checkmark{border-color:#c9a24d;box-shadow:0 0 0 3px rgba(201,162,77,.12)}
+        .vendor-checkbox-label input:checked + .vendor-checkmark{
+            background:#c9a24d;border-color:#c9a24d;box-shadow:0 3px 10px rgba(201,162,77,.22)
+        }
+        .vendor-checkbox-label input:checked + .vendor-checkmark::after{
+            content:"\f00c";font-family:"Font Awesome 6 Free";font-weight:900;color:#fff;font-size:11px
+        }
+        .vendor-checkbox-label input:disabled + .vendor-checkmark{opacity:.9;cursor:not-allowed}
+        .selected-vendor-row .vendor-checkmark{background:#c9a24d;border-color:#c9a24d}
         .approval-flow{border-top:1px solid #e9ecef;padding-top:18px}
         .approval-flow-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
         .approval-flow-text strong{font-size:11px;white-space:normal}
@@ -1565,44 +1584,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div id="viewLogisticsComparison">
                     <?php if (count($diLogisticsComparisons) > 0): ?>
                     <div class="table-responsive">
-                        <table class="table table-bordered logistics-comparison-table">
-                            <thead><tr><th style="width:90px">Vendor</th><th>Nama Vendor</th><th>Metode Pembayaran</th><th>ETA Kirim</th><th>Harga</th><th>Keterangan</th></tr></thead>
-                            <tbody>
-                            <?php foreach ($diLogisticsComparisons as $idx => $vendor): ?>
-                                <tr class="<?= (int)$vendor['is_selected'] === 1 ? 'selected-vendor-row' : '' ?>">
-                                    <td><strong>Vendor <?= chr(65 + $idx) ?></strong></td>
-                                    <td><?= htmlspecialchars($vendor['vendor_name']) ?></td>
-                                    <td><?= htmlspecialchars($vendor['payment_method'] ?: '-') ?></td>
-                                    <td><?= $vendor['eta_kirim'] ? date('d/m/Y', strtotime($vendor['eta_kirim'])) : '-' ?></td>
-                                    <td>Rp <?= number_format((float)$vendor['harga'], 0, ',', '.') ?></td>
-                                    <td><?= htmlspecialchars($vendor['keterangan'] ?: '-') ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                        <div class="comparison-note">
+                            <i class="fas fa-circle-check"></i>
+                            <?php if ($selectedLogisticsVendor): ?>
+                                Vendor terpilih sudah disimpan dan dikunci. Pilihan vendor tidak dapat diubah lagi.
+                            <?php else: ?>
+                                Centang satu vendor pada kolom <strong>Pilih</strong>. Setelah dicentang, pilihan akan langsung tersimpan dan dikunci.
+                            <?php endif; ?>
+                        </div>
 
-                        <form method="POST" class="vendor-selection-form" id="vendorSelectionForm">
-                            <input type="hidden" name="action" value="select_logistics_vendor">
-                            <div class="comparison-note">
-                                <i class="fas fa-circle-check"></i>
-                                <?php if ($selectedLogisticsVendor): ?>
-                                    Vendor terpilih sudah disimpan dan dikunci. Pilihan vendor tidak dapat diubah lagi.
-                                <?php else: ?>
-                                    Pilih satu vendor. Setelah diklik, pilihan akan langsung tersimpan dan dikunci.
-                                <?php endif; ?>
-                            </div>
-                            <div class="vendor-selection-list">
+                        <div class="table-responsive">
+                            <table class="table table-bordered logistics-comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:90px">Vendor</th>
+                                        <th>Nama Vendor</th>
+                                        <th>Metode Pembayaran</th>
+                                        <th>ETA Kirim</th>
+                                        <th>Harga</th>
+                                        <th>Keterangan</th>
+                                        <th class="vendor-select-column">Pilih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                 <?php foreach ($diLogisticsComparisons as $idx => $vendor): ?>
-                                    <?php $vendorLocked = $selectedLogisticsVendor !== null; ?>
-                                    <label class="vendor-selection-item <?= (int)$vendor['is_selected'] === 1 ? 'active' : '' ?> <?= $vendorLocked ? 'locked' : '' ?>">
-                                        <input type="radio" name="selected_vendor_id" value="<?= (int)$vendor['id'] ?>"
-                                            <?= (int)$vendor['is_selected'] === 1 ? 'checked' : '' ?>
-                                            <?= $vendorLocked ? 'disabled' : 'onchange="document.getElementById(\'vendorSelectionForm\').submit();"' ?>>
-                                        <span><strong>Vendor <?= chr(65 + $idx) ?></strong> — <?= htmlspecialchars($vendor['vendor_name']) ?></span>
-                                    </label>
+                                    <?php
+                                        $isSelected = (int)$vendor['is_selected'] === 1;
+                                        $vendorLocked = $selectedLogisticsVendor !== null;
+                                    ?>
+                                    <tr class="<?= $isSelected ? 'selected-vendor-row' : '' ?>">
+                                        <td><strong>Vendor <?= chr(65 + $idx) ?></strong></td>
+                                        <td><?= htmlspecialchars($vendor['vendor_name']) ?></td>
+                                        <td><?= htmlspecialchars($vendor['payment_method'] ?: '-') ?></td>
+                                        <td><?= $vendor['eta_kirim'] ? date('d/m/Y', strtotime($vendor['eta_kirim'])) : '-' ?></td>
+                                        <td>Rp <?= number_format((float)$vendor['harga'], 0, ',', '.') ?></td>
+                                        <td><?= htmlspecialchars($vendor['keterangan'] ?: '-') ?></td>
+                                        <td class="vendor-select-cell">
+                                            <form method="POST" class="vendor-inline-select-form">
+                                                <input type="hidden" name="action" value="select_logistics_vendor">
+                                                <input type="hidden" name="selected_vendor_id" value="<?= (int)$vendor['id'] ?>">
+                                                <label class="vendor-checkbox-label" title="<?= $isSelected ? 'Vendor terpilih' : ($vendorLocked ? 'Pilihan vendor sudah dikunci' : 'Pilih vendor ini') ?>">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="vendor-check"
+                                                        <?= $isSelected ? 'checked' : '' ?>
+                                                        <?= $vendorLocked ? 'disabled' : 'onchange="this.form.submit();"' ?>
+                                                    >
+                                                    <span class="vendor-checkmark"></span>
+                                                </label>
+                                            </form>
+                                        </td>
+                                    </tr>
                                 <?php endforeach; ?>
-                            </div>
-                        </form>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="selected-vendor-box">
                         <div class="selected-vendor-title"><i class="fas fa-circle-check"></i> Vendor Terpilih</div>

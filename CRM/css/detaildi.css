@@ -4414,3 +4414,179 @@ body.page-detaildi .logistics-comparison-table tr.table-total-row strong {
   outline-offset: 3px;
   border-radius: 3px;
 }
+
+/* =========================================================
+   KOMPARASI LOGISTIK — VENDOR CHECKBOX DI DALAM TABEL
+   Kolom "Pilih" berada di sebelah kanan "Keterangan".
+   ========================================================= */
+
+body.page-detaildi .logistics-comparison-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 1180px;
+}
+
+body.page-detaildi .logistics-comparison-table th,
+body.page-detaildi .logistics-comparison-table td {
+  vertical-align: middle !important;
+}
+
+/* Lebar kolom agar checkbox tidak membuat tabel berantakan */
+body.page-detaildi .logistics-comparison-table th:last-child,
+body.page-detaildi .logistics-comparison-table td:last-child {
+  width: 78px !important;
+  min-width: 78px !important;
+  max-width: 78px !important;
+  text-align: center !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Header kolom Pilih */
+body.page-detaildi .logistics-comparison-table th:last-child {
+  color: #d6b56d !important;
+  background: rgba(214, 181, 109, 0.055) !important;
+}
+
+/* Area checkbox dibuat benar-benar berada di tengah */
+body.page-detaildi .logistics-comparison-table .vendor-check-cell {
+  width: 78px;
+  text-align: center;
+  vertical-align: middle !important;
+}
+
+body.page-detaildi .logistics-comparison-table .vendor-check-cell form {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Checkbox vendor — lebih jelas sebagai kontrol pilihan */
+body.page-detaildi .logistics-comparison-table input.vendor-check,
+body.page-detaildi
+  .logistics-comparison-table
+  input[type="checkbox"].vendor-check {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-content: center !important;
+  border: 1px solid rgba(214, 181, 109, 0.48) !important;
+  border-radius: 5px !important;
+  background: #071223 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02) !important;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.12s ease;
+}
+
+body.page-detaildi .logistics-comparison-table input.vendor-check:hover {
+  border-color: #d6b56d !important;
+  background: rgba(214, 181, 109, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(214, 181, 109, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+body.page-detaildi .logistics-comparison-table input.vendor-check:checked {
+  background: linear-gradient(135deg, #b88a32, #d6b56d) !important;
+  border-color: #e4c77e !important;
+  box-shadow: 0 0 0 3px rgba(214, 181, 109, 0.1) !important;
+}
+
+body.page-detaildi
+  .logistics-comparison-table
+  input.vendor-check:checked::before {
+  content: "✓";
+  color: #07101f;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* Vendor yang sudah dipilih */
+body.page-detaildi .logistics-comparison-table tr.selected-vendor-row td {
+  background: rgba(214, 181, 109, 0.055) !important;
+  border-bottom-color: rgba(214, 181, 109, 0.12) !important;
+}
+
+body.page-detaildi
+  .logistics-comparison-table
+  tr.selected-vendor-row
+  td:last-child {
+  background: rgba(214, 181, 109, 0.1) !important;
+}
+
+body.page-detaildi
+  .logistics-comparison-table
+  tr.selected-vendor-row
+  .vendor-check-cell {
+  position: relative;
+}
+
+/* Checkbox yang terkunci setelah vendor dipilih */
+body.page-detaildi .logistics-comparison-table input.vendor-check:disabled {
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+body.page-detaildi
+  .logistics-comparison-table
+  input.vendor-check:disabled:not(:checked) {
+  opacity: 0.34 !important;
+  filter: grayscale(0.35);
+}
+
+body.page-detaildi
+  .logistics-comparison-table
+  input.vendor-check:disabled:checked {
+  opacity: 1 !important;
+}
+
+/* Keterangan tetap nyaman dibaca */
+body.page-detaildi .logistics-comparison-table td:nth-last-child(2) {
+  color: #aebbd0 !important;
+  line-height: 1.5;
+}
+
+/* Jangan biarkan checkbox ikut terkena style input global */
+body.page-detaildi .logistics-comparison-table .vendor-check,
+body.page-detaildi .logistics-comparison-table .vendor-check:focus {
+  outline: none !important;
+}
+
+body.page-detaildi .logistics-comparison-table .vendor-check:focus-visible {
+  outline: 2px solid rgba(214, 181, 109, 0.38) !important;
+  outline-offset: 3px;
+}
+
+/* Responsive: tetap rapi dan bisa horizontal scroll */
+@media (max-width: 767px) {
+  body.page-detaildi .logistics-comparison-table {
+    min-width: 1080px;
+  }
+
+  body.page-detaildi .logistics-comparison-table th:last-child,
+  body.page-detaildi .logistics-comparison-table td:last-child,
+  body.page-detaildi .logistics-comparison-table .vendor-check-cell {
+    width: 70px !important;
+    min-width: 70px !important;
+    max-width: 70px !important;
+  }
+
+  body.page-detaildi .logistics-comparison-table input.vendor-check {
+    width: 19px !important;
+    height: 19px !important;
+    min-width: 19px !important;
+    min-height: 19px !important;
+  }
+}
