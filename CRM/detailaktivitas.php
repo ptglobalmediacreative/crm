@@ -148,6 +148,25 @@ $canCompleteActivity = $isActivityOwnerSales;
 
 $canDeleteActivity = in_array($role, $deleteActivityRoles, true);
 
+// Hak tambah aktivitas:
+// - Direktur Utama
+// - Direktur Sales
+// - Direktur Operasional
+// - IT Support
+// - Sales yang merupakan pemilik Activity Number ini
+$addActivityRoles = [
+    'direktur_utama',
+    'direktur_sales',
+    'direktur_operasional',
+    'sales_manager',
+    'it_support'
+];
+
+$canAddActivity = (
+    in_array($role, $addActivityRoles, true)
+    || $isActivityOwnerSales
+);
+
 // ============================================
 // UPDATE STATUS OVERDUE OTOMATIS (WIB)
 // ============================================
@@ -440,14 +459,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add') {
-        // Sales hanya bisa menambah aktivitas untuk leads miliknya
-        if ($role === 'sales') {
-            if ($activity['sales_id'] != $userId) {
-                setFlash('Anda tidak memiliki akses untuk leads ini!', 'danger');
-                redirect('detailaktivitas.php?leads_id=' . $leadsId);
-            }
-        } elseif (!canAdd('sales_activity')) {
-            setFlash('Anda tidak memiliki akses!', 'danger');
+        // Tambah Aktivitas hanya boleh untuk:
+        // Direktur Utama, Direktur Sales, Direktur Operasional,
+        // Sales Manager, IT Support, atau Sales yang merupakan pemilik Activity Number ini.
+        if (!$canAddActivity) {
+            setFlash('Anda tidak memiliki akses untuk menambah aktivitas pada Activity Number ini!', 'danger');
             redirect('detailaktivitas.php?leads_id=' . $leadsId);
         }
         
@@ -1064,7 +1080,7 @@ foreach ($detailsList as $d) {
                 <a href="salesactivity.php" class="btn btn-secondary-custom">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
-                <?php if (canAdd('sales_activity')): ?>
+                <?php if ($canAddActivity): ?>
                     <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalAddDetail">
                         <i class="fas fa-plus"></i> Tambah Aktivitas
                     </button>
