@@ -207,60 +207,25 @@ try {
 // DAFTAR APPROVAL LEVELS
 // ============================================
 $approvalLevels = [
-    1 => ['role' => 'admin', 'label' => 'Admin Sales'],
-    2 => ['role' => 'business', 'label' => 'Business'],
+    1 => ['role' => 'business', 'label' => 'Business'],
+    2 => ['role' => 'part_support', 'label' => 'Part Support'],
     3 => ['role' => 'service_support', 'label' => 'Service Support'],
-    4 => ['role' => 'part_support', 'label' => 'Part Support'],
+    4 => ['role' => 'finance', 'label' => 'Finance'],
     5 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
-    6 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
+    6 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
+    7 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
 
 // ============================================
 // TENTUKAN CURRENT APPROVER DAN NEXT APPROVER
+// Approval baru aktif setelah minimal 1 menu DI diisi Admin.
 // ============================================
-$currentApprovalOrder = 1;
-$currentApproverLabel = '';
-$nextApproverLabel = '';
+$currentApprovalOrder = 0;
+$currentApproverLabel = 'Belum ada data untuk approval';
+$nextApproverLabel = '-';
 
-if ($detailDI) {
-    $lastApprovedOrder = 0;
-    foreach ($approvalHistory as $approval) {
-        if ($approval['status'] == 'approved') {
-            $lastApprovedOrder = max($lastApprovedOrder, $approval['approval_order']);
-        }
-    }
-    
-    $isRejected = false;
-    foreach ($approvalHistory as $approval) {
-        if ($approval['status'] == 'rejected') {
-            $isRejected = true;
-            break;
-        }
-    }
-    
-    if ($isRejected || $detailDI['status'] == 'rejected') {
-        $currentApprovalOrder = 0;
-        $currentApproverLabel = 'No More Approval';
-        $nextApproverLabel = 'No More Approval';
-    } elseif ($detailDI['status'] == 'approved') {
-        $currentApprovalOrder = 0;
-        $currentApproverLabel = 'No More Approval';
-        $nextApproverLabel = 'No More Approval';
-    } else {
-        $currentApprovalOrder = $lastApprovedOrder + 1;
-        if ($currentApprovalOrder <= 6) {
-            $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
-            $nextOrder = $currentApprovalOrder + 1;
-            $nextApproverLabel = $nextOrder <= 6 ? $approvalLevels[$nextOrder]['label'] : 'No More Approval';
-        } else {
-            $currentApproverLabel = 'No More Approval';
-            $nextApproverLabel = 'No More Approval';
-        }
-    }
-} else {
-    $currentApproverLabel = $approvalLevels[1]['label'];
-    $nextApproverLabel = $approvalLevels[2]['label'];
-}
+// Nilai ini akan dihitung ulang setelah seluruh data menu DI diambil.
+$hasInputData = false;
 
 // ============================================
 // AMBIL DATA UNITS
@@ -350,6 +315,64 @@ foreach ($diLogisticsComparisons as $comparison) {
 
 $jumlahUnitDI = count($diUnits);
 
+// ============================================
+// CEK APAKAH MINIMAL 1 MENU SUDAH DIINPUT ADMIN
+// detail_delivery_instructions yang dibuat otomatis tidak dihitung sebagai input.
+// ============================================
+$hasInputData = (
+    !empty(trim((string)($request['no_so'] ?? ''))) ||
+    count($diUnits) > 0 ||
+    count($diAccessories) > 0 ||
+    $diLogistics !== null ||
+    count($diSupports) > 0 ||
+    count($diParts) > 0 ||
+    count($diLogisticsComparisons) > 0
+);
+
+// ============================================
+// TENTUKAN CURRENT APPROVER DAN NEXT APPROVER
+// Urutan: Business -> Part Support -> Service Support -> Finance
+// -> Direktur Sales -> Direktur Operasional -> Direktur Utama
+// ============================================
+$currentApprovalOrder = 0;
+$currentApproverLabel = $hasInputData ? 'Business' : 'Belum ada data untuk approval';
+$nextApproverLabel = $hasInputData ? 'Part Support' : '-';
+
+if ($hasInputData && $detailDI) {
+    $lastApprovedOrder = 0;
+    $isRejected = false;
+
+    foreach ($approvalHistory as $approval) {
+        if ($approval['status'] === 'approved') {
+            $lastApprovedOrder = max($lastApprovedOrder, (int)$approval['approval_order']);
+        }
+        if ($approval['status'] === 'rejected') {
+            $isRejected = true;
+        }
+    }
+
+    if ($isRejected || $detailDI['status'] === 'rejected') {
+        $currentApprovalOrder = 0;
+        $currentApproverLabel = 'Rejected - Menunggu perbaikan Admin';
+        $nextApproverLabel = '-';
+    } elseif ($detailDI['status'] === 'approved') {
+        $currentApprovalOrder = 0;
+        $currentApproverLabel = 'Selesai';
+        $nextApproverLabel = '-';
+    } else {
+        $currentApprovalOrder = $lastApprovedOrder + 1;
+        if ($currentApprovalOrder >= 1 && $currentApprovalOrder <= 7) {
+            $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
+            $nextOrder = $currentApprovalOrder + 1;
+            $nextApproverLabel = $nextOrder <= 7 ? $approvalLevels[$nextOrder]['label'] : '-';
+        } else {
+            $currentApprovalOrder = 0;
+            $currentApproverLabel = 'Selesai';
+            $nextApproverLabel = '-';
+        }
+    }
+}
+
 // Group supports by type
 $supportsGrouped = [
     'free_filter_engine' => [],
@@ -370,7 +393,7 @@ foreach ($diSupports as $support) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    $editActions = ['save_data_penjualan', 'save_units', 'save_accessories', 'save_logistics', 'save_product_support', 'save_parts', 'save_logistics_comparison'];
+    $editActions = ['save_data_penjualan', 'save_units', 'save_accessories', 'save_logistics', 'save_product_support', 'save_parts', 'save_logistics_comparison', 'select_logistics_vendor'];
     if (in_array($action, $editActions) && !$canEdit) {
         if ($hasBeenApproved) {
             setFlash('DI ini sudah di-approve, data tidak bisa diedit lagi!', 'danger');
@@ -410,51 +433,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // ============================================
     // APPROVE / REJECT
+    // Hanya role pada level yang sedang aktif yang boleh melakukan aksi.
     // ============================================
     if ($action === 'approve' || $action === 'reject') {
         try {
             $db->beginTransaction();
             $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
             $currentOrder = (int)($_POST['approval_order'] ?? 0);
-            
-            $canApprove = false;
-            if ($currentOrder > 0 && $currentOrder <= 6) {
-                $requiredRole = $approvalLevels[$currentOrder]['role'];
-                if ($userRole == $requiredRole) {
-                    $canApprove = true;
+
+            // Pastikan minimal ada satu menu yang benar-benar sudah diinput.
+            $inputChecks = [
+                "SELECT COUNT(*) FROM di_units WHERE di_number = ?",
+                "SELECT COUNT(*) FROM di_accessories WHERE di_number = ?",
+                "SELECT COUNT(*) FROM di_product_supports WHERE di_number = ?",
+                "SELECT COUNT(*) FROM di_parts WHERE di_number = ?",
+                "SELECT COUNT(*) FROM di_logistics_comparisons WHERE di_number = ?",
+                "SELECT COUNT(*) FROM di_logistics WHERE di_number = ?"
+            ];
+            $hasApprovalInput = !empty(trim((string)($request['no_so'] ?? '')));
+            foreach ($inputChecks as $checkSql) {
+                $checkStmt = $db->prepare($checkSql);
+                $checkStmt->execute([$di_number]);
+                if ((int)$checkStmt->fetchColumn() > 0) {
+                    $hasApprovalInput = true;
+                    break;
                 }
             }
-            
-            if ($canApprove) {
-                $checkApproval = $db->prepare("SELECT id FROM di_approval_history WHERE di_number = ? AND approval_order = ?");
-                $checkApproval->execute([$di_number, $currentOrder]);
-                $existingApproval = $checkApproval->fetch();
-                
-                if ($existingApproval) {
-                    $updateApproval = $db->prepare("UPDATE di_approval_history SET status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
-                    $updateApproval->execute([$approvalStatus, $userId, $existingApproval['id']]);
-                } else {
-                    $insertApproval = $db->prepare("INSERT INTO di_approval_history (di_number, approval_order, approval_role, approval_label, status, catatan, approved_by, approved_at, created_at) VALUES (?, ?, ?, ?, ?, '', ?, NOW(), NOW())");
-                    $insertApproval->execute([$di_number, $currentOrder, $approvalLevels[$currentOrder]['role'], $approvalLevels[$currentOrder]['label'], $approvalStatus, $userId]);
-                }
-                
-                $newStatus = 'pending';
-                if ($approvalStatus == 'rejected') {
-                    $newStatus = 'rejected';
-                } elseif ($currentOrder >= 6) {
-                    $newStatus = 'approved';
-                }
-                
-                $updateDetail = $db->prepare("UPDATE detail_delivery_instructions SET status = ?, current_approval_order = ?, updated_at = NOW() WHERE di_number = ?");
-                $updateDetail->execute([$newStatus, $currentOrder + 1, $di_number]);
-                
-                $db->commit();
-                setFlash($approvalStatus == 'approved' ? 'DI berhasil di-approve!' : 'DI berhasil di-reject!', 'success');
+
+            if (!$hasApprovalInput) {
+                throw new Exception('Belum ada data DI yang diinput. Minimal isi 1 menu terlebih dahulu.');
+            }
+
+            // Ambil status/order aktual dari database agar approval tidak bisa
+            // dipalsukan hanya dengan mengubah hidden input.
+            $detailCheck = $db->prepare("SELECT status, current_approval_order FROM detail_delivery_instructions WHERE di_number = ? ORDER BY id DESC LIMIT 1");
+            $detailCheck->execute([$di_number]);
+            $currentDetail = $detailCheck->fetch();
+
+            if (!$currentDetail || $currentDetail['status'] !== 'pending') {
+                throw new Exception('DI belum berada pada status pending untuk approval.');
+            }
+
+            $dbCurrentOrder = (int)($currentDetail['current_approval_order'] ?? 0);
+            if ($currentOrder < 1 || $currentOrder > 7 || $currentOrder !== $dbCurrentOrder) {
+                throw new Exception('Urutan approval tidak valid atau approval ini sudah diproses.');
+            }
+
+            $requiredRole = $approvalLevels[$currentOrder]['role'];
+            if ($userRole !== $requiredRole) {
+                throw new Exception('Anda tidak memiliki hak untuk melakukan approval pada level ini.');
+            }
+
+            $checkApproval = $db->prepare("SELECT id FROM di_approval_history WHERE di_number = ? AND approval_order = ? LIMIT 1");
+            $checkApproval->execute([$di_number, $currentOrder]);
+            $existingApproval = $checkApproval->fetch();
+
+            if ($existingApproval) {
+                $updateApproval = $db->prepare("UPDATE di_approval_history SET status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
+                $updateApproval->execute([$approvalStatus, $userId, $existingApproval['id']]);
             } else {
-                setFlash('Anda tidak memiliki hak untuk melakukan approval ini!', 'danger');
+                $insertApproval = $db->prepare("INSERT INTO di_approval_history (di_number, approval_order, approval_role, approval_label, status, catatan, approved_by, approved_at, created_at) VALUES (?, ?, ?, ?, ?, '', ?, NOW(), NOW())");
+                $insertApproval->execute([
+                    $di_number,
+                    $currentOrder,
+                    $approvalLevels[$currentOrder]['role'],
+                    $approvalLevels[$currentOrder]['label'],
+                    $approvalStatus,
+                    $userId
+                ]);
             }
+
+            if ($approvalStatus === 'rejected') {
+                $newStatus = 'rejected';
+                $newOrder = $currentOrder;
+            } elseif ($currentOrder === 7) {
+                $newStatus = 'approved';
+                $newOrder = 8;
+            } else {
+                $newStatus = 'pending';
+                $newOrder = $currentOrder + 1;
+            }
+
+            $updateDetail = $db->prepare("UPDATE detail_delivery_instructions SET status = ?, current_approval_order = ?, updated_at = NOW() WHERE di_number = ?");
+            $updateDetail->execute([$newStatus, $newOrder, $di_number]);
+
+            $db->commit();
+            setFlash($approvalStatus === 'approved' ? 'DI berhasil di-approve!' : 'DI berhasil di-reject!', $approvalStatus === 'approved' ? 'success' : 'warning');
         } catch (Exception $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) $db->rollBack();
             setFlash('Gagal melakukan approval: ' . $e->getMessage(), 'danger');
         }
         redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=data_penjualan");
@@ -850,6 +916,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .part-total-display{font-weight:700;background:#f8f9fa}
         .vendor-check-wrap{display:flex;align-items:center;justify-content:center;height:100%}
         .vendor-check{width:20px;height:20px;cursor:pointer}
+        .approval-flow{border-top:1px solid #e9ecef;padding-top:18px}
+        .approval-flow-list{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));gap:8px}
+        .approval-flow-item{position:relative;display:flex;align-items:center;gap:8px;padding:10px 8px;border:1px solid #e5e7eb;border-radius:10px;background:#f8f9fa;min-height:62px}
+        .approval-flow-number{font-size:11px;font-weight:800;color:#6c757d;position:absolute;top:5px;right:7px}
+        .approval-flow-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e9ecef;color:#6c757d;flex:0 0 30px}
+        .approval-flow-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+        .approval-flow-text strong{font-size:11px;white-space:normal}
+        .approval-flow-text small{font-size:10px;color:#6c757d;margin-top:3px}
+        .approval-flow-item.approved{background:#f0fdf4;border-color:#b7e4c7}
+        .approval-flow-item.approved .approval-flow-icon{background:#198754;color:#fff}
+        .approval-flow-item.current{background:#fff8e1;border-color:#ffe08a}
+        .approval-flow-item.current .approval-flow-icon{background:#f0ad00;color:#fff}
+        .approval-flow-item.rejected{background:#fff1f2;border-color:#f5c2c7}
+        .approval-flow-item.rejected .approval-flow-icon{background:#dc3545;color:#fff}
+        @media(max-width:1100px){.approval-flow-list{grid-template-columns:repeat(4,minmax(120px,1fr))}}
+        @media(max-width:700px){.approval-flow-list{grid-template-columns:repeat(2,minmax(130px,1fr))}}
     </style>
 </head>
 <body class="page-detaildi">
@@ -1016,8 +1098,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
                 
+                <!-- APPROVAL FLOW -->
+                <div class="approval-flow mt-4">
+                    <div class="info-label mb-2">Alur Approval</div>
+                    <div class="approval-flow-list">
+                        <?php foreach ($approvalLevels as $order => $level): ?>
+                            <?php
+                            $historyItem = null;
+                            foreach ($approvalHistory as $history) {
+                                if ((int)$history['approval_order'] === $order) {
+                                    $historyItem = $history;
+                                    break;
+                                }
+                            }
+                            $flowClass = 'waiting';
+                            $flowIcon = 'fa-clock';
+                            if ($historyItem && $historyItem['status'] === 'approved') {
+                                $flowClass = 'approved';
+                                $flowIcon = 'fa-check';
+                            } elseif ($historyItem && $historyItem['status'] === 'rejected') {
+                                $flowClass = 'rejected';
+                                $flowIcon = 'fa-times';
+                            } elseif ($currentApprovalOrder === $order && $request['status'] === 'pending') {
+                                $flowClass = 'current';
+                                $flowIcon = 'fa-hourglass-half';
+                            }
+                            ?>
+                            <div class="approval-flow-item <?= $flowClass ?>">
+                                <span class="approval-flow-number"><?= $order ?></span>
+                                <span class="approval-flow-icon"><i class="fas <?= $flowIcon ?>"></i></span>
+                                <div class="approval-flow-text">
+                                    <strong><?= htmlspecialchars($level['label']) ?></strong>
+                                    <small>Level <?= $order ?></small>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <?php if (!$hasInputData): ?>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-lock"></i>
+                        Approval belum tersedia. <strong>Admin harus menginput minimal 1 menu</strong> terlebih dahulu, misalnya Data Unit.
+                    </div>
+                <?php endif; ?>
+
                 <!-- APPROVAL ACTION -->
-                <?php if ($currentApprovalOrder > 0 && $currentApprovalOrder <= 6 && $request['status'] == 'pending'): ?>
+                <?php if ($hasInputData && $currentApprovalOrder > 0 && $currentApprovalOrder <= 7 && $request['status'] == 'pending'): ?>
                     <?php 
                     $canApprove = false;
                     $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
