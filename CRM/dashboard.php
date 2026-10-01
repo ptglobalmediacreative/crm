@@ -700,7 +700,6 @@ try {
     justify-content:space-between;
     gap:10px;
     padding:0 12px;
-    box-sizing:border-box;
     border:1px solid rgba(148,163,184,.18);
     border-radius:8px;
     background:rgba(15,23,42,.72);
@@ -708,30 +707,31 @@ try {
     font-size:12px;
     font-weight:600;
     cursor:pointer;
+    user-select:none;
     transition:.18s ease;
-    overflow:hidden;
 }
 
-.period-filter:hover{
+.period-filter:hover,
+.period-filter:focus{
     border-color:rgba(96,165,250,.45);
     background:rgba(59,130,246,.08);
+    outline:none;
 }
 
 .period-filter i{
     color:#8290aa;
     font-size:12px;
-    flex:0 0 auto;
+    pointer-events:none;
 }
 
 .period-filter input[type="month"]{
     position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
+    width:1px;
+    height:1px;
     opacity:0;
-    border:0;
-    cursor:pointer;
+    pointer-events:none;
 }
+
 @media(max-width:768px){
     .month-filter{min-width:145px;}
 }
@@ -761,7 +761,9 @@ try {
 </select>
 <?php endif; ?>
 
-<div class="period-filter" onclick="openPeriodPicker(event)">
+<div class="period-filter" id="periodFilter" role="button" tabindex="0"
+     aria-label="Pilih periode" onclick="openPeriodPicker(event)"
+     onkeydown="if(event.key==='Enter' || event.key===' ') { event.preventDefault(); openPeriodPicker(event); }">
     <span id="periodFilterLabel"><?= $filterMonth !== '' ? htmlspecialchars(date('F Y', strtotime($filterMonth . '-01'))) : 'All Periode' ?></span>
     <i class="fas fa-calendar-alt"></i>
     <input
@@ -769,7 +771,8 @@ try {
         id="filterMonth"
         value="<?= htmlspecialchars($filterMonth) ?>"
         onchange="applyFilter()"
-        aria-label="Filter tahun dan bulan"
+        tabindex="-1"
+        aria-hidden="true"
     >
 </div>
 
@@ -843,11 +846,15 @@ function applyFilter(){
 }
 
 function openPeriodPicker(event){
-    if (event && event.target && event.target.id === 'filterMonth') return;
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
     const monthEl = document.getElementById('filterMonth');
     if (!monthEl) return;
 
+    // Chrome/Edge mendukung showPicker() untuk input month.
     if (typeof monthEl.showPicker === 'function') {
         try {
             monthEl.showPicker();
@@ -855,9 +862,33 @@ function openPeriodPicker(event){
         } catch (e) {}
     }
 
+    // Fallback browser lain.
     monthEl.focus();
     monthEl.click();
 }
 
+document.addEventListener('DOMContentLoaded', function(){
+    const monthEl = document.getElementById('filterMonth');
+    const periodFilter = document.getElementById('periodFilter');
+
+    if (monthEl && periodFilter) {
+        monthEl.addEventListener('change', function(){
+            const label = document.getElementById('periodFilterLabel');
+
+            if (!this.value) {
+                label.textContent = 'All Periode';
+                return;
+            }
+
+            const [year, month] = this.value.split('-');
+            const names = [
+                'Januari','Februari','Maret','April','Mei','Juni',
+                'Juli','Agustus','September','Oktober','November','Desember'
+            ];
+
+            label.textContent = names[parseInt(month, 10) - 1] + ' ' + year;
+        });
+    }
+});
 </script>
 </body></html>
