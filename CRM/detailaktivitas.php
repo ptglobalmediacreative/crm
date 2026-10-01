@@ -462,6 +462,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (strlen($deskripsi) < 50) $errors[] = 'Deskripsi minimal 50 karakter!';
         
+        // ============================================================
+        // SYARAT KONTRAK & DELIVERY ORDER
+        // ============================================================
+        // Kontrak / Delivery Order hanya boleh dibuat jika sebelumnya
+        // sudah ada Negosiasi yang:
+        // 1. memiliki TR Number, dan
+        // 2. Customer Deal = yes (Deal).
+        // Negosiasi tanpa TR atau masih Hot Prospect tidak boleh lanjut.
+        if ($jenis_tugas === 'Kontrak' || $jenis_tugas === 'Delivery Order') {
+            $eligibleStmt = $db->prepare("
+                SELECT ad.id, ad.tr_number, dtr.customer_deal
+                FROM activity_details ad
+                INNER JOIN detail_transaction_requests dtr
+                    ON dtr.trf_number = ad.tr_number
+                WHERE ad.sales_activity_id = ?
+                  AND ad.jenis_tugas = 'Negosiasi'
+                  AND ad.tr_number IS NOT NULL
+                  AND TRIM(ad.tr_number) <> ''
+                  AND LOWER(TRIM(COALESCE(dtr.customer_deal, ''))) = 'yes'
+                ORDER BY ad.id DESC, dtr.id DESC
+                LIMIT 1
+            ");
+            $eligibleStmt->execute([$leadsId]);
+            $eligibleNegosiasi = $eligibleStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$eligibleNegosiasi) {
+                $errors[] = $jenis_tugas === 'Kontrak'
+                    ? 'Kontrak hanya dapat dibuat jika sudah ada Negosiasi dengan TR Number dan Hasil Deal.'
+                    : 'Delivery Order hanya dapat dibuat jika sudah ada Negosiasi dengan TR Number dan Hasil Deal.';
+            }
+        }
+
         // Negosiasi baru tidak membuat TR Number baru jika sudah ada TR Number dari Negosiasi sebelumnya.
         // Jika sudah ada TR Number, aktivitas Negosiasi baru memakai TR Number lama.
         // Jika belum ada TR Number, nilainya tetap NULL dan baru bisa dibuat saat Complete.
