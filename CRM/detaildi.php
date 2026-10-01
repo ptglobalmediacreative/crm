@@ -917,18 +917,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .vendor-check-wrap{display:flex;align-items:center;justify-content:center;height:100%}
         .vendor-check{width:20px;height:20px;cursor:pointer}
         .approval-flow{border-top:1px solid #e9ecef;padding-top:18px}
-        .approval-flow-list{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));gap:8px}
-        .approval-flow-item{position:relative;display:flex;align-items:center;gap:8px;padding:10px 8px;border:1px solid #e5e7eb;border-radius:10px;background:#f8f9fa;min-height:62px}
-        .approval-flow-number{font-size:11px;font-weight:800;color:#6c757d;position:absolute;top:5px;right:7px}
-        .approval-flow-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e9ecef;color:#6c757d;flex:0 0 30px}
         .approval-flow-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
         .approval-flow-text strong{font-size:11px;white-space:normal}
-        .approval-flow-text small{font-size:10px;color:#6c757d;margin-top:3px}
-        .approval-flow-item.approved{background:#f0fdf4;border-color:#b7e4c7}
-        .approval-flow-item.approved .approval-flow-icon{background:#198754;color:#fff}
         .approval-flow-item.current{background:#fff8e1;border-color:#ffe08a}
         .approval-flow-item.current .approval-flow-icon{background:#f0ad00;color:#fff}
-        .approval-flow-item.rejected{background:#fff1f2;border-color:#f5c2c7}
         .approval-flow-item.rejected .approval-flow-icon{background:#dc3545;color:#fff}
         @media(max-width:1100px){.approval-flow-list{grid-template-columns:repeat(4,minmax(120px,1fr))}}
         @media(max-width:700px){.approval-flow-list{grid-template-columns:repeat(2,minmax(130px,1fr))}}
@@ -1098,44 +1090,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
                 
-                <!-- APPROVAL FLOW -->
-                <div class="approval-flow mt-4">
-                    <div class="info-label mb-2">Alur Approval</div>
-                    <div class="approval-flow-list">
-                        <?php foreach ($approvalLevels as $order => $level): ?>
-                            <?php
-                            $historyItem = null;
-                            foreach ($approvalHistory as $history) {
-                                if ((int)$history['approval_order'] === $order) {
-                                    $historyItem = $history;
-                                    break;
-                                }
-                            }
-                            $flowClass = 'waiting';
-                            $flowIcon = 'fa-clock';
-                            if ($historyItem && $historyItem['status'] === 'approved') {
-                                $flowClass = 'approved';
-                                $flowIcon = 'fa-check';
-                            } elseif ($historyItem && $historyItem['status'] === 'rejected') {
-                                $flowClass = 'rejected';
-                                $flowIcon = 'fa-times';
-                            } elseif ($currentApprovalOrder === $order && $request['status'] === 'pending') {
-                                $flowClass = 'current';
-                                $flowIcon = 'fa-hourglass-half';
-                            }
-                            ?>
-                            <div class="approval-flow-item <?= $flowClass ?>">
-                                <span class="approval-flow-number"><?= $order ?></span>
-                                <span class="approval-flow-icon"><i class="fas <?= $flowIcon ?>"></i></span>
-                                <div class="approval-flow-text">
-                                    <strong><?= htmlspecialchars($level['label']) ?></strong>
-                                    <small>Level <?= $order ?></small>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
                 <?php if (!$hasInputData): ?>
                     <div class="alert alert-warning mt-3">
                         <i class="fas fa-lock"></i>
