@@ -914,7 +914,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
 <link rel="stylesheet" href="css/footer.css">
 </head>
 <body>
-<div class="app">
+<div class="app page-salesactivity">
 <?php require_once 'navigation.php'; ?>
 <main class="content">
 <div class="page-header">
