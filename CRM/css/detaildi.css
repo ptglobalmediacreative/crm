@@ -4318,3 +4318,42 @@ body.page-detaildi .logistics-comparison-table tr.table-total-row strong {
     column-gap: 0 !important;
   }
 }
+
+/* =========================================================
+   DATA PENJUALAN — TANPA KOLOM / TANPA BOX
+   Tetap 2 kolom, hanya label + nilai biasa.
+   ========================================================= */
+
+#editDataPenjualan .form-control[readonly],
+#viewDataPenjualan .info-value {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+#editDataPenjualan .form-control[readonly] {
+  min-height: auto !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+#viewDataPenjualan .info-value {
+  min-height: 0 !important;
+  display: block !important;
+  padding-top: 0 !important;
+  padding-bottom: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+#editDataPenjualan > .row,
+#viewDataPenjualan > .row {
+  row-gap: 0 !important;
+}
+
+#editDataPenjualan .form-label,
+#viewDataPenjualan .info-label {
+  margin-bottom: 4px !important;
+}
