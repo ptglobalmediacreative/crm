@@ -935,14 +935,12 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
                 <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
-                    <div class="period-filter-control" onclick="openSalesActivityPeriodPicker(event)" role="button" tabindex="0" aria-label="Pilih periode"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSalesActivityPeriodPicker(event);}">
+                    <label class="period-filter-control" aria-label="Pilih periode">
         <span id="salesActivityPeriodLabel"><?= $filterMonth !== '' ? htmlspecialchars(date('F Y', strtotime($filterMonth . '-01'))) : 'All Periode' ?></span>
         <i class="fas fa-calendar-alt"></i>
         <input type="month" name="month" id="salesActivityMonthPicker"
-               value="<?= htmlspecialchars($filterMonth) ?>"
-               tabindex="-1" aria-hidden="true">
-    </div>
+               value="<?= htmlspecialchars($filterMonth) ?>">
+    </label>
                     
                     <select name="jenis_prospek" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                         <option value="">Semua Prospek</option>
@@ -1228,21 +1226,18 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        function openSalesActivityPeriodPicker(event){
-            if(event){ event.preventDefault(); event.stopPropagation(); }
-            const input = document.getElementById('salesActivityMonthPicker');
-            if(!input) return;
-            if(typeof input.showPicker === 'function'){
-                try{ input.showPicker(); return; }catch(e){}
-            }
-            input.focus();
-            input.click();
-        }
-
         document.addEventListener('DOMContentLoaded', function(){
             const input = document.getElementById('salesActivityMonthPicker');
             if(input){
                 input.addEventListener('change', function(){
+                    const label = document.getElementById('salesActivityPeriodLabel');
+                    if (label && this.value) {
+                        const parts = this.value.split('-');
+                        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                        label.textContent = months[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+                    } else if (label) {
+                        label.textContent = 'All Periode';
+                    }
                     this.form.submit();
                 });
             }
