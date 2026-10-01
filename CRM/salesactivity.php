@@ -572,22 +572,39 @@ function getStatusProspek($db, $salesActivityId) {
 // FILTER & PAGINATION
 // ============================================
 $userRole = $_SESSION['role'] ?? 'user';
-$userId = $_SESSION['user_id'] ?? 0;
+$userId = (int)($_SESSION['user_id'] ?? 0);
+
+$fullReportRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'sales_manager',
+    'it_support'
+];
+$canViewAllReport = in_array($userRole, $fullReportRoles, true);
 
 $limit = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
-$filterMonth = isset($_GET['month']) ? bersihkan($_GET['month']) : date('Y-m');
+$filterMonth = isset($_GET['month']) ? bersihkan($_GET['month']) : '';
 $filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
 $filterJenisProspek = isset($_GET['jenis_prospek']) ? bersihkan($_GET['jenis_prospek']) : '';
 $filterStatus = isset($_GET['status']) ? bersihkan($_GET['status']) : '';
 
+if ($filterMonth !== '' && !preg_match('/^\d{4}-\d{2}$/', $filterMonth)) {
+    $filterMonth = '';
+}
+
+if (!$canViewAllReport) {
+    $filterSalesId = $userId;
+}
+
 $where = "WHERE 1=1";
 $params = [];
 
-if ($userRole === 'sales') {
+if (!$canViewAllReport) {
     $where .= " AND sa.sales_id = ?";
     $params[] = $userId;
 } elseif ($filterSalesId > 0) {
@@ -646,7 +663,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<body>';
     echo '<h2>Data Sales Activity - PT Ganda Elang Tangguh</h2>';
     echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . ' WIB</p>';
-    echo '<p>Filter Bulan: ' . date('F Y', strtotime($filterMonth . '-01')) . '</p>';
+    echo '<p>Filter Periode: ' . ($filterMonth !== '' ? date('F Y', strtotime($filterMonth . '-01')) : 'All Periode') . '</p>';
     if (!empty($filterJenisProspek)) {
         echo '<p>Filter Jenis Prospek: ' . htmlspecialchars($filterJenisProspek) . '</p>';
     }
@@ -781,16 +798,16 @@ unset($act);
 // ============================================
 // AMBIL DATA ACCOUNTS UNTUK DROPDOWN
 // ============================================
-if ($userRole === 'sales') {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
-                    FROM accounts 
-                    WHERE sales_id = ? 
+if (!$canViewAllReport) {
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
+                    FROM accounts
+                    WHERE sales_id = ?
                     ORDER BY nama_pt ASC";
     $stmt = $db->prepare($sqlAccounts);
     $stmt->execute([$userId]);
     $accountsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id 
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
                     FROM accounts ORDER BY nama_pt ASC";
     $accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -815,9 +832,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->execute([$account_id]);
         $accountSalesId = $stmt->fetchColumn();
         
-        if ($userRole === 'sales') {
-            if ($accountSalesId != $userId) {
-                setFlash('Anda tidak bisa menambahkan aktivitas untuk account milik sales lain!', 'danger');
+        if (!$canViewAllReport) {
+            if ((int)$accountSalesId !== $userId) {
+                setFlash('Anda tidak bisa menambahkan aktivitas untuk account milik user lain!', 'danger');
                 redirect('salesactivity.php');
             }
             $sales_id = $userId;
@@ -843,7 +860,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($action === 'delete') {
-        if (!canDelete('sales_activity')) {
+        if (!in_array($userRole, ['direktur_utama', 'direktur_operasional', 'direktur_sales', 'it_support'], true)) {
             setFlash('Anda tidak memiliki akses untuk menghapus aktivitas!', 'danger');
             redirect('salesactivity.php');
         }
@@ -872,6 +889,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
+
+$filterQuery = '';
+if ($filterMonth !== '') $filterQuery .= '&month=' . urlencode($filterMonth);
+if ($canViewAllReport && $filterSalesId > 0) $filterQuery .= '&sales_id=' . (int)$filterSalesId;
+if ($filterJenisProspek !== '') $filterQuery .= '&jenis_prospek=' . urlencode($filterJenisProspek);
+if ($filterStatus !== '') $filterQuery .= '&status=' . urlencode($filterStatus);
+if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -888,6 +912,40 @@ $role = $_SESSION['role'] ?? 'user';
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="css/salesactivity.css">
 <link rel="stylesheet" href="css/footer.css">
+<style>
+.period-filter-control{
+    position:relative;
+    width:160px;
+    min-width:160px;
+    height:31px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:0 10px;
+    border:1px solid #ced4da;
+    border-radius:6px;
+    background:#fff;
+    color:#495057;
+    font-size:.875rem;
+    cursor:pointer;
+    user-select:none;
+}
+.period-filter-control:hover,
+.period-filter-control:focus{
+    border-color:#86b7fe;
+    outline:0;
+    box-shadow:0 0 0 .15rem rgba(13,110,253,.15);
+}
+.period-filter-control i{color:#6c757d;pointer-events:none;}
+.period-filter-control input[type="month"]{
+    position:absolute;
+    width:1px;
+    height:1px;
+    opacity:0;
+    pointer-events:none;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -898,7 +956,7 @@ $role = $_SESSION['role'] ?? 'user';
         <h4><span><i class="fas fa-chart-line"></i></span> Sales Activity</h4>
     </div>
     <div class="header-actions">
-        <a href="salesactivity.php?export=excel&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>&search=<?= urlencode($search) ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
+        <a href="salesactivity.php?export=excel<?= $filterMonth !== '' ? '&month=' . urlencode($filterMonth) : '' ?>&sales_id=<?= (int)$filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>&search=<?= urlencode($search) ?>" class="btn-export"><i class="fas fa-file-excel me-2"></i>Export Excel</a>
         <?php if (canAdd('sales_activity')): ?><button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalActivity"><i class="fas fa-plus me-2"></i>Tambah Aktivitas</button><?php endif; ?>
     </div>
 </div>
@@ -911,7 +969,14 @@ $role = $_SESSION['role'] ?? 'user';
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Sales Activity</h6>
                 <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
-                    <input type="month" name="month" class="form-control form-control-sm" value="<?= htmlspecialchars($filterMonth) ?>" style="width: 160px;" onchange="this.form.submit()">
+                    <div class="period-filter-control" onclick="openSalesActivityPeriodPicker(event)" role="button" tabindex="0" aria-label="Pilih periode"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSalesActivityPeriodPicker(event);}">
+        <span id="salesActivityPeriodLabel"><?= $filterMonth !== '' ? htmlspecialchars(date('F Y', strtotime($filterMonth . '-01'))) : 'All Periode' ?></span>
+        <i class="fas fa-calendar-alt"></i>
+        <input type="month" name="month" id="salesActivityMonthPicker"
+               value="<?= htmlspecialchars($filterMonth) ?>"
+               tabindex="-1" aria-hidden="true">
+    </div>
                     
                     <select name="jenis_prospek" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                         <option value="">Semua Prospek</option>
@@ -929,7 +994,7 @@ $role = $_SESSION['role'] ?? 'user';
                         <option value="Overdue" <?= $filterStatus === 'Overdue' ? 'selected' : '' ?>>Overdue</option>
                     </select>
                     
-                    <?php if ($userRole !== 'sales'): ?>
+                    <?php if ($canViewAllReport): ?>
                     <select name="sales_id" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                         <option value="0">Semua Sales</option>
                         <?php foreach ($salesUsers as $s): ?>
@@ -942,7 +1007,7 @@ $role = $_SESSION['role'] ?? 'user';
                     
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>" style="width: 180px;">
                     <button type="submit" class="btn btn-primary-custom" style="padding: 6px 16px;"><i class="fas fa-search"></i></button>
-                    <?php if (!empty($search) || $filterMonth !== date('Y-m') || $filterSalesId > 0 || !empty($filterJenisProspek) || !empty($filterStatus)): ?>
+                    <?php if (!empty($search) || $filterMonth !== '' || ($canViewAllReport && $filterSalesId > 0) || !empty($filterJenisProspek) || !empty($filterStatus)): ?>
                         <a href="salesactivity.php" class="btn btn-secondary-custom" style="padding: 6px 16px;"><i class="fas fa-times"></i> Reset</a>
                     <?php endif; ?>
                 </form>
@@ -1051,15 +1116,15 @@ $role = $_SESSION['role'] ?? 'user';
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?><?= $filterQuery ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?><?= $filterQuery ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= urlencode($filterMonth) ?>&sales_id=<?= $filterSalesId ?>&jenis_prospek=<?= urlencode($filterJenisProspek) ?>&status=<?= urlencode($filterStatus) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?><?= $filterQuery ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
@@ -1197,6 +1262,26 @@ $role = $_SESSION['role'] ?? 'user';
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+        function openSalesActivityPeriodPicker(event){
+            if(event){ event.preventDefault(); event.stopPropagation(); }
+            const input = document.getElementById('salesActivityMonthPicker');
+            if(!input) return;
+            if(typeof input.showPicker === 'function'){
+                try{ input.showPicker(); return; }catch(e){}
+            }
+            input.focus();
+            input.click();
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            const input = document.getElementById('salesActivityMonthPicker');
+            if(input){
+                input.addEventListener('change', function(){
+                    this.form.submit();
+                });
+            }
+        });
+
         $(document).ready(function() {
             $('.select2-account').select2({
                 placeholder: '-- Pilih Account (Ketik untuk mencari) --',
