@@ -64,25 +64,26 @@
   background: #0b1222;
 }
 
-/* ---------- PERIOD FILTER — SAME STYLE AS OTHER FILTERS ---------- */
+/* ---------- PERIOD FILTER — MATCH THE OTHER FILTER CONTROLS ---------- */
 .page-salesactivity .period-filter-control {
   position: relative;
   box-sizing: border-box;
-  width: 150px;
-  min-width: 150px;
-  height: 38px;
-  min-height: 38px;
+  width: 203px;
+  min-width: 203px;
+  height: 51px;
+  min-height: 51px;
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 9px 11px;
+  gap: 10px;
+  padding: 0 15px;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 9px;
+  border-radius: 12px;
   background: #0a1427;
   color: #dbe5f5;
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.2;
   outline: none;
   cursor: pointer;
   user-select: none;
@@ -101,7 +102,7 @@
 
 .page-salesactivity .period-filter-control i {
   color: #8492aa;
-  font-size: 11px;
+  font-size: 14px;
   flex: 0 0 auto;
   pointer-events: none;
 }
@@ -135,45 +136,13 @@
   margin: 0;
 }
 
-/* Responsive — tetap satu ukuran dengan filter lain */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .page-salesactivity .period-filter-control {
-    flex: 1 1 150px;
-    width: auto;
-    min-width: 150px;
-  }
-}
-
-@media (max-width: 800px) {
-  .page-salesactivity .period-filter-control {
-    flex: 1;
-    width: auto;
-    min-width: 130px;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-salesactivity .period-filter-control {
-    width: 100%;
-    min-width: 0;
-  }
-}
-
-/* Responsive: keep the period control consistent with the other filters */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .page-salesactivity .period-filter-control {
-    flex: 1 1 150px;
-    width: auto;
-    min-width: 150px;
-  }
-}
-
+/* Responsive */
 @media (max-width: 768px) {
   .page-salesactivity .period-filter-control {
     width: 100%;
     min-width: 0;
-    min-height: 38px;
-    height: 38px;
+    min-height: 51px;
+    height: 51px;
   }
 }
 
