@@ -583,6 +583,24 @@ $fullReportRoles = [
 ];
 $canViewAllReport = in_array($userRole, $fullReportRoles, true);
 
+/*
+ * Hak melihat Contact Mobile PIC pada Detail Aktivitas:
+ * - Direktur Utama
+ * - Direktur Operasional
+ * - Direktur Sales
+ * - IT Support
+ * - Sales yang menginput activity tersebut
+ *
+ * Sales Manager dan role lainnya tidak dapat melihat Contact Mobile.
+ */
+$contactMobileViewRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'it_support'
+];
+$canViewContactMobileByRole = in_array($userRole, $contactMobileViewRoles, true);
+
 $limit = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
@@ -1221,8 +1239,30 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                         </td>
                                         <td><?= htmlspecialchars($act['sales_name'] ?? '-') ?></td>
                                         <td>
+                                            <?php
+                                                /*
+                                                 * Jangan kirim nomor HP PIC ke browser untuk user
+                                                 * yang tidak mempunyai hak akses. Sales hanya boleh
+                                                 * melihat Contact Mobile pada activity yang dia input sendiri.
+                                                 */
+                                                $isInputtingSales = (
+                                                    $userRole === 'sales'
+                                                    && (int)($act['sales_id'] ?? 0) === $userId
+                                                );
+                                                $canViewThisContactMobile = (
+                                                    $canViewContactMobileByRole
+                                                    || $isInputtingSales
+                                                );
+
+                                                $detailAct = $act;
+                                                $detailAct['can_view_contact_mobile'] = $canViewThisContactMobile;
+
+                                                if (!$canViewThisContactMobile) {
+                                                    $detailAct['no_hp_pic'] = null;
+                                                }
+                                            ?>
                                             <div class="d-flex gap-1">
-                                                <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($act)) ?>)">
+                                                <button class="btn-action detail" onclick="detailActivity(<?= htmlspecialchars(json_encode($detailAct, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)) ?>)">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <?php if (canDelete('sales_activity')): ?>
@@ -1541,6 +1581,11 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
             const statusProspek = data.status_prospek || '-';
             const statusClass = statusProspek.toLowerCase().replace(/\s+/g, '-');
             const prospekClass = jenisProspek.toLowerCase().replace(/\s+/g, '-');
+            const canViewContactMobile = data.can_view_contact_mobile === true;
+
+            const contactMobileField = canViewContactMobile
+                ? `<div class="activity-detail-field"><span class="activity-detail-label">Contact Mobile</span><span class="activity-detail-value">${esc(data.no_hp_pic)}</span></div>`
+                : '';
 
             let tanggalDibuat = '-';
             if (data.created_at) {
@@ -1601,7 +1646,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                     </div>
                     <div class="activity-detail-grid activity-detail-grid-3">
                         <div class="activity-detail-field"><span class="activity-detail-label">Nama PIC</span><span class="activity-detail-value">${esc(data.nama_pic)}</span></div>
-                        <div class="activity-detail-field"><span class="activity-detail-label">Contact Mobile</span><span class="activity-detail-value">${esc(data.no_hp_pic)}</span></div>
+                        ${contactMobileField}
                         <div class="activity-detail-field"><span class="activity-detail-label">Email PIC</span><span class="activity-detail-value">${esc(data.email_pic)}</span></div>
                     </div>
                 </div>
