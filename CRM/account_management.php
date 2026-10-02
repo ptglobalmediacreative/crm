@@ -604,7 +604,8 @@ function canSalesEdit($db, $account_id, $userId) {
                     <?php endif; ?>
                     <div class="account-period-picker-wrap" title="Pilih Periode (Bulan & Tahun)">
                         <span class="account-period-placeholder"><?= $filterPeriod !== '' ? date('F Y', strtotime($filterPeriod . '-01')) : 'All Periode' ?></span>
-                        <input type="month" name="period" class="form-control form-control-sm account-period-picker" value="<?= htmlspecialchars($filterPeriod) ?>" aria-label="Filter Periode Bulan dan Tahun">
+                        <i class="fas fa-calendar-alt account-period-icon" aria-hidden="true"></i>
+                        <input type="month" name="period" class="account-period-picker" value="<?= htmlspecialchars($filterPeriod) ?>" aria-label="Filter Periode Bulan dan Tahun">
                     </div>
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari account..." value="<?= htmlspecialchars($search) ?>">
                     <button type="submit" class="btn btn-primary-custom"><i class="fas fa-search"></i></button>
@@ -1238,5 +1239,28 @@ function canSalesEdit($db, $account_id, $userId) {
             modal.show();
         }
     </script>
+<script>
+(function(){
+    const picker = document.querySelector('.account-period-picker');
+    const label = document.querySelector('.account-period-placeholder');
+    if (!picker || !label) return;
+
+    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const updatePeriodLabel = () => {
+        if (!picker.value) {
+            label.textContent = 'All Periode';
+            return;
+        }
+        const parts = picker.value.split('-');
+        if (parts.length === 2) {
+            label.textContent = (months[parseInt(parts[1], 10) - 1] || parts[1]) + ' ' + parts[0];
+        }
+    };
+
+    picker.addEventListener('change', updatePeriodLabel);
+    updatePeriodLabel();
+})();
+</script>
+
 </body>
 </html>

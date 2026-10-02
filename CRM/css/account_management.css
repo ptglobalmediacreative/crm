@@ -2802,46 +2802,42 @@ button {
   }
 }
 
-/* Native month picker: one filter for Month + Year, blank = All Periode */
-.page-account-management .account-filter-form .account-period-picker {
-  min-width: 155px;
-  width: 155px;
-  cursor: pointer;
-}
-.page-account-management
-  .account-filter-form
-  .account-period-picker::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-}
-@media (max-width: 767px) {
-  .page-account-management .account-filter-form .account-period-picker {
-    width: 100% !important;
-  }
-}
-
-/* Account Management - native month picker with All Periode when empty */
+/* Account Management — compact All Periode / native month picker */
 .page-account-management .account-period-picker-wrap {
   position: relative;
-  width: 145px;
-  height: 36px;
-  flex: 0 0 145px;
+  width: 210px;
+  height: 38px;
+  flex: 0 0 210px;
+  border: 1px solid #24344d;
+  border-radius: 12px;
+  background: #0b1629;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .page-account-management
   .account-period-picker-wrap
   .account-period-placeholder {
   position: absolute;
-  inset: 0;
+  inset: 0 42px 0 0;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  background: #fff;
-  color: #495057;
+  padding: 0 14px;
+  color: #d9e1ee;
   font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
   pointer-events: none;
   z-index: 1;
-  white-space: nowrap;
+}
+.page-account-management .account-period-picker-wrap .account-period-icon {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  color: #8190a8;
+  font-size: 15px;
+  pointer-events: none;
+  z-index: 1;
 }
 .page-account-management .account-period-picker-wrap .account-period-picker {
   position: absolute;
@@ -2849,22 +2845,26 @@ button {
   width: 100%;
   height: 100%;
   margin: 0;
-  z-index: 2;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  opacity: 0.01;
   cursor: pointer;
-  background: transparent;
-  color: transparent;
-  caret-color: transparent;
+  z-index: 2;
 }
 .page-account-management
   .account-period-picker-wrap
   .account-period-picker::-webkit-calendar-picker-indicator {
-  opacity: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   cursor: pointer;
 }
 .page-account-management
   .account-period-picker-wrap
   .account-period-picker:focus {
   outline: none;
+  box-shadow: none;
 }
 @media (max-width: 767px) {
   .page-account-management .account-period-picker-wrap {
