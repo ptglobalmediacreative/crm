@@ -620,7 +620,9 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
 
                         <div class="period-filter-wrap">
                             <i class="fas fa-calendar-alt"></i>
-                            <span class="period-filter-placeholder" aria-hidden="true">All Periode</span>
+                            <span class="period-filter-placeholder" aria-hidden="true">
+                                <?= !empty($filter_period) ? htmlspecialchars(date('F Y', strtotime($filter_period . '-01'))) : 'All Periode' ?>
+                            </span>
                             <input
                                 type="month"
                                 name="period"
