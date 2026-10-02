@@ -47,8 +47,12 @@ $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 
 $fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
-$hasFullAccess = in_array($userRole, $fullAccessRoles);
-$isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
+$hasFullAccess = in_array($userRole, $fullAccessRoles, true);
+$isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'], true);
+
+// Role yang diperbolehkan menampilkan dan mengakses tombol Download PDF TR.
+$pdfDownloadRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional', 'it_support', 'business'];
+$canDownloadTRPdf = in_array($userRole, $pdfDownloadRoles, true);
 
 // ============================================
 // APPROVAL FLOW - SAMA DENGAN detailtr.php
@@ -665,7 +669,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                             </div>
                                         </td>
                                         <td>
-                                            <?php if ($userRole !== 'sales'): ?>
+                                            <?php if ($canDownloadTRPdf): ?>
                                                 <?php if ($isApproved): ?>
                                                     <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
                                                        class="btn-pdf" 
