@@ -138,6 +138,7 @@ $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $next_approver_filter = isset($_GET['next_approver']) ? $_GET['next_approver'] : 'all';
+$filter_period = isset($_GET['period']) ? trim($_GET['period']) : '';
 
 $allowedNextApprovers = [
     'Sales Manager',
@@ -149,6 +150,20 @@ $allowedNextApprovers = [
 
 if ($next_approver_filter !== 'all' && !in_array($next_approver_filter, $allowedNextApprovers, true)) {
     $next_approver_filter = 'all';
+}
+// Filter periode berdasarkan bulan Request Date (activity_details.created_at).
+// Menggunakan YEAR/MONTH agar aman dari perbedaan collation.
+$filterYear = 0;
+$filterMonth = 0;
+if ($filter_period !== '' && preg_match('/^\d{4}-\d{2}$/', $filter_period)) {
+    [$filterYear, $filterMonth] = array_map('intval', explode('-', $filter_period));
+    if ($filterYear < 2000 || $filterYear > 2100 || $filterMonth < 1 || $filterMonth > 12) {
+        $filter_period = '';
+        $filterYear = 0;
+        $filterMonth = 0;
+    }
+} else {
+    $filter_period = '';
 }
 
 // ============================================
@@ -252,6 +267,12 @@ if ($status_filter !== 'all') {
     } elseif ($status_filter === 'rejected') {
         $where .= " AND EXISTS (SELECT 1 FROM detail_transaction_requests dtr WHERE dtr.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci AND dtr.status = 'rejected')";
     }
+}
+
+if ($filter_period !== '') {
+    $where .= " AND YEAR(ad.created_at) = ? AND MONTH(ad.created_at) = ?";
+    $params[] = $filterYear;
+    $params[] = $filterMonth;
 }
 
 if (!empty($search)) {
@@ -419,6 +440,12 @@ if ($userRole === 'sales') {
     $statParams[] = $userId;
 }
 
+if ($filter_period !== '') {
+    $statWhere .= " AND YEAR(ad.created_at) = ? AND MONTH(ad.created_at) = ?";
+    $statParams[] = $filterYear;
+    $statParams[] = $filterMonth;
+}
+
 $sqlPending = "SELECT COUNT(DISTINCT ad.tr_number) FROM activity_details ad
                LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
                $statWhere 
@@ -505,6 +532,9 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Transaction Request</h6>
                 <form method="GET" class="d-flex gap-2">
+                    <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
+                    <input type="hidden" name="next_approver" value="<?= htmlspecialchars($next_approver_filter) ?>">
+                    <input type="hidden" name="period" value="<?= htmlspecialchars($filter_period) ?>">
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>">
                     <button type="submit" class="btn btn-primary-custom"><i class="fas fa-search"></i></button>
                     <?php if (!empty($search)): ?>
@@ -521,6 +551,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                     <form method="GET" class="status-filter-form">
                         <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
                         <input type="hidden" name="next_approver" value="<?= htmlspecialchars($next_approver_filter) ?>">
+                        <input type="hidden" name="period" value="<?= htmlspecialchars($filter_period) ?>">
 
                         <div class="status-filter-wrap">
                             <i class="fas fa-filter"></i>
@@ -555,6 +586,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                     <form method="GET" class="next-approver-filter-form">
                         <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
                         <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
+                        <input type="hidden" name="period" value="<?= htmlspecialchars($filter_period) ?>">
 
                         <div class="next-approver-filter-wrap">
                             <i class="fas fa-user-check"></i>
@@ -577,6 +609,24 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                 <?php endforeach; ?>
 
                             </select>
+                        </div>
+                    </form>
+
+                    <!-- FILTER PERIODE -->
+                    <form method="GET" class="period-filter-form">
+                        <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+                        <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
+                        <input type="hidden" name="next_approver" value="<?= htmlspecialchars($next_approver_filter) ?>">
+
+                        <div class="period-filter-wrap">
+                            <i class="fas fa-calendar-alt"></i>
+                            <input
+                                type="month"
+                                name="period"
+                                class="period-filter-input"
+                                value="<?= htmlspecialchars($filter_period) ?>"
+                                onchange="this.form.submit()"
+                                aria-label="Filter periode">
                         </div>
                     </form>
 
@@ -704,15 +754,15 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>&period=<?= urlencode($filter_period) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>&period=<?= urlencode($filter_period) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>&period=<?= urlencode($filter_period) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>

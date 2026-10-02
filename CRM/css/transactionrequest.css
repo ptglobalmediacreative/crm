@@ -2862,3 +2862,110 @@ button {
   text-align: center !important;
   vertical-align: middle !important;
 }
+
+/* =========================================================
+   TRANSACTION REQUEST — FILTER ALL PERIODE
+   Empty value = All Periode. Uses native month picker.
+   ========================================================= */
+.page-transactionrequest .period-filter-form {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 0 190px;
+  width: 190px;
+  margin: 0;
+}
+.page-transactionrequest .period-filter-wrap {
+  width: 100%;
+  height: 38px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  background: rgba(10, 17, 33, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 9px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.page-transactionrequest .period-filter-wrap > i {
+  flex: 0 0 14px;
+  width: 14px;
+  text-align: center;
+  color: var(--app-blue-light);
+  font-size: 10px;
+}
+.page-transactionrequest .period-filter-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 36px;
+  padding: 0;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  color-scheme: dark;
+  cursor: pointer;
+}
+.page-transactionrequest
+  .period-filter-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.75);
+  opacity: 0.8;
+  cursor: pointer;
+}
+.page-transactionrequest .period-filter-input:focus {
+  box-shadow: none !important;
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .page-transactionrequest .filter-controls {
+    flex-wrap: wrap;
+  }
+  .page-transactionrequest .period-filter-form {
+    flex: 0 1 190px;
+    width: 190px;
+  }
+}
+@media (min-width: 481px) and (max-width: 768px) {
+  .page-transactionrequest .filter-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+  }
+  .page-transactionrequest .period-filter-form {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+}
+@media (max-width: 480px) {
+  .page-transactionrequest .period-filter-form {
+    width: 100%;
+    max-width: none;
+    flex: 0 0 auto;
+    margin: 0;
+  }
+  .page-transactionrequest .period-filter-wrap {
+    width: 100%;
+    height: 38px;
+  }
+}
+@media (max-width: 360px) {
+  .page-transactionrequest .period-filter-wrap {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+  .page-transactionrequest .period-filter-input {
+    font-size: 9px;
+  }
+}
