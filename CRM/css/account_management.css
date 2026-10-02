@@ -2818,3 +2818,57 @@ button {
     width: 100% !important;
   }
 }
+
+/* Account Management - native month picker with All Periode when empty */
+.page-account-management .account-period-picker-wrap {
+  position: relative;
+  width: 145px;
+  height: 36px;
+  flex: 0 0 145px;
+}
+.page-account-management
+  .account-period-picker-wrap
+  .account-period-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #495057;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
+}
+.page-account-management .account-period-picker-wrap .account-period-picker {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  z-index: 2;
+  cursor: pointer;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+}
+.page-account-management
+  .account-period-picker-wrap
+  .account-period-picker::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  cursor: pointer;
+}
+.page-account-management
+  .account-period-picker-wrap
+  .account-period-picker:focus {
+  outline: none;
+}
+@media (max-width: 767px) {
+  .page-account-management .account-period-picker-wrap {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}

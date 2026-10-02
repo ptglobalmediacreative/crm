@@ -602,7 +602,10 @@ function canSalesEdit($db, $account_id, $userId) {
                     <?php if ($isFullAccess): ?>
                     <select name="sales_id" class="form-select form-select-sm"><option value="0">Semua Sales</option><?php foreach($salesUsers as $sales): if(($sales['role']??'')==='sales'): ?><option value="<?= (int)$sales['id'] ?>" <?= $filterSalesId===(int)$sales['id']?'selected':'' ?>><?= htmlspecialchars($sales['full_name']) ?></option><?php endif; endforeach; ?></select>
                     <?php endif; ?>
-                    <input type="month" name="period" class="form-control form-control-sm account-period-picker" value="<?= htmlspecialchars($filterPeriod) ?>" title="Pilih Periode (Bulan & Tahun)" aria-label="Filter Periode Bulan dan Tahun">
+                    <div class="account-period-picker-wrap" title="Pilih Periode (Bulan & Tahun)">
+                        <span class="account-period-placeholder"><?= $filterPeriod !== '' ? date('F Y', strtotime($filterPeriod . '-01')) : 'All Periode' ?></span>
+                        <input type="month" name="period" class="form-control form-control-sm account-period-picker" value="<?= htmlspecialchars($filterPeriod) ?>" aria-label="Filter Periode Bulan dan Tahun">
+                    </div>
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari account..." value="<?= htmlspecialchars($search) ?>">
                     <button type="submit" class="btn btn-primary-custom"><i class="fas fa-search"></i></button>
                     <?php if($search!==''||$filterPeriod!==''||($isFullAccess&&$filterSalesId>0)): ?><a href="account_management.php" class="btn btn-secondary-custom" title="Reset Filter"><i class="fas fa-times"></i></a><?php endif; ?>
