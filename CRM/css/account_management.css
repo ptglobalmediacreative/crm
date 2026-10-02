@@ -3018,10 +3018,10 @@ button {
 
 .page-account-management .account-filter-form .form-select,
 .page-account-management .account-filter-form .account-period-picker-wrap {
-  width: 220px !important;
-  min-width: 220px !important;
-  height: 38px !important;
-  flex: 0 0 220px !important;
+  width: 190px !important;
+  min-width: 190px !important;
+  height: 36px !important;
+  flex: 0 0 190px !important;
   box-sizing: border-box;
 }
 
@@ -3031,7 +3031,7 @@ button {
   border-radius: 12px !important;
   font-size: 14px !important;
   font-weight: 600 !important;
-  line-height: 38px !important;
+  line-height: 36px !important;
 }
 
 .page-account-management .account-filter-form .account-period-picker-wrap {
@@ -3057,20 +3057,20 @@ button {
 }
 
 .page-account-management .account-filter-form > .form-control {
-  width: 230px !important;
-  min-width: 230px !important;
-  height: 38px !important;
-  flex: 0 0 230px !important;
+  width: 220px !important;
+  min-width: 220px !important;
+  height: 36px !important;
+  flex: 0 0 220px !important;
   margin: 0 !important;
   border-radius: 12px !important;
   font-size: 14px !important;
 }
 
 .page-account-management .account-filter-form > .btn-primary-custom {
-  width: 38px !important;
-  min-width: 38px !important;
-  height: 38px !important;
-  flex: 0 0 38px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  flex: 0 0 36px !important;
   padding: 0 !important;
   border-radius: 11px !important;
 }

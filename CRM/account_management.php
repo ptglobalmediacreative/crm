@@ -1241,9 +1241,11 @@ function canSalesEdit($db, $account_id, $userId) {
     </script>
 <script>
 (function(){
-    const picker = document.querySelector('.account-period-picker');
-    const label = document.querySelector('.account-period-placeholder');
-    if (!picker || !label) return;
+    const form = document.querySelector('.account-filter-form');
+    const salesFilter = form ? form.querySelector('select[name="sales_id"]') : null;
+    const picker = form ? form.querySelector('.account-period-picker') : null;
+    const label = form ? form.querySelector('.account-period-placeholder') : null;
+    if (!form || !picker || !label) return;
 
     const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     const updatePeriodLabel = () => {
@@ -1257,7 +1259,20 @@ function canSalesEdit($db, $account_id, $userId) {
         }
     };
 
-    picker.addEventListener('change', updatePeriodLabel);
+    const submitFilter = () => {
+        // Filter Sales/Periode langsung diterapkan tanpa perlu menekan tombol Search.
+        form.submit();
+    };
+
+    picker.addEventListener('change', function(){
+        updatePeriodLabel();
+        submitFilter();
+    });
+
+    if (salesFilter) {
+        salesFilter.addEventListener('change', submitFilter);
+    }
+
     updatePeriodLabel();
 })();
 </script>
