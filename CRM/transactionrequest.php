@@ -620,6 +620,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
 
                         <div class="period-filter-wrap">
                             <i class="fas fa-calendar-alt"></i>
+                            <span class="period-filter-placeholder" aria-hidden="true">All Periode</span>
                             <input
                                 type="month"
                                 name="period"
@@ -776,6 +777,30 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
     </main>
 
     <!-- SCRIPTS -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.period-filter-wrap').forEach(function (wrap) {
+            const input = wrap.querySelector('.period-filter-input');
+            const placeholder = wrap.querySelector('.period-filter-placeholder');
+            if (!input || !placeholder) return;
+
+            function syncPeriodPlaceholder() {
+                const hasValue = !!input.value;
+                placeholder.style.display = hasValue ? 'none' : 'block';
+                input.classList.toggle('has-value', hasValue);
+            }
+
+            syncPeriodPlaceholder();
+            input.addEventListener('change', syncPeriodPlaceholder);
+            placeholder.addEventListener('click', function () {
+                input.focus();
+                if (typeof input.showPicker === 'function') {
+                    try { input.showPicker(); } catch (e) {}
+                }
+            });
+        });
+    });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

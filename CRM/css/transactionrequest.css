@@ -2900,6 +2900,19 @@ button {
   color: var(--app-blue-light);
   font-size: 10px;
 }
+.page-transactionrequest .period-filter-placeholder {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 36px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
 .page-transactionrequest .period-filter-input {
   flex: 1 1 auto;
   min-width: 0;
@@ -2909,12 +2922,15 @@ button {
   border: 0 !important;
   outline: 0;
   background: transparent !important;
-  color: #cbd5e1 !important;
+  color: transparent !important;
   font-size: 10px;
   font-weight: 600;
   font-family: inherit;
   color-scheme: dark;
   cursor: pointer;
+}
+.page-transactionrequest .period-filter-input.has-value {
+  color: #cbd5e1 !important;
 }
 .page-transactionrequest
   .period-filter-input::-webkit-calendar-picker-indicator {
