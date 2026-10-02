@@ -545,7 +545,7 @@ function canSalesEdit($db, $account_id, $userId) {
     <link rel="stylesheet" href="css/footer.css">
 
 </head>
-<body>
+<body class="page-account-management">
 
     <?php require_once 'navigation.php'; ?>
 
