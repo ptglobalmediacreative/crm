@@ -70,15 +70,14 @@ $isDirekturOperasional = ($userRole === 'direktur_operasional');
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     $exportSearch = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
     $exportSalesId = $isFullAccess && isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
-    $exportMonth = isset($_GET['month']) ? (int)$_GET['month'] : 0;
-    $exportYear = isset($_GET['year']) ? (int)$_GET['year'] : 0;
+    $exportPeriod = isset($_GET['period']) ? trim($_GET['period']) : '';
+    if ($exportPeriod !== '' && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $exportPeriod)) $exportPeriod = '';
     $exportWhere = "WHERE 1=1";
     $exportParams = [];
 
     if (!$isFullAccess) { $exportWhere .= " AND a.sales_id = ?"; $exportParams[] = $userId; }
     elseif ($exportSalesId > 0) { $exportWhere .= " AND a.sales_id = ?"; $exportParams[] = $exportSalesId; }
-    if ($exportMonth >= 1 && $exportMonth <= 12) { $exportWhere .= " AND MONTH(a.created_at) = ?"; $exportParams[] = $exportMonth; }
-    if ($exportYear >= 2000 && $exportYear <= 2100) { $exportWhere .= " AND YEAR(a.created_at) = ?"; $exportParams[] = $exportYear; }
+    if ($exportPeriod !== '') { $exportWhere .= " AND DATE_FORMAT(a.created_at, '%Y-%m') = ?"; $exportParams[] = $exportPeriod; }
     if ($exportSearch !== '') {
         $exportWhere .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ? OR a.jabatan_pic LIKE ?)";
         $like = "%{$exportSearch}%";
@@ -137,12 +136,11 @@ $userId=(int)($_SESSION['user_id']??0); $userRole=$_SESSION['role']??'user';
 $limit=10; $page=max(1,(int)($_GET['page']??1));
 $search=isset($_GET['search'])?bersihkan($_GET['search']):'';
 $filterSalesId=$isFullAccess?(int)($_GET['sales_id']??0):0;
-$filterMonth=(int)($_GET['month']??0); $filterYear=(int)($_GET['year']??0);
-if($filterMonth<1||$filterMonth>12)$filterMonth=0; if($filterYear<2000||$filterYear>2100)$filterYear=0;
+$filterPeriod=isset($_GET['period'])?trim($_GET['period']):'';
+if($filterPeriod!==''&&!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$filterPeriod))$filterPeriod='';
 $where="WHERE 1=1"; $params=[];
 if(!$isFullAccess){$where.=" AND a.sales_id = ?";$params[]=$userId;} elseif($filterSalesId>0){$where.=" AND a.sales_id = ?";$params[]=$filterSalesId;}
-if($filterMonth>0){$where.=" AND MONTH(a.created_at) = ?";$params[]=$filterMonth;}
-if($filterYear>0){$where.=" AND YEAR(a.created_at) = ?";$params[]=$filterYear;}
+if($filterPeriod!==''){$where.=" AND DATE_FORMAT(a.created_at, '%Y-%m') = ?";$params[]=$filterPeriod;}
 if($search!==''){$where.=" AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ? OR a.jabatan_pic LIKE ?)";$like="%{$search}%";array_push($params,$like,$like,$like,$like,$like,$like,$like);}
 $countSql="SELECT COUNT(*) FROM accounts a LEFT JOIN users u ON a.sales_id=u.id {$where}";$stmt=$db->prepare($countSql);$stmt->execute($params);$totalData=(int)$stmt->fetchColumn();$totalPages=max(1,(int)ceil($totalData/$limit));if($page>$totalPages)$page=$totalPages;$offset=($page-1)*$limit;
 $sql="SELECT a.*,u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id=u.id {$where} ORDER BY a.created_at DESC LIMIT {$limit} OFFSET {$offset}";$stmt=$db->prepare($sql);$stmt->execute($params);$accounts=$stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -155,8 +153,7 @@ $statParams = [];
 
 if (!$isFullAccess) { $statWhere .= " AND sales_id = ?"; $statParams[] = $userId; }
 if ($isFullAccess && $filterSalesId > 0) { $statWhere .= " AND sales_id = ?"; $statParams[] = $filterSalesId; }
-if ($filterMonth > 0) { $statWhere .= " AND MONTH(created_at) = ?"; $statParams[] = $filterMonth; }
-if ($filterYear > 0) { $statWhere .= " AND YEAR(created_at) = ?"; $statParams[] = $filterYear; }
+if ($filterPeriod !== '') { $statWhere .= " AND DATE_FORMAT(created_at, '%Y-%m') = ?"; $statParams[] = $filterPeriod; }
 
 // Total Account
 $totalAccounts = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere");
@@ -562,7 +559,7 @@ function canSalesEdit($db, $account_id, $userId) {
                 <h4><span><i class="fas fa-building"></i></span> Account Management</h4>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="account_management.php?export=excel<?= $search !== '' ? '&search=' . urlencode($search) : '' ?><?= $isFullAccess && $filterSalesId > 0 ? '&sales_id=' . $filterSalesId : '' ?><?= $filterMonth > 0 ? '&month=' . $filterMonth : '' ?><?= $filterYear > 0 ? '&year=' . $filterYear : '' ?>" class="btn btn-success-custom">
+                <a href="account_management.php?export=excel<?= $search !== '' ? '&search=' . urlencode($search) : '' ?><?= $isFullAccess && $filterSalesId > 0 ? '&sales_id=' . $filterSalesId : '' ?><?= $filterPeriod !== '' ? '&period=' . urlencode($filterPeriod) : '' ?>" class="btn btn-success-custom">
                     <i class="fas fa-file-excel"></i> Export Excel
                 </a>
                 <?php if ($userRole === 'sales' || $isDirektur || canAdd('account_management')): ?>
@@ -605,11 +602,10 @@ function canSalesEdit($db, $account_id, $userId) {
                     <?php if ($isFullAccess): ?>
                     <select name="sales_id" class="form-select form-select-sm"><option value="0">Semua Sales</option><?php foreach($salesUsers as $sales): if(($sales['role']??'')==='sales'): ?><option value="<?= (int)$sales['id'] ?>" <?= $filterSalesId===(int)$sales['id']?'selected':'' ?>><?= htmlspecialchars($sales['full_name']) ?></option><?php endif; endforeach; ?></select>
                     <?php endif; ?>
-                    <select name="month" class="form-select form-select-sm"><option value="0">Semua Bulan</option><?php $monthNames=[1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember']; foreach($monthNames as $monthNo=>$monthName): ?><option value="<?= $monthNo ?>" <?= $filterMonth===$monthNo?'selected':'' ?>><?= $monthName ?></option><?php endforeach; ?></select>
-                    <select name="year" class="form-select form-select-sm"><option value="0">Semua Tahun</option><?php $yearStmt=$db->query("SELECT DISTINCT YEAR(created_at) AS year FROM accounts WHERE created_at IS NOT NULL ORDER BY year DESC");$accountYears=$yearStmt->fetchAll(PDO::FETCH_COLUMN);$currentYear=(int)date('Y');if(!in_array($currentYear,array_map('intval',$accountYears),true))array_unshift($accountYears,$currentYear);foreach($accountYears as $yearOption):$yearOption=(int)$yearOption; ?><option value="<?= $yearOption ?>" <?= $filterYear===$yearOption?'selected':'' ?>><?= $yearOption ?></option><?php endforeach; ?></select>
+                    <select name="period" class="form-select form-select-sm"><option value="">All Periode</option><?php $monthNames=[1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember']; $periodStmt=$db->query("SELECT DISTINCT DATE_FORMAT(created_at, '%Y-%m') AS period FROM accounts WHERE created_at IS NOT NULL ORDER BY period DESC"); $accountPeriods=$periodStmt->fetchAll(PDO::FETCH_COLUMN); foreach($accountPeriods as $periodOption): $periodDate=DateTime::createFromFormat('!Y-m',$periodOption); $periodLabel=$periodDate?$monthNames[(int)$periodDate->format('n')].' '.$periodDate->format('Y'):$periodOption; ?><option value="<?= htmlspecialchars($periodOption) ?>" <?= $filterPeriod===$periodOption?'selected':'' ?>><?= htmlspecialchars($periodLabel) ?></option><?php endforeach; ?></select>
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari account..." value="<?= htmlspecialchars($search) ?>">
                     <button type="submit" class="btn btn-primary-custom"><i class="fas fa-search"></i></button>
-                    <?php if($search!==''||$filterMonth>0||$filterYear>0||($isFullAccess&&$filterSalesId>0)): ?><a href="account_management.php" class="btn btn-secondary-custom" title="Reset Filter"><i class="fas fa-times"></i></a><?php endif; ?>
+                    <?php if($search!==''||$filterPeriod!==''||($isFullAccess&&$filterSalesId>0)): ?><a href="account_management.php" class="btn btn-secondary-custom" title="Reset Filter"><i class="fas fa-times"></i></a><?php endif; ?>
                 </form>
             </div>
             <div class="card-body-custom">
@@ -724,7 +720,7 @@ function canSalesEdit($db, $account_id, $userId) {
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&period=<?= urlencode($filterPeriod) ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php
                             // Maksimal 5 nomor halaman yang ditampilkan
@@ -740,7 +736,7 @@ function canSalesEdit($db, $account_id, $userId) {
 
                             <?php if ($startPage > 1): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=1&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">1</a>
+                                    <a class="page-link" href="?page=1&search=<?= urlencode($search) ?>&period=<?= urlencode($filterPeriod) ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">1</a>
                                 </li>
 
                                 <?php if ($startPage > 2): ?>
@@ -752,7 +748,7 @@ function canSalesEdit($db, $account_id, $userId) {
 
                             <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&period=<?= urlencode($filterPeriod) ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">
                                         <?= $i ?>
                                     </a>
                                 </li>
@@ -766,13 +762,13 @@ function canSalesEdit($db, $account_id, $userId) {
                                 <?php endif; ?>
 
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">
+                                    <a class="page-link" href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>&period=<?= urlencode($filterPeriod) ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">
                                         <?= $totalPages ?>
                                     </a>
                                 </li>
                             <?php endif; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&period=<?= urlencode($filterPeriod) ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
