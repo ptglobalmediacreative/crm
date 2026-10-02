@@ -72,12 +72,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     $exportSalesId = $isFullAccess && isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
     $exportPeriod = isset($_GET['period']) ? trim($_GET['period']) : '';
     if ($exportPeriod !== '' && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $exportPeriod)) $exportPeriod = '';
+    $exportPeriodYear = $exportPeriod !== '' ? (int)substr($exportPeriod, 0, 4) : 0;
+    $exportPeriodMonth = $exportPeriod !== '' ? (int)substr($exportPeriod, 5, 2) : 0;
     $exportWhere = "WHERE 1=1";
     $exportParams = [];
 
     if (!$isFullAccess) { $exportWhere .= " AND a.sales_id = ?"; $exportParams[] = $userId; }
     elseif ($exportSalesId > 0) { $exportWhere .= " AND a.sales_id = ?"; $exportParams[] = $exportSalesId; }
-    if ($exportPeriod !== '') { $exportWhere .= " AND DATE_FORMAT(a.created_at, '%Y-%m') = ?"; $exportParams[] = $exportPeriod; }
+    if ($exportPeriod !== '') { $exportWhere .= " AND YEAR(a.created_at) = ? AND MONTH(a.created_at) = ?"; $exportParams[] = $exportPeriodYear; $exportParams[] = $exportPeriodMonth; }
     if ($exportSearch !== '') {
         $exportWhere .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ? OR a.jabatan_pic LIKE ?)";
         $like = "%{$exportSearch}%";
@@ -138,9 +140,11 @@ $search=isset($_GET['search'])?bersihkan($_GET['search']):'';
 $filterSalesId=$isFullAccess?(int)($_GET['sales_id']??0):0;
 $filterPeriod=isset($_GET['period'])?trim($_GET['period']):'';
 if($filterPeriod!==''&&!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$filterPeriod))$filterPeriod='';
+$filterPeriodYear=$filterPeriod!==''?(int)substr($filterPeriod,0,4):0;
+$filterPeriodMonth=$filterPeriod!==''?(int)substr($filterPeriod,5,2):0;
 $where="WHERE 1=1"; $params=[];
 if(!$isFullAccess){$where.=" AND a.sales_id = ?";$params[]=$userId;} elseif($filterSalesId>0){$where.=" AND a.sales_id = ?";$params[]=$filterSalesId;}
-if($filterPeriod!==''){$where.=" AND DATE_FORMAT(a.created_at, '%Y-%m') = ?";$params[]=$filterPeriod;}
+if($filterPeriod!==''){$where.=" AND YEAR(a.created_at) = ? AND MONTH(a.created_at) = ?";$params[]=$filterPeriodYear;$params[]=$filterPeriodMonth;}
 if($search!==''){$where.=" AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ? OR a.jabatan_pic LIKE ?)";$like="%{$search}%";array_push($params,$like,$like,$like,$like,$like,$like,$like);}
 $countSql="SELECT COUNT(*) FROM accounts a LEFT JOIN users u ON a.sales_id=u.id {$where}";$stmt=$db->prepare($countSql);$stmt->execute($params);$totalData=(int)$stmt->fetchColumn();$totalPages=max(1,(int)ceil($totalData/$limit));if($page>$totalPages)$page=$totalPages;$offset=($page-1)*$limit;
 $sql="SELECT a.*,u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id=u.id {$where} ORDER BY a.created_at DESC LIMIT {$limit} OFFSET {$offset}";$stmt=$db->prepare($sql);$stmt->execute($params);$accounts=$stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -153,7 +157,7 @@ $statParams = [];
 
 if (!$isFullAccess) { $statWhere .= " AND sales_id = ?"; $statParams[] = $userId; }
 if ($isFullAccess && $filterSalesId > 0) { $statWhere .= " AND sales_id = ?"; $statParams[] = $filterSalesId; }
-if ($filterPeriod !== '') { $statWhere .= " AND DATE_FORMAT(created_at, '%Y-%m') = ?"; $statParams[] = $filterPeriod; }
+if ($filterPeriod !== '') { $statWhere .= " AND YEAR(created_at) = ? AND MONTH(created_at) = ?"; $statParams[] = $filterPeriodYear; $statParams[] = $filterPeriodMonth; }
 
 // Total Account
 $totalAccounts = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere");
