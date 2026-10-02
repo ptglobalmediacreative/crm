@@ -3005,3 +3005,83 @@ button {
   -webkit-text-fill-color: transparent !important;
   opacity: 0 !important;
 }
+
+/* =========================================================
+   ACCOUNT MANAGEMENT — FILTER SIZE CONSISTENCY
+   Sales, Periode and Search controls use one compact height.
+   ========================================================= */
+.page-account-management .account-filter-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-account-management .account-filter-form .form-select,
+.page-account-management .account-filter-form .account-period-picker-wrap {
+  width: 220px !important;
+  min-width: 220px !important;
+  height: 38px !important;
+  flex: 0 0 220px !important;
+  box-sizing: border-box;
+}
+
+.page-account-management .account-filter-form .form-select {
+  margin: 0 !important;
+  padding: 0 34px 0 13px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 38px !important;
+}
+
+.page-account-management .account-filter-form .account-period-picker-wrap {
+  margin: 0 !important;
+  border-radius: 12px !important;
+}
+
+.page-account-management
+  .account-filter-form
+  .account-period-picker-wrap
+  .account-period-placeholder {
+  padding-left: 13px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.page-account-management
+  .account-filter-form
+  .account-period-picker-wrap
+  .account-period-icon {
+  right: 13px !important;
+  font-size: 15px !important;
+}
+
+.page-account-management .account-filter-form > .form-control {
+  width: 230px !important;
+  min-width: 230px !important;
+  height: 38px !important;
+  flex: 0 0 230px !important;
+  margin: 0 !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+}
+
+.page-account-management .account-filter-form > .btn-primary-custom {
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  padding: 0 !important;
+  border-radius: 11px !important;
+}
+
+@media (max-width: 767px) {
+  .page-account-management .account-filter-form .form-select,
+  .page-account-management .account-filter-form .account-period-picker-wrap,
+  .page-account-management .account-filter-form > .form-control,
+  .page-account-management .account-filter-form > .btn-primary-custom {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+}
