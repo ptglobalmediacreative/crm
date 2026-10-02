@@ -598,7 +598,9 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                 <th>Status</th>
                                 <th>Customer Deal</th>
                                 <th>Note</th>
-                                <th>Action</th>
+                                <?php if ($canDownloadTRPdf): ?>
+                                    <th>Action</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -668,8 +670,8 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                                 <span><?= htmlspecialchars($request['note'] ?? '-') ?></span>
                                             </div>
                                         </td>
+                                        <?php if ($canDownloadTRPdf): ?>
                                         <td>
-                                            <?php if ($canDownloadTRPdf): ?>
                                                 <?php if ($isApproved): ?>
                                                     <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
                                                        class="btn-pdf" 
@@ -682,13 +684,13 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                                         <i class="fas fa-file-pdf"></i> PDF
                                                     </span>
                                                 <?php endif; ?>
-                                            <?php endif; ?>
                                         </td>
+                                        <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="<?= $canDownloadTRPdf ? 10 : 9 ?>" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data transaction request
                                     </td>
                                 </tr>
