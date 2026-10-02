@@ -23,8 +23,10 @@ requirePermission('account_management', 'view');
 // CEK ROLE DIREKTUR (untuk akses penuh)
 // ============================================
 $userRole = $_SESSION['role'] ?? 'user';
-$direkturRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional'];
-$isDirektur = in_array($userRole, $direkturRoles);
+$fullAccessRoles = ['direktur_utama', 'direktur_operasional', 'direktur_sales', 'it_support'];
+$isFullAccess = in_array($userRole, $fullAccessRoles, true);
+$userId = (int)($_SESSION['user_id'] ?? 0);
+$isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'], true);
 
 // ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
@@ -66,69 +68,39 @@ $isDirekturOperasional = ($userRole === 'direktur_operasional');
 // EXPORT TO EXCEL
 // ============================================
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    $exportSearch = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
+    $exportSalesId = $isFullAccess && isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
+    $exportMonth = isset($_GET['month']) ? (int)$_GET['month'] : 0;
+    $exportYear = isset($_GET['year']) ? (int)$_GET['year'] : 0;
+    $exportWhere = "WHERE 1=1";
+    $exportParams = [];
+
+    if (!$isFullAccess) { $exportWhere .= " AND a.sales_id = ?"; $exportParams[] = $userId; }
+    elseif ($exportSalesId > 0) { $exportWhere .= " AND a.sales_id = ?"; $exportParams[] = $exportSalesId; }
+    if ($exportMonth >= 1 && $exportMonth <= 12) { $exportWhere .= " AND MONTH(a.created_at) = ?"; $exportParams[] = $exportMonth; }
+    if ($exportYear >= 2000 && $exportYear <= 2100) { $exportWhere .= " AND YEAR(a.created_at) = ?"; $exportParams[] = $exportYear; }
+    if ($exportSearch !== '') {
+        $exportWhere .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ? OR a.jabatan_pic LIKE ?)";
+        $like = "%{$exportSearch}%";
+        array_push($exportParams, $like,$like,$like,$like,$like,$like,$like);
+    }
+
+    $sql = "SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id {$exportWhere} ORDER BY a.created_at DESC";
+    $stmt=$db->prepare($sql); $stmt->execute($exportParams); $allAccounts=$stmt->fetchAll(PDO::FETCH_ASSOC);
     header('Content-Type: application/vnd.ms-excel');
     header('Content-Disposition: attachment; filename="Data_Account_' . date('Y-m-d') . '.xls"');
     header('Cache-Control: max-age=0');
-    
-    $sql = "SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id ORDER BY a.created_at DESC";
-    $stmt = $db->prepare($sql);
-    $stmt->execute();
-    $allAccounts = $stmt->fetchAll();
-    
-    echo '<html>';
-    echo '<head><meta charset="UTF-8"></head>';
-    echo '<body>';
+    echo '<html><head><meta charset="UTF-8"></head><body>';
     echo '<h2>Data Account - PT Ganda Elang Tangguh</h2>';
-    echo '<p>Tanggal Export: ' . date('d-m-Y H:i:s') . '</p>';
-    echo '<table border="1" cellpadding="5" cellspacing="0">';
-    echo '<thead>';
-    echo '<tr style="background-color: #1a1a2e; color: #ffffff;">';
-    echo '<th>No</th>';
-    echo '<th>Badan Usaha</th>';
-    echo '<th>Nama PT/Perusahaan</th>';
-    echo '<th>Bidang Usaha</th>';
-    echo '<th>Alamat</th>';
-    echo '<th>Area</th>';
-    echo '<th>NPWP</th>';
-    echo '<th>Nama PIC</th>';
-    echo '<th>Jabatan PIC</th>';
-    echo '<th>No Handphone PIC</th>';
-    echo '<th>Email PIC</th>';
-    echo '<th>Lead Source</th>';
-    echo '<th>Nama Referensi</th>';
-    echo '<th>Sales</th>';
-    echo '<th>Tanggal Dibuat</th>';
-    echo '</tr>';
-    echo '</thead>';
-    echo '<tbody>';
-    
-    $no = 1;
-    foreach ($allAccounts as $account) {
-        echo '<tr>';
-        echo '<td>' . $no++ . '</td>';
-        echo '<td>' . htmlspecialchars($account['badan_usaha'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($account['nama_pt']) . '</td>';
-        echo '<td>' . htmlspecialchars($account['bidang_usaha']) . '</td>';
-        echo '<td>' . htmlspecialchars($account['alamat']) . '</td>';
-        echo '<td>' . htmlspecialchars($account['area'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($account['npwp'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($account['nama_pic']) . '</td>';
-        echo '<td>' . htmlspecialchars($account['jabatan_pic'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($account['no_hp_pic']) . '</td>';
-        echo '<td>' . htmlspecialchars($account['email_pic']) . '</td>';
-        echo '<td>' . htmlspecialchars($account['lead_source']) . '</td>';
-        echo '<td>' . htmlspecialchars($account['nama_referensi'] ?? '-') . '</td>';
-        echo '<td>' . htmlspecialchars($account['sales_name'] ?? '-') . '</td>';
-        echo '<td>' . date('d-m-Y H:i', strtotime($account['created_at'])) . '</td>';
-        echo '</tr>';
-    }
-    
-    echo '</tbody>';
-    echo '</table>';
-    echo '<p style="margin-top: 20px; font-size: 12px; color: #999;">* Data di export pada ' . date('d-m-Y H:i:s') . '</p>';
-    echo '</body>';
-    echo '</html>';
-    exit;
+    echo '<p>Tanggal Export: '.date('d-m-Y H:i:s').'</p>';
+    echo '<p>Scope: '.($isFullAccess?'Full Access':'Data Account yang Anda input').'</p>';
+    echo '<table border="1" cellpadding="5" cellspacing="0"><thead><tr style="background-color:#1a1a2e;color:#ffffff;">';
+    foreach(['No','Badan Usaha','Nama PT/Perusahaan','Bidang Usaha','Alamat','Area','NPWP','Nama PIC','Jabatan PIC','No Handphone PIC','Email PIC','Lead Source','Nama Referensi','Sales','Tanggal Dibuat'] as $h) echo '<th>'.$h.'</th>';
+    echo '</tr></thead><tbody>';
+    $no=1; foreach($allAccounts as $account){ echo '<tr>';
+      echo '<td>'.($no++).'</td><td>'.htmlspecialchars($account['badan_usaha']??'-').'</td><td>'.htmlspecialchars($account['nama_pt']??'-').'</td><td>'.htmlspecialchars($account['bidang_usaha']??'-').'</td><td>'.htmlspecialchars($account['alamat']??'-').'</td><td>'.htmlspecialchars($account['area']??'-').'</td><td>'.htmlspecialchars($account['npwp']??'-').'</td><td>'.htmlspecialchars($account['nama_pic']??'-').'</td><td>'.htmlspecialchars($account['jabatan_pic']??'-').'</td><td>'.htmlspecialchars($account['no_hp_pic']??'-').'</td><td>'.htmlspecialchars($account['email_pic']??'-').'</td><td>'.htmlspecialchars($account['lead_source']??'-').'</td><td>'.htmlspecialchars($account['nama_referensi']??'-').'</td><td>'.htmlspecialchars($account['sales_name']??'-').'</td><td>'.(!empty($account['created_at'])?date('d-m-Y H:i',strtotime($account['created_at'])):'-').'</td>';
+      echo '</tr>'; }
+    echo '</tbody></table><p style="margin-top:20px;font-size:12px;color:#999;">* Data di export pada '.date('d-m-Y H:i:s').'</p></body></html>'; exit;
 }
 
 // ============================================
@@ -159,46 +131,21 @@ try {
 } catch(PDOException $e) {}
 
 // ============================================
-// FILTER BERDASARKAN SALES (Hanya sales yang bersangkutan bisa melihat datanya)
+// FILTER & SCOPE DATA ACCOUNT
 // ============================================
-$userId = $_SESSION['user_id'] ?? 0;
-$userRole = $_SESSION['role'] ?? 'user';
-
-// Pagination
-$limit = 10;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $limit;
-
-// Search
-$search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
-
-// Build query with filter
-$where = "WHERE 1=1";
-$params = [];
-
-// Filter berdasarkan role
-if ($userRole !== 'it_support' && $userRole !== 'admin' && !in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'])) {
-    $where .= " AND a.sales_id = ?";
-    $params[] = $userId;
-}
-
-if (!empty($search)) {
-    $where .= " AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ? OR a.jabatan_pic LIKE ?)";
-    $params = array_merge($params, ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
-}
-
-// Get total data
-$countSql = "SELECT COUNT(*) FROM accounts a LEFT JOIN users u ON a.sales_id = u.id $where";
-$stmt = $db->prepare($countSql);
-$stmt->execute($params);
-$totalData = $stmt->fetchColumn();
-$totalPages = ceil($totalData / $limit);
-
-// Get data
-$sql = "SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id $where ORDER BY a.created_at DESC LIMIT $limit OFFSET $offset";
-$stmt = $db->prepare($sql);
-$stmt->execute($params);
-$accounts = $stmt->fetchAll();
+$userId=(int)($_SESSION['user_id']??0); $userRole=$_SESSION['role']??'user';
+$limit=10; $page=max(1,(int)($_GET['page']??1));
+$search=isset($_GET['search'])?bersihkan($_GET['search']):'';
+$filterSalesId=$isFullAccess?(int)($_GET['sales_id']??0):0;
+$filterMonth=(int)($_GET['month']??0); $filterYear=(int)($_GET['year']??0);
+if($filterMonth<1||$filterMonth>12)$filterMonth=0; if($filterYear<2000||$filterYear>2100)$filterYear=0;
+$where="WHERE 1=1"; $params=[];
+if(!$isFullAccess){$where.=" AND a.sales_id = ?";$params[]=$userId;} elseif($filterSalesId>0){$where.=" AND a.sales_id = ?";$params[]=$filterSalesId;}
+if($filterMonth>0){$where.=" AND MONTH(a.created_at) = ?";$params[]=$filterMonth;}
+if($filterYear>0){$where.=" AND YEAR(a.created_at) = ?";$params[]=$filterYear;}
+if($search!==''){$where.=" AND (a.nama_pt LIKE ? OR a.alamat LIKE ? OR a.nama_pic LIKE ? OR a.email_pic LIKE ? OR u.full_name LIKE ? OR a.nama_referensi LIKE ? OR a.jabatan_pic LIKE ?)";$like="%{$search}%";array_push($params,$like,$like,$like,$like,$like,$like,$like);}
+$countSql="SELECT COUNT(*) FROM accounts a LEFT JOIN users u ON a.sales_id=u.id {$where}";$stmt=$db->prepare($countSql);$stmt->execute($params);$totalData=(int)$stmt->fetchColumn();$totalPages=max(1,(int)ceil($totalData/$limit));if($page>$totalPages)$page=$totalPages;$offset=($page-1)*$limit;
+$sql="SELECT a.*,u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id=u.id {$where} ORDER BY a.created_at DESC LIMIT {$limit} OFFSET {$offset}";$stmt=$db->prepare($sql);$stmt->execute($params);$accounts=$stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // ============================================
 // STATISTIK - HANYA DATA YANG BISA DILIHAT USER
@@ -206,10 +153,10 @@ $accounts = $stmt->fetchAll();
 $statWhere = "WHERE 1=1";
 $statParams = [];
 
-if ($userRole !== 'it_support' && $userRole !== 'admin' && !in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'])) {
-    $statWhere .= " AND sales_id = ?";
-    $statParams[] = $userId;
-}
+if (!$isFullAccess) { $statWhere .= " AND sales_id = ?"; $statParams[] = $userId; }
+if ($isFullAccess && $filterSalesId > 0) { $statWhere .= " AND sales_id = ?"; $statParams[] = $filterSalesId; }
+if ($filterMonth > 0) { $statWhere .= " AND MONTH(created_at) = ?"; $statParams[] = $filterMonth; }
+if ($filterYear > 0) { $statWhere .= " AND YEAR(created_at) = ?"; $statParams[] = $filterYear; }
 
 // Total Account
 $totalAccounts = $db->prepare("SELECT COUNT(*) FROM accounts $statWhere");
@@ -433,8 +380,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             redirect('account_management.php');
             
         } else {
-            // Direktur / Admin / IT Support bisa edit semua
-            if (!$isDirektur && !canEdit('account_management')) {
+            $canEditOwnAccount=false;
+            if(!$isFullAccess){$ownerCheck=$db->prepare("SELECT sales_id FROM accounts WHERE id=? LIMIT 1");$ownerCheck->execute([$id]);$canEditOwnAccount=((int)$ownerCheck->fetchColumn()===$userId);}
+            if(!$isFullAccess && (!$canEdit('account_management') || !$canEditOwnAccount)) {
                 setFlash('Anda tidak memiliki akses untuk mengedit account!', 'danger');
                 redirect('account_management.php');
             }
@@ -542,14 +490,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             redirect('account_management.php');
         }
         
-        if (!$isDirektur && !canDelete('account_management')) {
-            setFlash('Anda tidak memiliki akses untuk menghapus account!', 'danger');
-            redirect('account_management.php');
+        $id=(int)$_POST['id'];
+        if(!$isFullAccess){
+            $ownerCheck=$db->prepare("SELECT sales_id FROM accounts WHERE id=? LIMIT 1");$ownerCheck->execute([$id]);
+            if((int)$ownerCheck->fetchColumn()!==$userId || !canDelete('account_management')){setFlash('Anda tidak memiliki akses untuk menghapus account ini!','danger');redirect('account_management.php');}
         }
-        
-        $id = (int)$_POST['id'];
-        $stmt = $db->prepare("DELETE FROM accounts WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt=$db->prepare($isFullAccess?"DELETE FROM accounts WHERE id=?":"DELETE FROM accounts WHERE id=? AND sales_id=?");
+        $stmt->execute($isFullAccess?[$id]:[$id,$userId]);
         setFlash('Data account berhasil dihapus!', 'success');
         redirect('account_management.php');
     }
@@ -558,10 +505,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Ambil data untuk detail
 $detailData = null;
 if (isset($_GET['detail'])) {
-    $id = (int)$_GET['detail'];
-    $stmt = $db->prepare("SELECT a.*, u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id = u.id WHERE a.id = ?");
-    $stmt->execute([$id]);
-    $detailData = $stmt->fetch();
+    $id=(int)$_GET['detail']; $detailWhere="a.id = ?"; $detailParams=[$id];
+    if(!$isFullAccess){$detailWhere.=" AND a.sales_id = ?";$detailParams[]=$userId;}
+    $stmt=$db->prepare("SELECT a.*,u.full_name as sales_name FROM accounts a LEFT JOIN users u ON a.sales_id=u.id WHERE {$detailWhere} LIMIT 1");
+    $stmt->execute($detailParams); $detailData=$stmt->fetch(PDO::FETCH_ASSOC);
+    if(!$detailData){setFlash('Anda tidak memiliki akses untuk melihat detail account tersebut.','danger');redirect('account_management.php');}
 }
 
 // ============================================
@@ -614,7 +562,7 @@ function canSalesEdit($db, $account_id, $userId) {
                 <h4><span><i class="fas fa-building"></i></span> Account Management</h4>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="account_management.php?export=excel" class="btn btn-success-custom">
+                <a href="account_management.php?export=excel<?= $search !== '' ? '&search=' . urlencode($search) : '' ?><?= $isFullAccess && $filterSalesId > 0 ? '&sales_id=' . $filterSalesId : '' ?><?= $filterMonth > 0 ? '&month=' . $filterMonth : '' ?><?= $filterYear > 0 ? '&year=' . $filterYear : '' ?>" class="btn btn-success-custom">
                     <i class="fas fa-file-excel"></i> Export Excel
                 </a>
                 <?php if ($userRole === 'sales' || $isDirektur || canAdd('account_management')): ?>
@@ -653,12 +601,15 @@ function canSalesEdit($db, $account_id, $userId) {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-list"></i> Daftar Account</h6>
-                <form method="GET" class="d-flex gap-2">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>">
-                    <button type="submit" class="btn btn-primary-custom"><i class="fas fa-search"></i></button>
-                    <?php if (!empty($search)): ?>
-                        <a href="account_management.php" class="btn btn-secondary-custom"><i class="fas fa-times"></i></a>
+                <form method="GET" class="account-filter-form">
+                    <?php if ($isFullAccess): ?>
+                    <select name="sales_id" class="form-select form-select-sm"><option value="0">Semua Sales</option><?php foreach($salesUsers as $sales): if(($sales['role']??'')==='sales'): ?><option value="<?= (int)$sales['id'] ?>" <?= $filterSalesId===(int)$sales['id']?'selected':'' ?>><?= htmlspecialchars($sales['full_name']) ?></option><?php endif; endforeach; ?></select>
                     <?php endif; ?>
+                    <select name="month" class="form-select form-select-sm"><option value="0">Semua Bulan</option><?php $monthNames=[1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember']; foreach($monthNames as $monthNo=>$monthName): ?><option value="<?= $monthNo ?>" <?= $filterMonth===$monthNo?'selected':'' ?>><?= $monthName ?></option><?php endforeach; ?></select>
+                    <select name="year" class="form-select form-select-sm"><option value="0">Semua Tahun</option><?php $yearStmt=$db->query("SELECT DISTINCT YEAR(created_at) AS year FROM accounts WHERE created_at IS NOT NULL ORDER BY year DESC");$accountYears=$yearStmt->fetchAll(PDO::FETCH_COLUMN);$currentYear=(int)date('Y');if(!in_array($currentYear,array_map('intval',$accountYears),true))array_unshift($accountYears,$currentYear);foreach($accountYears as $yearOption):$yearOption=(int)$yearOption; ?><option value="<?= $yearOption ?>" <?= $filterYear===$yearOption?'selected':'' ?>><?= $yearOption ?></option><?php endforeach; ?></select>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari account..." value="<?= htmlspecialchars($search) ?>">
+                    <button type="submit" class="btn btn-primary-custom"><i class="fas fa-search"></i></button>
+                    <?php if($search!==''||$filterMonth>0||$filterYear>0||($isFullAccess&&$filterSalesId>0)): ?><a href="account_management.php" class="btn btn-secondary-custom" title="Reset Filter"><i class="fas fa-times"></i></a><?php endif; ?>
                 </form>
             </div>
             <div class="card-body-custom">
@@ -741,13 +692,13 @@ function canSalesEdit($db, $account_id, $userId) {
                                                         </button>
                                                     <?php endif; ?>
                                                 <?php else: ?>
-                                                    <?php if ($isDirektur || canEdit('account_management')): ?>
+                                                    <?php if ($isFullAccess || (canEdit('account_management') && $isSalesOwner)): ?>
                                                         <button class="btn-action edit" onclick="editAccount(<?= htmlspecialchars(json_encode($account)) ?>)">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
                                                     <?php endif; ?>
                                                     
-                                                    <?php if ($isDirektur || canDelete('account_management')): ?>
+                                                    <?php if ($isFullAccess || (canDelete('account_management') && $isSalesOwner)): ?>
                                                         <button class="btn-action delete" onclick="deleteAccount(<?= $account['id'] ?>)">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
@@ -773,7 +724,7 @@ function canSalesEdit($db, $account_id, $userId) {
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php
                             // Maksimal 5 nomor halaman yang ditampilkan
@@ -789,7 +740,7 @@ function canSalesEdit($db, $account_id, $userId) {
 
                             <?php if ($startPage > 1): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=1&search=<?= urlencode($search) ?>">1</a>
+                                    <a class="page-link" href="?page=1&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">1</a>
                                 </li>
 
                                 <?php if ($startPage > 2): ?>
@@ -801,7 +752,7 @@ function canSalesEdit($db, $account_id, $userId) {
 
                             <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>">
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">
                                         <?= $i ?>
                                     </a>
                                 </li>
@@ -815,13 +766,13 @@ function canSalesEdit($db, $account_id, $userId) {
                                 <?php endif; ?>
 
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>">
+                                    <a class="page-link" href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">
                                         <?= $totalPages ?>
                                     </a>
                                 </li>
                             <?php endif; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&month=<?= $filterMonth ?>&year=<?= $filterYear ?><?= $isFullAccess && $filterSalesId > 0 ? "&sales_id=" . $filterSalesId : "" ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
@@ -1050,7 +1001,7 @@ function canSalesEdit($db, $account_id, $userId) {
                     <h5 class="modal-title"><i class="fas fa-building"></i> Detail Account</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="detailBody">
+                <div class="modal-body detail-modal-body" id="detailBody">
                     <!-- Detail akan diisi oleh JavaScript -->
                 </div>
                 <div class="modal-footer">
