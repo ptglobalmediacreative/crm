@@ -2801,3 +2801,20 @@ button {
     padding: 15px;
   }
 }
+
+/* Native month picker: one filter for Month + Year, blank = All Periode */
+.page-account-management .account-filter-form .account-period-picker {
+  min-width: 155px;
+  width: 155px;
+  cursor: pointer;
+}
+.page-account-management
+  .account-filter-form
+  .account-period-picker::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+@media (max-width: 767px) {
+  .page-account-management .account-filter-form .account-period-picker {
+    width: 100% !important;
+  }
+}
