@@ -1160,7 +1160,6 @@
   }
 }
 
-
 /* =========================================================
    CRM RESPONSIVE SYSTEM — FINAL OVERRIDE
    Breakpoints:
@@ -1912,19 +1911,578 @@ body {
    CRM RESPONSIVE SYSTEM — FINAL CONSISTENCY PASS
    Dashboard reference / all devices
    ========================================================= */
-html,body{max-width:100%;overflow-x:hidden}
-.content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box;padding:28px 30px 52px}
-.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box}
-@media (min-width:1600px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (max-width:1199px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:24px}.page-header,.hero-row{gap:16px}.page-header h4,.page-title h4,.hero h1{font-size:23px}}
-@media (max-width:991px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:100%;margin-left:0;padding:22px 20px 44px}.page-header,.hero-row{align-items:flex-start;flex-wrap:wrap}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%;justify-content:flex-start;flex-wrap:wrap}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-grid{grid-template-columns:1fr}.card-header-custom{align-items:flex-start}.card-header-custom form{width:100%;margin-left:0}.card-header-custom form input{flex:1 1 auto;min-width:0;width:auto!important}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
-@media (max-width:767px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:18px 16px 38px}.page-header,.hero-row{margin-bottom:16px}.page-header h4,.page-title h4,.hero h1{font-size:21px}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat-card{min-height:112px;padding:15px}.kpi{min-height:104px;padding:13px}.detail-grid,.two-col,.form-grid,.form-row,.split-grid{grid-template-columns:1fr!important}.info-item{flex-direction:column;gap:7px}.info-label{width:auto!important}.card-header-custom form{flex-wrap:wrap}.card-header-custom form input,.card-header-custom form select{width:100%!important;min-width:0;flex:1 1 100%}}
-@media (max-width:575px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:16px 12px 32px}.page-header,.hero-row{flex-direction:column;align-items:stretch;gap:12px}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%}.page-actions>*,.header-actions>*,.filters>*{flex:1 1 auto;min-width:0}.stat-grid,.kpis{grid-template-columns:1fr;gap:9px}.card-header-custom{padding:12px}.card-header-custom h6{width:100%}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto}.table-custom th,.table-custom td{padding-left:10px!important;padding-right:10px!important}}
-@media (max-width:380px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:10px;padding-right:10px}.page-header h4,.page-title h4,.hero h1{font-size:19px}.page-actions,.header-actions,.filters{flex-direction:column;align-items:stretch}.page-actions>*,.header-actions>*,.filters>*{width:100%}}
-footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{box-sizing:border-box;max-width:none;width:calc(100% - 245px);margin-left:245px}
-@media (min-width:1600px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (min-width:992px) and (max-width:1599px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:30px;padding-right:30px}}
-@media (max-width:991px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{width:100%;margin-left:0;padding-left:20px;padding-right:20px}}
-@media (max-width:767px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:16px;padding-right:16px}}
-@media (max-width:575px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:12px;padding-right:12px}}
-img,video,canvas,iframe,table{max-width:100%}input,select,textarea,button{max-width:100%}
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.content {
+  width: calc(100% - 245px);
+  margin-left: 245px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 28px 30px 52px;
+}
+.page-account-management .content,
+.page-data-user .content,
+.page-deliveryinstruction .content,
+.page-detailaktivitas .content,
+.page-detaildi .content,
+.page-detailtr .content,
+.page-produk .content,
+.page-salesactivity .content,
+.page-transactionrequest .content {
+  width: calc(100% - 245px);
+  margin-left: 245px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+@media (min-width: 1600px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
+  }
+}
+@media (max-width: 1199px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 24px;
+  }
+  .page-header,
+  .hero-row {
+    gap: 16px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 23px;
+  }
+}
+@media (max-width: 991px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: 100%;
+    margin-left: 0;
+    padding: 22px 20px 44px;
+  }
+  .page-header,
+  .hero-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .page-header > div:last-child,
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-header-custom {
+    align-items: flex-start;
+  }
+  .card-header-custom form {
+    width: 100%;
+    margin-left: 0;
+  }
+  .card-header-custom form input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (max-width: 767px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 18px 16px 38px;
+  }
+  .page-header,
+  .hero-row {
+    margin-bottom: 16px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 21px;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .stat-card {
+    min-height: 112px;
+    padding: 15px;
+  }
+  .kpi {
+    min-height: 104px;
+    padding: 13px;
+  }
+  .detail-grid,
+  .two-col,
+  .form-grid,
+  .form-row,
+  .split-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .info-item {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .info-label {
+    width: auto !important;
+  }
+  .card-header-custom form {
+    flex-wrap: wrap;
+  }
+  .card-header-custom form input,
+  .card-header-custom form select {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}
+@media (max-width: 575px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding: 16px 12px 32px;
+  }
+  .page-header,
+  .hero-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header > div:last-child,
+  .page-actions,
+  .header-actions,
+  .filters {
+    width: 100%;
+  }
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .stat-grid,
+  .kpis {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .card-header-custom {
+    padding: 12px;
+  }
+  .card-header-custom h6 {
+    width: 100%;
+  }
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .table-custom th,
+  .table-custom td {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+@media (max-width: 380px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .page-header h4,
+  .page-title h4,
+  .hero h1 {
+    font-size: 19px;
+  }
+  .page-actions,
+  .header-actions,
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .page-actions > *,
+  .header-actions > *,
+  .filters > * {
+    width: 100%;
+  }
+}
+footer:not(.modal-footer),
+.page-footer,
+.crm-footer,
+.site-footer {
+  box-sizing: border-box;
+  max-width: none;
+  width: calc(100% - 245px);
+  margin-left: 245px;
+}
+@media (min-width: 1600px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
+  }
+}
+@media (min-width: 992px) and (max-width: 1599px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+}
+@media (max-width: 991px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+@media (max-width: 767px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@media (max-width: 575px) {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+img,
+video,
+canvas,
+iframe,
+table {
+  max-width: 100%;
+}
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+/* =========================================================
+   DATA USER — PERMISSION MODAL FINAL DARK FIX
+   Only CRM main menus are rendered by data_user.php.
+   ========================================================= */
+.page-data-user #modalPermission .modal-dialog {
+  max-width: 720px;
+}
+
+.page-data-user #modalPermission .modal-content {
+  background: linear-gradient(145deg, #0c172b, #07101f) !important;
+  border: 1px solid rgba(148, 163, 184, 0.14) !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.page-data-user #modalPermission .modal-body {
+  background: transparent !important;
+  padding: 20px !important;
+}
+
+.page-data-user #modalPermission .permission-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.page-data-user #modalPermission .permission-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: #60a5fa;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+}
+
+.page-data-user #modalPermission .permission-intro p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.page-data-user #modalPermission .permission-intro p strong {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.page-data-user #modalPermission .permission-info {
+  max-width: 285px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid rgba(96, 165, 250, 0.14);
+  border-radius: 9px;
+  background: rgba(59, 130, 246, 0.07);
+  color: #93c5fd;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.page-data-user #modalPermission .permission-info i {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.page-data-user #modalPermission .permission-table-wrap {
+  border: 1px solid rgba(148, 163, 184, 0.11);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(5, 12, 25, 0.36);
+}
+
+.page-data-user #modalPermission .permission-table {
+  width: 100%;
+  margin: 0 !important;
+  color: #cbd5e1 !important;
+  --bs-table-bg: transparent !important;
+  --bs-table-color: #cbd5e1 !important;
+  --bs-table-border-color: rgba(148, 163, 184, 0.08) !important;
+}
+
+.page-data-user #modalPermission .permission-table > :not(caption) > * > * {
+  background: transparent !important;
+  color: inherit !important;
+  border-color: rgba(148, 163, 184, 0.08) !important;
+  box-shadow: none !important;
+}
+
+.page-data-user #modalPermission .permission-table thead th {
+  padding: 11px 15px !important;
+  background: rgba(5, 12, 25, 0.72) !important;
+  color: #64748b !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.page-data-user #modalPermission .permission-table tbody td {
+  padding: 11px 15px !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.07) !important;
+  vertical-align: middle;
+}
+
+.page-data-user #modalPermission .permission-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.page-data-user #modalPermission .permission-table tbody tr:hover td {
+  background: rgba(59, 130, 246, 0.035) !important;
+}
+
+.page-data-user #modalPermission .permission-menu-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #dbe5f5;
+  font-size: 11px;
+}
+
+.page-data-user #modalPermission .permission-menu-name i {
+  width: 27px;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(96, 165, 250, 0.12);
+  border-radius: 8px;
+  background: rgba(96, 165, 250, 0.08);
+  color: #60a5fa;
+  font-size: 10px;
+}
+
+.page-data-user #modalPermission .permission-access-col {
+  width: 120px;
+  text-align: center;
+}
+
+.page-data-user #modalPermission .permission-switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 21px;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.page-data-user #modalPermission .permission-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-data-user #modalPermission .permission-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  background: #111d31;
+  transition: 0.2s ease;
+}
+
+.page-data-user #modalPermission .permission-slider::before {
+  content: "";
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  left: 2px;
+  top: 2px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: 0.2s ease;
+}
+
+.page-data-user
+  #modalPermission
+  .permission-switch
+  input:checked
+  + .permission-slider {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(37, 99, 235, 0.65);
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.16);
+}
+
+.page-data-user
+  #modalPermission
+  .permission-switch
+  input:checked
+  + .permission-slider::before {
+  transform: translateX(17px);
+  background: #fff;
+}
+
+.page-data-user
+  #modalPermission
+  .permission-switch
+  input:focus-visible
+  + .permission-slider {
+  outline: 2px solid rgba(96, 165, 250, 0.55);
+  outline-offset: 2px;
+}
+
+.page-data-user #modalPermission .modal-footer {
+  background: rgba(5, 12, 25, 0.34) !important;
+}
+
+@media (max-width: 575px) {
+  .page-data-user #modalPermission .modal-dialog {
+    margin: 10px;
+  }
+
+  .page-data-user #modalPermission .modal-body {
+    padding: 14px !important;
+  }
+
+  .page-data-user #modalPermission .permission-intro {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .page-data-user #modalPermission .permission-info {
+    max-width: none;
+    width: 100%;
+  }
+
+  .page-data-user #modalPermission .permission-table thead th,
+  .page-data-user #modalPermission .permission-table tbody td {
+    padding: 10px 11px !important;
+  }
+
+  .page-data-user #modalPermission .permission-access-col {
+    width: 82px;
+  }
+}

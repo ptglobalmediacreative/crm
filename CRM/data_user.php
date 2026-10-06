@@ -581,19 +581,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 .then(response => response.json())
                 .then(data => {
                     var html = '';
-                    if (data.modules && data.modules.length > 0) {
-                        html = '<p class="text-muted mb-3">Atur akses menu utama untuk divisi <strong>' + data.role + '</strong></p>';
-                        html += '<p class="text-warning small"><i class="fas fa-info-circle"></i> Centang menu yang ingin ditampilkan di dashboard</p>';
-                        html += '<div class="table-responsive">';
-                        html += '<table class="table table-bordered table-sm">';
-                        html += '<thead><tr><th>Menu Utama</th><th>Tampil di Dashboard</th></tr></thead>';
+
+                    // Hanya menu utama yang benar-benar digunakan di CRM.
+                    // delivery_order adalah permission key yang dipakai halaman Delivery Instruction.
+                    const crmMenus = [
+                        { keys: ['dashboard'], label: 'Dashboard' },
+                        { keys: ['sales_activity'], label: 'Sales Activity' },
+                        { keys: ['account_management'], label: 'Account Management' },
+                        { keys: ['transaction_request'], label: 'Transaction Request' },
+                        { keys: ['produk'], label: 'Produk' },
+                        { keys: ['delivery_order', 'delivery_instruction'], label: 'Delivery Instruction' },
+                        { keys: ['data_user'], label: 'Data User' }
+                    ];
+
+                    const apiModules = Array.isArray(data.modules) ? data.modules : [];
+                    const visibleModules = crmMenus.map(function(menu) {
+                        const found = apiModules.find(function(module) {
+                            return menu.keys.includes(module.module_name);
+                        });
+
+                        if (!found) return null;
+
+                        return {
+                            module_name: found.module_name,
+                            module_label: menu.label,
+                            can_view: found.can_view
+                        };
+                    }).filter(Boolean);
+
+                    if (visibleModules.length > 0) {
+                        html = '<div class="permission-intro">';
+                        html += '<div><span class="permission-kicker">Hak Akses CRM</span><p>Atur akses menu utama untuk divisi <strong>' + data.role + '</strong></p></div>';
+                        html += '<div class="permission-info"><i class="fas fa-info-circle"></i><span>Aktifkan menu yang boleh tampil dan diakses oleh divisi ini.</span></div>';
+                        html += '</div>';
+                        html += '<div class="table-responsive permission-table-wrap">';
+                        html += '<table class="table permission-table">';
+                        html += '<thead><tr><th>Menu Utama</th><th class="permission-access-col">Akses</th></tr></thead>';
                         html += '<tbody>';
-                        data.modules.forEach(function(module) {
+                        visibleModules.forEach(function(module) {
                             var checked = module.can_view == 1 ? 'checked' : '';
                             html += '<tr>';
-                            html += '<td><strong>' + module.module_label + '</strong></td>';
-                            html += '<td>';
-                            html += '<input type="checkbox" class="perm-check form-check-input" data-module="' + module.module_name + '" ' + checked + '>';
+                            html += '<td><div class="permission-menu-name"><i class="fas fa-layer-group"></i><strong>' + module.module_label + '</strong></div></td>';
+                            html += '<td class="permission-access-col">';
+                            html += '<label class="permission-switch">';
+                            html += '<input type="checkbox" class="perm-check" data-module="' + module.module_name + '" ' + checked + '>';
+                            html += '<span class="permission-slider"></span>';
+                            html += '</label>';
                             html += '</td>';
                             html += '</tr>';
                         });
