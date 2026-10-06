@@ -1496,17 +1496,57 @@ foreach ($detailsList as $d) {
                             </select>
                         </div>
                         
+                        <style>
+                            #tipeUnitRowsAdd .tipe-unit-row {
+                                position: relative;
+                                width: 100%;
+                                margin-bottom: 8px;
+                            }
+                            #tipeUnitRowsAdd .tipe-unit-select {
+                                width: 100%;
+                                min-height: 38px;
+                                padding-right: 42px;
+                                border-radius: 8px !important;
+                            }
+                            #tipeUnitRowsAdd .btn-remove-tipe-unit {
+                                position: absolute;
+                                top: 50%;
+                                right: 7px;
+                                transform: translateY(-50%);
+                                width: 25px;
+                                height: 25px;
+                                padding: 0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                border: 0;
+                                border-radius: 6px;
+                                background: transparent;
+                                color: #dc3545;
+                                z-index: 5;
+                                box-shadow: none;
+                            }
+                            #tipeUnitRowsAdd .btn-remove-tipe-unit:hover {
+                                background: rgba(220, 53, 69, 0.10);
+                                color: #bb2d3b;
+                            }
+                            #tipeUnitRowsAdd .btn-remove-tipe-unit i {
+                                font-size: 12px;
+                                line-height: 1;
+                            }
+                        </style>
+
                         <div class="mb-3" id="tipeUnitFieldAdd" style="display: none;">
                             <label class="form-label">Tipe Unit <span class="text-danger">*</span></label>
                             <div id="tipeUnitRowsAdd">
-                                <div class="input-group mb-2 tipe-unit-row">
+                                <div class="tipe-unit-row">
                                     <select name="tipe_unit_ids[]" class="form-select tipe-unit-select">
                                         <option value="">Pilih Tipe Unit</option>
                                         <?php foreach ($produkTipeUnit as $produk): ?>
                                             <option value="<?= (int)$produk['id'] ?>"><?= htmlspecialchars($produk['nama_produk']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <button type="button" class="btn btn-outline-danger btn-remove-tipe-unit" style="display:none;">
+                                    <button type="button" class="btn-remove-tipe-unit" style="display:none;" aria-label="Hapus Tipe Unit">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -1697,9 +1737,9 @@ foreach ($detailsList as $d) {
         document.getElementById('btnAddTipeUnit').addEventListener('click', function() {
             var container = document.getElementById('tipeUnitRowsAdd');
             var row = document.createElement('div');
-            row.className = 'input-group mb-2 tipe-unit-row';
+            row.className = 'tipe-unit-row';
             row.innerHTML = '<select name="tipe_unit_ids[]" class="form-select tipe-unit-select" required><option value="">Pilih Tipe Unit</option></select>' +
-                            '<button type="button" class="btn btn-outline-danger btn-remove-tipe-unit"><i class="fas fa-times"></i></button>';
+                            '<button type="button" class="btn-remove-tipe-unit"><i class="fas fa-times"></i></button>';
             container.appendChild(row);
             refreshTipeUnitOptions();
             updateTipeUnitRemoveButtons();
@@ -1934,9 +1974,9 @@ foreach ($detailsList as $d) {
         document.getElementById('modalAddDetail').addEventListener('hidden.bs.modal', function() {
             document.getElementById('jenis_tugas_add').value = '';
             document.getElementById('tipeUnitFieldAdd').style.display = 'none';
-            document.getElementById('tipeUnitRowsAdd').innerHTML = '<div class="input-group mb-2 tipe-unit-row">' +
+            document.getElementById('tipeUnitRowsAdd').innerHTML = '<div class="tipe-unit-row">' +
                 '<select name="tipe_unit_ids[]" class="form-select tipe-unit-select"><option value="">Pilih Tipe Unit</option></select>' +
-                '<button type="button" class="btn btn-outline-danger btn-remove-tipe-unit" style="display:none;"><i class="fas fa-times"></i></button>' +
+                '<button type="button" class="btn-remove-tipe-unit" style="display:none;" aria-label="Hapus Tipe Unit"><i class="fas fa-times"></i></button>' +
                 '</div>';
             refreshTipeUnitOptions();
             updateTipeUnitRemoveButtons();
