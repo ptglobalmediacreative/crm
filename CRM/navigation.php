@@ -72,11 +72,23 @@ if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
             // Simpan perubahan profile.
             if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_profile') {
                 $profileName  = trim((string)($_POST['profile_full_name'] ?? ''));
+                $profileUsername = trim((string)($_POST['profile_username'] ?? ''));
                 $profileEmail = trim((string)($_POST['profile_email'] ?? ''));
                 $profilePhone = trim((string)($_POST['profile_phone'] ?? ''));
 
                 if ($profileName === '') {
                     throw new RuntimeException('Nama lengkap wajib diisi.');
+                }
+
+                if ($profileUsername === '') {
+                    throw new RuntimeException('Username wajib diisi.');
+                }
+
+                // Pastikan username tidak dipakai user lain.
+                $checkUsername = $profileDb->prepare("SELECT id FROM users WHERE username = ? AND id <> ? LIMIT 1");
+                $checkUsername->execute([$profileUsername, $profileUserId]);
+                if ($checkUsername->fetchColumn()) {
+                    throw new RuntimeException('Username sudah digunakan oleh user lain.');
                 }
 
                 if ($profileEmail !== '' && !filter_var($profileEmail, FILTER_VALIDATE_EMAIL)) {
@@ -133,10 +145,11 @@ if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
                 if ($photoPath !== null) {
                     $updateProfile = $profileDb->prepare("
                         UPDATE users
-                        SET full_name = ?, email = ?, phone = ?, profile_photo = ?
+                        SET username = ?, full_name = ?, email = ?, phone = ?, profile_photo = ?
                         WHERE id = ?
                     ");
                     $updateProfile->execute([
+                        $profileUsername,
                         $profileName,
                         $profileEmail !== '' ? $profileEmail : null,
                         $profilePhone !== '' ? $profilePhone : null,
@@ -146,10 +159,11 @@ if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
                 } else {
                     $updateProfile = $profileDb->prepare("
                         UPDATE users
-                        SET full_name = ?, email = ?, phone = ?
+                        SET username = ?, full_name = ?, email = ?, phone = ?
                         WHERE id = ?
                     ");
                     $updateProfile->execute([
+                        $profileUsername,
                         $profileName,
                         $profileEmail !== '' ? $profileEmail : null,
                         $profilePhone !== '' ? $profilePhone : null,
@@ -158,6 +172,7 @@ if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
                 }
 
                 // Update session supaya nama/avatar langsung berubah tanpa login ulang.
+                $_SESSION['username'] = $profileUsername;
                 $_SESSION['full_name'] = $profileName;
                 if ($profileEmail !== '') {
                     $_SESSION['email'] = $profileEmail;
@@ -391,12 +406,14 @@ try {
                 ad.id AS activity_detail_id,
                 sa.id AS sales_activity_id,
                 sa.sales_id,
+                u.role AS sales_role,
                 a.nama_pt,
                 COALESCE(dtr.status, 'pending') AS tr_status,
                 dtr.updated_at AS tr_updated_at
             FROM activity_details ad
             LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
             LEFT JOIN accounts a ON sa.account_id = a.id
+            LEFT JOIN users u ON sa.sales_id = u.id
             LEFT JOIN detail_transaction_requests dtr
                 ON dtr.id = (
                     SELECT MAX(d2.id)
@@ -407,7 +424,7 @@ try {
               AND TRIM(ad.tr_number) <> ''
             GROUP BY
                 ad.tr_number, ad.due_date, ad.subject, ad.jenis_tugas, ad.created_at, ad.id,
-                sa.id, sa.sales_id, a.nama_pt, dtr.status, dtr.updated_at
+                sa.id, sa.sales_id, u.role, a.nama_pt, dtr.status, dtr.updated_at
             ORDER BY ad.id DESC
         ";
         $q = $notifDb->query($sqlTR);
@@ -624,6 +641,7 @@ try {
                 ad.id AS activity_detail_id,
                 sa.id AS sales_activity_id,
                 sa.sales_id,
+                u.role AS sales_role,
                 a.nama_pt,
                 COALESCE(ddi.status, 'pending') AS di_status,
                 COALESCE(ddi.current_approval_order, 1) AS current_approval_order
@@ -648,17 +666,18 @@ try {
         $notifDI = $q->fetchAll(PDO::FETCH_ASSOC);
 
         /*
-         * DI approval mengikuti detaildi.php:
-         * 1 Admin, 2 Business, 3 Service Support, 4 Part Support,
-         * 5 Direktur Sales, 6 Direktur Utama.
+         * DI approval mengikuti detaildi.php versi 7-level:
+         * 1 Business, 2 Part Support, 3 Service Support, 4 Finance,
+         * 5 Direktur Sales, 6 Direktur Operasional, 7 Direktur Utama.
          */
         $diApprovalLevels = [
-            1 => 'admin',
-            2 => 'business',
+            1 => 'business',
+            2 => 'part_support',
             3 => 'service_support',
-            4 => 'part_support',
+            4 => 'finance',
             5 => 'direktur_sales',
-            6 => 'direktur_utama',
+            6 => 'direktur_operasional',
+            7 => 'direktur_utama',
         ];
 
         foreach ($notifDI as &$di) {
@@ -674,7 +693,7 @@ try {
              * Gunakan current_approval_order dari detail DI.
              * Jika nilainya tidak tersedia/valid, hitung ulang dari history.
              */
-            if ($currentOrder < 1 || $currentOrder > 6) {
+            if ($currentOrder < 1 || $currentOrder > 7) {
                 $currentOrder = 1;
 
                 try {
@@ -701,7 +720,7 @@ try {
                     }
 
                     if (!$rejected) {
-                        for ($i = 1; $i <= 6; $i++) {
+                        for ($i = 1; $i <= 7; $i++) {
                             if (!empty($approved[$i])) {
                                 $currentOrder = $i + 1;
                             } else {
@@ -799,9 +818,11 @@ try {
                 ad.due_date,
                 ad.status,
                 sa.sales_id,
+                u.role AS sales_role,
                 a.nama_pt
             FROM activity_details ad
             INNER JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+            LEFT JOIN users u ON sa.sales_id = u.id
             LEFT JOIN accounts a ON sa.account_id = a.id
             WHERE ad.due_date IS NOT NULL
               AND ad.status = 'in_progress'
@@ -816,57 +837,110 @@ try {
     $notifActivitiesDue = [];
 }
 
+// Semua Sales Activity yang masih In Progress, dipakai untuk notifikasi
+// "Segera Complete" tanpa membatasi due date.
+$notifActivitiesInProgress = [];
+try {
+    if (
+        $notifDb instanceof PDO &&
+        $notifHasTable($notifDb, 'activity_details') &&
+        $notifHasTable($notifDb, 'sales_activities') &&
+        $notifHasTable($notifDb, 'accounts')
+    ) {
+        $sqlActivityInProgress = "
+            SELECT
+                ad.id AS activity_detail_id,
+                ad.sales_activity_id,
+                ad.subject,
+                ad.jenis_tugas,
+                ad.due_date,
+                ad.status,
+                sa.sales_id,
+                u.role AS sales_role,
+                a.nama_pt
+            FROM activity_details ad
+            INNER JOIN sales_activities sa ON ad.sales_activity_id = sa.id
+            LEFT JOIN users u ON sa.sales_id = u.id
+            LEFT JOIN accounts a ON sa.account_id = a.id
+            WHERE ad.status = 'in_progress'
+            ORDER BY ad.due_date ASC, ad.id DESC
+        ";
+        $notifActivitiesInProgress = $notifDb->query($sqlActivityInProgress)->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (Throwable $e) {
+    $notifActivitiesInProgress = [];
+}
+
 /* ==========================================================
    BUILD NOTIFICATIONS PER ROLE
    ========================================================== */
 
 try {
     if ($notifDb instanceof PDO) {
+        $formatCompany = static function(array $row): string {
+            return trim((string)($row['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+        };
+        $formatActivity = static function(array $row): string {
+            $company = trim((string)($row['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+            $taskType = trim((string)($row['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
+            $subject = trim((string)($row['subject'] ?? '')) ?: 'Aktivitas';
+            return $company . ' • ' . $taskType . ' • ' . $subject;
+        };
+        $roleOf = static function($role): string {
+            $role = strtolower(trim((string)$role));
+            $aliases = [
+                'sales manager' => 'sales_manager',
+                'salesmanager' => 'sales_manager',
+                'sales_manager' => 'sales_manager',
+                'part support' => 'part_support',
+                'partsupport' => 'part_support',
+                'service support' => 'service_support',
+                'servicesupport' => 'service_support',
+                'direktur sales' => 'direktur_sales',
+                'direktursales' => 'direktur_sales',
+                'direktur operasional' => 'direktur_operasional',
+                'direkturoperasional' => 'direktur_operasional',
+                'direktur utama' => 'direktur_utama',
+                'direkturutama' => 'direktur_utama',
+            ];
+            return $aliases[$role] ?? $role;
+        };
 
         /* ---------------- SALES ---------------- */
         if ($notifRoleKey === 'sales') {
             foreach ($notifActivitiesDue as $activityDue) {
                 if ((int)($activityDue['sales_id'] ?? 0) !== $notifUserId) continue;
-
-                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
-                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
-
+                $activityText = $formatActivity($activityDue);
+                $dueDate = date('d-m-Y', strtotime($activityDue['due_date']));
                 $notifAdd(
                     'Sales Activity Mendekati Due Date',
-                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
+                    $activityText . ' • Due ' . $dueDate,
                     'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
-                    'activity_due_' . $activityDue['activity_detail_id'],
+                    'sales_due_' . $activityDue['activity_detail_id'],
                     'due'
+                );
+            }
+
+            foreach ($notifActivitiesInProgress as $activityDue) {
+                if ((int)($activityDue['sales_id'] ?? 0) !== $notifUserId) continue;
+                $activityText = $formatActivity($activityDue);
+                $notifAdd(
+                    'Sales Activity In Progress — Segera Complete',
+                    $activityText . ' • Aktivitas masih In Progress.',
+                    'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
+                    'sales_in_progress_' . $activityDue['activity_detail_id'],
+                    'general'
                 );
             }
 
             foreach ($notifTR as $tr) {
                 if ((int)($tr['sales_id'] ?? 0) !== $notifUserId) continue;
-
-                $due = $tr['due_date'] ?? null;
-                if ($due && strtotime($due) !== false) {
-                    $days = (strtotime(date('Y-m-d', strtotime($due))) - strtotime(date('Y-m-d'))) / 86400;
-                    if ($days >= 0 && $days <= 7 && !in_array(($tr['tr_status'] ?? ''), ['approved','rejected'], true)) {
-                        $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                        $taskType = trim((string)($tr['_jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
-                        $subject = trim((string)($tr['_subject'] ?? '')) ?: 'Aktivitas';
-                        $notifAdd(
-                            'Sales Activity Mendekati Due Date',
-                            $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($due)),
-                            'detailaktivitas.php?leads_id=' . (int)($tr['sales_activity_id'] ?? 0),
-                            'sales_due_' . $tr['activity_detail_id'],
-                            'due'
-                        );
-                    }
-                }
+                $company = $formatCompany($tr);
 
                 if (!$tr['_complete'] && ($tr['tr_status'] ?? 'pending') !== 'approved') {
-                    $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                    $missing = implode(', ', $tr['_missing']);
                     $notifAdd(
-                        'Harus Melengkapi Detail TR',
-                        $tr['tr_number'] . ' • ' . $company . ' • Kurang: ' . $missing,
+                        'Segera Lengkapi Transaction Request',
+                        $tr['tr_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $tr['_missing']),
                         'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
                         'sales_tr_incomplete_' . $tr['tr_number'],
                         'incomplete'
@@ -874,9 +948,8 @@ try {
                 }
 
                 if (($tr['tr_status'] ?? '') === 'approved') {
-                    $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
                     $notifAdd(
-                        'Transaction Request Sudah Approved',
+                        'Transaction Request Sudah Approved Semua',
                         $tr['tr_number'] . ' • ' . $company . ' • Seluruh approval TR selesai.',
                         'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
                         'sales_tr_approved_' . $tr['tr_number'],
@@ -887,174 +960,140 @@ try {
 
             foreach ($notifDI as $di) {
                 if ((int)($di['sales_id'] ?? 0) !== $notifUserId) continue;
-
-                if (($di['di_status'] ?? '') === 'approved') {
-                    $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                    $notifAdd(
-                        'Delivery Instruction Sudah Approved',
-                        $di['di_number'] . ' • ' . $company . ' • Seluruh approval DI selesai.',
-                        'detaildi.php?di_number=' . urlencode($di['di_number']),
-                        'sales_di_approved_' . $di['di_number'],
-                        'approved'
-                    );
-                }
+                if (($di['di_status'] ?? '') !== 'approved') continue;
+                $company = $formatCompany($di);
+                $notifAdd(
+                    'Delivery Instruction Sudah Approved Semua',
+                    $di['di_number'] . ' • ' . $company . ' • Seluruh approval DI selesai.',
+                    'detaildi.php?di_number=' . urlencode($di['di_number']),
+                    'sales_di_approved_' . $di['di_number'],
+                    'approved'
+                );
             }
         }
 
         /* ---------------- SALES MANAGER ---------------- */
         if ($notifRoleKey === 'sales_manager') {
             foreach ($notifActivitiesDue as $activityDue) {
-                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
-                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
-
+                $ownerRole = $roleOf($activityDue['sales_role'] ?? '');
+                if (!in_array($ownerRole, ['sales', 'sales_manager'], true)) continue;
+                $activityText = $formatActivity($activityDue);
+                $dueDate = date('d-m-Y', strtotime($activityDue['due_date']));
                 $notifAdd(
                     'Sales Activity Mendekati Due Date',
-                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
+                    $activityText . ' • Due ' . $dueDate,
                     'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
-                    'activity_due_' . $activityDue['activity_detail_id'],
+                    'sm_due_' . $activityDue['activity_detail_id'],
                     'due'
                 );
             }
 
-            foreach ($notifTR as $tr) {
-                $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+            foreach ($notifActivitiesInProgress as $activityInProgress) {
+                $ownerRole = $roleOf($activityInProgress['sales_role'] ?? '');
+                if (!in_array($ownerRole, ['sales', 'sales_manager'], true)) continue;
+                $activityText = $formatActivity($activityInProgress);
+                $notifAdd(
+                    'Sales Activity In Progress — Segera Complete',
+                    $activityText . ' • Aktivitas masih In Progress.',
+                    'detailaktivitas.php?leads_id=' . (int)$activityInProgress['sales_activity_id'],
+                    'sm_in_progress_' . $activityInProgress['activity_detail_id'],
+                    'general'
+                );
+            }
 
-                if (
-                    !empty($tr['request_date']) &&
-                    strtotime($tr['request_date']) >= strtotime('-7 days')
-                ) {
+            foreach ($notifTR as $tr) {
+                $ownerRole = $roleOf($tr['sales_role'] ?? '');
+                $company = $formatCompany($tr);
+
+                // Kelengkapan hanya untuk TR yang dibuat dari Activity milik Sales Manager.
+                if ($ownerRole === 'sales_manager' && !$tr['_complete'] && ($tr['tr_status'] ?? 'pending') === 'pending') {
                     $notifAdd(
-                        'Transaction Request Number Baru',
-                        $tr['tr_number'] . ' • ' . $company . ' • TR baru masuk.',
+                        'Segera Lengkapi Transaction Request',
+                        $tr['tr_number'] . ' • ' . $company . ' • TR berasal dari Activity Sales Manager • Kurang: ' . implode(', ', $tr['_missing']),
                         'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
-                        'sm_new_tr_' . $tr['tr_number'],
-                        'new'
+                        'sm_incomplete_tr_' . $tr['tr_number'],
+                        'incomplete'
                     );
                 }
 
+                // Approval Sales Manager berlaku untuk semua TR yang memang sedang berada di level approval Sales Manager.
                 if ($tr['_complete'] && ($tr['_current_role'] ?? '') === 'sales_manager') {
                     $notifAdd(
-                        'Harus Approve Transaction Request',
+                        'Segera Approve Transaction Request',
                         $tr['tr_number'] . ' • ' . $company . ' • TR lengkap dan menunggu approval Sales Manager.',
                         'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
                         'sm_approve_tr_' . $tr['tr_number'],
                         'approval'
                     );
                 }
-
-                if (!$tr['_complete'] && ($tr['tr_status'] ?? 'pending') === 'pending') {
-                    $notifAdd(
-                        'Harus Melengkapi Detail TR',
-                        $tr['tr_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $tr['_missing']),
-                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
-                        'sm_incomplete_tr_' . $tr['tr_number'],
-                        'incomplete'
-                    );
-                }
             }
 
-            foreach ($notifTR as $tr) {
-                if (($tr['tr_status'] ?? '') === 'pending' && $tr['due_date']) {
-                    $days = (strtotime(date('Y-m-d', strtotime($tr['due_date']))) - strtotime(date('Y-m-d'))) / 86400;
-                    if ($days >= 0 && $days <= 7) {
-                        $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                        $taskType = trim((string)($tr['_jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
-                        $subject = trim((string)($tr['_subject'] ?? '')) ?: 'Aktivitas';
-                        $notifAdd(
-                            'Sales Activity Mendekati Due Date',
-                            $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($tr['due_date'])),
-                            'detailaktivitas.php?leads_id=' . (int)($tr['sales_activity_id'] ?? 0),
-                            'sm_due_' . $tr['activity_detail_id'],
-                            'due'
-                        );
-                    }
-                }
-            }
-        }
-
-        /* ---------------- BUSINESS ---------------- */
-        if ($notifRoleKey === 'business') {
-            foreach ($notifActivitiesDue as $activityDue) {
-                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
-                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
-
+            // Dukungan jika workflow DI pada database memiliki approval role sales_manager.
+            foreach ($notifDI as $di) {
+                if (($di['_current_role'] ?? '') !== 'sales_manager') continue;
+                if (($di['di_status'] ?? 'pending') !== 'pending') continue;
+                $company = $formatCompany($di);
                 $notifAdd(
-                    'Sales Activity Mendekati Due Date',
-                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
-                    'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
-                    'activity_due_' . $activityDue['activity_detail_id'],
-                    'due'
+                    'Segera Approve Delivery Instruction',
+                    $di['di_number'] . ' • ' . $company . ' • DI menunggu approval Sales Manager.',
+                    'detaildi.php?di_number=' . urlencode($di['di_number']),
+                    'sm_approve_di_' . $di['di_number'],
+                    'approval'
                 );
-            }
-
-            foreach ($notifTR as $tr) {
-                $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-
-                if (
-                    !empty($tr['request_date']) &&
-                    strtotime($tr['request_date']) >= strtotime('-7 days')
-                ) {
-                    $notifAdd(
-                        'Transaction Request Number Baru',
-                        $tr['tr_number'] . ' • ' . $company . ' • TR baru masuk.',
-                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
-                        'business_new_tr_' . $tr['tr_number'],
-                        'new'
-                    );
-                }
-
-                if (!$tr['_complete'] && ($tr['tr_status'] ?? 'pending') === 'pending') {
-                    $notifAdd(
-                        'Harus Melengkapi Detail TR',
-                        $tr['tr_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $tr['_missing']),
-                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
-                        'business_incomplete_tr_' . $tr['tr_number'],
-                        'incomplete'
-                    );
-                }
             }
         }
 
         /* ---------------- ADMIN ---------------- */
         if ($notifRoleKey === 'admin') {
             foreach ($notifDI as $di) {
-                $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-
-                if (
-                    !empty($di['request_date']) &&
-                    strtotime($di['request_date']) >= strtotime('-7 days')
-                ) {
-                    $notifAdd(
-                        'Delivery Instruction Baru',
-                        $di['di_number'] . ' • ' . $company . ' • DI baru masuk.',
-                        'detaildi.php?di_number=' . urlencode($di['di_number']),
-                        'admin_new_di_' . $di['di_number'],
-                        'new'
-                    );
-                }
-
                 if (!$di['_complete'] && ($di['di_status'] ?? 'pending') === 'pending') {
+                    $company = $formatCompany($di);
+                    $recent = !empty($di['request_date']) && strtotime($di['request_date']) >= strtotime('-7 days');
+                    if ($recent) {
+                        $notifAdd(
+                            'Delivery Instruction Baru — Segera Lengkapi Detail DI',
+                            $di['di_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $di['_missing']),
+                            'detaildi.php?di_number=' . urlencode($di['di_number']),
+                            'admin_incomplete_di_' . $di['di_number'],
+                            'incomplete'
+                        );
+                    }
+                }
+            }
+        }
+
+        /* ---------------- FINANCE ---------------- */
+        if ($notifRoleKey === 'finance') {
+            foreach ($notifTR as $tr) {
+                if (($tr['tr_status'] ?? '') !== 'approved') continue;
+                $company = $formatCompany($tr);
+                $notifAdd(
+                    'Transaction Request Sudah Approved — PDF Siap',
+                    $tr['tr_number'] . ' • ' . $company . ' • Seluruh approval TR selesai, PDF dapat di-download.',
+                    'export_detail_pdf.php?tr_number=' . urlencode($tr['tr_number']),
+                    'finance_tr_pdf_' . $tr['tr_number'],
+                    'approved'
+                );
+            }
+
+            foreach ($notifDI as $di) {
+                $company = $formatCompany($di);
+                if (($di['_current_role'] ?? '') === 'finance' && ($di['di_status'] ?? 'pending') === 'pending') {
                     $notifAdd(
-                        'Harus Melengkapi Detail DI',
-                        $di['di_number'] . ' • ' . $company . ' • Kurang: ' . implode(', ', $di['_missing']),
+                        'Segera Approve Delivery Instruction',
+                        $di['di_number'] . ' • ' . $company . ' • DI menunggu approval Finance.',
                         'detaildi.php?di_number=' . urlencode($di['di_number']),
-                        'admin_incomplete_di_' . $di['di_number'],
-                        'incomplete'
+                        'finance_approve_di_' . $di['di_number'],
+                        'approval'
                     );
                 }
-
-                if (
-                    ($di['_current_role'] ?? '') === 'admin' &&
-                    ($di['di_status'] ?? 'pending') === 'pending'
-                ) {
+                if (($di['di_status'] ?? '') === 'approved') {
                     $notifAdd(
-                        'Harus Approve Delivery Instruction',
-                        $di['di_number'] . ' • ' . $company . ' • DI menunggu approval Admin.',
-                        'detaildi.php?di_number=' . urlencode($di['di_number']),
-                        'admin_approve_di_' . $di['di_number'],
-                        'approval'
+                        'Delivery Instruction Sudah Approved — PDF Siap',
+                        $di['di_number'] . ' • ' . $company . ' • Seluruh approval DI selesai, PDF dapat di-download.',
+                        'export_detail_pdf_di.php?di_number=' . urlencode($di['di_number']),
+                        'finance_di_pdf_' . $di['di_number'],
+                        'approved'
                     );
                 }
             }
@@ -1065,12 +1104,10 @@ try {
             foreach ($notifDI as $di) {
                 if (($di['_current_role'] ?? '') !== $notifRoleKey) continue;
                 if (($di['di_status'] ?? 'pending') !== 'pending') continue;
-
-                $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
+                $company = $formatCompany($di);
                 $label = $notifRoleKey === 'part_support' ? 'Part Support' : 'Service Support';
-
                 $notifAdd(
-                    'Harus Approve Delivery Instruction',
+                    'Segera Approve Delivery Instruction',
                     $di['di_number'] . ' • ' . $company . ' • DI menunggu approval ' . $label . '.',
                     'detaildi.php?di_number=' . urlencode($di['di_number']),
                     $notifRoleKey . '_approve_di_' . $di['di_number'],
@@ -1081,80 +1118,31 @@ try {
 
         /* ---------------- DIREKTUR ---------------- */
         if (in_array($notifRoleKey, ['direktur_sales', 'direktur_operasional', 'direktur_utama'], true)) {
-            foreach ($notifActivitiesDue as $activityDue) {
-                $company = trim((string)($activityDue['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-                $taskType = trim((string)($activityDue['jenis_tugas'] ?? '')) ?: 'Jenis tugas tidak tersedia';
-                $subject = trim((string)($activityDue['subject'] ?? '')) ?: 'Aktivitas';
-
+            $directorLabel = ucwords(str_replace('_', ' ', $notifRoleKey));
+            foreach ($notifTR as $tr) {
+                if (!$tr['_complete']) continue;
+                if (($tr['_current_role'] ?? '') !== $notifRoleKey) continue;
+                $company = $formatCompany($tr);
                 $notifAdd(
-                    'Sales Activity Mendekati Due Date',
-                    $company . ' • ' . $taskType . ' • ' . $subject . ' • Due ' . date('d-m-Y', strtotime($activityDue['due_date'])),
-                    'detailaktivitas.php?leads_id=' . (int)$activityDue['sales_activity_id'],
-                    'activity_due_' . $activityDue['activity_detail_id'],
-                    'due'
+                    'Segera Approve Transaction Request',
+                    $tr['tr_number'] . ' • ' . $company . ' • TR lengkap dan menunggu approval ' . $directorLabel . '.',
+                    'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
+                    $notifRoleKey . '_approve_tr_' . $tr['tr_number'],
+                    'approval'
                 );
             }
 
-            foreach ($notifTR as $tr) {
-                $company = trim((string)($tr['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-
-                if (
-                    !empty($tr['request_date']) &&
-                    strtotime($tr['request_date']) >= strtotime('-7 days')
-                ) {
-                    $notifAdd(
-                        'Transaction Request Number Baru',
-                        $tr['tr_number'] . ' • ' . $company . ' • TR baru masuk.',
-                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
-                        $notifRoleKey . '_new_tr_' . $tr['tr_number'],
-                        'new'
-                    );
-                }
-
-                if (
-                    $tr['_complete'] &&
-                    ($tr['_current_role'] ?? '') === $notifRoleKey
-                ) {
-                    $notifAdd(
-                        'Harus Approve Transaction Request',
-                        $tr['tr_number'] . ' • ' . $company . ' • TR lengkap dan menunggu approval ' .
-                        ucwords(str_replace('_', ' ', $notifRoleKey)) . '.',
-                        'detailtr.php?tr_number=' . urlencode($tr['tr_number']),
-                        $notifRoleKey . '_approve_tr_' . $tr['tr_number'],
-                        'approval'
-                    );
-                }
-            }
-
             foreach ($notifDI as $di) {
-                $company = trim((string)($di['nama_pt'] ?? '')) ?: 'Nama PT tidak tersedia';
-
-                if (
-                    !empty($di['request_date']) &&
-                    strtotime($di['request_date']) >= strtotime('-7 days')
-                ) {
-                    $notifAdd(
-                        'Delivery Instruction Baru',
-                        $di['di_number'] . ' • ' . $company . ' • DI baru masuk.',
-                        'detaildi.php?di_number=' . urlencode($di['di_number']),
-                        $notifRoleKey . '_new_di_' . $di['di_number'],
-                        'new'
-                    );
-                }
-
-                if (
-                    ($di['_current_role'] ?? '') === $notifRoleKey &&
-                    ($di['di_status'] ?? 'pending') === 'pending'
-                ) {
-                    $notifAdd(
-                        'Harus Approve Delivery Instruction',
-                        $di['di_number'] . ' • ' . $company . ' • DI menunggu approval ' .
-                        ucwords(str_replace('_', ' ', $notifRoleKey)) . '.',
-                        'detaildi.php?di_number=' . urlencode($di['di_number']),
-                        $notifRoleKey . '_approve_di_' . $di['di_number'],
-                        'approval'
-                    );
-                }
+                if (($di['_current_role'] ?? '') !== $notifRoleKey) continue;
+                if (($di['di_status'] ?? 'pending') !== 'pending') continue;
+                $company = $formatCompany($di);
+                $notifAdd(
+                    'Segera Approve Delivery Instruction',
+                    $di['di_number'] . ' • ' . $company . ' • DI menunggu approval ' . $directorLabel . '.',
+                    'detaildi.php?di_number=' . urlencode($di['di_number']),
+                    $notifRoleKey . '_approve_di_' . $di['di_number'],
+                    'approval'
+                );
             }
         }
     }
@@ -1622,7 +1610,7 @@ if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
                         <label>Username</label>
                         <div class="profile-input-wrap">
                             <i class="fas fa-at"></i>
-                            <input type="text" value="<?= htmlspecialchars($profileUsername) ?>" readonly>
+                            <input type="text" name="profile_username" value="<?= htmlspecialchars($profileUsername) ?>" required autocomplete="username">
                         </div>
                     </div>
 
