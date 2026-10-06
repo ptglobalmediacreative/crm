@@ -209,7 +209,8 @@ $costCalculationAllowedRoles = [
     'direktur_operasional',
     'direktur_sales',
     'business',
-    'it_support'
+    'it_support',
+    'finance'
 ];
 $canViewCostCalculation = in_array($userRole, $costCalculationAllowedRoles, true);
 
