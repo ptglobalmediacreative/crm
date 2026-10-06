@@ -774,7 +774,62 @@ $html .= '
                     <td colspan="5" class="right">TOTAL GRAND TOTAL UNIT</td>
                     <td class="right money">' . formatRp($totalUnitGrandTotal) . '</td>
                 </tr>
-            </table>
+            </table>';
+
+$html .= '
+<!-- ===================================================== -->
+<!-- C. TERM OF PAYMENT -->
+<!-- ===================================================== -->
+<div class="section" style="margin-top:4px;">C. TERM OF PAYMENT</div>';
+
+if (count($termPayments) > 0) {
+    $html .= '
+<table class="top-table">
+    <tr>
+        <th style="width:25%">Payment Type</th>
+        <th style="width:30%">Payment / Label</th>
+        <th style="width:20%">Amount</th>
+        <th style="width:25%">Keterangan</th>
+    </tr>';
+
+    foreach ($termPayments as $top) {
+        $paymentType = strtolower((string)($top['payment_type'] ?? ''));
+        $paymentTypeLabel = [
+            'booking_fee' => 'Booking Fee',
+            'down_payment' => 'Down Payment',
+            'angsuran' => 'Angsuran',
+            'nominal_po' => 'Nominal PO Leasing'
+        ];
+
+        $typeDisplay = $paymentTypeLabel[$paymentType]
+            ?? ucwords(str_replace('_', ' ', $paymentType));
+
+        $html .= '
+    <tr>
+        <td>' . h($typeDisplay) . '</td>
+        <td>' . h($top['payment_label'] ?? '-') . '</td>
+        <td class="right money bold">' . formatRp($top['amount'] ?? 0) . '</td>
+        <td>' . nl2br(h($top['keterangan'] ?? '-')) . '</td>
+    </tr>';
+    }
+
+    $html .= '
+    <tr class="top-total">
+        <td colspan="2" class="right">TOTAL TOP</td>
+        <td class="right money">' . formatRp($totalTOP) . '</td>
+        <td></td>
+    </tr>
+</table>';
+} else {
+    $html .= '
+<table>
+    <tr>
+        <td class="center">Belum ada data Term of Payment</td>
+    </tr>
+</table>';
+}
+
+$html .= '
         </td>
     </tr>
 </table>
@@ -849,59 +904,7 @@ $html .= '
         <td class="label" style="width:70%">TOTAL GRAND TOTAL UNIT</td>
         <td class="right money" style="width:30%">' . formatRp($totalUnitGrandTotal) . '</td>
     </tr>
-</table>
-
-<!-- ===================================================== -->
-<!-- C. TERM OF PAYMENT -->
-<!-- ===================================================== -->
-<div class="section">C. TERM OF PAYMENT</div>';
-
-if (count($termPayments) > 0) {
-    $html .= '
-<table class="top-table">
-    <tr>
-        <th style="width:25%">Payment Type</th>
-        <th style="width:30%">Payment / Label</th>
-        <th style="width:20%">Amount</th>
-        <th style="width:25%">Keterangan</th>
-    </tr>';
-
-    foreach ($termPayments as $top) {
-        $paymentType = strtolower((string)($top['payment_type'] ?? ''));
-        $paymentTypeLabel = [
-            'booking_fee' => 'Booking Fee',
-            'down_payment' => 'Down Payment',
-            'angsuran' => 'Angsuran',
-            'nominal_po' => 'Nominal PO Leasing'
-        ];
-
-        $typeDisplay = $paymentTypeLabel[$paymentType]
-            ?? ucwords(str_replace('_', ' ', $paymentType));
-
-        $html .= '
-    <tr>
-        <td>' . h($typeDisplay) . '</td>
-        <td>' . h($top['payment_label'] ?? '-') . '</td>
-        <td class="right money bold">' . formatRp($top['amount'] ?? 0) . '</td>
-        <td>' . nl2br(h($top['keterangan'] ?? '-')) . '</td>
-    </tr>';
-    }
-
-    $html .= '
-    <tr class="top-total">
-        <td colspan="2" class="right">TOTAL TOP</td>
-        <td class="right money">' . formatRp($totalTOP) . '</td>
-        <td></td>
-    </tr>
 </table>';
-} else {
-    $html .= '
-<table>
-    <tr>
-        <td class="center">Belum ada data Term of Payment</td>
-    </tr>
-</table>';
-}
 
 // =====================================================
 // D. ADDITIONAL COST
