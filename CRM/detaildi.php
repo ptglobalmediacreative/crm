@@ -49,14 +49,21 @@ function getRoleLabel($role) {
 // ============================================
 // FUNGSI UNTUK RESET APPROVAL HISTORY
 // ============================================
-function resetDIApprovalHistory($db, $di_number) {
+function resetDIApprovalHistory($db, $di_number, $force = false) {
     try {
+        // Saat DI rejected, edit data tidak menghapus histori approval.
+        // Histori hanya dihapus ketika Admin menekan Ajukan DI Kembali.
+        if (!$force) {
+            $checkStatus = $db->prepare("SELECT status FROM detail_delivery_instructions WHERE di_number = ? ORDER BY id DESC LIMIT 1");
+            $checkStatus->execute([$di_number]);
+            if ($checkStatus->fetchColumn() === 'rejected') {
+                return true;
+            }
+        }
         $deleteApproval = $db->prepare("DELETE FROM di_approval_history WHERE di_number = ?");
         $deleteApproval->execute([$di_number]);
-        
         $updateDetail = $db->prepare("UPDATE detail_delivery_instructions SET status = 'pending', current_approval_order = 1, updated_at = NOW() WHERE di_number = ?");
         $updateDetail->execute([$di_number]);
-        
         return true;
     } catch (Exception $e) {
         return false;
@@ -188,8 +195,26 @@ try {
     $hasBeenApproved = false;
 }
 
-if ($hasBeenApproved) {
+if ($hasBeenApproved && $statusDI !== 'rejected') {
     $canEdit = false;
+}
+
+// ============================================
+// INFORMASI REJECT TERAKHIR
+// ============================================
+$rejectionInfo = null;
+try {
+    $sqlRejection = "SELECT h.catatan, h.approved_at, h.approved_by, u.full_name AS rejected_by_name
+                     FROM di_approval_history h
+                     LEFT JOIN users u ON h.approved_by = u.id
+                     WHERE h.di_number = ? AND h.status = 'rejected'
+                     ORDER BY h.approved_at DESC, h.id DESC
+                     LIMIT 1";
+    $stmtRejection = $db->prepare($sqlRejection);
+    $stmtRejection->execute([$di_number]);
+    $rejectionInfo = $stmtRejection->fetch() ?: null;
+} catch (Exception $e) {
+    $rejectionInfo = null;
 }
 
 // ============================================
@@ -367,7 +392,7 @@ if ($hasInputData && $detailDI) {
         if ($currentApprovalOrder >= 1 && $currentApprovalOrder <= 8) {
             $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
             $nextOrder = $currentApprovalOrder + 1;
-            $nextApproverLabel = $nextOrder <= 7 ? $approvalLevels[$nextOrder]['label'] : '-';
+            $nextApproverLabel = $nextOrder <= 8 ? $approvalLevels[$nextOrder]['label'] : '-';
         } else {
             $currentApprovalOrder = 0;
             $currentApproverLabel = 'Selesai';
@@ -407,6 +432,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // ============================================
+    // AJUKAN KEMBALI DI SETELAH REJECT
+    // Histori approval dihapus hanya ketika Admin menekan tombol ini.
+    // ============================================
+    if ($action === 'resubmit_rejected') {
+        try {
+            if ($userRole !== 'admin') {
+                throw new Exception('Hanya Admin yang dapat mengajukan kembali DI ini.');
+            }
+            $db->beginTransaction();
+            $lockResubmit = $db->prepare("SELECT status FROM detail_delivery_instructions WHERE di_number = ? ORDER BY id DESC LIMIT 1 FOR UPDATE");
+            $lockResubmit->execute([$di_number]);
+            $lockedResubmit = $lockResubmit->fetch();
+            if (!$lockedResubmit) {
+                throw new Exception('Detail Delivery Instruction tidak ditemukan.');
+            }
+            if (($lockedResubmit['status'] ?? '') !== 'rejected') {
+                throw new Exception('DI hanya dapat diajukan kembali jika berstatus rejected.');
+            }
+            resetDIApprovalHistory($db, $di_number, true);
+            $db->commit();
+            setFlash('DI berhasil diajukan kembali dan kembali ke approval awal (Business).', 'success');
+        } catch (Exception $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            setFlash('Gagal mengajukan kembali DI: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=data_penjualan");
+    }
+
+    // ============================================
     // SAVE DATA PENJUALAN
     // ============================================
     if ($action === 'save_data_penjualan') {
@@ -443,6 +497,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->beginTransaction();
             $approvalStatus = $action === 'approve' ? 'approved' : 'rejected';
             $currentOrder = (int)($_POST['approval_order'] ?? 0);
+            $approvalComment = trim((string)($_POST['approval_comment'] ?? ''));
+
+            if ($approvalStatus === 'rejected' && $approvalComment === '') {
+                throw new Exception('Alasan reject wajib diisi.');
+            }
 
             // Pastikan minimal ada satu menu yang benar-benar sudah diinput.
             $inputChecks = [
@@ -492,16 +551,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $existingApproval = $checkApproval->fetch();
 
             if ($existingApproval) {
-                $updateApproval = $db->prepare("UPDATE di_approval_history SET status = ?, catatan = '', approved_by = ?, approved_at = NOW() WHERE id = ?");
-                $updateApproval->execute([$approvalStatus, $userId, $existingApproval['id']]);
+                $updateApproval = $db->prepare("UPDATE di_approval_history SET status = ?, catatan = ?, approved_by = ?, approved_at = NOW() WHERE id = ?");
+                $updateApproval->execute([$approvalStatus, $approvalComment, $userId, $existingApproval['id']]);
             } else {
-                $insertApproval = $db->prepare("INSERT INTO di_approval_history (di_number, approval_order, approval_role, approval_label, status, catatan, approved_by, approved_at, created_at) VALUES (?, ?, ?, ?, ?, '', ?, NOW(), NOW())");
+                $insertApproval = $db->prepare("INSERT INTO di_approval_history (di_number, approval_order, approval_role, approval_label, status, catatan, approved_by, approved_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
                 $insertApproval->execute([
                     $di_number,
                     $currentOrder,
                     $approvalLevels[$currentOrder]['role'],
                     $approvalLevels[$currentOrder]['label'],
                     $approvalStatus,
+                    $approvalComment,
                     $userId
                 ]);
             }
@@ -946,6 +1006,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .approval-flow-item.rejected .approval-flow-icon{background:#dc3545;color:#fff}
         @media(max-width:1100px){.approval-flow-list{grid-template-columns:repeat(4,minmax(120px,1fr))}}
         @media(max-width:700px){.approval-flow-list{grid-template-columns:repeat(2,minmax(130px,1fr))}}
+        .rejection-notice{margin:18px 0;padding:16px;border:1px solid #f1b7bd;border-radius:12px;background:#fff5f5}
+        .rejection-notice-head{display:flex;justify-content:space-between;gap:12px;align-items:center;color:#b42318;font-weight:800;margin-bottom:12px}
+        .rejection-notice-body{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .rejection-item{background:#fff;border:1px solid #f3d0d3;border-radius:9px;padding:12px}
+        .rejection-label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#8a5b60;font-weight:700;margin-bottom:5px}
+        .rejection-comment{white-space:normal;line-height:1.5;color:#343a40}
+        .rejection-hint{margin-top:12px;padding:10px 12px;border-radius:8px;background:#fff1f2;color:#7f1d1d;font-size:13px}
+        .reject-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}
+        .reject-modal.show{display:flex}
+        .reject-modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.62);backdrop-filter:blur(2px)}
+        .reject-modal-dialog{position:relative;width:min(560px,100%);background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden}
+        .reject-modal-header{display:flex;justify-content:space-between;gap:15px;padding:20px;border-bottom:1px solid #e9ecef}
+        .reject-modal-header>div:first-child{display:flex;gap:12px;align-items:flex-start}
+        .reject-modal-icon{width:40px;height:40px;border-radius:10px;background:#fff0f0;color:#dc3545;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+        .reject-modal-header h5{margin:0;font-weight:800;color:#212529}.reject-modal-header p{margin:4px 0 0;color:#6c757d;font-size:13px}
+        .reject-modal-close{border:0;background:transparent;color:#6c757d;font-size:18px;width:34px;height:34px;border-radius:8px;cursor:pointer}
+        .reject-modal-body{padding:20px}.reject-modal-body label{font-weight:700;font-size:13px;margin-bottom:7px;display:block}.reject-modal-body label span{color:#dc3545}.reject-modal-body textarea{resize:vertical;min-height:120px}
+        .reject-modal-note{margin-top:10px;padding:10px 12px;background:#f8f9fa;border-radius:8px;color:#6c757d;font-size:12px}.reject-modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:15px 20px;border-top:1px solid #e9ecef}
+        @media(max-width:700px){.rejection-notice-body{grid-template-columns:1fr}.reject-modal{padding:10px}}
+
         .detail-link {
             color: #2563eb;
             text-decoration: none;
@@ -1036,11 +1116,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-file-invoice"></i> Data Penjualan</h6>
-                <?php if ($canEdit): ?>
-                <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editDataPenjualan', 'viewDataPenjualan')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <?php endif; ?>
+                <div class="d-flex gap-2 align-items-center">
+                    <?php if ($request['status'] === 'rejected' && $userRole === 'admin'): ?>
+                    <form method="POST" style="display:inline;" onsubmit="return confirmResubmitDI()">
+                        <input type="hidden" name="action" value="resubmit_rejected">
+                        <button type="submit" class="btn btn-primary-custom btn-sm">
+                            <i class="fas fa-paper-plane"></i> Ajukan DI Kembali
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                    <?php if ($canEdit): ?>
+                    <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editDataPenjualan', 'viewDataPenjualan')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="card-body-custom">
                 <div id="editDataPenjualan" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
@@ -1140,6 +1230,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
                 
+                <?php if ($request['status'] === 'rejected' && $rejectionInfo): ?>
+                <div class="rejection-notice">
+                    <div class="rejection-notice-head">
+                        <div><i class="fas fa-circle-exclamation"></i> DI Ditolak</div>
+                        <span><?= !empty($rejectionInfo['approved_at']) ? date('d/m/Y H:i', strtotime($rejectionInfo['approved_at'])) : '-' ?></span>
+                    </div>
+                    <div class="rejection-notice-body">
+                        <div class="rejection-item">
+                            <span class="rejection-label">Alasan / Komentar Reject</span>
+                            <div class="rejection-comment"><?= nl2br(htmlspecialchars($rejectionInfo['catatan'] ?? '-')) ?></div>
+                        </div>
+                        <div class="rejection-item">
+                            <span class="rejection-label">Rejected By</span>
+                            <strong><?= htmlspecialchars($rejectionInfo['rejected_by_name'] ?? '-') ?></strong>
+                        </div>
+                    </div>
+                    <div class="rejection-hint"><i class="fas fa-lightbulb"></i> Silakan revisi data DI terlebih dahulu, lalu klik <strong>Ajukan DI Kembali</strong> untuk memulai approval dari Business.</div>
+                </div>
+                <?php endif; ?>
+
                 <hr>
                 
                 <!-- ============================================ -->
@@ -1202,6 +1312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form method="POST" id="approvalForm">
                             <input type="hidden" name="action" id="approvalAction" value="approve">
                             <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
+                            <input type="hidden" name="approval_comment" id="approvalComment" value="">
                             <button type="button" class="btn btn-success-custom" onclick="submitApproval('approve')">
                                 <i class="fas fa-check-circle"></i> Approve
                             </button>
@@ -1821,6 +1932,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </main>
 
+    <!-- MODAL ALASAN REJECT -->
+    <div id="rejectModal" class="reject-modal" aria-hidden="true">
+        <div class="reject-modal-backdrop" onclick="closeRejectModal()"></div>
+        <div class="reject-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
+            <div class="reject-modal-header">
+                <div>
+                    <span class="reject-modal-icon"><i class="fas fa-times-circle"></i></span>
+                    <div><h5 id="rejectModalTitle">Reject Delivery Instruction</h5><p>Berikan alasan agar Admin dapat melakukan revisi dengan jelas.</p></div>
+                </div>
+                <button type="button" class="reject-modal-close" onclick="closeRejectModal()" aria-label="Tutup"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="reject-modal-body">
+                <label for="rejectReason">Komentar / Alasan Reject <span>*</span></label>
+                <textarea id="rejectReason" class="form-control" rows="5" maxlength="2000" placeholder="Contoh: Data unit belum lengkap atau harga logistik perlu direvisi."></textarea>
+                <div class="reject-modal-note"><i class="fas fa-info-circle"></i> Alasan ini akan tampil di Detail DI beserta nama user yang melakukan reject.</div>
+            </div>
+            <div class="reject-modal-footer">
+                <button type="button" class="btn btn-secondary-custom" onclick="closeRejectModal()">Batal</button>
+                <button type="button" class="btn btn-danger-custom" onclick="confirmReject()"><i class="fas fa-times-circle"></i> Reject DI</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -1837,15 +1971,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         function submitApproval(action) {
-            if (action === 'reject') {
-                if (!confirm('Yakin ingin me-reject DI ini?')) return;
-            }
+            if (action === 'reject') { openRejectModal(); return; }
             if (action === 'approve') {
                 if (!confirm('Yakin ingin meng-approve DI ini?')) return;
             }
+            document.getElementById('approvalComment').value = '';
             document.getElementById('approvalAction').value = action;
             document.getElementById('approvalForm').submit();
         }
+
+        function openRejectModal() {
+            const modal = document.getElementById('rejectModal');
+            const reason = document.getElementById('rejectReason');
+            if (!modal) return;
+            modal.classList.add('show'); modal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+            if (reason) { reason.value = ''; setTimeout(() => reason.focus(), 50); }
+        }
+        function closeRejectModal() {
+            const modal = document.getElementById('rejectModal');
+            if (!modal) return;
+            modal.classList.remove('show'); modal.setAttribute('aria-hidden', 'true'); document.body.style.overflow = '';
+        }
+        function confirmReject() {
+            const reason = document.getElementById('rejectReason');
+            const comment = reason ? reason.value.trim() : '';
+            if (!comment) { if (reason) reason.focus(); alert('Komentar / alasan reject wajib diisi.'); return; }
+            if (!confirm('Yakin ingin me-reject DI ini dengan alasan tersebut?')) return;
+            document.getElementById('approvalComment').value = comment;
+            document.getElementById('approvalAction').value = 'reject';
+            closeRejectModal(); document.getElementById('approvalForm').submit();
+        }
+        function confirmResubmitDI() {
+            return confirm('Ajukan DI ini kembali? Status akan menjadi Pending dan approval dimulai lagi dari Business.');
+        }
+        document.addEventListener('keydown', function(event) { if (event.key === 'Escape') closeRejectModal(); });
         
         let unitRowCount = 0;
         function addUnitRow(data = null) {
