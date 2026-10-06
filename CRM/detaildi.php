@@ -213,9 +213,10 @@ $approvalLevels = [
     2 => ['role' => 'part_support', 'label' => 'Part Support'],
     3 => ['role' => 'service_support', 'label' => 'Service Support'],
     4 => ['role' => 'finance', 'label' => 'Finance'],
-    5 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
-    6 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
-    7 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
+    5 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
+    6 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
+    7 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
+    8 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
 
 // ============================================
@@ -334,7 +335,7 @@ $hasInputData = (
 // ============================================
 // TENTUKAN CURRENT APPROVER DAN NEXT APPROVER
 // Urutan: Business -> Part Support -> Service Support -> Finance
-// -> Direktur Sales -> Direktur Operasional -> Direktur Utama
+// -> Sales Manager -> Direktur Sales -> Direktur Operasional -> Direktur Utama
 // ============================================
 $currentApprovalOrder = 0;
 $currentApproverLabel = $hasInputData ? 'Business' : 'Belum ada data untuk approval';
@@ -363,7 +364,7 @@ if ($hasInputData && $detailDI) {
         $nextApproverLabel = '-';
     } else {
         $currentApprovalOrder = $lastApprovedOrder + 1;
-        if ($currentApprovalOrder >= 1 && $currentApprovalOrder <= 7) {
+        if ($currentApprovalOrder >= 1 && $currentApprovalOrder <= 8) {
             $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
             $nextOrder = $currentApprovalOrder + 1;
             $nextApproverLabel = $nextOrder <= 7 ? $approvalLevels[$nextOrder]['label'] : '-';
@@ -477,7 +478,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $dbCurrentOrder = (int)($currentDetail['current_approval_order'] ?? 0);
-            if ($currentOrder < 1 || $currentOrder > 7 || $currentOrder !== $dbCurrentOrder) {
+            if ($currentOrder < 1 || $currentOrder > 8 || $currentOrder !== $dbCurrentOrder) {
                 throw new Exception('Urutan approval tidak valid atau approval ini sudah diproses.');
             }
 
@@ -508,7 +509,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($approvalStatus === 'rejected') {
                 $newStatus = 'rejected';
                 $newOrder = $currentOrder;
-            } elseif ($currentOrder === 7) {
+            } elseif ($currentOrder === 8) {
                 $newStatus = 'approved';
                 $newOrder = 8;
             } else {
@@ -1177,7 +1178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <!-- APPROVAL ACTION -->
-                <?php if ($hasInputData && $currentApprovalOrder > 0 && $currentApprovalOrder <= 7 && $request['status'] == 'pending'): ?>
+                <?php if ($hasInputData && $currentApprovalOrder > 0 && $currentApprovalOrder <= 8 && $request['status'] == 'pending'): ?>
                     <?php 
                     $canApprove = false;
                     $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
