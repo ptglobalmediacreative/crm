@@ -489,7 +489,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Tutup</button>
-                    <button type="button" class="btn-add" onclick="savePermission()"><i class="fas fa-save"></i> Simpan</button>
+                    <button type="button" class="btn-add" onclick="savePermission()"></i> Simpan</button>
                 </div>
             </div>
         </div>
