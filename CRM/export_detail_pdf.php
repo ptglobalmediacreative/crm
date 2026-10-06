@@ -286,7 +286,9 @@ try {
 $approvalHistory = [];
 try {
     $stmtApproval = $db->prepare(
-        "SELECT ah.*, u.full_name AS approver_name
+        "SELECT ah.*,
+                COALESCE(ah.approved_at, ah.created_at) AS approval_action_at,
+                u.full_name AS approver_name
          FROM tr_approval_history ah
          LEFT JOIN users u ON ah.approved_by = u.id
          WHERE ah.trf_number = ?
@@ -1143,7 +1145,7 @@ if (count($approvalHistory) > 0) {
                     : '-'
             );
 
-        $approvedAt = formatDateTimeId($approval['approved_at'] ?? '');
+        $approvedAt = formatDateTimeId($approval['approval_action_at'] ?? ($approval['approved_at'] ?? $approval['created_at'] ?? ''));
 
         $html .= '
     <tr>
