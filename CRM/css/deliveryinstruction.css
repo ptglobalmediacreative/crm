@@ -2705,3 +2705,334 @@ button {
     max-width: 100%;
   }
 }
+
+/* =========================================================
+   DELIVERY INSTRUCTION — TRANSACTION REQUEST FILTER OVERRIDE
+   Exact visual structure for Status / Next Approver / All Periode
+   ========================================================= */
+.page-deliveryinstruction .filter-bar {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.page-deliveryinstruction .filter-controls {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.page-deliveryinstruction .status-filter-form,
+.page-deliveryinstruction .next-approver-filter-form,
+.page-deliveryinstruction .period-filter-form {
+  margin: 0 !important;
+  min-width: 0;
+}
+
+.page-deliveryinstruction .status-filter-form {
+  width: 190px;
+  flex: 0 1 190px;
+}
+
+.page-deliveryinstruction .next-approver-filter-form {
+  width: 270px;
+  max-width: 270px;
+  flex: 0 1 270px;
+}
+
+.page-deliveryinstruction .period-filter-form {
+  width: 180px;
+  max-width: 180px;
+  flex: 0 1 180px;
+}
+
+.page-deliveryinstruction .status-filter-wrap,
+.page-deliveryinstruction .next-approver-filter-wrap,
+.page-deliveryinstruction .period-filter-wrap {
+  width: 100%;
+  height: 38px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  background: rgba(10, 17, 33, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 9px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.page-deliveryinstruction .status-filter-wrap > i,
+.page-deliveryinstruction .next-approver-filter-wrap > i,
+.page-deliveryinstruction .period-filter-wrap > i {
+  flex: 0 0 12px;
+  width: 12px;
+  text-align: center;
+  color: var(--app-blue-light);
+  font-size: 10px;
+}
+
+.page-deliveryinstruction .status-filter-select,
+.page-deliveryinstruction .next-approver-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 36px;
+  padding: 0 22px 0 0;
+  border: 0 !important;
+  outline: 0 !important;
+  background-color: transparent !important;
+  color: #cbd5e1 !important;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 10px !important;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.page-deliveryinstruction .status-filter-select option,
+.page-deliveryinstruction .next-approver-select option {
+  background: #0b1222;
+  color: #e8eef7;
+}
+
+.page-deliveryinstruction .period-filter-wrap {
+  cursor: pointer;
+}
+
+.page-deliveryinstruction .period-filter-placeholder {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  color: #cbd5e1;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 36px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* Native month input stays clickable but does not show the browser's
+   ugly "mm/yyyy" placeholder over our All Periode label. */
+.page-deliveryinstruction .period-filter-input {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0;
+  padding: 0 !important;
+  opacity: 0;
+  cursor: pointer;
+  border: 0 !important;
+  background: transparent !important;
+  z-index: 2;
+}
+
+.page-deliveryinstruction .period-filter-wrap:focus-within,
+.page-deliveryinstruction .status-filter-wrap:focus-within,
+.page-deliveryinstruction .next-approver-filter-wrap:focus-within {
+  border-color: rgba(96, 165, 250, 0.35);
+  background: #10203a;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
+}
+
+/* =========================================================
+   NEXT APPROVER + NOTE — TABLE FINISHING
+   ========================================================= */
+.page-deliveryinstruction .table-custom {
+  min-width: 1120px;
+  table-layout: fixed;
+}
+
+.page-deliveryinstruction .table-custom th:nth-child(1),
+.page-deliveryinstruction .table-custom td:nth-child(1) {
+  width: 55px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(2),
+.page-deliveryinstruction .table-custom td:nth-child(2) {
+  width: 130px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(3),
+.page-deliveryinstruction .table-custom td:nth-child(3) {
+  width: 210px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(4),
+.page-deliveryinstruction .table-custom td:nth-child(4) {
+  width: 115px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(5),
+.page-deliveryinstruction .table-custom td:nth-child(5) {
+  width: 145px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(6),
+.page-deliveryinstruction .table-custom td:nth-child(6) {
+  width: 175px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(7),
+.page-deliveryinstruction .table-custom td:nth-child(7) {
+  width: 115px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(8),
+.page-deliveryinstruction .table-custom td:nth-child(8) {
+  width: 300px;
+}
+.page-deliveryinstruction .table-custom th:nth-child(9),
+.page-deliveryinstruction .table-custom td:nth-child(9) {
+  width: 105px;
+}
+
+.page-deliveryinstruction .current-approver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #aeb9cb;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.page-deliveryinstruction .tr-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  width: 100%;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.page-deliveryinstruction .tr-note i {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  font-size: 10px;
+}
+
+.page-deliveryinstruction .tr-note span {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  line-height: 1.45;
+}
+
+.page-deliveryinstruction .tr-note-pending {
+  color: #94a3b8;
+}
+.page-deliveryinstruction .tr-note-approved {
+  color: #69e5b0;
+}
+.page-deliveryinstruction .tr-note-rejected {
+  color: #ff8da0;
+}
+
+/* =========================================================
+   RESPONSIVE — KEEP SAME STYLE AS TRANSACTION REQUEST
+   ========================================================= */
+@media (max-width: 1200px) {
+  .page-deliveryinstruction .filter-controls {
+    flex-wrap: wrap;
+  }
+
+  .page-deliveryinstruction .status-filter-form,
+  .page-deliveryinstruction .next-approver-filter-form,
+  .page-deliveryinstruction .period-filter-form {
+    flex: 1 1 0;
+  }
+
+  .page-deliveryinstruction .status-filter-form {
+    min-width: 180px;
+  }
+  .page-deliveryinstruction .next-approver-filter-form {
+    min-width: 230px;
+  }
+  .page-deliveryinstruction .period-filter-form {
+    min-width: 170px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-deliveryinstruction .filter-bar {
+    padding: 12px 14px 13px !important;
+  }
+
+  .page-deliveryinstruction .filter-controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .page-deliveryinstruction .status-filter-form,
+  .page-deliveryinstruction .next-approver-filter-form,
+  .page-deliveryinstruction .period-filter-form {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .page-deliveryinstruction .status-filter-wrap,
+  .page-deliveryinstruction .next-approver-filter-wrap,
+  .page-deliveryinstruction .period-filter-wrap {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .page-deliveryinstruction .status-filter-select,
+  .page-deliveryinstruction .next-approver-select {
+    height: 38px;
+    font-size: 11px !important;
+  }
+
+  .page-deliveryinstruction .period-filter-placeholder {
+    line-height: 38px;
+    font-size: 11px;
+  }
+
+  .page-deliveryinstruction .table-custom {
+    min-width: 1120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-deliveryinstruction .filter-bar {
+    padding: 10px !important;
+  }
+
+  .page-deliveryinstruction .filter-controls {
+    gap: 7px;
+  }
+
+  .page-deliveryinstruction .status-filter-wrap,
+  .page-deliveryinstruction .next-approver-filter-wrap,
+  .page-deliveryinstruction .period-filter-wrap {
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .page-deliveryinstruction .status-filter-select,
+  .page-deliveryinstruction .next-approver-select,
+  .page-deliveryinstruction .period-filter-placeholder {
+    font-size: 10px !important;
+  }
+}
