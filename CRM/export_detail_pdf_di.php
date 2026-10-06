@@ -83,6 +83,8 @@ function getApprovalLabel($approvalLevels, $order) {
 // AMBIL DATA DELIVERY INSTRUCTION
 // ============================================
 $sql = "SELECT ad.di_number,
+               ad.tr_number,
+               sa.leads_number AS activity_number,
                ad.due_date,
                ad.created_at as request_date,
                ad.id as activity_detail_id,
@@ -158,12 +160,14 @@ try {
 // APPROVAL LEVELS
 // ============================================
 $approvalLevels = [
-    1 => ['role' => 'admin', 'label' => 'Admin Sales'],
-    2 => ['role' => 'business', 'label' => 'Business'],
+    1 => ['role' => 'business', 'label' => 'Business'],
+    2 => ['role' => 'part_support', 'label' => 'Part Support'],
     3 => ['role' => 'service_support', 'label' => 'Service Support'],
-    4 => ['role' => 'part_support', 'label' => 'Part Support'],
-    5 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
-    6 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
+    4 => ['role' => 'finance', 'label' => 'Finance'],
+    5 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
+    6 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
+    7 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
+    8 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
 
 // ============================================
@@ -216,7 +220,47 @@ try {
 }
 
 // ============================================
-// DATA PRODUCT SUPPORTS
+ // DATA DETAIL PART
+ // ============================================
+ $diParts = [];
+ try {
+     $stmtPart = $db->prepare(
+         "SELECT * FROM di_parts
+          WHERE di_number = ?
+          ORDER BY id ASC"
+     );
+     $stmtPart->execute([$di_number]);
+     $diParts = $stmtPart->fetchAll();
+ } catch (Exception $e) {
+     $diParts = [];
+ }
+
+ // ============================================
+ // DATA KOMPARASI LOGISTIK
+ // ============================================
+ $diLogisticsComparisons = [];
+ try {
+     $stmtLogComp = $db->prepare(
+         "SELECT * FROM di_logistics_comparisons
+          WHERE di_number = ?
+          ORDER BY id ASC"
+     );
+     $stmtLogComp->execute([$di_number]);
+     $diLogisticsComparisons = $stmtLogComp->fetchAll();
+ } catch (Exception $e) {
+     $diLogisticsComparisons = [];
+ }
+
+ $selectedLogisticsVendor = null;
+ foreach ($diLogisticsComparisons as $comparison) {
+     if ((int)($comparison['is_selected'] ?? 0) === 1) {
+         $selectedLogisticsVendor = $comparison;
+         break;
+     }
+ }
+
+ // ============================================
+ // DATA PRODUCT SUPPORTS
 // ============================================
 $diSupports = [];
 try {
@@ -394,22 +438,26 @@ $html = '<!DOCTYPE html>
 <div class="section">A. DATA PENJUALAN</div>
 <table class="meta-table">
     <tr>
+        <td class="label meta-label">Activity Number</td>
+        <td class="meta-value">' . h($request['activity_number'] ?? '-') . '</td>
         <td class="label meta-label">No. DI</td>
         <td class="bold meta-value">' . h($di_number) . '</td>
-        <td class="label meta-label">Sales</td>
-        <td class="meta-value">' . h($request['sales_name'] ?? '-') . '</td>
     </tr>
     <tr>
+        <td class="label meta-label">No. TR</td>
+        <td class="meta-value">' . h($request['tr_number'] ?? '-') . '</td>
         <td class="label meta-label">Tanggal</td>
         <td class="meta-value">' . formatDateLongId($request['request_date'] ?? null) . '</td>
-        <td class="label meta-label">Kode Sales</td>
-        <td class="meta-value">-</td>
     </tr>
     <tr>
         <td class="label meta-label">No. SO</td>
         <td class="meta-value">' . h($request['no_so'] ?? '-') . '</td>
+        <td class="label meta-label">Sales</td>
+        <td class="meta-value">' . h($request['sales_name'] ?? '-') . '</td>
+    </tr>
+    <tr>
         <td class="label meta-label">Status</td>
-        <td class="meta-value"><span class="status ' . statusClass($request['status'] ?? 'pending') . '">' . h(statusLabel($request['status'] ?? 'pending')) . '</span></td>
+        <td colspan="3" class="meta-value"><span class="status ' . statusClass($request['status'] ?? 'pending') . '">' . h(statusLabel($request['status'] ?? 'pending')) . '</span></td>
     </tr>
 </table>
 
@@ -519,8 +567,82 @@ $html .= '</table>
     </tr>
 </table>
 
+<!-- DETAIL PART -->
+<div class="section">F. DETAIL PART</div>
+<table class="accessory-table">
+    <tr>
+        <th style="width:7%">No</th>
+        <th style="width:18%">Part Number</th>
+        <th style="width:25%">Description</th>
+        <th style="width:14%">Price</th>
+        <th style="width:9%">Qty</th>
+        <th style="width:12%">Jumlah Unit</th>
+        <th style="width:15%">Total Amount</th>
+    </tr>';
+
+if (count($diParts) > 0) {
+    $grandTotalParts = 0;
+    foreach ($diParts as $idx => $part) {
+        $grandTotalParts += (float)($part['total_amount'] ?? 0);
+        $html .= '<tr>
+            <td class="center">' . ($idx + 1) . '</td>
+            <td>' . h($part['part_number'] ?? '-') . '</td>
+            <td>' . h($part['description'] ?? '-') . '</td>
+            <td class="right">Rp ' . number_format((float)($part['price'] ?? 0), 0, ',', '.') . '</td>
+            <td class="center">' . h($part['qty'] ?? '0') . '</td>
+            <td class="center">' . count($diUnits) . '</td>
+            <td class="right bold">Rp ' . number_format((float)($part['total_amount'] ?? 0), 0, ',', '.') . '</td>
+        </tr>';
+    }
+    $html .= '<tr>
+        <td colspan="6" class="right bold">Grand Total</td>
+        <td class="right bold">Rp ' . number_format($grandTotalParts, 0, ',', '.') . '</td>
+    </tr>';
+} else {
+    $html .= '<tr><td colspan="7" class="center accessory-empty">Belum ada data detail part</td></tr>';
+}
+
+$html .= '</table>
+
+<!-- KOMPARASI LOGISTIK -->
+<div class="section">G. KOMPARASI HARGA LOGISTIK UNIT</div>
+<table class="accessory-table">
+    <tr>
+        <th style="width:9%">Vendor</th>
+        <th style="width:22%">Nama Vendor</th>
+        <th style="width:18%">Metode Pembayaran</th>
+        <th style="width:13%">ETA Kirim</th>
+        <th style="width:15%">Harga</th>
+        <th style="width:23%">Keterangan</th>
+    </tr>';
+
+if (count($diLogisticsComparisons) > 0) {
+    foreach ($diLogisticsComparisons as $idx => $vendor) {
+        $isSelected = (int)($vendor['is_selected'] ?? 0) === 1;
+        $html .= '<tr' . ($isSelected ? ' class="green"' : '') . '>
+            <td class="center bold">Vendor ' . chr(65 + $idx) . '</td>
+            <td>' . h($vendor['vendor_name'] ?? '-') . '</td>
+            <td>' . h($vendor['payment_method'] ?? '-') . '</td>
+            <td class="center">' . ($vendor['eta_kirim'] ? formatDateId($vendor['eta_kirim']) : '-') . '</td>
+            <td class="right">Rp ' . number_format((float)($vendor['harga'] ?? 0), 0, ',', '.') . '</td>
+            <td>' . h($vendor['keterangan'] ?? '-') . '</td>
+        </tr>';
+    }
+} else {
+    $html .= '<tr><td colspan="6" class="center accessory-empty">Belum ada komparasi harga logistik</td></tr>';
+}
+
+if ($selectedLogisticsVendor) {
+    $html .= '<tr>
+        <td class="label" colspan="2">Vendor Terpilih</td>
+        <td colspan="4" class="green bold">' . h($selectedLogisticsVendor['vendor_name'] ?? '-') . '</td>
+    </tr>';
+}
+
+$html .= '</table>
+
 <!-- PRODUCT SUPPORT -->
-<div class="section">F. PRODUCT SUPPORT</div>
+<div class="section">H. PRODUCT SUPPORT</div>
 <table class="support-table">
     <tr>
         <td class="support-label">Free Filter (Engine)</td>
@@ -582,50 +704,50 @@ $html .= '</td>
 </table>
 
 <!-- APPROVAL HISTORY -->
-<div class="section">G. APPROVAL HISTORY</div>';
+<div class="section">I. APPROVAL HISTORY</div>';
 
-if (count($approvalHistory) > 0) {
-    $html .= '<table class="approval-table">
-        <tr>
-            <th style="width:9%">Level</th>
-            <th style="width:28%">Approval</th>
-            <th style="width:15%">Status</th>
-            <th style="width:28%">Approved By</th>
-            <th style="width:20%">Approved At</th>
-        </tr>';
+$approvalByOrder = [];
+foreach ($approvalHistory as $approval) {
+    $approvalByOrder[(int)($approval['approval_order'] ?? 0)] = $approval;
+}
 
-    foreach ($approvalHistory as $approval) {
-        $order = (int)($approval['approval_order'] ?? 0);
-        $status = strtolower((string)($approval['status'] ?? 'pending'));
-        $statusClass = in_array($status, ['pending', 'approved', 'rejected'], true)
-            ? 'status-' . $status
-            : 'status-pending';
+$html .= '<table class="approval-table">
+    <tr>
+        <th style="width:9%">Level</th>
+        <th style="width:28%">Approval</th>
+        <th style="width:15%">Status</th>
+        <th style="width:28%">Approved By</th>
+        <th style="width:20%">Approved At</th>
+    </tr>';
 
-        $approvedBy = '-';
-        if (!empty($approval['approved_by'])) {
-            try {
-                $stmtUser = $db->prepare("SELECT full_name FROM users WHERE id = ?");
-                $stmtUser->execute([$approval['approved_by']]);
-                $userName = $stmtUser->fetchColumn();
-                $approvedBy = $userName ?: ($approval['approval_label'] ?? '-');
-            } catch (Exception $e) {
-                $approvedBy = $approval['approval_label'] ?? '-';
-            }
+for ($order = 1; $order <= 8; $order++) {
+    $approval = $approvalByOrder[$order] ?? null;
+    $status = $approval ? strtolower((string)($approval['status'] ?? 'pending')) : 'pending';
+
+    $approvedBy = '-';
+    if ($approval && !empty($approval['approved_by'])) {
+        try {
+            $stmtUser = $db->prepare("SELECT full_name FROM users WHERE id = ?");
+            $stmtUser->execute([$approval['approved_by']]);
+            $userName = $stmtUser->fetchColumn();
+            $approvedBy = $userName ?: '-';
+        } catch (Exception $e) {
+            $approvedBy = '-';
         }
-
-        $html .= '<tr>
-            <td class="center">Level ' . $order . '</td>
-            <td>' . h($approval['approval_label'] ?? getApprovalLabel($approvalLevels, $order)) . '</td>
-            <td class="center"><span class="status ' . $statusClass . '">' . h(statusLabel($status)) . '</span></td>
-            <td>' . h($approvedBy) . '</td>
-            <td class="center">' . formatDateTimeId($approval['approved_at'] ?? null) . '</td>
-        </tr>';
     }
 
-    $html .= '</table>';
-} else {
-    $html .= '<table><tr><td class="center">Belum ada approval history</td></tr></table>';
+    $approvedAt = $approval['approved_at'] ?? null;
+
+    $html .= '<tr>
+        <td class="center">Level ' . $order . '</td>
+        <td>' . h($approvalLevels[$order]['label']) . '</td>
+        <td class="center"><span class="status ' . statusClass($status) . '">' . h(statusLabel($status)) . '</span></td>
+        <td>' . h($approvedBy) . '</td>
+        <td class="center">' . formatDateTimeId($approvedAt) . '</td>
+    </tr>';
 }
+
+$html .= '</table>';
 
 // FOOTER
 $html .= '
