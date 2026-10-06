@@ -24,6 +24,23 @@ if (!isLoggedIn()) {
     die('Silakan login dulu!');
 }
 
+// Hak akses export PDF harus sama dengan tombol PDF di Transaction Request.
+$userRole = $_SESSION['role'] ?? 'user';
+$pdfDownloadRoles = [
+    'direktur_utama',
+    'direktur_sales',
+    'direktur_operasional',
+    'it_support',
+    'business',
+    'finance'
+];
+
+if (!in_array($userRole, $pdfDownloadRoles, true)) {
+    ob_end_clean();
+    http_response_code(403);
+    die('Anda tidak memiliki akses untuk mengunduh PDF Transaction Request.');
+}
+
 // ============================================
 // AMBIL TR NUMBER
 // ============================================
@@ -141,6 +158,9 @@ try {
 
 $statusTR = !empty($detailTR['status']) ? $detailTR['status'] : 'pending';
 $request['status'] = $statusTR;
+
+$customerDeal = strtolower(trim((string)($detailTR['customer_deal'] ?? '')));
+$customerDealKeterangan = trim((string)($detailTR['customer_deal_keterangan'] ?? ''));
 
 // ============================================
 // PRODUK
@@ -284,6 +304,63 @@ $approvalLevels = [
     3 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
     4 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
 ];
+
+// Hitung Current Approver dan Next Approver dengan alur yang sama
+// seperti detailtr.php.
+$currentApprovalOrder = 1;
+$currentApproverLabel = $approvalLevels[1]['label'];
+$nextApproverLabel = $approvalLevels[2]['label'];
+
+$approvedByOrder = [];
+$rejectedByCurrentFlow = false;
+
+foreach ($approvalHistory as $approval) {
+    $order = (int)($approval['approval_order'] ?? 0);
+    if (!isset($approvalLevels[$order])) {
+        continue;
+    }
+
+    if (($approval['approval_role'] ?? '') !== $approvalLevels[$order]['role']) {
+        continue;
+    }
+
+    if (($approval['status'] ?? '') === 'approved') {
+        $approvedByOrder[$order] = true;
+    } elseif (($approval['status'] ?? '') === 'rejected') {
+        $rejectedByCurrentFlow = true;
+    }
+}
+
+$lastApprovedOrder = 0;
+for ($order = 1; $order <= count($approvalLevels); $order++) {
+    if (!empty($approvedByOrder[$order])) {
+        $lastApprovedOrder = $order;
+    } else {
+        break;
+    }
+}
+
+if ($rejectedByCurrentFlow || $statusTR === 'rejected') {
+    $currentApprovalOrder = 0;
+    $currentApproverLabel = 'No More Approval';
+    $nextApproverLabel = 'No More Approval';
+} elseif ($statusTR === 'approved') {
+    $currentApprovalOrder = 0;
+    $currentApproverLabel = 'No More Approval';
+    $nextApproverLabel = 'No More Approval';
+} else {
+    $currentApprovalOrder = $lastApprovedOrder + 1;
+    if ($currentApprovalOrder <= count($approvalLevels)) {
+        $currentApproverLabel = $approvalLevels[$currentApprovalOrder]['label'];
+        $nextOrder = $currentApprovalOrder + 1;
+        $nextApproverLabel = $nextOrder <= count($approvalLevels)
+            ? $approvalLevels[$nextOrder]['label']
+            : 'No More Approval';
+    } else {
+        $currentApproverLabel = 'No More Approval';
+        $nextApproverLabel = 'No More Approval';
+    }
+}
 
 // ============================================
 // HITUNG TOTAL
@@ -637,6 +714,23 @@ $html = '<!DOCTYPE html>
                         </span>
                     </td>
                 </tr>
+                <tr>
+                    <td class="label">Current Approver</td>
+                    <td>' . h($currentApproverLabel) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Next Approver</td>
+                    <td>' . h($nextApproverLabel) . '</td>
+                </tr>
+                <tr>
+                    <td class="label">Customer Deal</td>
+                    <td class="bold">' . h($customerDeal === 'yes' ? 'Yes' : ($customerDeal === 'no' ? 'No' : 'Belum diisi')) . '</td>
+                </tr>
+                ' . ($customerDeal === 'no' ? '
+                <tr>
+                    <td class="label">Keterangan Customer Tidak Deal</td>
+                    <td>' . nl2br(h($customerDealKeterangan)) . '</td>
+                </tr>' : '') . '
             </table>
         </td>
 
@@ -861,13 +955,16 @@ if (count($mediators) > 0) {
     $html .= '
 <table class="mediator-table">
     <tr>
-        <th style="width:5%">No</th>
-        <th style="width:19%">Name</th>
-        <th style="width:15%">ID Card No</th>
-        <th style="width:15%">NPWP No</th>
-        <th style="width:14%">Bank Name</th>
-        <th style="width:17%">Bank Account</th>
-        <th style="width:15%">Amount</th>
+        <th style="width:4%">No</th>
+        <th style="width:13%">Name</th>
+        <th style="width:12%">Company</th>
+        <th style="width:10%">Position</th>
+        <th style="width:11%">Phone</th>
+        <th style="width:12%">ID Card No</th>
+        <th style="width:11%">NPWP No</th>
+        <th style="width:9%">Bank</th>
+        <th style="width:11%">Bank Account</th>
+        <th style="width:7%">Amount</th>
     </tr>';
 
     foreach ($mediators as $i => $med) {
@@ -875,6 +972,9 @@ if (count($mediators) > 0) {
     <tr>
         <td class="center">' . ($i + 1) . '</td>
         <td>' . h($med['name'] ?? '-') . '</td>
+        <td>' . h($med['company_name'] ?? '-') . '</td>
+        <td>' . h($med['position'] ?? '-') . '</td>
+        <td>' . h($med['phone_number'] ?? '-') . '</td>
         <td>' . h($med['id_card_no'] ?? '-') . '</td>
         <td>' . h($med['npwp_no'] ?? '-') . '</td>
         <td>' . h($med['bank_name'] ?? '-') . '</td>
@@ -885,7 +985,7 @@ if (count($mediators) > 0) {
 
     $html .= '
     <tr class="top-total">
-        <td colspan="6" class="right bold">TOTAL MEDIATOR FEE</td>
+        <td colspan="9" class="right bold">TOTAL MEDIATOR FEE</td>
         <td class="right money bold">' . formatRp($totalMediatorFee) . '</td>
     </tr>
 </table>';
