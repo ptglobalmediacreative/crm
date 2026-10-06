@@ -53,6 +53,8 @@ $fullName = $_SESSION['full_name'] ?? 'User';
 $role = $_SESSION['role'] ?? 'user';
 
 $fullAccessRoles = ['it_support', 'admin', 'finance', 'business', 'direktur_utama', 'direktur_sales', 'direktur_operasional'];
+$pdfAccessRoles = ['admin', 'business', 'sales_manager', 'direktur_sales', 'direktur_operasional', 'direktur_utama'];
+$canAccessPdf = in_array($userRole, $pdfAccessRoles, true);
 $hasFullAccess = in_array($userRole, $fullAccessRoles);
 $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional']);
 
@@ -73,6 +75,7 @@ $allowedNextApprovers = [
     'Part Support',
     'Service Support',
     'Finance',
+    'Sales Manager',
     'Direktur Sales',
     'Direktur Operasional',
     'Direktur Utama',
@@ -147,16 +150,21 @@ $nextApproverSql = "(CASE
         SELECT 1 FROM detail_delivery_instructions ddi0
         WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
           AND ddi0.current_approval_order = 5
-    ) THEN 'Direktur Sales'
+    ) THEN 'Sales Manager'
     WHEN EXISTS (
         SELECT 1 FROM detail_delivery_instructions ddi0
         WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
           AND ddi0.current_approval_order = 6
-    ) THEN 'Direktur Operasional'
+    ) THEN 'Direktur Sales'
     WHEN EXISTS (
         SELECT 1 FROM detail_delivery_instructions ddi0
         WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
           AND ddi0.current_approval_order = 7
+    ) THEN 'Direktur Operasional'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 8
     ) THEN 'Direktur Utama'
     ELSE 'No More Approval'
 END)";
@@ -436,7 +444,9 @@ unset($delivery);
                                 <th>Next Approver</th>
                                 <th>Status</th>
                                 <th>Note</th>
+                                <?php if ($canAccessPdf): ?>
                                 <th style="text-align:center;">Action</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -477,6 +487,7 @@ unset($delivery);
                                                 <span><?= htmlspecialchars($delivery['note'] ?? '-') ?></span>
                                             </div>
                                         </td>
+                                        <?php if ($canAccessPdf): ?>
                                         <td style="text-align:center;">
                                             <?php if ($isApproved): ?>
                                                 <a href="export_detail_pdf_di.php?di_number=<?= urlencode($delivery['di_number']) ?>" 
@@ -491,11 +502,12 @@ unset($delivery);
                                                 </span>
                                             <?php endif; ?>
                                         </td>
+                                        <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
+                                    <td colspan="<?= $canAccessPdf ? 9 : 8 ?>" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data delivery instruction
                                     </td>
                                 </tr>

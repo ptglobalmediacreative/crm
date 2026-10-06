@@ -25,6 +25,19 @@ if (!isLoggedIn()) {
 }
 
 // ============================================
+// AKSES DOWNLOAD PDF
+// HANYA ROLE TERTENTU
+// ============================================
+$userRole = $_SESSION['role'] ?? 'user';
+$pdfAccessRoles = ['admin', 'business', 'sales_manager', 'direktur_sales', 'direktur_operasional', 'direktur_utama'];
+
+if (!in_array($userRole, $pdfAccessRoles, true)) {
+    ob_end_clean();
+    http_response_code(403);
+    die('Anda tidak memiliki akses untuk mengunduh PDF Delivery Instruction.');
+}
+
+// ============================================
 // AMBIL DI NUMBER
 // ============================================
 $di_number = isset($_GET['di_number']) ? bersihkan($_GET['di_number']) : '';
@@ -138,6 +151,14 @@ try {
 
 $request['status'] = $detailDI['status'] ?? 'pending';
 $request['no_so'] = $detailDI['no_so'] ?? '';
+
+// PDF hanya boleh dibuat jika seluruh proses approval DI sudah selesai.
+// detaildi.php menetapkan status 'approved' setelah level terakhir (Direktur Utama) disetujui.
+if (($detailDI['status'] ?? 'pending') !== 'approved') {
+    ob_end_clean();
+    http_response_code(403);
+    die('PDF hanya dapat diunduh setelah seluruh approval Delivery Instruction selesai.');
+}
 
 // ============================================
 // APPROVAL HISTORY
