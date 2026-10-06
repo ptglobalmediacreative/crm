@@ -51,7 +51,7 @@ $hasFullAccess = in_array($userRole, $fullAccessRoles, true);
 $isDirektur = in_array($userRole, ['direktur_utama', 'direktur_sales', 'direktur_operasional'], true);
 
 // Role yang diperbolehkan menampilkan dan mengakses tombol Download PDF TR.
-$pdfDownloadRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional', 'it_support', 'business'];
+$pdfDownloadRoles = ['direktur_utama', 'direktur_sales', 'direktur_operasional', 'it_support', 'business', 'finance'];
 $canDownloadTRPdf = in_array($userRole, $pdfDownloadRoles, true);
 
 // ============================================
