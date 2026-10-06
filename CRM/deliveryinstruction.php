@@ -65,6 +65,36 @@ $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? bersihkan($_GET['search']) : '';
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
+$next_approver_filter = isset($_GET['next_approver']) ? $_GET['next_approver'] : 'all';
+$filter_period = isset($_GET['period']) ? trim($_GET['period']) : '';
+
+$allowedNextApprovers = [
+    'Business',
+    'Part Support',
+    'Service Support',
+    'Finance',
+    'Direktur Sales',
+    'Direktur Operasional',
+    'Direktur Utama',
+    'No More Approval'
+];
+
+if ($next_approver_filter !== 'all' && !in_array($next_approver_filter, $allowedNextApprovers, true)) {
+    $next_approver_filter = 'all';
+}
+
+$filterYear = 0;
+$filterMonth = 0;
+if ($filter_period !== '' && preg_match('/^\d{4}-\d{2}$/', $filter_period)) {
+    [$filterYear, $filterMonth] = array_map('intval', explode('-', $filter_period));
+    if ($filterYear < 2000 || $filterYear > 2100 || $filterMonth < 1 || $filterMonth > 12) {
+        $filter_period = '';
+        $filterYear = 0;
+        $filterMonth = 0;
+    }
+} else {
+    $filter_period = '';
+}
 
 // Validasi status filter
 $allowedStatus = ['all', 'pending', 'approved', 'rejected'];
@@ -77,6 +107,59 @@ if (!in_array($status_filter, $allowedStatus)) {
 // ============================================
 $where = "WHERE ad.di_number IS NOT NULL AND ad.di_number != ''";
 $params = [];
+
+$nextApproverSql = "(CASE
+    WHEN NOT EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+    ) THEN 'Business'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.status = 'rejected'
+    ) THEN 'No More Approval'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.status = 'approved'
+    ) THEN 'No More Approval'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 1
+    ) THEN 'Business'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 2
+    ) THEN 'Part Support'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 3
+    ) THEN 'Service Support'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 4
+    ) THEN 'Finance'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 5
+    ) THEN 'Direktur Sales'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 6
+    ) THEN 'Direktur Operasional'
+    WHEN EXISTS (
+        SELECT 1 FROM detail_delivery_instructions ddi0
+        WHERE ddi0.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci
+          AND ddi0.current_approval_order = 7
+    ) THEN 'Direktur Utama'
+    ELSE 'No More Approval'
+END)";
 
 if ($userRole === 'sales') {
     $where .= " AND sa.sales_id = ?";
@@ -95,6 +178,17 @@ if ($status_filter !== 'all') {
     } elseif ($status_filter === 'rejected') {
         $where .= " AND EXISTS (SELECT 1 FROM detail_delivery_instructions ddi WHERE ddi.di_number COLLATE utf8mb4_unicode_ci = ad.di_number COLLATE utf8mb4_unicode_ci AND ddi.status = 'rejected')";
     }
+}
+
+if ($filter_period !== '') {
+    $where .= " AND YEAR(ad.created_at) = ? AND MONTH(ad.created_at) = ?";
+    $params[] = $filterYear;
+    $params[] = $filterMonth;
+}
+
+if ($next_approver_filter !== 'all') {
+    $where .= " AND (($nextApproverSql) COLLATE utf8mb4_unicode_ci) = (? COLLATE utf8mb4_unicode_ci)";
+    $params[] = $next_approver_filter;
 }
 
 if (!empty($search)) {
@@ -122,6 +216,7 @@ $sql = "SELECT ad.di_number,
                sa.sales_id,
                sa.id as sales_activity_id,
                ad.id as activity_detail_id,
+               $nextApproverSql as next_approver,
                CASE 
                    WHEN EXISTS (
                        SELECT 1 FROM detail_delivery_instructions ddi 
@@ -154,6 +249,12 @@ $deliveries = $stmt->fetchAll();
 // ============================================
 $statWhere = "WHERE ad.di_number IS NOT NULL AND ad.di_number != ''";
 $statParams = [];
+
+if ($filter_period !== '') {
+    $statWhere .= " AND YEAR(ad.created_at) = ? AND MONTH(ad.created_at) = ?";
+    $statParams[] = $filterYear;
+    $statParams[] = $filterMonth;
+}
 
 if ($userRole === 'sales') {
     $statWhere .= " AND sa.sales_id = ?";
@@ -189,6 +290,39 @@ $stmt->execute($statParams);
 $totalRejected = $stmt->fetchColumn();
 
 $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
+
+// NOTE berdasarkan approval terakhir / status DI.
+function getDINote(PDO $db, string $diNumber, string $status, string $nextApprover): string
+{
+    try {
+        $stmt = $db->prepare("SELECT catatan FROM di_approval_history WHERE di_number = ? AND catatan IS NOT NULL AND TRIM(catatan) != '' ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$diNumber]);
+        $note = trim((string)$stmt->fetchColumn());
+        if ($note !== '') {
+            return $note;
+        }
+    } catch (Exception $e) {
+        // fallback di bawah
+    }
+
+    if ($status === 'rejected') {
+        return 'DI ditolak dan menunggu perbaikan Admin';
+    }
+    if ($status === 'approved') {
+        return 'DI telah selesai melalui seluruh proses approval';
+    }
+    return $nextApprover !== '-' ? 'Menunggu approval ' . $nextApprover : 'Menunggu proses approval';
+}
+
+foreach ($deliveries as &$delivery) {
+    $delivery['note'] = getDINote(
+        $db,
+        (string)($delivery['di_number'] ?? ''),
+        (string)($delivery['status'] ?? 'pending'),
+        (string)($delivery['next_approver'] ?? '-')
+    );
+}
+unset($delivery);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -208,7 +342,7 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
     <link rel="stylesheet" href="css/footer.css">
 
 </head>
-<body>
+<body class="page-deliveryinstruction">
 
     <?php require_once 'navigation.php'; ?>
 
@@ -235,24 +369,59 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
                 </form>
             </div>
             
-            <!-- Filter Status -->
-            <div class="filter-wrap">
-                <div class="filter-buttons">
-                    <a href="?status=all&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'all' ? 'active' : '' ?>">
-                        Semua <span class="count"><?= $totalDeliveries ?></span>
-                    </a>
-                    <a href="?status=pending&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'pending' ? 'active' : '' ?>">
-                        <i class="fas fa-clock fa-fw"></i> Pending <span class="count"><?= $totalPending ?></span>
-                    </a>
-                    <a href="?status=approved&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'approved' ? 'active' : '' ?>">
-                        <i class="fas fa-check-circle fa-fw"></i> Approved <span class="count"><?= $totalApproved ?></span>
-                    </a>
-                    <a href="?status=rejected&search=<?= urlencode($search) ?>" class="btn-filter <?= $status_filter == 'rejected' ? 'active' : '' ?>">
-                        <i class="fas fa-times-circle fa-fw"></i> Rejected <span class="count"><?= $totalRejected ?></span>
-                    </a>
+            <!-- FILTER STATUS / NEXT APPROVER / PERIODE -->
+            <div class="filter-bar">
+                <div class="filter-controls">
+
+                    <!-- STATUS DROPDOWN -->
+                    <form method="GET" class="status-filter-form">
+                        <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+                        <input type="hidden" name="next_approver" value="<?= htmlspecialchars($next_approver_filter) ?>">
+                        <input type="hidden" name="period" value="<?= htmlspecialchars($filter_period) ?>">
+                        <div class="status-filter-wrap">
+                            <i class="fas fa-filter"></i>
+                            <select name="status" class="status-filter-select" onchange="this.form.submit()">
+                                <option value="all" <?= $status_filter === 'all' ? 'selected' : '' ?>>Semua (<?= $totalDeliveries ?>)</option>
+                                <option value="pending" <?= $status_filter === 'pending' ? 'selected' : '' ?>>Pending (<?= $totalPending ?>)</option>
+                                <option value="approved" <?= $status_filter === 'approved' ? 'selected' : '' ?>>Approved (<?= $totalApproved ?>)</option>
+                                <option value="rejected" <?= $status_filter === 'rejected' ? 'selected' : '' ?>>Rejected (<?= $totalRejected ?>)</option>
+                            </select>
+                        </div>
+                    </form>
+
+                    <!-- NEXT APPROVER DROPDOWN -->
+                    <form method="GET" class="next-approver-filter-form">
+                        <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+                        <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
+                        <input type="hidden" name="period" value="<?= htmlspecialchars($filter_period) ?>">
+                        <div class="next-approver-filter-wrap">
+                            <i class="fas fa-user-check"></i>
+                            <select name="next_approver" class="next-approver-select" onchange="this.form.submit()">
+                                <option value="all" <?= $next_approver_filter === 'all' ? 'selected' : '' ?>>Semua Next Approver</option>
+                                <?php foreach ($allowedNextApprovers as $approver): ?>
+                                    <option value="<?= htmlspecialchars($approver) ?>" <?= $next_approver_filter === $approver ? 'selected' : '' ?>><?= htmlspecialchars($approver) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </form>
+
+                    <!-- FILTER PERIODE -->
+                    <form method="GET" class="period-filter-form">
+                        <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+                        <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
+                        <input type="hidden" name="next_approver" value="<?= htmlspecialchars($next_approver_filter) ?>">
+                        <div class="period-filter-wrap">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span class="period-filter-placeholder" aria-hidden="true">
+                                <?= !empty($filter_period) ? htmlspecialchars(date('F Y', strtotime($filter_period . '-01'))) : 'All Periode' ?>
+                            </span>
+                            <input type="month" name="period" class="period-filter-input" value="<?= htmlspecialchars($filter_period) ?>" onchange="this.form.submit()" aria-label="Filter periode">
+                        </div>
+                    </form>
+
                 </div>
             </div>
-            
+
             <div class="card-body-custom">
                 <?= showFlash() ?>
                 <div class="table-responsive">
@@ -263,9 +432,10 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
                                 <th>DI Number</th>
                                 <th>Account</th>
                                 <th>Request Date</th>
-                                <th>Due Date</th>
                                 <th>Sales</th>
+                                <th>Next Approver</th>
                                 <th>Status</th>
+                                <th>Note</th>
                                 <th style="text-align:center;">Action</th>
                             </tr>
                         </thead>
@@ -287,8 +457,8 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
                                         </td>
                                         <td><?= htmlspecialchars($delivery['nama_pt'] ?? '-') ?></td>
                                         <td><?= date('d/m/Y', strtotime($delivery['request_date'])) ?></td>
-                                        <td><?= date('d/m/Y', strtotime($delivery['due_date'])) ?></td>
                                         <td><?= htmlspecialchars($delivery['sales_name'] ?? '-') ?></td>
+                                        <td><span class="current-approver"><?= htmlspecialchars($delivery['next_approver'] ?? '-') ?></span></td>
                                         <td>
                                             <span class="badge-status-di <?= $statusClass ?>">
                                                 <?php if ($delivery['status'] == 'pending'): ?>
@@ -300,6 +470,12 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
                                                 <?php endif; ?>
                                                 <?= $statusLabel ?>
                                             </span>
+                                        </td>
+                                        <td style="min-width: 280px; max-width: 420px;">
+                                            <div class="current-approver tr-note <?= $delivery['status'] === 'rejected' ? 'tr-note-rejected' : ($delivery['status'] === 'approved' ? 'tr-note-approved' : 'tr-note-pending') ?>">
+                                                <i class="fas <?= $delivery['status'] === 'rejected' ? 'fa-comment-slash' : ($delivery['status'] === 'approved' ? 'fa-circle-check' : 'fa-note-sticky') ?>"></i>
+                                                <span><?= htmlspecialchars($delivery['note'] ?? '-') ?></span>
+                                            </div>
                                         </td>
                                         <td style="text-align:center;">
                                             <?php if ($isApproved): ?>
@@ -319,7 +495,7 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
+                                    <td colspan="9" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data delivery instruction
                                     </td>
                                 </tr>
@@ -333,15 +509,15 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
                     <nav>
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Prev</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>&period=<?= urlencode($filter_period) ?>">Prev</a></li>
                             <?php endif; ?>
                             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                 <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>"><?= $i ?></a>
+                                    <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>&period=<?= urlencode($filter_period) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                             <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>">Next</a></li>
+                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= $status_filter ?>&next_approver=<?= urlencode($next_approver_filter) ?>&period=<?= urlencode($filter_period) ?>">Next</a></li>
                             <?php endif; ?>
                         </ul>
                     </nav>
@@ -354,5 +530,26 @@ $totalDeliveries = $totalPending + $totalApproved + $totalRejected;
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.period-filter-wrap').forEach(function (wrap) {
+            const input = wrap.querySelector('.period-filter-input');
+            const placeholder = wrap.querySelector('.period-filter-placeholder');
+            if (!input || !placeholder) return;
+            function syncPeriodLabel() {
+                if (input.value) {
+                    const parts = input.value.split('-');
+                    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                    const m = parseInt(parts[1], 10);
+                    placeholder.textContent = (months[m - 1] || '') + ' ' + parts[0];
+                } else {
+                    placeholder.textContent = 'All Periode';
+                }
+            }
+            syncPeriodLabel();
+            input.addEventListener('change', syncPeriodLabel);
+        });
+    });
+    </script>
 </body>
 </html>
