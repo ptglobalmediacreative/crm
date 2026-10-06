@@ -453,6 +453,72 @@ function renumberAllDeliveryInstructions($db, $period = null) {
 }
 
 // ============================================
+// TIPE UNIT UNTUK AKTIVITAS PROSPECTING
+// ============================================
+// Satu aktivitas Prospecting dapat memiliki lebih dari satu tipe unit.
+// Data unit ditarik langsung dari tabel products (Data Produk).
+try {
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS activity_detail_units (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            activity_detail_id INT NOT NULL,
+            product_id INT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_activity_product (activity_detail_id, product_id),
+            KEY idx_activity_detail_id (activity_detail_id),
+            KEY idx_product_id (product_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+} catch (PDOException $e) {
+    // Tabel akan dicek kembali saat proses simpan.
+}
+
+// Data Produk untuk pilihan Tipe Unit.
+$produkTipeUnit = [];
+try {
+    $stmtProdukTipeUnit = $db->query("
+        SELECT id, nama_produk
+        FROM products
+        WHERE nama_produk IS NOT NULL
+          AND TRIM(nama_produk) <> ''
+        ORDER BY nama_produk ASC
+    ");
+    $produkTipeUnit = $stmtProdukTipeUnit->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $produkTipeUnit = [];
+}
+
+// ============================================
+// TIPE UNIT UNTUK AKTIVITAS PROSPECTING
+// ============================================
+try {
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS activity_detail_units (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            activity_detail_id INT NOT NULL,
+            product_id INT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_activity_product (activity_detail_id, product_id),
+            KEY idx_activity_detail_id (activity_detail_id),
+            KEY idx_product_id (product_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+} catch (PDOException $e) {}
+
+$produkTipeUnit = [];
+try {
+    $stmtProdukTipeUnit = $db->query("
+        SELECT id, nama_produk
+        FROM products
+        WHERE nama_produk IS NOT NULL AND TRIM(nama_produk) <> ''
+        ORDER BY nama_produk ASC
+    ");
+    $produkTipeUnit = $stmtProdukTipeUnit->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $produkTipeUnit = [];
+}
+
+// ============================================
 // PROSES TAMBAH DETAIL AKTIVITAS
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -471,13 +537,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
         $deskripsi = trim($_POST['deskripsi']);
         $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : NULL;
-        
+
+        $tipe_unit_ids = array_values(array_unique(array_filter(
+            array_map('intval', (array)($_POST['tipe_unit_ids'] ?? [])),
+            static function ($id) { return $id > 0; }
+        )));
+
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (strlen($deskripsi) < 50) $errors[] = 'Deskripsi minimal 50 karakter!';
-        
+
+        if ($jenis_tugas === 'Prospecting') {
+            if (empty($tipe_unit_ids)) {
+                $errors[] = 'Tipe Unit wajib dipilih untuk aktivitas Prospecting!';
+            } else {
+                $placeholders = implode(',', array_fill(0, count($tipe_unit_ids), '?'));
+                $stmtValidProduk = $db->prepare("SELECT id FROM products WHERE id IN ($placeholders)");
+                $stmtValidProduk->execute($tipe_unit_ids);
+                $validProductIds = array_map('intval', $stmtValidProduk->fetchAll(PDO::FETCH_COLUMN));
+                if (count($validProductIds) !== count($tipe_unit_ids)) {
+                    $errors[] = 'Ada Tipe Unit yang tidak valid. Silakan pilih dari Data Produk.';
+                }
+            }
+        }
+
         // ============================================================
         // SYARAT KONTRAK & DELIVERY ORDER
         // ============================================================
@@ -601,6 +686,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, di_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'in_progress')");
                 $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number, $di_number]);
+
+                if ($jenis_tugas === 'Prospecting' && !empty($tipe_unit_ids)) {
+                    $activityDetailId = (int)$db->lastInsertId();
+                    $stmtUnit = $db->prepare("INSERT INTO activity_detail_units (activity_detail_id, product_id) VALUES (?, ?)");
+                    foreach ($tipe_unit_ids as $productId) {
+                        $stmtUnit->execute([$activityDetailId, $productId]);
+                    }
+                }
 
                 // After Sales setelah Lost Deal / tanpa Deal baru kembali menjadi Prospect.
                 // Jika sebelumnya Deal, status Deal tetap dipertahankan.
@@ -975,6 +1068,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 );
             }
 
+            // Hapus relasi Tipe Unit Prospecting terlebih dahulu.
+            $stmtDeleteActivityUnits = $db->prepare("DELETE FROM activity_detail_units WHERE activity_detail_id = ?");
+            $stmtDeleteActivityUnits->execute([$detail_id]);
+
             // Hapus detail aktivitas.
             $stmt = $db->prepare("
                 DELETE FROM activity_details
@@ -1081,6 +1178,33 @@ function getCustomerDealFromTR($db, $trNumber, $salesActivityId) {
 $details = $db->prepare("SELECT * FROM activity_details WHERE sales_activity_id = ? ORDER BY created_at DESC");
 $details->execute([$leadsId]);
 $detailsList = $details->fetchAll();
+
+$activityUnitMap = [];
+if (!empty($detailsList)) {
+    $detailIds = array_values(array_unique(array_map(
+        static function ($row) { return (int)$row['id']; },
+        $detailsList
+    )));
+    if (!empty($detailIds)) {
+        $placeholders = implode(',', array_fill(0, count($detailIds), '?'));
+        try {
+            $stmtActivityUnits = $db->prepare("
+                SELECT adu.activity_detail_id, adu.product_id, p.nama_produk
+                FROM activity_detail_units adu
+                INNER JOIN products p ON p.id = adu.product_id
+                WHERE adu.activity_detail_id IN ($placeholders)
+                ORDER BY p.nama_produk ASC
+            ");
+            $stmtActivityUnits->execute($detailIds);
+            foreach ($stmtActivityUnits->fetchAll(PDO::FETCH_ASSOC) as $unitRow) {
+                $activityUnitMap[(int)$unitRow['activity_detail_id']][] = $unitRow;
+            }
+        } catch (PDOException $e) {}
+    }
+}
+foreach ($detailsList as $idx => $detailRow) {
+    $detailsList[$idx]['tipe_unit_list'] = $activityUnitMap[(int)$detailRow['id']] ?? [];
+}
 
 // Jika Customer Deal pada Delivery Order = Deal, maka Jenis Prospek
 // Sales Activity ini otomatis menjadi Deal.
@@ -1372,6 +1496,27 @@ foreach ($detailsList as $d) {
                             </select>
                         </div>
                         
+                        <div class="mb-3" id="tipeUnitFieldAdd" style="display: none;">
+                            <label class="form-label">Tipe Unit <span class="text-danger">*</span></label>
+                            <div id="tipeUnitRowsAdd">
+                                <div class="input-group mb-2 tipe-unit-row">
+                                    <select name="tipe_unit_ids[]" class="form-select tipe-unit-select">
+                                        <option value="">Pilih Tipe Unit</option>
+                                        <?php foreach ($produkTipeUnit as $produk): ?>
+                                            <option value="<?= (int)$produk['id'] ?>"><?= htmlspecialchars($produk['nama_produk']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-danger btn-remove-tipe-unit" style="display:none;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddTipeUnit">
+                                <i class="fas fa-plus"></i> Tambah Tipe Unit
+                            </button>
+                            <small class="text-muted d-block mt-1">Bisa memilih lebih dari satu tipe unit.</small>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label">Deskripsi <span class="text-danger">*</span> <small class="text-muted">(Minimal 50 karakter)</small></label>
                             <textarea name="deskripsi" id="deskripsi_add" class="form-control" rows="5" placeholder="Masukkan deskripsi minimal 50 karakter..." minlength="50" required></textarea>
@@ -1498,6 +1643,7 @@ foreach ($detailsList as $d) {
     <script>
         var deliveryOrderCompletedList = <?= json_encode(array_values($deliveryOrderCompleted)) ?>;
         var negosiasiCompletedList = <?= json_encode(array_values($negosiasiCompleted)) ?>;
+        var produkTipeUnit = <?= json_encode(array_values($produkTipeUnit), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
         
         document.getElementById('deskripsi_add').addEventListener('input', function() {
             var chars = this.value.length;
@@ -1519,11 +1665,72 @@ foreach ($detailsList as $d) {
             }
         });
         
+        function refreshTipeUnitOptions() {
+            var selects = document.querySelectorAll('#tipeUnitRowsAdd .tipe-unit-select');
+            var selectedValues = Array.from(selects).map(function(select) { return select.value; });
+
+            selects.forEach(function(select) {
+                var currentValue = select.value;
+                select.innerHTML = '<option value="">Pilih Tipe Unit</option>';
+                produkTipeUnit.forEach(function(product) {
+                    var id = String(product.id);
+                    var alreadySelected = selectedValues.indexOf(id) !== -1 && id !== String(currentValue);
+                    if (!alreadySelected) {
+                        var option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = product.nama_produk;
+                        if (id === String(currentValue)) option.selected = true;
+                        select.appendChild(option);
+                    }
+                });
+            });
+        }
+
+        function updateTipeUnitRemoveButtons() {
+            var rows = document.querySelectorAll('#tipeUnitRowsAdd .tipe-unit-row');
+            rows.forEach(function(row) {
+                var btn = row.querySelector('.btn-remove-tipe-unit');
+                if (btn) btn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+            });
+        }
+
+        document.getElementById('btnAddTipeUnit').addEventListener('click', function() {
+            var container = document.getElementById('tipeUnitRowsAdd');
+            var row = document.createElement('div');
+            row.className = 'input-group mb-2 tipe-unit-row';
+            row.innerHTML = '<select name="tipe_unit_ids[]" class="form-select tipe-unit-select" required><option value="">Pilih Tipe Unit</option></select>' +
+                            '<button type="button" class="btn btn-outline-danger btn-remove-tipe-unit"><i class="fas fa-times"></i></button>';
+            container.appendChild(row);
+            refreshTipeUnitOptions();
+            updateTipeUnitRemoveButtons();
+        });
+
+        document.getElementById('tipeUnitRowsAdd').addEventListener('change', function(event) {
+            if (event.target.classList.contains('tipe-unit-select')) refreshTipeUnitOptions();
+        });
+
+        document.getElementById('tipeUnitRowsAdd').addEventListener('click', function(event) {
+            var button = event.target.closest('.btn-remove-tipe-unit');
+            if (!button) return;
+            var row = button.closest('.tipe-unit-row');
+            if (row) row.remove();
+            refreshTipeUnitOptions();
+            updateTipeUnitRemoveButtons();
+        });
+
         document.getElementById('jenis_tugas_add').addEventListener('change', function() {
             var trNumberField = document.getElementById('trNumberFieldAdd');
             var negosiasiInfoAdd = document.getElementById('negosiasiInfoAdd');
+            var tipeUnitField = document.getElementById('tipeUnitFieldAdd');
             
-            if (this.value === 'Negosiasi') {
+            if (this.value === 'Prospecting') {
+                tipeUnitField.style.display = 'block';
+                trNumberField.style.display = 'none';
+                negosiasiInfoAdd.style.display = 'none';
+                negosiasiInfoAdd.innerHTML = '';
+                refreshTipeUnitOptions();
+            } else if (this.value === 'Negosiasi') {
+                tipeUnitField.style.display = 'none';
                 trNumberField.style.display = 'block';
                 negosiasiInfoAdd.style.display = 'none';
                 negosiasiInfoAdd.innerHTML = '';
@@ -1554,6 +1761,7 @@ foreach ($detailsList as $d) {
                 
                 negosiasiInfoAdd.innerHTML = infoHtml;
             } else {
+                tipeUnitField.style.display = 'none';
                 trNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'none';
                 negosiasiInfoAdd.innerHTML = '';
@@ -1571,6 +1779,14 @@ foreach ($detailsList as $d) {
                         <div class="info-label">Jenis Tugas</div>
                         <div class="info-value">${data.jenis_tugas}</div>
                     </div>
+                    ${data.jenis_tugas === 'Prospecting' ? `
+                    <div class="info-item">
+                        <div class="info-label">Tipe Unit</div>
+                        <div class="info-value">${(data.tipe_unit_list || []).length
+                            ? data.tipe_unit_list.map(function(unit) { return '<span class="badge bg-primary me-1 mb-1">' + unit.nama_produk + '</span>'; }).join('')
+                            : '-'}
+                        </div>
+                    </div>` : ''}
                     <div class="info-item">
                         <div class="info-label">Deskripsi</div>
                         <div class="info-value">${data.deskripsi}</div>
@@ -1715,6 +1931,17 @@ foreach ($detailsList as $d) {
             modal.show();
         }
         
+        document.getElementById('modalAddDetail').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('jenis_tugas_add').value = '';
+            document.getElementById('tipeUnitFieldAdd').style.display = 'none';
+            document.getElementById('tipeUnitRowsAdd').innerHTML = '<div class="input-group mb-2 tipe-unit-row">' +
+                '<select name="tipe_unit_ids[]" class="form-select tipe-unit-select"><option value="">Pilih Tipe Unit</option></select>' +
+                '<button type="button" class="btn btn-outline-danger btn-remove-tipe-unit" style="display:none;"><i class="fas fa-times"></i></button>' +
+                '</div>';
+            refreshTipeUnitOptions();
+            updateTipeUnitRemoveButtons();
+        });
+
         document.getElementById('modalComplete').addEventListener('hidden.bs.modal', function() {
             var infoContainer = document.getElementById('negosiasiInfoContainer');
             if (infoContainer) {
