@@ -202,8 +202,28 @@ $canEditBusinessSection = ($userRole === 'business');
 $businessOnlyTabs = ['additional_cost', 'product_support', 'cost_calculation'];
 $canViewBusinessTabs = ($userRole !== 'sales');
 
+// Cost Calculation bersifat terbatas.
+// Hanya role berikut yang boleh melihat menu/tab Cost Calculation.
+$costCalculationAllowedRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'business',
+    'it_support'
+];
+$canViewCostCalculation = in_array($userRole, $costCalculationAllowedRoles, true);
+
+// Sales tetap tidak boleh melihat seluruh tab Business.
 if (!$canViewBusinessTabs && in_array($activeTab, $businessOnlyTabs, true)) {
     setFlash('Anda tidak memiliki akses ke menu Business!', 'danger');
+    redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
+}
+
+// Cost Calculation memiliki pembatasan role yang lebih ketat,
+// sehingga role lain selain daftar di atas tidak dapat membuka tab ini
+// walaupun mereka memiliki akses ke halaman Detail TR.
+if (!$canViewCostCalculation && $activeTab === 'cost_calculation') {
+    setFlash('Anda tidak memiliki akses ke menu Cost Calculation!', 'danger');
     redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
 }
 
@@ -546,6 +566,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             setFlash('Hanya Sales pemilik TR yang dapat menambah atau mengedit bagian ini.', 'danger');
         }
+        redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
+    }
+
+    // Cost Calculation harus dibatasi juga pada sisi server.
+    // Jangan hanya menyembunyikan tab di UI karena action POST dapat dipanggil langsung.
+    if ($action === 'save_cost_calculation' && !$canViewCostCalculation) {
+        setFlash('Anda tidak memiliki akses ke menu Cost Calculation!', 'danger');
         redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
     }
 
@@ -1177,6 +1204,9 @@ $isDataComplete = empty($missingSections);
                         <i class="fas fa-headset"></i> Product Support
                     </a>
                 </li>
+                <?php endif; ?>
+
+                <?php if ($canViewCostCalculation): ?>
                 <li class="nav-item">
                     <a class="nav-link <?= $activeTab == 'cost_calculation' ? 'active' : '' ?>" href="detailtr.php?tr_number=<?= urlencode($tr_number) ?>&tab=cost_calculation">
                         <i class="fas fa-calculator"></i> Cost Calculation
@@ -2164,7 +2194,7 @@ $isDataComplete = empty($missingSections);
         <!-- ============================================ -->
         <!-- TAB CONTENT: COST CALCULATION -->
         <!-- ============================================ -->
-        <?php if ($activeTab == 'cost_calculation' && $canViewBusinessTabs): ?>
+        <?php if ($activeTab == 'cost_calculation' && $canViewCostCalculation): ?>
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-calculator"></i> Cost Calculation</h6>
