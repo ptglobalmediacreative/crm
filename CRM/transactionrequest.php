@@ -664,6 +664,8 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                     $statusLabel = ucfirst($request['status']);
                                     $statusClass = $request['status'];
                                     $isApproved = ($request['status'] == 'approved');
+                                    $customerDeal = strtolower(trim((string)($request['customer_deal'] ?? '')));
+                                    $canShowTRPdf = in_array($customerDeal, ['yes', 'no'], true);
                                     ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
@@ -697,7 +699,6 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                         </td>
                                         <td>
                                             <?php
-                                                $customerDeal = strtolower(trim((string)($request['customer_deal'] ?? '')));
                                                 if ($customerDeal === 'yes') {
                                                     $customerDealLabel = 'Yes';
                                                     $customerDealClass = 'approved';
@@ -725,7 +726,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                         </td>
                                         <?php if ($canDownloadTRPdf): ?>
                                         <td>
-                                                <?php if ($isApproved): ?>
+                                                <?php if ($canShowTRPdf): ?>
                                                     <a href="export_detail_pdf.php?tr_number=<?= urlencode($request['tr_number']) ?>" 
                                                        class="btn-pdf" 
                                                        target="_blank"
@@ -733,9 +734,7 @@ $totalRequests = $totalPending + $totalApproved + $totalRejected;
                                                         <i class="fas fa-file-pdf"></i> PDF
                                                     </a>
                                                 <?php else: ?>
-                                                    <span class="btn-pdf-disabled" title="PDF hanya tersedia untuk TR yang sudah Approved">
-                                                        <i class="fas fa-file-pdf"></i> PDF
-                                                    </span>
+                                                    <span class="text-muted" title="PDF hanya tersedia jika Customer Deal = Yes atau No">-</span>
                                                 <?php endif; ?>
                                         </td>
                                         <?php endif; ?>
