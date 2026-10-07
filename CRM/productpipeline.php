@@ -48,12 +48,41 @@ try {
 
 requirePermission('product_pipeline', 'view');
 
+// ============================================================
+// FIX: AMBIL DATA USER + ROLE SEBELUM INCLUDE navigation.php
+// ------------------------------------------------------------
+// Halaman lain (dashboard, salesactivity, dll) mendefinisikan
+// $role / $userRole sebelum navigation. productpipeline.php
+// sebelumnya tidak, sehingga getRoleLabel() dipanggil dengan
+// argumen kosong dan menyebabkan fatal error di blok profile
+// modal navigation -> halaman berhenti sebelum <main> dicetak.
+// ============================================================
 $userMenus = getUserMenus();
 
+$profileUserId = (int)($_SESSION['user_id'] ?? 0);
+$userData = [];
+
+if ($profileUserId > 0 && isset($db) && $db instanceof PDO) {
+    try {
+        $stmtUser = $db->prepare("
+            SELECT id, username, full_name, email, phone, role, profile_photo
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $stmtUser->execute([$profileUserId]);
+        $userData = $stmtUser->fetch(PDO::FETCH_ASSOC) ?: [];
+    } catch (Throwable $e) {
+        $userData = [];
+    }
+}
+
+// Definisikan variabel yang dibutuhkan navigation.php
+$role     = (string)($userData['role'] ?? $_SESSION['role'] ?? '');
+$userRole = $role;
+
 // ============================================================
-// PENTING:
-// Flag CRM_LIGHT_NAV harus di-set SEBELUM navigation.php
-// di-include, supaya navigation tahu ini mode ringan.
+// PENTING: CRM_LIGHT_NAV harus di-set SEBELUM navigation.php
 // ============================================================
 if (!defined('CRM_LIGHT_NAV')) {
     define('CRM_LIGHT_NAV', true);
@@ -267,7 +296,8 @@ foreach ($pipelineByProduct as $row) {
 <body>
 
 <?php
-// CRM_LIGHT_NAV sudah di-define di atas.
+// $role, $userRole, $userMenus sudah di-set di atas.
+// CRM_LIGHT_NAV sudah di-define di atas juga.
 require_once 'navigation.php';
 ?>
 
