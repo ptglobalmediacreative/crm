@@ -1,24 +1,126 @@
-/* CRM FINISHING BUILD — 2026-09-18 */
 /* =========================================================
-   DASHBOARD — PT GANDA ELANG TANGGUH CRM
-   Page-specific styles only.
-   Navigation styles are handled by css/navigation.css.
+   DASHBOARD — PT GANDA ELANG TANGGUH
+   Page-specific + CRM global finishing styles.
    ========================================================= */
 
-.content {
+/* =========================
+   1. GLOBAL SAFETY
+   ========================= */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding-top: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe,
+table {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* =========================
+   2. LAYOUT — CONTENT
+   ========================= */
+
+/* Desktop: content di-offset 245px dari sidebar. */
+.content,
+.page-account-management .content,
+.page-data-user .content,
+.page-deliveryinstruction .content,
+.page-detailaktivitas .content,
+.page-detaildi .content,
+.page-detailtr .content,
+.page-produk .content,
+.page-salesactivity .content,
+.page-transactionrequest .content {
   width: calc(100% - 245px);
   margin-left: 245px;
+  min-width: 0;
   min-height: calc(100vh - 72px);
-  padding: 28px 30px 50px;
+  padding: 100px 30px 52px; /* top padding bersihkan topbar fixed */
   box-sizing: border-box;
   background: #070b14;
   color: #e8eef9;
 }
 
-/* =========================
-   Hero / Header
-   ========================= */
+/* Footer sejajar dengan content. */
+footer:not(.modal-footer),
+.page-footer,
+.crm-footer,
+.site-footer {
+  box-sizing: border-box;
+  max-width: none;
+  width: calc(100% - 245px);
+  margin-left: 245px;
+  padding-left: 30px;
+  padding-right: 30px;
+}
 
+/* =========================
+   3. TOPBAR — FIXED HEADER
+   Tidak boleh hilang di semua breakpoint.
+   ========================= */
+.topbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: 72px !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+  z-index: 11000 !important;
+}
+
+.topbar .brand {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.topbar .brand img {
+  flex: 0 0 auto !important;
+  display: block !important;
+}
+
+.topbar .top-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  min-width: 0 !important;
+}
+
+/* =========================
+   4. HERO / FILTERS
+   ========================= */
 .hero-row {
   display: flex;
   align-items: flex-end;
@@ -30,7 +132,7 @@
 .hero .eyebrow {
   margin-bottom: 7px;
   color: #64748b;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -47,17 +149,22 @@
   margin: 6px 0 0;
   color: #71809a;
   font-size: 11px;
+  line-height: 1.45;
 }
 
 .filters {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.filter {
+.filter,
+.page-salesactivity .filter {
+  box-sizing: border-box;
   height: 36px;
+  min-height: 38px;
   padding: 0 11px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 9px;
@@ -65,6 +172,7 @@
   background: #0b1220;
   color: #cbd5e1;
   font-size: 11px;
+  line-height: 1.25;
 }
 
 .filter:focus {
@@ -92,9 +200,8 @@
 }
 
 /* =========================
-   KPI Cards
+   5. KPI CARDS
    ========================= */
-
 .kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -174,9 +281,10 @@
 
 .trend {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
+  line-height: 1.4;
 }
 
 .number {
@@ -190,13 +298,13 @@
 .label {
   margin-top: 3px;
   color: #687792;
-  font-size: 9px;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 /* =========================
-   Main Dashboard Grid
+   6. PANELS / GRID
    ========================= */
-
 .dashboard-grid,
 .lower {
   display: grid;
@@ -232,69 +340,8 @@
 .panel-sub {
   margin-top: 3px;
   color: #60708b;
-  font-size: 8px;
-}
-
-/* =========================
-   VIEW ALL
-   Recent Activity
-   Hot Opportunities
-   ========================= */
-
-.panel-head .panel-link,
-.panel-head a.panel-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  margin-left: auto;
-  padding: 2px 0;
-
-  border: 0 !important;
-  outline: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-
-  color: #66758d !important;
-  font-size: 7px;
-  font-weight: 600;
-  line-height: 1;
-
-  text-decoration: none !important;
-  white-space: nowrap;
-
-  cursor: pointer;
-
-  transition:
-    color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.panel-head .panel-link:hover,
-.panel-head a.panel-link:hover {
-  color: #60a5fa !important;
-
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-
-  text-decoration: none !important;
-
-  transform: translateX(2px);
-}
-
-.panel-head .panel-link:focus,
-.panel-head .panel-link:active,
-.panel-head a.panel-link:focus,
-.panel-head a.panel-link:active {
-  color: #60a5fa !important;
-
-  border: 0 !important;
-  outline: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-
-  text-decoration: none !important;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .panel-body {
@@ -302,9 +349,49 @@
 }
 
 /* =========================
-   Pipeline
+   7. VIEW ALL LINK
    ========================= */
+.panel-head .panel-link,
+.panel-head a.panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 0;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #66758d !important;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
 
+.panel-head .panel-link:hover,
+.panel-head a.panel-link:hover,
+.panel-head .panel-link:focus,
+.panel-head .panel-link:active,
+.panel-head a.panel-link:focus,
+.panel-head a.panel-link:active {
+  color: #60a5fa !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  transform: translateX(2px);
+}
+
+/* =========================
+   8. PIPELINE STAGES
+   ========================= */
 .pipeline {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -333,8 +420,9 @@
 
 .stage-name {
   color: #8190a8;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .stage-num {
@@ -346,7 +434,8 @@
 .stage-meta {
   margin-top: 2px;
   color: #52627d;
-  font-size: 7px;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .stage-bar,
@@ -367,9 +456,8 @@
 }
 
 /* =========================
-   Hot Opportunities
+   9. HOT OPPORTUNITIES + ACTIVITY
    ========================= */
-
 .hot-list,
 .activity-list {
   padding: 0 15px;
@@ -406,15 +494,17 @@
 .hot-name,
 .act-title {
   color: #dbe5f4;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .hot-desc,
 .act-desc {
   margin-top: 3px;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .hot-value {
@@ -426,8 +516,9 @@
 .score {
   margin-top: 2px;
   color: #fbbf24;
-  font-size: 7px;
+  font-size: 10px;
   text-align: right;
+  line-height: 1.4;
 }
 
 .scorebar {
@@ -443,30 +534,30 @@
 }
 
 /* =========================
-   Activity / Chart
+   10. CHART / ACTIVITY MISC
    ========================= */
-
 .chart-wrap {
   height: 250px;
 }
 
 .act-time {
   color: #52627d;
-  font-size: 7px;
+  font-size: 10px;
   white-space: nowrap;
+  line-height: 1.4;
 }
 
 .empty {
   padding: 24px 0;
   color: #53627b;
-  font-size: 9px;
+  font-size: 10px;
   text-align: center;
+  line-height: 1.4;
 }
 
 /* =========================
-   Quick Actions
+   11. QUICK ACTIONS
    ========================= */
-
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -500,250 +591,21 @@
 .quick strong {
   display: block;
   color: #dbe5f4;
-  font-size: 9px;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .quick span {
   display: block;
   margin-top: 3px;
   color: #60708b;
-  font-size: 7px;
-}
-
-/* =========================
-   Responsive
-   ========================= */
-
-@media (max-width: 1200px) {
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1050px) {
-  .dashboard-grid,
-  .lower {
-    grid-template-columns: 1fr;
-  }
-
-  .pipeline {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 800px) {
-  .content {
-    width: 100%;
-    margin-left: 0;
-    padding: 20px 15px 40px;
-  }
-
-  .hero-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .pipeline {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .quick-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 480px) {
-  .content {
-    padding: 16px 12px 30px;
-  }
-
-  .kpis,
-  .pipeline,
-  .quick-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .panel-head .panel-link,
-  .panel-head a.panel-link {
-    font-size: 6.5px;
-  }
-
-  .hot-item,
-  .activity {
-    grid-template-columns: 30px minmax(0, 1fr);
-  }
-
-  .hot-value,
-  .act-time {
-    grid-column: 2;
-    text-align: left;
-  }
-}
-
-/* =========================================================
-   DASHBOARD TYPOGRAPHY + RESPONSIVE CONSISTENCY — LOAD LAST
-   ========================================================= */
-
-.dashboard-page .hero .eyebrow,
-.hero .eyebrow {
-  font-size: 10px !important;
-}
-
-.dashboard-page .trend,
-.dashboard-page .label,
-.dashboard-page .panel-sub,
-.dashboard-page .stage-name,
-.dashboard-page .stage-meta,
-.dashboard-page .act-title,
-.dashboard-page .act-desc,
-.dashboard-page .score,
-.dashboard-page .act-time,
-.dashboard-page .empty,
-.dashboard-page .quick strong,
-.dashboard-page .quick span,
-.dashboard-page .footer,
-.trend,
-.label,
-.panel-sub,
-.stage-name,
-.stage-meta,
-.act-title,
-.act-desc,
-.score,
-.act-time,
-.empty,
-.quick strong,
-.quick span,
-.footer {
+  font-size: 10px;
   line-height: 1.4;
 }
 
-.trend {
-  font-size: 10px !important;
-}
-.label {
-  font-size: 10px !important;
-}
-.panel-sub {
-  font-size: 10px !important;
-}
-.panel-head a.panel-link {
-  font-size: 10px !important;
-}
-.stage-name {
-  font-size: 10px !important;
-}
-.stage-meta {
-  font-size: 10px !important;
-}
-.act-title {
-  font-size: 11px !important;
-}
-.act-desc {
-  font-size: 10px !important;
-}
-.score {
-  font-size: 10px !important;
-}
-.act-time {
-  font-size: 10px !important;
-}
-.empty {
-  font-size: 10px !important;
-}
-.quick strong {
-  font-size: 10px !important;
-}
-.quick span {
-  font-size: 10px !important;
-}
-@media (min-width: 1440px) {
-  .content {
-    padding: 34px 44px 60px;
-  }
-  .hero h1 {
-    font-size: 28px;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  .content {
-    margin-left: 220px;
-    width: calc(100% - 220px);
-    padding: 24px 22px 44px;
-  }
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    padding: 20px 16px 36px !important;
-  }
-  .hero-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .hero h1 {
-    font-size: 21px !important;
-  }
-  .filters {
-    width: 100%;
-  }
-  .filters > * {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  .kpis {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .content {
-    padding: 16px 12px 30px !important;
-  }
-  .hero h1 {
-    font-size: 19px !important;
-  }
-}
-
-/* =========================================================
-   CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
-   Final override layer.
-   Goals:
-   - Consistent typography and spacing
-   - Clean filter / sort controls
-   - Stable pagination at every viewport
-   - PC / large monitor / laptop / tablet / phone
-   - No horizontal page overflow
-   ========================================================= */
-
-html,
-body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-button,
-input,
-select,
-textarea {
-  min-width: 0;
-}
-
-.content {
-  min-width: 0;
-}
-
-/* ---------- Shared controls ---------- */
+/* =========================
+   12. SHARED CONTROLS / FILTERS
+   ========================= */
 .filter,
 .filter-wrap,
 .filter-bar,
@@ -754,13 +616,6 @@ textarea {
 .header-actions,
 .filters {
   min-width: 0;
-}
-
-.filter,
-.page-salesactivity .filter {
-  box-sizing: border-box;
-  min-height: 38px;
-  line-height: 1.25;
 }
 
 .filter-buttons {
@@ -790,7 +645,9 @@ textarea {
   box-sizing: border-box;
 }
 
-/* ---------- Pagination ---------- */
+/* =========================
+   13. PAGINATION (multi-page)
+   ========================= */
 .card-footer {
   min-width: 0;
 }
@@ -869,16 +726,192 @@ textarea {
   min-width: 68px;
 }
 
-/* ---------- Large monitor ---------- */
-@media (min-width: 1440px) {
-  .content {
-    padding-left: 34px;
-    padding-right: 34px;
+/* =========================
+   14. PERIOD FILTER
+   ========================= */
+.month-filter {
+  cursor: pointer;
+}
+
+.period-filter {
+  position: relative;
+  min-width: 155px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: 0.18s ease;
+}
+
+.period-filter:hover,
+.period-filter:focus {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+  outline: none;
+}
+
+.period-filter i {
+  color: #8290aa;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.period-filter input[type="month"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* =========================
+   15. PRODUCT PIPELINE SUMMARY
+   ========================= */
+.pp-panel {
+  margin-bottom: 18px;
+}
+
+.pp-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pp-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  background: linear-gradient(
+    145deg,
+    rgba(13, 23, 48, 0.72),
+    rgba(11, 18, 34, 0.72)
+  );
+}
+
+.pp-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-size: 16px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.pp-card.hot-card .pp-icon {
+  background: rgba(245, 158, 11, 0.11);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.pp-card.lost-card .pp-icon {
+  background: rgba(239, 68, 68, 0.11);
+  color: #fb7185;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.pp-card.deal-card .pp-icon {
+  background: rgba(34, 197, 94, 0.11);
+  color: #34d399;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.pp-card > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pp-label {
+  color: #8290aa;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pp-value {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* =========================
+   16. RESPONSIVE
+   ========================= */
+
+/* ----- Large desktop (>= 1600px) ----- */
+@media (min-width: 1600px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
   }
 
-  .page-header,
-  .hero-row {
-    gap: 28px;
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: clamp(30px, 2.1vw, 42px);
+    padding-right: clamp(30px, 2.1vw, 42px);
+  }
+
+  .hero h1 {
+    font-size: 28px;
+  }
+}
+
+/* ----- Large desktop (>= 1440px) ----- */
+@media (min-width: 1440px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: calc(100% - 245px) !important;
+    margin-left: 245px !important;
+    padding-left: 34px !important;
+    padding-right: 34px !important;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .pagination .page-link {
@@ -886,26 +919,10 @@ textarea {
   }
 }
 
-/* ---------- Laptop ---------- */
-@media (min-width: 1025px) and (max-width: 1439px) {
-  .content {
-    padding-left: 28px;
-    padding-right: 28px;
-  }
-
-  .card-header-custom {
-    gap: 12px;
-  }
-
-  .filter,
-  .page-salesactivity .filter {
-    min-height: 37px;
-  }
-}
-
-/* ---------- Tablet ---------- */
-@media (min-width: 769px) and (max-width: 1024px) {
+/* ----- Laptop (1201px - 1439px) ----- */
+@media (min-width: 1201px) and (max-width: 1439px) {
   .content,
+  .page-account-management .content,
   .page-data-user .content,
   .page-deliveryinstruction .content,
   .page-detailaktivitas .content,
@@ -913,47 +930,213 @@ textarea {
   .page-detailtr .content,
   .page-produk .content,
   .page-salesactivity .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    margin-left: 0;
-    width: 100%;
-    padding: 22px 20px 42px;
+  .page-transactionrequest .content {
+    padding: 100px 28px 46px;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card-header-custom {
+    gap: 12px;
+  }
+}
+
+/* ----- Small laptop / tablet besar (992px - 1200px) ----- */
+@media (min-width: 992px) and (max-width: 1200px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: calc(100% - 245px) !important;
+    margin-left: 245px !important;
+    padding: 100px 24px 52px;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-grid,
+  .lower {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header,
+  .hero-row {
+    gap: 16px;
+  }
+
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    width: calc(100% - 245px);
+    margin-left: 245px;
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+}
+
+/* ----- Tablet (769px - 991px) ----- */
+@media (min-width: 769px) and (max-width: 991px) {
+  .content,
+  .page-account-management .content,
+  .page-data-user .content,
+  .page-deliveryinstruction .content,
+  .page-detailaktivitas .content,
+  .page-detaildi .content,
+  .page-detailtr .content,
+  .page-produk .content,
+  .page-salesactivity .content,
+  .page-transactionrequest .content {
+    width: calc(100% - 220px) !important;
+    margin-left: 220px !important;
+    padding: 100px 22px 44px;
+  }
+
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-grid,
+  .lower {
+    grid-template-columns: 1fr;
   }
 
   .page-header,
   .hero-row {
     align-items: flex-start;
-    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 14px;
   }
 
   .page-actions,
   .header-actions,
-  .filters {
+  .filters,
+  .top-actions {
     width: 100%;
-  }
-
-  .filter,
-  .page-salesactivity .filter {
-    flex: 1 1 150px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .card-header-custom {
+    flex-wrap: wrap;
     align-items: center;
   }
 
   .card-header-custom form {
+    width: 100%;
     max-width: 100%;
+    margin-left: 0;
+  }
+
+  .card-header-custom form input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+
+  .table-responsive,
+  .card-body-custom {
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   .pagination .page-link {
     min-width: 34px;
     min-height: 34px;
   }
+
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 22px;
+    padding-right: 22px;
+  }
 }
 
-/* ---------- Phone ---------- */
-@media (max-width: 768px) {
+/* ----- Tablet kecil / HP besar (481px - 768px) ----- */
+@media (min-width: 481px) and (max-width: 768px) {
+  .topbar {
+    height: 64px !important;
+    min-height: 64px !important;
+    padding: 0 12px !important;
+    gap: 8px !important;
+    overflow: visible !important;
+  }
+
+  .topbar .brand {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .topbar .brand img {
+    display: block !important;
+    width: 36px !important;
+    height: 36px !important;
+    flex: 0 0 36px !important;
+  }
+
+  .topbar .brand div {
+    display: block !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .topbar .brand strong,
+  .topbar .brand small {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .topbar .brand strong {
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+  }
+
+  .topbar .brand small {
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+  }
+
+  .topbar .top-actions {
+    gap: 6px !important;
+  }
+
   .content,
+  .page-account-management .content,
   .page-data-user .content,
   .page-deliveryinstruction .content,
   .page-detailaktivitas .content,
@@ -961,19 +1144,18 @@ textarea {
   .page-detailtr .content,
   .page-produk .content,
   .page-salesactivity .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    margin-left: 0;
-    width: 100%;
-    max-width: 100%;
-    padding: 18px 14px 36px;
+  .page-transactionrequest .content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding: 82px 16px 38px !important;
   }
 
   .page-header,
   .hero-row {
     width: 100%;
-    align-items: stretch;
     flex-direction: column;
+    align-items: stretch !important;
     gap: 14px;
     margin-bottom: 16px;
   }
@@ -1008,6 +1190,7 @@ textarea {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+    justify-content: flex-start;
   }
 
   .page-actions > *,
@@ -1031,14 +1214,39 @@ textarea {
     font-size: 11px;
   }
 
+  .stat-grid,
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-grid,
+  .lower {
+    grid-template-columns: 1fr;
+  }
+
+  .pipeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pp-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .filter-wrap,
   .filter-bar {
     padding: 12px 14px !important;
   }
 
-  .filter-buttons,
-  .page-deliveryinstruction .filter-buttons,
-  .page-transactionrequest .filter-buttons {
+  .filter-buttons {
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
@@ -1050,9 +1258,7 @@ textarea {
     -webkit-overflow-scrolling: touch;
   }
 
-  .filter-buttons .btn-filter,
-  .page-deliveryinstruction .filter-buttons .btn-filter,
-  .page-transactionrequest .filter-buttons .btn-filter {
+  .filter-buttons .btn-filter {
     width: auto;
     flex: 0 0 auto;
     min-width: max-content;
@@ -1077,6 +1283,7 @@ textarea {
     padding: 13px 14px !important;
     align-items: stretch;
     gap: 10px;
+    flex-wrap: wrap;
   }
 
   .card-header-custom h6 {
@@ -1084,10 +1291,7 @@ textarea {
     line-height: 1.35;
   }
 
-  .card-header-custom form,
-  .page-data-user .card-header-custom form,
-  .page-deliveryinstruction .card-header-custom form,
-  .page-produk .card-header-custom form {
+  .card-header-custom form {
     width: 100%;
     max-width: 100%;
     margin-left: 0 !important;
@@ -1174,401 +1378,68 @@ textarea {
   .table-custom {
     white-space: nowrap;
   }
-}
 
-/* ---------- Small phone ---------- */
-@media (max-width: 480px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    padding: 16px 10px 30px;
-  }
-
-  .page-title h1,
-  .page-title h4,
-  .hero h1,
-  .page-header h4 {
-    font-size: 19px !important;
-  }
-
-  .page-actions,
-  .header-actions,
-  .filters,
-  .page-salesactivity .filters {
-    grid-template-columns: 1fr;
-  }
-
-  .card-custom,
-  .chart-card,
-  .info-card,
-  .stat-card,
-  .kpi,
-  .panel {
-    border-radius: 13px;
-  }
-
-  .card-footer {
-    padding: 10px !important;
-  }
-
-  .page-data-user .pagination,
-  .page-deliveryinstruction .pagination,
-  .page-detailaktivitas .pagination,
-  .page-detaildi .pagination,
-  .page-detailtr .pagination,
-  .page-produk .pagination,
-  .page-salesactivity .pagination,
-  .page-transactionrequest .pagination,
-  .page-account-management .pagination {
-    gap: 4px;
-  }
-
-  .page-data-user .pagination .page-link,
-  .page-deliveryinstruction .pagination .page-link,
-  .page-detailaktivitas .pagination .page-link,
-  .page-detaildi .pagination .page-link,
-  .page-detailtr .pagination .page-link,
-  .page-produk .pagination .page-link,
-  .page-salesactivity .pagination .page-link,
-  .page-transactionrequest .pagination .page-link,
-  .page-account-management .pagination .page-link {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    min-height: 32px;
-    font-size: 10px !important;
-    border-radius: 8px !important;
-  }
-
-  .page-data-user .pagination .page-item:first-child .page-link,
-  .page-data-user .pagination .page-item:last-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:first-child .page-link,
-  .page-deliveryinstruction .pagination .page-item:last-child .page-link,
-  .page-detailaktivitas .pagination .page-item:first-child .page-link,
-  .page-detailaktivitas .pagination .page-item:last-child .page-link,
-  .page-detaildi .pagination .page-item:first-child .page-link,
-  .page-detaildi .pagination .page-item:last-child .page-link,
-  .page-detailtr .pagination .page-item:first-child .page-link,
-  .page-detailtr .pagination .page-item:last-child .page-link,
-  .page-produk .pagination .page-item:first-child .page-link,
-  .page-produk .pagination .page-item:last-child .page-link,
-  .page-salesactivity .pagination .page-item:first-child .page-link,
-  .page-salesactivity .pagination .page-item:last-child .page-link,
-  .page-transactionrequest .pagination .page-item:first-child .page-link,
-  .page-transactionrequest .pagination .page-item:last-child .page-link,
-  .page-account-management .pagination .page-item:first-child .page-link,
-  .page-account-management .pagination .page-item:last-child .page-link {
-    min-width: 54px;
-    width: auto;
-    padding: 0 8px !important;
-  }
-}
-
-/* ---------- Very small phone ---------- */
-@media (max-width: 360px) {
-  .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content,
-  .page-account-management .content {
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .pagination .page-link {
-    width: 30px !important;
-    min-width: 30px !important;
-    height: 30px;
-    min-height: 30px;
-    font-size: 9px !important;
-  }
-
-  .pagination .page-item:first-child .page-link,
-  .pagination .page-item:last-child .page-link {
-    min-width: 48px !important;
-    width: auto !important;
-  }
-}
-
-/* FINAL DASHBOARD FILTER / ACTION ALIGNMENT */
-.filters {
-  justify-content: flex-end;
-}
-@media (max-width: 1024px) {
-  .filters {
-    justify-content: flex-start;
-    width: 100%;
-  }
-}
-
-/* =========================================================
-   CRM RESPONSIVE SYSTEM — FINAL OVERRIDE
-   Breakpoints:
-   1440+  : large desktop / PC
-   1201-1439 : laptop
-   769-1200 : tablet / small laptop
-   481-768 : tablet / large phone
-   361-480 : mobile
-   <=360 : very small mobile
-
-   IMPORTANT:
-   - Navigation is fixed so it never gets clipped during page scroll.
-   - Content always stays inside the available viewport.
-   - Tables remain horizontally scrollable instead of breaking layout.
-   ========================================================= */
-
-/* ---------- GLOBAL SAFETY ---------- */
-html,
-body {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-img,
-svg,
-video,
-canvas {
-  max-width: 100%;
-}
-
-/* ---------- LARGE DESKTOP / PC: 1440px+ ---------- */
-@media (min-width: 1440px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    width: calc(100% - 245px) !important;
-    margin-left: 245px !important;
-    padding-left: 34px !important;
-    padding-right: 34px !important;
-  }
-
-  .page-header,
-  .hero-row {
-    max-width: 100%;
-  }
-
-  .stat-grid,
-  .kpis {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .chart-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* ---------- LAPTOP: 1201px - 1439px ---------- */
-@media (min-width: 1201px) and (max-width: 1439px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    width: calc(100% - 245px) !important;
-    margin-left: 245px !important;
-    padding: 24px 28px 46px !important;
-  }
-
-  .stat-grid,
-  .kpis {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .chart-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .page-header,
-  .hero-row {
-    gap: 16px;
-  }
-}
-
-/* ---------- TABLET / SMALL LAPTOP: 769px - 1200px ---------- */
-@media (min-width: 769px) and (max-width: 1200px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    width: calc(100% - 220px) !important;
-    margin-left: 220px !important;
-    padding: 22px 22px 44px !important;
-  }
-
-  .stat-grid,
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  .chart-grid {
+  .detail-grid,
+  .two-col,
+  .form-grid,
+  .form-row,
+  .split-grid {
     grid-template-columns: 1fr !important;
   }
 
-  .page-header,
-  .hero-row {
-    align-items: flex-start;
-    gap: 14px;
-  }
-
-  .page-actions,
-  .header-actions,
-  .filters,
-  .top-actions {
-    flex-wrap: wrap;
-  }
-
-  .card-header-custom {
-    flex-wrap: wrap;
-  }
-
-  .card-header-custom form {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .card-header-custom form input {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: auto !important;
-  }
-
-  .table-responsive,
-  .card-body-custom {
-    max-width: 100%;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-/* ---------- TABLET: 481px - 768px ---------- */
-@media (min-width: 481px) and (max-width: 768px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    width: 100% !important;
-    margin-left: 0 !important;
-    padding: 20px 16px 40px !important;
-  }
-
-  .page-header,
-  .hero-row {
-    width: 100%;
+  .info-item {
     flex-direction: column;
-    align-items: stretch !important;
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 7px;
   }
 
-  .page-title,
-  .page-actions,
-  .header-actions,
-  .filters {
-    width: 100%;
-  }
-
-  .page-actions,
-  .header-actions,
-  .filters {
-    flex-wrap: wrap;
-  }
-
-  .page-actions > *,
-  .header-actions > * {
-    flex: 0 1 auto;
-  }
-
-  .stat-grid,
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 12px;
-  }
-
-  .chart-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .card-header-custom {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .card-header-custom form {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .card-header-custom form input {
-    flex: 1 1 auto;
-    min-width: 0;
+  .info-label {
     width: auto !important;
   }
 
-  .table-responsive,
-  .card-body-custom {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
     width: 100%;
-    max-width: 100%;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .table-custom {
-    white-space: nowrap;
-  }
-
-  .pagination {
-    max-width: 100%;
-    overflow-x: auto;
-    justify-content: flex-start !important;
-    padding-bottom: 2px;
+    margin-left: 0;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 
-/* ---------- MOBILE: 361px - 480px ---------- */
+/* ----- Mobile (361px - 480px) ----- */
 @media (min-width: 361px) and (max-width: 480px) {
+  .topbar {
+    height: 60px !important;
+    min-height: 60px !important;
+    padding: 0 10px !important;
+    gap: 6px !important;
+  }
+
+  .topbar .brand img {
+    width: 34px !important;
+    height: 34px !important;
+    flex-basis: 34px !important;
+  }
+
+  .topbar .brand strong {
+    font-size: 13px !important;
+  }
+
+  .topbar .brand small {
+    font-size: 7px !important;
+  }
+
+  .topbar .top-actions {
+    gap: 5px !important;
+  }
+
+  .topbar .icon-btn,
+  .topbar .avatar {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
   .content,
   .page-account-management .content,
   .page-data-user .content,
@@ -1581,7 +1452,7 @@ canvas {
   .page-transactionrequest .content {
     width: 100% !important;
     margin-left: 0 !important;
-    padding: 16px 12px 32px !important;
+    padding: 76px 12px 32px !important;
   }
 
   .page-header,
@@ -1634,6 +1505,24 @@ canvas {
     gap: 10px;
   }
 
+  .dashboard-grid,
+  .lower {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .pipeline {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-cards {
+    grid-template-columns: 1fr;
+  }
+
   .stat-card,
   .kpi {
     min-height: 104px;
@@ -1680,7 +1569,7 @@ canvas {
   }
 
   .pagination {
-    gap: 3px !important;
+    gap: 4px !important;
     max-width: 100%;
     overflow-x: auto;
     justify-content: flex-start !important;
@@ -1701,10 +1590,68 @@ canvas {
     width: auto !important;
     min-width: 50px !important;
   }
+
+  .hot-item,
+  .activity {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  .hot-value,
+  .act-time {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .card-footer {
+    padding: 10px !important;
+  }
+
+  .month-filter {
+    min-width: 145px;
+  }
+
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 
-/* ---------- VERY SMALL MOBILE: <=360px ---------- */
+/* ----- Very small mobile (<= 360px) ----- */
 @media (max-width: 360px) {
+  .topbar {
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 0 8px !important;
+    gap: 5px !important;
+  }
+
+  .topbar .brand img {
+    width: 32px !important;
+    height: 32px !important;
+    flex-basis: 32px !important;
+  }
+
+  .topbar .brand strong {
+    font-size: 12px !important;
+  }
+
+  .topbar .brand small {
+    display: none !important;
+  }
+
+  .topbar .top-actions {
+    gap: 4px !important;
+  }
+
+  .topbar .icon-btn,
+  .topbar .avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
   .content,
   .page-account-management .content,
   .page-data-user .content,
@@ -1715,9 +1662,7 @@ canvas {
   .page-produk .content,
   .page-salesactivity .content,
   .page-transactionrequest .content {
-    width: 100% !important;
-    margin-left: 0 !important;
-    padding: 14px 8px 28px !important;
+    padding: 72px 8px 28px !important;
   }
 
   .page-header,
@@ -1801,596 +1746,12 @@ canvas {
     min-width: 46px !important;
     width: auto !important;
   }
-}
 
-/* =========================================================
-   FINAL HEADER FIX — 100% VISIBLE / RESPONSIVE
-   The top navigation must NEVER disappear on phone, tablet,
-   laptop, or desktop.
-   ========================================================= */
-
-.topbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: auto !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  height: 72px !important;
-  display: flex !important;
-  align-items: center !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  transform: none !important;
-  z-index: 11000 !important;
-  box-sizing: border-box !important;
-}
-
-.topbar .brand {
-  display: flex !important;
-  align-items: center !important;
-  min-width: 0 !important;
-  flex: 1 1 auto !important;
-  max-width: none !important;
-}
-
-.topbar .brand img {
-  flex: 0 0 auto !important;
-  display: block !important;
-}
-
-.topbar .top-actions {
-  display: flex !important;
-  align-items: center !important;
-  flex: 0 0 auto !important;
-  margin-left: auto !important;
-  min-width: 0 !important;
-}
-
-/* Keep the navigation header in view while the document scrolls. */
-body {
-  padding-top: 0 !important;
-}
-
-/* Desktop / laptop content starts below the fixed header. */
-@media (min-width: 769px) {
-  .topbar {
-    height: 72px !important;
-  }
-
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: 100px !important;
-  }
-}
-
-/* Tablet + phone: header remains 100% wide and visible. */
-@media (max-width: 768px) {
-  .topbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: auto !important;
-    height: 64px !important;
-    min-height: 64px !important;
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    overflow: visible !important;
-    padding: 0 12px !important;
-    gap: 8px !important;
-    z-index: 11000 !important;
-  }
-
-  .topbar .brand {
-    display: flex !important;
-    flex: 1 1 auto !important;
-    width: auto !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .topbar .brand img {
-    display: block !important;
-    width: 36px !important;
-    height: 36px !important;
-    flex: 0 0 36px !important;
-  }
-
-  .topbar .brand div {
-    display: block !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .topbar .brand strong,
-  .topbar .brand small {
-    display: block !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
-
-  .topbar .brand strong {
-    font-size: 14px !important;
-    line-height: 1.15 !important;
-  }
-
-  .topbar .brand small {
-    font-size: 8px !important;
-    line-height: 1.15 !important;
-  }
-
-  .topbar .top-actions {
-    display: flex !important;
-    flex: 0 0 auto !important;
-    width: auto !important;
-    max-width: none !important;
-    margin-left: auto !important;
-    gap: 6px !important;
-  }
-
-  .topbar .icon-btn,
-  .topbar .avatar,
-  .topbar .mobile-menu-toggle {
-    flex: 0 0 auto !important;
-  }
-
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    padding-top: 82px !important;
-  }
-
-  /* Sidebar may be closed on phone, but this does NOT hide the header. */
-  .rail {
-    z-index: 10900 !important;
-  }
-}
-
-/* Small phones: still keep the full header visible. */
-@media (max-width: 480px) {
-  .topbar {
-    height: 60px !important;
-    min-height: 60px !important;
-    padding: 0 10px !important;
-  }
-
-  .topbar .brand img {
-    width: 34px !important;
-    height: 34px !important;
-    flex-basis: 34px !important;
-  }
-
-  .topbar .brand strong {
-    font-size: 13px !important;
-  }
-
-  .topbar .brand small {
-    font-size: 7px !important;
-  }
-
-  .topbar .top-actions {
-    gap: 5px !important;
-  }
-
-  .topbar .icon-btn,
-  .topbar .avatar {
-    width: 34px !important;
-    height: 34px !important;
-  }
-
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: 76px !important;
-  }
-}
-
-@media (max-width: 360px) {
-  .topbar {
-    height: 58px !important;
-    min-height: 58px !important;
-    padding: 0 8px !important;
-    gap: 5px !important;
-  }
-
-  .topbar .brand img {
-    width: 32px !important;
-    height: 32px !important;
-    flex-basis: 32px !important;
-  }
-
-  .topbar .brand strong {
-    font-size: 12px !important;
-  }
-
-  .topbar .brand small {
-    display: none !important;
-  }
-
-  .topbar .top-actions {
-    gap: 4px !important;
-  }
-
-  .topbar .icon-btn,
-  .topbar .avatar {
-    width: 32px !important;
-    height: 32px !important;
-  }
-
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: 72px !important;
-  }
-}
-
-/* =========================================================
-   CRM RESPONSIVE SYSTEM — FINAL CONSISTENCY PASS
-   Dashboard reference / all devices
-   ========================================================= */
-html,
-body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-.content {
-  width: calc(100% - 245px);
-  margin-left: 245px;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 28px 30px 52px;
-}
-.page-account-management .content,
-.page-data-user .content,
-.page-deliveryinstruction .content,
-.page-detailaktivitas .content,
-.page-detaildi .content,
-.page-detailtr .content,
-.page-produk .content,
-.page-salesactivity .content,
-.page-transactionrequest .content {
-  width: calc(100% - 245px);
-  margin-left: 245px;
-  min-width: 0;
-  box-sizing: border-box;
-}
-@media (min-width: 1600px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-left: clamp(30px, 2.1vw, 42px);
-    padding-right: clamp(30px, 2.1vw, 42px);
-  }
-}
-@media (max-width: 1199px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding: 24px;
-  }
-  .page-header,
-  .hero-row {
-    gap: 16px;
-  }
-  .page-header h4,
-  .page-title h4,
-  .hero h1 {
-    font-size: 23px;
-  }
-}
-@media (max-width: 991px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    width: 100%;
-    margin-left: 0;
-    padding: 22px 20px 44px;
-  }
-  .page-header,
-  .hero-row {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-  .page-header > div:last-child,
-  .page-actions,
-  .header-actions,
-  .filters {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-  .stat-grid,
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .chart-grid {
-    grid-template-columns: 1fr;
-  }
-  .card-header-custom {
-    align-items: flex-start;
-  }
-  .card-header-custom form {
-    width: 100%;
-    margin-left: 0;
-  }
-  .card-header-custom form input {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: auto !important;
-  }
-  .table-responsive,
-  .card-body-custom {
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-@media (max-width: 767px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding: 18px 16px 38px;
-  }
-  .page-header,
-  .hero-row {
-    margin-bottom: 16px;
-  }
-  .page-header h4,
-  .page-title h4,
-  .hero h1 {
-    font-size: 21px;
-  }
-  .stat-grid,
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-  .stat-card {
-    min-height: 112px;
-    padding: 15px;
-  }
-  .kpi {
-    min-height: 104px;
-    padding: 13px;
-  }
-  .detail-grid,
-  .two-col,
-  .form-grid,
-  .form-row,
-  .split-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .info-item {
-    flex-direction: column;
-    gap: 7px;
-  }
-  .info-label {
-    width: auto !important;
-  }
-  .card-header-custom form {
-    flex-wrap: wrap;
-  }
-  .card-header-custom form input,
-  .card-header-custom form select {
-    width: 100% !important;
-    min-width: 0;
-    flex: 1 1 100%;
-  }
-}
-@media (max-width: 575px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding: 16px 12px 32px;
-  }
-  .page-header,
-  .hero-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  .page-header > div:last-child,
-  .page-actions,
-  .header-actions,
-  .filters {
-    width: 100%;
-  }
-  .page-actions > *,
-  .header-actions > *,
-  .filters > * {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  .stat-grid,
-  .kpis {
-    grid-template-columns: 1fr;
-    gap: 9px;
-  }
-  .card-header-custom {
-    padding: 12px;
-  }
-  .card-header-custom h6 {
-    width: 100%;
-  }
-  .table-responsive,
-  .card-body-custom {
-    max-width: 100%;
-    overflow-x: auto;
-  }
-  .table-custom th,
-  .table-custom td {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-  }
-}
-@media (max-width: 380px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
+  footer:not(.modal-footer),
+  .page-footer,
+  .crm-footer,
+  .site-footer {
     padding-left: 10px;
     padding-right: 10px;
   }
-  .page-header h4,
-  .page-title h4,
-  .hero h1 {
-    font-size: 19px;
-  }
-  .page-actions,
-  .header-actions,
-  .filters {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .page-actions > *,
-  .header-actions > *,
-  .filters > * {
-    width: 100%;
-  }
-}
-footer:not(.modal-footer),
-.page-footer,
-.crm-footer,
-.site-footer {
-  box-sizing: border-box;
-  max-width: none;
-  width: calc(100% - 245px);
-  margin-left: 245px;
-}
-@media (min-width: 1600px) {
-  footer:not(.modal-footer),
-  .page-footer,
-  .crm-footer,
-  .site-footer {
-    padding-left: clamp(30px, 2.1vw, 42px);
-    padding-right: clamp(30px, 2.1vw, 42px);
-  }
-}
-@media (min-width: 992px) and (max-width: 1599px) {
-  footer:not(.modal-footer),
-  .page-footer,
-  .crm-footer,
-  .site-footer {
-    padding-left: 30px;
-    padding-right: 30px;
-  }
-}
-@media (max-width: 991px) {
-  footer:not(.modal-footer),
-  .page-footer,
-  .crm-footer,
-  .site-footer {
-    width: 100%;
-    margin-left: 0;
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-}
-@media (max-width: 767px) {
-  footer:not(.modal-footer),
-  .page-footer,
-  .crm-footer,
-  .site-footer {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-}
-@media (max-width: 575px) {
-  footer:not(.modal-footer),
-  .page-footer,
-  .crm-footer,
-  .site-footer {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-}
-img,
-video,
-canvas,
-iframe,
-table {
-  max-width: 100%;
-}
-input,
-select,
-textarea,
-button {
-  max-width: 100%;
 }
