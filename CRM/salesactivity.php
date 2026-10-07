@@ -792,7 +792,18 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     header('Cache-Control: max-age=0');
 
     echo '<html>';
-    echo '<head><meta charset="UTF-8"></head>';
+    echo '<head><meta charset="UTF-8"><style>
+.tipe-unit-cell{min-width:190px;max-width:260px;vertical-align:middle;}
+.tipe-unit-slider{width:100%;max-width:250px;overflow-x:auto;overflow-y:hidden;padding:2px 0 5px;scrollbar-width:thin;cursor:grab;-webkit-overflow-scrolling:touch;}
+.tipe-unit-slider:active{cursor:grabbing;}
+.tipe-unit-slider::-webkit-scrollbar{height:4px;}
+.tipe-unit-slider::-webkit-scrollbar-track{background:transparent;}
+.tipe-unit-slider::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
+.tipe-unit-track{display:inline-flex;flex-wrap:nowrap;gap:6px;min-width:max-content;}
+.badge-tipe-unit{display:inline-flex;align-items:center;min-height:28px;padding:5px 10px;border-radius:7px;background:#f1f5f9;border:1px solid #dbe3ec;color:#334155;font-size:12px;font-weight:600;white-space:nowrap;line-height:1.2;}
+@media (max-width:768px){.tipe-unit-cell{min-width:160px;max-width:200px}.tipe-unit-slider{max-width:190px}}
+</style>
+</head>';
     echo '<body>';
 
     echo '<h2>Data Sales Activity - PT Ganda Elang Tangguh</h2>';
@@ -989,11 +1000,29 @@ $lastActivityStmt = $db->prepare("
     LIMIT 1
 ");
 
+// Ambil Tipe Unit Prospecting dari detailaktivitas.php.
+// Relasi wajib berdasarkan sales_activity_id (Activity Number) masing-masing.
+$tipeUnitStmt = $db->prepare("
+    SELECT DISTINCT p.nama_produk
+    FROM activity_detail_units adu
+    INNER JOIN activity_details ad ON ad.id = adu.activity_detail_id
+    INNER JOIN products p ON p.id = adu.product_id
+    WHERE ad.sales_activity_id = ?
+      AND p.nama_produk IS NOT NULL
+      AND TRIM(p.nama_produk) <> ''
+    ORDER BY p.nama_produk ASC
+");
+
 foreach ($activities as &$act) {
     $lastActivityStmt->execute([$act['id']]);
     $act['last_activity'] = $lastActivityStmt->fetchColumn() ?: null;
     $act['jenis_prospek'] = getJenisProspek($db, $act['id']);
     $act['status_prospek'] = getStatusProspek($db, $act['id']);
+
+    // Tipe Unit bisa lebih dari satu, sehingga disimpan sebagai array.
+    $tipeUnitStmt->execute([$act['id']]);
+    $act['tipe_unit_list'] = $tipeUnitStmt->fetchAll(PDO::FETCH_COLUMN);
+
     $stmt = $db->prepare("UPDATE sales_activities SET jenis_prospek = ?, status = ? WHERE id = ?");
     $stmt->execute([$act['jenis_prospek'], $act['status_prospek'], $act['id']]);
 }
@@ -1191,6 +1220,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <th>Nama Perusahaan</th>
                                 <th>Business Segment</th>
                                 <th>Jenis Prospek</th>
+                                <th>Tipe Unit</th>
                                 <th>Status</th>
                                 <th>Nama PIC</th>
                                 <th>Last Activity</th>
@@ -1225,6 +1255,20 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                             ?>
                                             <?php if ($jenisProspek): ?>
                                                 <span class="badge-prospek <?= $badgeClass ?>"><?= htmlspecialchars($jenisProspek) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="tipe-unit-cell">
+                                            <?php $tipeUnitList = $act['tipe_unit_list'] ?? []; ?>
+                                            <?php if (!empty($tipeUnitList)): ?>
+                                                <div class="tipe-unit-slider" title="Geser untuk melihat tipe unit lainnya">
+                                                    <div class="tipe-unit-track">
+                                                        <?php foreach ($tipeUnitList as $tipeUnit): ?>
+                                                            <span class="badge-tipe-unit"><?= htmlspecialchars($tipeUnit) ?></span>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </div>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
