@@ -132,6 +132,41 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
     );
 }
 
+/**
+ * Normalisasi nilai customer_deal dari detailtr.php.
+ *
+ * ATURAN TAHAP:
+ *   - "yes" / "deal"                     -> DEAL
+ *   - "lost deal", "lost_deal", "no",
+ *     kosong, atau apapun selain di atas -> HOT PROSPECT
+ *
+ * Tujuan: variasi penulisan seperti "Lost Deal", "lost_deal",
+ * "lost-deal", "LOST DEAL" tetap konsisten diklasifikasikan
+ * sebagai Hot Prospect, bukan tercecer ke kategori lain.
+ */
+function pipelineResolveStage($customerDealRaw) {
+    $value = strtolower(trim((string)$customerDealRaw));
+
+    // Samakan pemisah: "lost_deal" / "lost-deal" -> "lost deal"
+    $value = str_replace(['_', '-'], ' ', $value);
+
+    // Rapatkan spasi ganda
+    $value = preg_replace('/\s+/', ' ', $value);
+    $value = trim($value);
+
+    // Hanya "yes" atau "deal" yang dianggap DEAL.
+    // Termasuk variasi "yes deal", "deal yes", dsb.
+    $dealKeywords = ['yes', 'deal'];
+    foreach ($dealKeywords as $keyword) {
+        if ($value === $keyword) {
+            return 'deal';
+        }
+    }
+
+    // Lost Deal (dan semua nilai lain) tetap masuk Hot Prospect.
+    return 'hot';
+}
+
 // ============================================================
 // 1. PROSPECT: TIPE UNIT DARI DETAIL AKTIVITAS PROSPECTING
 // ============================================================
@@ -179,8 +214,8 @@ try {
 //    Relasi WAJIB berdasarkan Activity Number -> activity_details.sales_activity_id.
 //
 //    Customer Deal:
-//      yes = Deal
-//      selain yes / belum diisi = Hot Prospect
+//      yes / deal                          = Deal
+//      lost deal, no, kosong, selain di atas = Hot Prospect
 //
 //    Jika tipe unit sama dengan tipe unit Prospect pada Activity Number
 //    yang sama, Prospect dipindahkan ke tahap TR dan tidak dihitung double.
@@ -218,8 +253,9 @@ try {
 
     $stmt = $db->query($sqlTR);
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $customerDeal = strtolower(trim((string)$row['customer_deal']));
-        $stage = ($customerDeal === 'yes') ? 'deal' : 'hot';
+        // Tentukan tahap berdasarkan customer_deal.
+        // "yes"/"deal" -> deal, selain itu (termasuk "lost deal") -> hot prospect.
+        $stage = pipelineResolveStage($row['customer_deal']);
 
         pipelineAdd(
             $pipeline,
