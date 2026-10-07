@@ -520,7 +520,7 @@ if ($search !== '') {
             font-family: Inter, "Segoe UI", Arial, sans-serif;
         }
 
-        .content.page-productpipeline {
+        .pp-page.page-productpipeline {
             margin-left: 245px;
             width: calc(100% - 245px);
             min-height: calc(100vh - 72px);
@@ -717,7 +717,7 @@ if ($search !== '') {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .content.page-productpipeline {
+            .pp-page.page-productpipeline {
                 margin-left: 0;
                 width: 100%;
             }
@@ -757,7 +757,7 @@ html, body {
     width: 100% !important;
     min-width: 0 !important;
     overflow-x: hidden !important;
-    background: #070b14 !important;
+    background: #f5f7fb !important;
 }
 
 /* Desktop: keep the CRM sidebar visible exactly like the other CRM pages. */
@@ -781,12 +781,14 @@ html, body {
         overflow-y: auto !important;
     }
 
-    .content.page-productpipeline {
+    .pp-page.page-productpipeline {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
         position: relative !important;
         z-index: 1 !important;
+        float: none !important;
+        clear: both !important;
         width: calc(100% - 245px) !important;
         max-width: none !important;
         min-width: 0 !important;
@@ -813,7 +815,7 @@ html, body {
 }
 
 @media (max-width: 768px) {
-    .content.page-productpipeline {
+    .pp-page.page-productpipeline {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -831,7 +833,7 @@ html, body {
 }
 </style>
 
-<main class="content page-productpipeline">
+<main class="pp-page page-productpipeline">
 <div class="pipeline-wrapper">
 
     <div class="page-header">
