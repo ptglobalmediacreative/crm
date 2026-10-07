@@ -489,262 +489,10 @@ if ($search !== '') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Pipeline</title>
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/footer.css">
-    
-
-    <style>
-        :root {
-            --primary: #1d4ed8;
-            --primary-dark: #173ea5;
-            --bg: #f5f7fb;
-            --card: #ffffff;
-            --text: #172033;
-            --muted: #6b7280;
-            --border: #e5e7eb;
-            --prospect: #2563eb;
-            --hot: #f59e0b;
-            --deal: #16a34a;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: Inter, "Segoe UI", Arial, sans-serif;
-        }
-
-        .pp-page.page-productpipeline {
-            margin-left: 245px;
-            width: calc(100% - 245px);
-            min-height: calc(100vh - 72px);
-            padding: 0;
-            background: var(--bg);
-            box-sizing: border-box;
-        }
-
-        .pipeline-wrapper {
-            width: 100%;
-            padding: 28px 30px 50px;
-            box-sizing: border-box;
-        }
-
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        .page-title {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: -.5px;
-        }
-
-        .page-subtitle {
-            margin: 6px 0 0;
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .summary-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 6px 20px rgba(15, 23, 42, .04);
-        }
-
-        .summary-label {
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .summary-value {
-            margin-top: 7px;
-            font-size: 30px;
-            line-height: 1;
-            font-weight: 800;
-        }
-
-        .summary-card.prospect .summary-value { color: var(--prospect); }
-        .summary-card.hot .summary-value { color: var(--hot); }
-        .summary-card.deal .summary-value { color: var(--deal); }
-
-        .pipeline-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            box-shadow: 0 6px 20px rgba(15, 23, 42, .04);
-            overflow: hidden;
-        }
-
-        .pipeline-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 18px 20px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .search-box {
-            position: relative;
-            width: min(360px, 100%);
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 13px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-        }
-
-        .search-box input {
-            width: 100%;
-            height: 42px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 0 14px 0 38px;
-            outline: none;
-            background: #fff;
-        }
-
-        .search-box input:focus {
-            border-color: #93c5fd;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
-        }
-
-        .table-wrap {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead th {
-            background: #f8fafc;
-            color: #64748b;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            padding: 15px 18px;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        tbody td {
-            padding: 16px 18px;
-            border-bottom: 1px solid #eef0f4;
-            vertical-align: middle;
-            font-size: 14px;
-        }
-
-        tbody tr:last-child td {
-            border-bottom: 0;
-        }
-
-        tbody tr:hover {
-            background: #fafcff;
-        }
-
-        .product-name {
-            font-weight: 700;
-        }
-
-        .qty {
-            font-size: 17px;
-            font-weight: 800;
-        }
-
-        .qty-prospect { color: var(--prospect); }
-        .qty-hot { color: var(--hot); }
-        .qty-deal { color: var(--deal); }
-
-        .stage-bar {
-            display: flex;
-            width: 180px;
-            height: 8px;
-            border-radius: 999px;
-            overflow: hidden;
-            background: #eef2f7;
-        }
-
-        .stage-bar span {
-            height: 100%;
-            min-width: 0;
-        }
-
-        .stage-prospect { background: var(--prospect); }
-        .stage-hot { background: var(--hot); }
-        .stage-deal { background: var(--deal); }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--muted);
-        }
-
-        .empty-state i {
-            font-size: 38px;
-            margin-bottom: 12px;
-            color: #cbd5e1;
-        }
-
-        @media (max-width: 900px) {
-            .summary-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .pp-page.page-productpipeline {
-                margin-left: 0;
-                width: 100%;
-            }
-
-            .pipeline-wrapper {
-                padding: 20px 14px 40px;
-            }
-        }
-
-        @media (max-width: 560px) {
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .page-header,
-            .pipeline-toolbar {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .search-box {
-                width: 100%;
-            }
-        }
-    </style>
-
-<style id="productpipeline-produk-style">
+    <style id="productpipeline-style">
 /* =========================================================
    PRODUCT PIPELINE — SAME VISUAL SYSTEM AS "PRODUK"
    Layout intentionally mirrors the supplied Produk screenshot.
@@ -756,48 +504,20 @@ body {
     color: #dce5f5 !important;
 }
 
-/* Navigation */
-.topbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    height: 99px !important;
-    z-index: 11000 !important;
-}
-
-#crmSidebar.rail {
-    position: fixed !important;
-    left: 0 !important;
-    top: 99px !important;
-    bottom: 0 !important;
-    width: 350px !important;
-    height: calc(100vh - 99px) !important;
-    z-index: 10900 !important;
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: none !important;
-}
-
 /* Main area */
 .pp-page.page-productpipeline {
-    display: block !important;
-    position: relative !important;
-    float: none !important;
-    clear: both !important;
-    width: calc(100% - 350px) !important;
-    min-width: 0 !important;
-    min-height: calc(100vh - 99px) !important;
-    margin: 0 0 0 350px !important;
-    padding: 48px 40px 50px !important;
-    box-sizing: border-box !important;
-    background: #060b18 !important;
-    color: #dce5f5 !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 1 !important;
+    display: block;
+    position: relative;
+    float: none;
+    clear: both;
+    width: calc(100% - 245px);
+    min-width: 0;
+    min-height: calc(100vh - 72px);
+    margin: 0 0 0 245px;
+    padding: 100px 30px 50px;
+    box-sizing: border-box;
+    background: #060b18;
+    color: #dce5f5;
 }
 
 .pp-container {
@@ -1152,19 +872,32 @@ body {
     margin-top: 20px;
 }
 
-@media (max-width: 1050px) {
-    #crmSidebar.rail {
-        width: 245px !important;
-    }
+/* =========================================================
+   PRODUCT PIPELINE — NAVIGATION-SAFE RESPONSIVE LAYOUT
+   navigation.css owns .topbar / .rail.
+   This file owns only the Product Pipeline content shell.
+   ========================================================= */
 
+.pp-page.page-productpipeline,
+.pp-page.page-productpipeline * {
+    box-sizing: border-box;
+}
+
+.pp-page.page-productpipeline {
+    visibility: visible;
+    opacity: 1;
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
     .pp-page.page-productpipeline {
-        width: calc(100% - 245px) !important;
-        margin-left: 245px !important;
-        padding: 35px 24px 45px !important;
+        width: calc(100% - 220px);
+        margin-left: 220px;
+        min-height: calc(100vh - 72px);
+        padding: 100px 22px 46px;
     }
 
     .pp-summary-card {
-        grid-template-columns: repeat(2, minmax(0,1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .pp-summary-item:nth-child(2) {
@@ -1176,20 +909,32 @@ body {
     }
 }
 
-@media (max-width: 800px) {
-    #crmSidebar.rail {
-        top: 72px !important;
-        width: 245px !important;
-    }
-
+@media (max-width: 768px) {
     .pp-page.page-productpipeline {
-        width: 100% !important;
-        margin-left: 0 !important;
-        padding: 92px 14px 40px !important;
+        width: 100%;
+        margin-left: 0;
+        min-height: calc(100vh - 64px);
+        padding: 84px 14px 40px;
     }
 
     .pp-page-header {
         margin-bottom: 20px;
+    }
+
+    .pp-title-wrap {
+        min-width: 0;
+    }
+
+    .pp-title-wrap h4 {
+        font-size: 22px;
+    }
+
+    .pp-title-icon {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        border-radius: 14px;
+        font-size: 18px;
     }
 
     .pp-summary-card {
@@ -1217,355 +962,67 @@ body {
 
     .pp-search-form input {
         width: 100% !important;
-        flex: 1;
+        flex: 1 1 auto;
+    }
+
+    .pp-card-body {
+        overflow-x: auto;
+    }
+
+    .pp-table {
+        min-width: 900px;
     }
 }
-</style>
 
+@media (max-width: 480px) {
+    .pp-page.page-productpipeline {
+        padding: 80px 10px 32px;
+    }
+
+    .pp-page-header {
+        margin-bottom: 16px;
+    }
+
+    .pp-title-wrap {
+        gap: 10px;
+    }
+
+    .pp-title-wrap h4 {
+        font-size: 20px;
+    }
+
+    .pp-title-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+        border-radius: 12px;
+        font-size: 16px;
+    }
+
+    .pp-summary-item {
+        padding: 13px 15px;
+    }
+
+    .pp-card-header {
+        padding: 12px;
+    }
+
+    .pp-search-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        width: 100%;
+    }
+
+    .pp-search-form input {
+        min-width: 0;
+    }
+}
+
+    </style>
 </head>
 <body class="page-productpipeline">
 
 <?php require_once 'navigation.php'; ?>
-
-
-<!-- Product Pipeline page-specific navigation/layout override.
-     Loaded AFTER navigation.php so shared navigation CSS cannot hide this page. -->
-<style id="productpipeline-layout-fix">
-/*
- * PRODUCT PIPELINE + SHARED NAVIGATION
- * ------------------------------------
- * Jangan gunakan class .content di halaman ini.
- * navigation.css memakai .content sebagai shared layout selector.
- * Product Pipeline memakai .pp-page agar layout halaman ini terisolasi.
- */
-
-html,
-body {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    background: #070b14 !important;
-}
-
-@media (min-width: 769px) {
-    .topbar {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100% !important;
-        height: 72px !important;
-        z-index: 11000 !important;
-    }
-
-    #crmSidebar.rail {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: fixed !important;
-        left: 0 !important;
-        top: 72px !important;
-        bottom: 0 !important;
-        width: 245px !important;
-        height: calc(100vh - 72px) !important;
-        margin: 0 !important;
-        transform: none !important;
-        z-index: 10900 !important;
-        overflow-y: auto !important;
-    }
-
-    /*
-     * IMPORTANT:
-     * pp-page is intentionally not .content.
-     * This prevents navigation.css from taking over this container.
-     */
-    .pp-page.page-productpipeline {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: relative !important;
-        float: none !important;
-        clear: both !important;
-        z-index: 1 !important;
-
-        width: calc(100% - 245px) !important;
-        max-width: none !important;
-        min-width: 0 !important;
-        min-height: calc(100vh - 72px) !important;
-
-        margin: 0 0 0 245px !important;
-        padding: 100px 30px 50px !important;
-
-        box-sizing: border-box !important;
-        background: #070b14 !important;
-        color: #e8eef9 !important;
-    }
-
-    .pp-page.page-productpipeline .pipeline-wrapper {
-        display: block !important;
-        width: 100% !important;
-        max-width: none !important;
-        min-width: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-
-    .pp-page.page-productpipeline .page-header,
-    .pp-page.page-productpipeline .summary-grid,
-    .pp-page.page-productpipeline .pipeline-card {
-        position: relative !important;
-        z-index: 2 !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-
-    .pp-page.page-productpipeline .summary-grid,
-    .pp-page.page-productpipeline .pipeline-card {
-        width: 100% !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .pp-page.page-productpipeline {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: relative !important;
-        float: none !important;
-        clear: both !important;
-
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        min-height: calc(100vh - 64px) !important;
-
-        margin: 0 !important;
-        padding: 84px 14px 40px !important;
-
-        box-sizing: border-box !important;
-        background: #070b14 !important;
-        color: #e8eef9 !important;
-    }
-
-    .pp-page.page-productpipeline .pipeline-wrapper {
-        width: 100% !important;
-        max-width: none !important;
-        padding: 0 !important;
-    }
-}
-
-/* Final safety: the Product Pipeline shell is NEVER hidden. */
-.pp-page.page-productpipeline,
-.pp-page.page-productpipeline * {
-    box-sizing: border-box;
-}
-
-.pp-page.page-productpipeline {
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-</style>
-
-
-<style id="productpipeline-final-theme">
-/* =========================================================
-   PRODUCT PIPELINE — FINAL INTEGRATION
-   Navigation is shared. Product Pipeline content is isolated
-   in .pp-page so navigation.css cannot hijack its layout.
-   ========================================================= */
-
-html,
-body {
-    background: #070b14 !important;
-    color: #dce5f5 !important;
-}
-
-/* Shared navigation must stay visible above page content. */
-.topbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    height: 72px !important;
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 11000 !important;
-}
-
-#crmSidebar.rail {
-    position: fixed !important;
-    left: 0 !important;
-    top: 72px !important;
-    bottom: 0 !important;
-    width: 245px !important;
-    height: calc(100vh - 72px) !important;
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transform: none !important;
-    z-index: 10900 !important;
-    overflow-y: auto !important;
-}
-
-/* Product Pipeline shell — deliberately NOT .content. */
-.pp-page.page-productpipeline {
-    display: block !important;
-    position: relative !important;
-    float: none !important;
-    clear: both !important;
-    width: calc(100% - 245px) !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    min-height: calc(100vh - 72px) !important;
-    margin: 0 0 0 245px !important;
-    padding: 100px 30px 50px !important;
-    box-sizing: border-box !important;
-    background: #070b14 !important;
-    color: #dce5f5 !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 1 !important;
-}
-
-.pp-page.page-productpipeline .pipeline-wrapper {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* Header */
-.pp-page.page-productpipeline .page-title {
-    color: #eef4ff !important;
-}
-.pp-page.page-productpipeline .page-subtitle {
-    color: #71809b !important;
-}
-
-/* Summary cards */
-.pp-page.page-productpipeline .summary-grid {
-    width: 100% !important;
-}
-.pp-page.page-productpipeline .summary-card {
-    background: linear-gradient(145deg, #111b2d, #0b1424) !important;
-    border: 1px solid rgba(148,163,184,.13) !important;
-    box-shadow: 0 14px 35px rgba(0,0,0,.20) !important;
-    color: #dce5f5 !important;
-}
-.pp-page.page-productpipeline .summary-label {
-    color: #71809b !important;
-}
-.pp-page.page-productpipeline .summary-card:not(.prospect):not(.hot):not(.deal) .summary-value {
-    color: #eef4ff !important;
-}
-.pp-page.page-productpipeline .summary-card.prospect .summary-value {
-    color: #60a5fa !important;
-}
-.pp-page.page-productpipeline .summary-card.hot .summary-value {
-    color: #fbbf24 !important;
-}
-.pp-page.page-productpipeline .summary-card.deal .summary-value {
-    color: #34d399 !important;
-}
-
-/* Main pipeline card */
-.pp-page.page-productpipeline .pipeline-card {
-    background: #111b2d !important;
-    border: 1px solid rgba(148,163,184,.13) !important;
-    box-shadow: 0 14px 35px rgba(0,0,0,.20) !important;
-    color: #dce5f5 !important;
-}
-.pp-page.page-productpipeline .pipeline-toolbar {
-    background: rgba(13,23,41,.55) !important;
-    border-bottom: 1px solid rgba(148,163,184,.10) !important;
-}
-.pp-page.page-productpipeline .pipeline-toolbar strong {
-    color: #eef4ff !important;
-}
-.pp-page.page-productpipeline .pipeline-toolbar .text-muted {
-    color: #64748b !important;
-}
-
-/* Search */
-.pp-page.page-productpipeline .search-box input {
-    color: #dce5f5 !important;
-    background: #070e1c !important;
-    border: 1px solid rgba(148,163,184,.16) !important;
-}
-.pp-page.page-productpipeline .search-box input::placeholder {
-    color: #52627d !important;
-}
-.pp-page.page-productpipeline .search-box i {
-    color: #64748b !important;
-}
-
-/* Table */
-.pp-page.page-productpipeline table {
-    background: transparent !important;
-    color: #cdd7e7 !important;
-}
-.pp-page.page-productpipeline thead th {
-    background: #0a1323 !important;
-    color: #71809b !important;
-    border-bottom: 1px solid rgba(148,163,184,.10) !important;
-}
-.pp-page.page-productpipeline tbody td {
-    color: #cdd7e7 !important;
-    background: transparent !important;
-    border-bottom: 1px solid rgba(148,163,184,.08) !important;
-}
-.pp-page.page-productpipeline tbody tr:hover td {
-    background: rgba(59,130,246,.035) !important;
-}
-.pp-page.page-productpipeline .product-name {
-    color: #dce5f5 !important;
-}
-.pp-page.page-productpipeline .qty-prospect {
-    color: #60a5fa !important;
-}
-.pp-page.page-productpipeline .qty-hot {
-    color: #fbbf24 !important;
-}
-.pp-page.page-productpipeline .qty-deal {
-    color: #34d399 !important;
-}
-.pp-page.page-productpipeline .stage-bar {
-    background: #172238 !important;
-}
-.pp-page.page-productpipeline .stage-prospect {
-    background: #60a5fa !important;
-}
-.pp-page.page-productpipeline .stage-hot {
-    background: #fbbf24 !important;
-}
-.pp-page.page-productpipeline .stage-deal {
-    background: #34d399 !important;
-}
-
-/* Footer stays inside the page content area. */
-.pp-page.page-productpipeline footer {
-    width: 100% !important;
-}
-
-@media (max-width: 768px) {
-    #crmSidebar.rail {
-        top: 64px !important;
-        height: calc(100dvh - 64px) !important;
-    }
-
-    .pp-page.page-productpipeline {
-        width: 100% !important;
-        min-height: calc(100vh - 64px) !important;
-        margin-left: 0 !important;
-        padding: 84px 14px 40px !important;
-    }
-}
-</style>
 
 <main class="pp-page page-productpipeline">
     <div class="pp-container">
@@ -1710,9 +1167,10 @@ body {
             </div>
         </div>
 
-        <?php require_once 'footer.php'; ?>
     </div>
 </main>
+
+<?php require_once 'footer.php'; ?>
 
 </body>
 </html>
