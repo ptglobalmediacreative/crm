@@ -51,20 +51,8 @@ requirePermission('product_pipeline', 'view');
 $userMenus = getUserMenus();
 
 // ============================================================
-// PRODUCT PIPELINE DATA
+// HELPER
 // ============================================================
-// Prospect = activity_details (Prospecting) -> activity_detail_units
-// Hot/Deal = activity_details (tr_number) -> tr_detail_units
-// Deal     = detail_transaction_requests.customer_deal = yes
-// Hot      = TR sudah ada tetapi customer_deal bukan yes
-//
-// Satu Activity Number + satu Tipe Unit hanya dihitung sekali.
-// Jika sudah masuk TR, tahap Prospect untuk tipe unit tersebut digantikan
-// oleh tahap TR (Hot/Deal).
-
-$pipeline = [];
-$pipelineErrors = [];
-
 function pipelineQty($value) {
     return max(0, (int)$value);
 }
@@ -73,8 +61,6 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
     $activityId = (int)$activityId;
     $productId = (int)$productId;
     $qty = pipelineQty($qty);
-    $productName = trim((string)$productName);
-
     if ($activityId <= 0 || $productId <= 0 || $productName === '' || $qty <= 0) {
         return;
     }
@@ -82,13 +68,14 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
     if (!isset($map[$activityId])) {
         $map[$activityId] = [
             'activity_id' => $activityId,
-            'activity_number' => (string)$activityNumber,
+            'activity_number' => $activityNumber,
             'units' => []
         ];
     }
 
-    if (!isset($map[$activityId]['units'][$productId])) {
-        $map[$activityId]['units'][$productId] = [
+    $key = $productId;
+    if (!isset($map[$activityId]['units'][$key])) {
+        $map[$activityId]['units'][$key] = [
             'product_id' => $productId,
             'product_name' => $productName,
             'prospect_qty' => 0,
@@ -97,78 +84,79 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
         ];
     }
 
+    // Satu Activity Number + satu Tipe Unit hanya boleh masuk ke SATU tahap.
+    // Nilai qty memakai nilai terbesar agar histori/revisi tidak terhitung double.
     $field = $stage . '_qty';
-    $map[$activityId]['units'][$productId][$field] = max(
-        (int)$map[$activityId]['units'][$productId][$field],
+    $map[$activityId]['units'][$key][$field] = max(
+        (int)$map[$activityId]['units'][$key][$field],
         $qty
     );
 }
 
-// ------------------------------------------------------------
-// 1. PROSPECT
-// ------------------------------------------------------------
+// ============================================================
+// 1. PROSPECT: TIPE UNIT DARI DETAIL AKTIVITAS PROSPECTING
+// ============================================================
+$pipeline = [];
+
 try {
     $sqlProspect = "
         SELECT
             sa.id AS activity_id,
             sa.leads_number AS activity_number,
+            ad.id AS activity_detail_id,
             adu.product_id,
-            adu.quantity,
-            p.nama_produk
-        FROM activity_details ad
-        INNER JOIN sales_activities sa
-            ON sa.id = ad.sales_activity_id
+            p.nama_produk,
+            adu.quantity
+        FROM sales_activities sa
+        INNER JOIN activity_details ad
+            ON ad.sales_activity_id = sa.id
+           AND ad.jenis_tugas = 'Prospecting'
         INNER JOIN activity_detail_units adu
             ON adu.activity_detail_id = ad.id
         INNER JOIN products p
             ON p.id = adu.product_id
-        WHERE ad.jenis_tugas = 'Prospecting'
-          AND adu.product_id IS NOT NULL
-          AND adu.quantity > 0
-          AND p.nama_produk IS NOT NULL
+        WHERE p.nama_produk IS NOT NULL
           AND TRIM(p.nama_produk) <> ''
-        ORDER BY sa.id ASC, ad.id ASC, adu.id ASC
+        ORDER BY sa.id ASC, p.nama_produk ASC
     ";
-
     $stmt = $db->query($sqlProspect);
-
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         pipelineAdd(
             $pipeline,
             $row['activity_id'],
             $row['activity_number'],
             $row['product_id'],
-            $row['nama_produk'],
+            trim((string)$row['nama_produk']),
             $row['quantity'],
             'prospect'
         );
     }
 } catch (PDOException $e) {
-    $pipelineErrors[] = 'Prospect: ' . $e->getMessage();
+    // Jika tabel belum tersedia, halaman tetap dapat dibuka.
 }
 
-// ------------------------------------------------------------
-// 2. HOT PROSPECT / DEAL DARI TR
-// ------------------------------------------------------------
+// ============================================================
+// 2. HOT PROSPECT / DEAL: TIPE UNIT DARI DETAIL TR
+//    Relasi WAJIB berdasarkan Activity Number -> activity_details.sales_activity_id.
+//
+//    Customer Deal:
+//      yes = Deal
+//      selain yes / belum diisi = Hot Prospect
+//
+//    Jika tipe unit sama dengan tipe unit Prospect pada Activity Number
+//    yang sama, Prospect dipindahkan ke tahap TR dan tidak dihitung double.
+// ============================================================
 try {
     $sqlTR = "
         SELECT
             sa.id AS activity_id,
             sa.leads_number AS activity_number,
             ad.tr_number,
+            tdu.id AS tr_unit_id,
             tdu.unit_id AS product_id,
             tdu.qty,
             p.nama_produk,
-            COALESCE(
-                (
-                    SELECT dtr.customer_deal
-                    FROM detail_transaction_requests dtr
-                    WHERE dtr.trf_number = ad.tr_number
-                    ORDER BY dtr.id DESC
-                    LIMIT 1
-                ),
-                ''
-            ) AS customer_deal
+            COALESCE(dtr.customer_deal, '') AS customer_deal
         FROM activity_details ad
         INNER JOIN sales_activities sa
             ON sa.id = ad.sales_activity_id
@@ -176,44 +164,46 @@ try {
             ON tdu.trf_number = ad.tr_number
         INNER JOIN products p
             ON p.id = tdu.unit_id
+        LEFT JOIN detail_transaction_requests dtr
+            ON dtr.id = (
+                SELECT MAX(d2.id)
+                FROM detail_transaction_requests d2
+                WHERE d2.trf_number = ad.tr_number
+            )
         WHERE ad.tr_number IS NOT NULL
           AND TRIM(ad.tr_number) <> ''
-          AND tdu.unit_id IS NOT NULL
-          AND tdu.qty > 0
           AND p.nama_produk IS NOT NULL
           AND TRIM(p.nama_produk) <> ''
-        ORDER BY sa.id ASC, ad.id ASC, tdu.id ASC
+        ORDER BY sa.id ASC, tdu.id ASC
     ";
 
     $stmt = $db->query($sqlTR);
-
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $deal = strtolower(trim((string)$row['customer_deal']));
-        $stage = ($deal === 'yes') ? 'deal' : 'hot';
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $customerDeal = strtolower(trim((string)$row['customer_deal']));
+        $stage = ($customerDeal === 'yes') ? 'deal' : 'hot';
 
         pipelineAdd(
             $pipeline,
             $row['activity_id'],
             $row['activity_number'],
             $row['product_id'],
-            $row['nama_produk'],
+            trim((string)$row['nama_produk']),
             $row['qty'],
             $stage
         );
     }
 } catch (PDOException $e) {
-    $pipelineErrors[] = 'Transaction Request: ' . $e->getMessage();
+    // Jika tabel TR belum tersedia, halaman tetap dapat dibuka.
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // 3. AGREGASI PER TIPE UNIT
-// ------------------------------------------------------------
+//    Satu Activity Number + Tipe Unit hanya dihitung sekali.
+// ============================================================
 $pipelineByProduct = [];
-
 foreach ($pipeline as $activityData) {
     foreach ($activityData['units'] as $unit) {
         $productId = (int)$unit['product_id'];
-
         if (!isset($pipelineByProduct[$productId])) {
             $pipelineByProduct[$productId] = [
                 'product_id' => $productId,
@@ -224,6 +214,7 @@ foreach ($pipeline as $activityData) {
             ];
         }
 
+        // Tahap tertinggi menjadi sumber qty final untuk Activity Number tersebut.
         if ((int)$unit['deal_qty'] > 0) {
             $pipelineByProduct[$productId]['deal'] += (int)$unit['deal_qty'];
         } elseif ((int)$unit['hot_qty'] > 0) {
@@ -234,6 +225,7 @@ foreach ($pipeline as $activityData) {
     }
 }
 
+// Urutkan berdasarkan nama tipe unit.
 usort($pipelineByProduct, static function ($a, $b) {
     return strcasecmp($a['product_name'], $b['product_name']);
 });
@@ -241,13 +233,11 @@ usort($pipelineByProduct, static function ($a, $b) {
 $totalProspect = 0;
 $totalHot = 0;
 $totalDeal = 0;
-
 foreach ($pipelineByProduct as $row) {
     $totalProspect += (int)$row['prospect'];
     $totalHot += (int)$row['hot_prospect'];
     $totalDeal += (int)$row['deal'];
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -265,6 +255,11 @@ foreach ($pipelineByProduct as $row) {
 </head>
 <body>
 
+<?php
+// Product Pipeline tidak membutuhkan engine notification yang berat pada navigation.
+define('CRM_LIGHT_NAV', true);
+require_once 'navigation.php';
+?>
 <link rel="stylesheet" href="css/productpipeline.css">
 
 <main class="pp-page page-productpipeline">

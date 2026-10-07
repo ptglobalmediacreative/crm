@@ -17,6 +17,9 @@ unset($__navEntry, $__navFile);
 // Shared CRM navigation: topbar + sidebar.
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
+// Mode ringan untuk halaman yang tidak membutuhkan engine notification.
+$__lightNav = defined('CRM_LIGHT_NAV') && CRM_LIGHT_NAV;
+
 // ============================================
 // MENU YANG BOLEH DIAKSES USER
 // Semua halaman cukup include navigation.php.
@@ -277,6 +280,8 @@ if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
     $profileInitial = strtoupper(substr($profileFullName, 0, 1));
 
 }
+
+if (!$__lightNav) {
 
 /*
  * PERSISTENT NOTIFICATION READ STATE
@@ -1347,6 +1352,8 @@ if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
             $emailIntegrationError->getMessage()
         );
     }
+}
+
 }
 
 ?>
