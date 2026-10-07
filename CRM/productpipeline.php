@@ -502,7 +502,6 @@ if ($search !== '') {
 </head>
 <body class="page-productpipeline">
 
-<?php require_once 'navigation.php'; ?>
 
 <main class="content">
     <div class="page-header">
