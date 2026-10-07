@@ -38,6 +38,7 @@ requirePermission('sales_activity', 'view');
 $pipeline = [];
 $activityCount = 0;
 $trCount = 0;
+$pipelineErrors = [];
 
 // Helper: normalisasi nama/ID produk.
 function pipelineAdd(&$bucket, $productId, $productName, $qty) {
@@ -72,7 +73,7 @@ try {
         FROM activity_details ad
         INNER JOIN activity_detail_units adu
             ON adu.activity_detail_id = ad.id
-        INNER JOIN products p
+        LEFT JOIN products p
             ON p.id = adu.product_id
         WHERE LOWER(TRIM(ad.jenis_tugas)) = 'prospecting'
           AND adu.product_id > 0
@@ -80,8 +81,9 @@ try {
     ";
     $stmtProspect = $db->query($sqlProspect);
     $prospectRows = $stmtProspect->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
+ } catch (PDOException $e) {
     $prospectRows = [];
+    $pipelineErrors[] = 'Prospect: ' . $e->getMessage();
 }
 
 // Group Prospect berdasarkan Activity Number + Product.
@@ -128,7 +130,7 @@ try {
         FROM activity_details ad
         INNER JOIN tr_detail_units tdu
             ON tdu.trf_number = ad.tr_number
-        INNER JOIN products p
+        LEFT JOIN products p
             ON p.id = tdu.unit_id
         LEFT JOIN detail_transaction_requests dtr
             ON dtr.trf_number = ad.tr_number
@@ -377,6 +379,17 @@ function formatQty($qty) {
 
     <?= showFlash() ?>
 
+    <?php if (!empty($pipelineErrors)): ?>
+        <div class="alert alert-danger" style="border-radius:12px; font-size:12px;">
+            <strong>Data Product Pipeline gagal dibaca.</strong>
+            <ul class="mb-0 mt-2">
+                <?php foreach ($pipelineErrors as $pipelineError): ?>
+                    <li><?= htmlspecialchars($pipelineError) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
+
     <div class="summary-grid">
         <div class="summary-card prospect">
             <div class="summary-label">Prospect</div>
@@ -418,6 +431,9 @@ function formatQty($qty) {
                     <div><i class="fas fa-box-open"></i></div>
                     <strong>Belum ada data Product Pipeline</strong>
                     <div class="mt-1">Data akan muncul setelah ada Tipe Unit pada aktivitas Prospecting atau Detail TR.</div>
+                    <?php if (empty($pipelineErrors)): ?>
+                        <div class="mt-2" style="font-size:11px;">Pastikan Tipe Unit sudah tersimpan pada Detail Aktivitas Prospecting atau Detail Unit TR.</div>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <table id="pipelineTable">
