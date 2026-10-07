@@ -744,7 +744,7 @@ if ($search !== '') {
     </style>
 </head>
 <body class="page-productpipeline">
-<?php require_once 'navigation.php'; ?>
+
 
 <!-- Product Pipeline page-specific navigation/layout override.
      Loaded AFTER navigation.php so shared navigation CSS cannot hide this page. -->
