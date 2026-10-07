@@ -304,7 +304,6 @@ require_once 'navigation.php';
 <main class="pp-page page-productpipeline">
     <div class="page-header productpipeline-header">
         <div>
-            <div class="page-eyebrow"><i class="fas fa-chart-column"></i> Sales Intelligence</div>
             <h1>Product Pipeline</h1>
             <p>Rekap perkembangan tipe unit dari Prospect → Hot Prospect → Deal berdasarkan Activity Number.</p>
         </div>
@@ -331,7 +330,6 @@ require_once 'navigation.php';
         <div class="card-header-custom pipeline-card-header">
             <div>
                 <h6><i class="fas fa-boxes-stacked"></i> Product Pipeline</h6>
-                <span>Qty dihitung satu kali berdasarkan Activity Number + Tipe Unit.</span>
             </div>
             <span class="pipeline-count"><?= count($pipelineByProduct) ?> Tipe Unit</span>
         </div>
