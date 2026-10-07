@@ -502,9 +502,10 @@ if ($search !== '') {
 </head>
 <body class="page-productpipeline">
 
-    
-    <main class="content">
-        <div class="page-header">
+<?php require_once 'navigation.php'; ?>
+
+<main class="content">
+    <div class="page-header">
         <div class="page-title">
             <h4><span><i class="fas fa-chart-bar"></i></span> Product Pipeline</h4>
         </div>

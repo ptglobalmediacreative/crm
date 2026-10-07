@@ -1478,6 +1478,13 @@ if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
         href="salesactivity.php">
             <i class="fas fa-chart-line"></i><span>Sales Activity</span>
         </a>
+
+        <!-- Product Pipeline memakai permission yang sama dengan Sales Activity,
+             sesuai requirePermission('sales_activity', 'view') di productpipeline.php. -->
+        <a class="<?= $currentPage === 'productpipeline.php' ? 'active' : '' ?>"
+        href="productpipeline.php">
+            <i class="fas fa-chart-column"></i><span>Product Pipeline</span>
+        </a>
     <?php endif; ?>
     <?php if ($showMenu('account_management')): ?><a class="<?= $currentPage === 'account_management.php' ? 'active' : '' ?>" href="account_management.php"><i class="fas fa-building"></i><span>Account Management</span></a><?php endif; ?>
     <?php if ($showMenu('transaction_request')): ?><a class="<?= in_array($currentPage, ['transactionrequest.php', 'detailtr.php'], true) ? 'active' : '' ?>" href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a><?php endif; ?>
