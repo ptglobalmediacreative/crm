@@ -38,6 +38,7 @@ requirePermission('sales_activity', 'view');
 $pipeline = [];
 $activityCount = 0;
 $trCount = 0;
+$pipelineErrors = [];
 
 // Helper: normalisasi nama/ID produk.
 function pipelineAdd(&$bucket, $productId, $productName, $qty) {
@@ -72,7 +73,7 @@ try {
         FROM activity_details ad
         INNER JOIN activity_detail_units adu
             ON adu.activity_detail_id = ad.id
-        INNER JOIN products p
+        LEFT JOIN products p
             ON p.id = adu.product_id
         WHERE LOWER(TRIM(ad.jenis_tugas)) = 'prospecting'
           AND adu.product_id > 0
@@ -82,6 +83,7 @@ try {
     $prospectRows = $stmtProspect->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $prospectRows = [];
+    $pipelineErrors[] = 'Query Prospecting: ' . $e->getMessage();
 }
 
 // Group Prospect berdasarkan Activity Number + Product.
@@ -128,7 +130,7 @@ try {
         FROM activity_details ad
         INNER JOIN tr_detail_units tdu
             ON tdu.trf_number = ad.tr_number
-        INNER JOIN products p
+        LEFT JOIN products p
             ON p.id = tdu.unit_id
         LEFT JOIN detail_transaction_requests dtr
             ON dtr.trf_number = ad.tr_number
@@ -146,6 +148,7 @@ try {
     $trRows = $stmtTR->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $trRows = [];
+    $pipelineErrors[] = 'Query TR: ' . $e->getMessage();
 }
 
 // ============================================================
@@ -293,17 +296,43 @@ function formatQty($qty) {
         * { box-sizing: border-box; }
         body {
             margin: 0;
-            background: var(--pp-bg);
             color: var(--pp-text);
             font-family: Inter, sans-serif;
         }
-        .pp-content {
-            padding: 28px;
-            width: calc(100% - 340px);
-            min-height: calc(100vh - 100px);
-            margin-left: 340px;
-            background: var(--pp-bg);
-            color: var(--pp-text);
+
+        /* Product Pipeline page: jangan bergantung pada .content global CRM. */
+        main.product-pipeline-content {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 50 !important;
+            box-sizing: border-box !important;
+            width: calc(100% - 245px) !important;
+            min-width: 0 !important;
+            min-height: calc(100vh - 72px) !important;
+            margin-left: 245px !important;
+            margin-right: 0 !important;
+            padding: 100px 34px 52px !important;
+            background: #f6f8fb !important;
+            color: #172033 !important;
+        }
+
+        main.product-pipeline-content * {
+            visibility: visible;
+        }
+
+        main.product-pipeline-content .page-title,
+        main.product-pipeline-content .toolbar-title,
+        main.product-pipeline-content .summary-value,
+        main.product-pipeline-content .summary-label,
+        main.product-pipeline-content .summary-note,
+        main.product-pipeline-content .toolbar-desc,
+        main.product-pipeline-content .product-cell,
+        main.product-pipeline-content .product-id,
+        main.product-pipeline-content .logic-note {
+            position: relative;
+            z-index: 51;
         }
         .page-header {
             display:flex; justify-content:space-between; align-items:center; gap:20px;
@@ -362,10 +391,15 @@ function formatQty($qty) {
         .logic-note { margin-top:16px; color:var(--pp-muted); font-size:11px; line-height:1.65; }
         .logic-note strong { color:#475467; }
         @media (max-width: 900px) {
-            .pp-content { padding:18px; width:calc(100% - 340px); margin-left:340px; }
+            main.product-pipeline-content {
+                width: 100% !important;
+                margin-left: 0 !important;
+                padding: 92px 18px 40px !important;
+            }
             .summary-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
         }
         @media (max-width: 560px) {
+            main.product-pipeline-content { padding: 82px 12px 32px !important; }
             .summary-grid { grid-template-columns:1fr; }
             .page-header { align-items:flex-start; flex-direction:column; }
         }
@@ -374,7 +408,7 @@ function formatQty($qty) {
 <body>
 <?php require_once 'navigation.php'; ?>
 
-<main class="pp-content">
+<main class="product-pipeline-content">
     <div class="page-header">
         <div>
             <h1 class="page-title"><span class="title-icon"><i class="fas fa-chart-line"></i></span>Product Pipeline</h1>
@@ -383,6 +417,24 @@ function formatQty($qty) {
     </div>
 
     <?= showFlash() ?>
+
+    <?php if (!empty($pipelineErrors)): ?>
+        <div style="background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:12px;">
+            <strong>Product Pipeline gagal membaca data.</strong>
+            <ul style="margin:8px 0 0;padding-left:18px;">
+                <?php foreach ($pipelineErrors as $pipelineError): ?>
+                    <li><?= htmlspecialchars($pipelineError) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:11px;color:#667085;">
+        <span style="background:#fff;border:1px solid #e7ebf1;border-radius:999px;padding:6px 10px;">Prospecting rows: <?= count($prospectRows) ?></span>
+        <span style="background:#fff;border:1px solid #e7ebf1;border-radius:999px;padding:6px 10px;">Activity: <?= (int)$activityCount ?></span>
+        <span style="background:#fff;border:1px solid #e7ebf1;border-radius:999px;padding:6px 10px;">TR rows: <?= count($trRows) ?></span>
+        <span style="background:#fff;border:1px solid #e7ebf1;border-radius:999px;padding:6px 10px;">TR: <?= (int)$trCount ?></span>
+    </div>
 
     <div class="summary-grid">
         <div class="summary-card prospect">
@@ -425,11 +477,6 @@ function formatQty($qty) {
                     <div><i class="fas fa-box-open"></i></div>
                     <strong>Belum ada data Product Pipeline</strong>
                     <div class="mt-1">Data akan muncul setelah ada Tipe Unit pada aktivitas Prospecting atau Detail TR.</div>
-                    <div class="mt-3" style="font-size:12px;color:#98a2b3;">
-                        Source check: Prospect <?= formatQty(count($prospectRows)) ?> baris •
-                        TR <?= formatQty(count($trRows)) ?> baris •
-                        <?= formatQty($activityCount) ?> Activity • <?= formatQty($trCount) ?> TR
-                    </div>
                 </div>
             <?php else: ?>
                 <table id="pipelineTable">
