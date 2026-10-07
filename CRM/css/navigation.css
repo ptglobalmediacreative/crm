@@ -1589,141 +1589,51 @@ canvas {
 }
 
 /* =========================================================
-   NAVIGATION STRUCTURAL FIX
-   Fixed navigation prevents clipping/disconnection while
-   the page itself scrolls.
+   CRM NAVIGATION — SINGLE LAYOUT SYSTEM
+   This is the only structural/navigation override layer.
+   Header and sidebar are fixed; page content scrolls normally.
+   Product Pipeline intentionally uses .pp-page, not .content.
    ========================================================= */
 
+:root {
+  --topbar-height: 72px;
+  --rail-width: 245px;
+  --rail-width-tablet: 220px;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* ---------- FIXED HEADER ---------- */
 .topbar {
   position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
+  inset: 0 0 auto 0 !important;
   width: 100% !important;
-  height: var(--topbar-height, 72px) !important;
-  z-index: 11000 !important;
-}
-
-.rail {
-  position: fixed !important;
-  top: var(--topbar-height, 72px) !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  height: auto !important;
-  z-index: 10900 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  overscroll-behavior: contain;
-}
-
-@media (min-width: 769px) {
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: calc(28px + var(--topbar-height, 72px)) !important;
-  }
-
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    min-height: 100vh !important;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1200px) {
-  .rail {
-    width: 220px !important;
-  }
-
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: calc(24px + var(--topbar-height, 72px)) !important;
-  }
-}
-
-@media (max-width: 768px) {
-  :root {
-    --topbar-height: 64px;
-  }
-
-  .topbar {
-    height: 64px !important;
-  }
-
-  .rail {
-    top: 64px !important;
-    width: min(280px, 86vw) !important;
-    height: calc(100dvh - 64px) !important;
-    max-height: calc(100dvh - 64px) !important;
-  }
-
-  .content,
-  .page-account-management .content,
-  .page-data-user .content,
-  .page-deliveryinstruction .content,
-  .page-detailaktivitas .content,
-  .page-detaildi .content,
-  .page-detailtr .content,
-  .page-produk .content,
-  .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: 80px !important;
-  }
-
-  .mobile-menu-overlay {
-    position: fixed !important;
-    inset: 64px 0 0 0 !important;
-    z-index: 10800 !important;
-  }
-
-  .rail.open {
-    z-index: 10950 !important;
-  }
-}
-
-/* =========================================================
-   FINAL HEADER FIX — 100% VISIBLE / RESPONSIVE
-   The top navigation must NEVER disappear on phone, tablet,
-   laptop, or desktop.
-   ========================================================= */
-
-.topbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: auto !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  height: 72px !important;
+  height: var(--topbar-height) !important;
+  min-height: var(--topbar-height) !important;
   display: flex !important;
   align-items: center !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  transform: none !important;
-  z-index: 11000 !important;
   box-sizing: border-box !important;
+  z-index: 11000 !important;
 }
 
 .topbar .brand {
@@ -1731,12 +1641,11 @@ canvas {
   align-items: center !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
-  max-width: none !important;
 }
 
 .topbar .brand img {
-  flex: 0 0 auto !important;
   display: block !important;
+  flex: 0 0 auto !important;
 }
 
 .topbar .top-actions {
@@ -1747,15 +1656,71 @@ canvas {
   min-width: 0 !important;
 }
 
-/* Keep the navigation header in view while the document scrolls. */
-body {
-  padding-top: 0 !important;
+/* ---------- FIXED SIDEBAR ---------- */
+.rail {
+  position: fixed !important;
+  top: var(--topbar-height) !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: var(--rail-width) !important;
+  height: auto !important;
+  margin: 0 !important;
+  z-index: 10900 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
 }
 
-/* Desktop / laptop content starts below the fixed header. */
-@media (min-width: 769px) {
-  .topbar {
-    height: 72px !important;
+/* ---------- STANDARD PAGE CONTENT ---------- */
+.content,
+.page-account-management .content,
+.page-data-user .content,
+.page-deliveryinstruction .content,
+.page-detailaktivitas .content,
+.page-detaildi .content,
+.page-detailtr .content,
+.page-produk .content,
+.page-salesactivity .content,
+.page-transactionrequest .content {
+  position: relative;
+  width: calc(100% - var(--rail-width)) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 100vh !important;
+  margin-left: var(--rail-width) !important;
+  box-sizing: border-box !important;
+  padding-top: calc(var(--topbar-height) + 28px) !important;
+}
+
+/* Product Pipeline is deliberately outside the shared .content system. */
+.pp-page.page-productpipeline {
+  position: relative !important;
+  display: block !important;
+  width: calc(100% - var(--rail-width)) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 100vh !important;
+  margin: 0 0 0 var(--rail-width) !important;
+  padding-top: calc(var(--topbar-height) + 28px) !important;
+  box-sizing: border-box !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+}
+
+/* Keep the mobile overlay below the open rail but above page content. */
+.mobile-menu-overlay {
+  z-index: 10800 !important;
+}
+
+.rail.open {
+  z-index: 10950 !important;
+}
+
+/* ---------- TABLET / SMALL LAPTOP ---------- */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .rail {
+    width: var(--rail-width-tablet) !important;
   }
 
   .content,
@@ -1767,76 +1732,56 @@ body {
   .page-detailtr .content,
   .page-produk .content,
   .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: 100px !important;
+  .page-transactionrequest .content,
+  .pp-page.page-productpipeline {
+    width: calc(100% - var(--rail-width-tablet)) !important;
+    margin-left: var(--rail-width-tablet) !important;
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+    padding-top: calc(var(--topbar-height) + 24px) !important;
   }
 }
 
-/* Tablet + phone: header remains 100% wide and visible. */
+/* ---------- PHONE / TABLET ---------- */
 @media (max-width: 768px) {
+  :root {
+    --topbar-height: 64px;
+  }
+
   .topbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: auto !important;
     height: 64px !important;
     min-height: 64px !important;
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    overflow: visible !important;
-    padding: 0 12px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
     gap: 8px !important;
-    z-index: 11000 !important;
   }
 
   .topbar .brand {
-    display: flex !important;
-    flex: 1 1 auto !important;
-    width: auto !important;
     min-width: 0 !important;
     overflow: hidden !important;
   }
 
   .topbar .brand img {
-    display: block !important;
     width: 36px !important;
     height: 36px !important;
-    flex: 0 0 36px !important;
+    flex-basis: 36px !important;
   }
 
   .topbar .brand div {
-    display: block !important;
     min-width: 0 !important;
     overflow: hidden !important;
   }
 
   .topbar .brand strong,
   .topbar .brand small {
-    display: block !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
   }
 
-  .topbar .brand strong {
-    font-size: 14px !important;
-    line-height: 1.15 !important;
-  }
-
-  .topbar .brand small {
-    font-size: 8px !important;
-    line-height: 1.15 !important;
-  }
-
   .topbar .top-actions {
-    display: flex !important;
-    flex: 0 0 auto !important;
-    width: auto !important;
-    max-width: none !important;
-    margin-left: auto !important;
     gap: 6px !important;
+    margin-left: auto !important;
   }
 
   .topbar .icon-btn,
@@ -1845,6 +1790,38 @@ body {
     flex: 0 0 auto !important;
   }
 
+  .rail {
+    top: 64px !important;
+    bottom: 0 !important;
+    width: min(285px, 84vw) !important;
+    height: calc(100dvh - 64px) !important;
+    max-height: calc(100dvh - 64px) !important;
+    transform: translateX(-105%);
+    visibility: hidden;
+    opacity: 0;
+    z-index: 10900 !important;
+    transition:
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.2s ease,
+      visibility 0.25s ease;
+  }
+
+  .rail.open {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-flex;
+  }
+
+  .mobile-menu-overlay {
+    position: fixed !important;
+    inset: 64px 0 0 0 !important;
+    z-index: 10800 !important;
+  }
+
   .content,
   .page-account-management .content,
   .page-data-user .content,
@@ -1854,25 +1831,27 @@ body {
   .page-detailtr .content,
   .page-produk .content,
   .page-salesactivity .content,
-  .page-transactionrequest .content {
+  .page-transactionrequest .content,
+  .pp-page.page-productpipeline {
     width: 100% !important;
     max-width: 100% !important;
     margin-left: 0 !important;
-    padding-top: 82px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 84px !important;
   }
 
-  /* Sidebar may be closed on phone, but this does NOT hide the header. */
-  .rail {
-    z-index: 10900 !important;
+  .pp-page.page-productpipeline {
+    min-height: calc(100vh - 64px) !important;
   }
 }
 
-/* Small phones: still keep the full header visible. */
+/* ---------- SMALL PHONE ---------- */
 @media (max-width: 480px) {
   .topbar {
-    height: 60px !important;
-    min-height: 60px !important;
-    padding: 0 10px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    gap: 6px !important;
   }
 
   .topbar .brand img {
@@ -1908,17 +1887,33 @@ body {
   .page-detailtr .content,
   .page-produk .content,
   .page-salesactivity .content,
-  .page-transactionrequest .content {
-    padding-top: 76px !important;
+  .page-transactionrequest .content,
+  .pp-page.page-productpipeline {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 78px !important;
   }
 }
 
 @media (max-width: 360px) {
+  .mobile-menu-overlay {
+    inset: 60px 0 0 0 !important;
+  }
+
   .topbar {
-    height: 58px !important;
-    min-height: 58px !important;
-    padding: 0 8px !important;
-    gap: 5px !important;
+    height: 60px !important;
+    min-height: 60px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  :root {
+    --topbar-height: 60px;
+  }
+
+  .rail {
+    top: 60px !important;
+    height: calc(100dvh - 60px) !important;
   }
 
   .topbar .brand img {
@@ -1933,10 +1928,6 @@ body {
 
   .topbar .brand small {
     display: none !important;
-  }
-
-  .topbar .top-actions {
-    gap: 4px !important;
   }
 
   .topbar .icon-btn,
@@ -1954,7 +1945,10 @@ body {
   .page-detailtr .content,
   .page-produk .content,
   .page-salesactivity .content,
-  .page-transactionrequest .content {
+  .page-transactionrequest .content,
+  .pp-page.page-productpipeline {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
     padding-top: 72px !important;
   }
 }
@@ -3319,24 +3313,3 @@ body {
     grid-template-columns: 1fr 1fr !important;
   }
 }
-
-/* =========================================================
-   CRM RESPONSIVE SYSTEM — FINAL CONSISTENCY PASS
-   Dashboard reference / all devices
-   ========================================================= */
-html,body{max-width:100%;overflow-x:hidden}
-.content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box;padding:28px 30px 52px}
-.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:calc(100% - 245px);margin-left:245px;min-width:0;box-sizing:border-box}
-@media (min-width:1600px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (max-width:1199px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:24px}.page-header,.hero-row{gap:16px}.page-header h4,.page-title h4,.hero h1{font-size:23px}}
-@media (max-width:991px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{width:100%;margin-left:0;padding:22px 20px 44px}.page-header,.hero-row{align-items:flex-start;flex-wrap:wrap}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%;justify-content:flex-start;flex-wrap:wrap}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-grid{grid-template-columns:1fr}.card-header-custom{align-items:flex-start}.card-header-custom form{width:100%;margin-left:0}.card-header-custom form input{flex:1 1 auto;min-width:0;width:auto!important}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
-@media (max-width:767px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:18px 16px 38px}.page-header,.hero-row{margin-bottom:16px}.page-header h4,.page-title h4,.hero h1{font-size:21px}.stat-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat-card{min-height:112px;padding:15px}.kpi{min-height:104px;padding:13px}.detail-grid,.two-col,.form-grid,.form-row,.split-grid{grid-template-columns:1fr!important}.info-item{flex-direction:column;gap:7px}.info-label{width:auto!important}.card-header-custom form{flex-wrap:wrap}.card-header-custom form input,.card-header-custom form select{width:100%!important;min-width:0;flex:1 1 100%}}
-@media (max-width:575px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding:16px 12px 32px}.page-header,.hero-row{flex-direction:column;align-items:stretch;gap:12px}.page-header>div:last-child,.page-actions,.header-actions,.filters{width:100%}.page-actions>*,.header-actions>*,.filters>*{flex:1 1 auto;min-width:0}.stat-grid,.kpis{grid-template-columns:1fr;gap:9px}.card-header-custom{padding:12px}.card-header-custom h6{width:100%}.table-responsive,.card-body-custom{max-width:100%;overflow-x:auto}.table-custom th,.table-custom td{padding-left:10px!important;padding-right:10px!important}}
-@media (max-width:380px){.content,.page-account-management .content,.page-data-user .content,.page-deliveryinstruction .content,.page-detailaktivitas .content,.page-detaildi .content,.page-detailtr .content,.page-produk .content,.page-salesactivity .content,.page-transactionrequest .content{padding-left:10px;padding-right:10px}.page-header h4,.page-title h4,.hero h1{font-size:19px}.page-actions,.header-actions,.filters{flex-direction:column;align-items:stretch}.page-actions>*,.header-actions>*,.filters>*{width:100%}}
-footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{box-sizing:border-box;max-width:none;width:calc(100% - 245px);margin-left:245px}
-@media (min-width:1600px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:clamp(30px,2.1vw,42px);padding-right:clamp(30px,2.1vw,42px)}}
-@media (min-width:992px) and (max-width:1599px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:30px;padding-right:30px}}
-@media (max-width:991px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{width:100%;margin-left:0;padding-left:20px;padding-right:20px}}
-@media (max-width:767px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:16px;padding-right:16px}}
-@media (max-width:575px){footer:not(.modal-footer),.page-footer,.crm-footer,.site-footer{padding-left:12px;padding-right:12px}}
-img,video,canvas,iframe,table{max-width:100%}input,select,textarea,button{max-width:100%}
