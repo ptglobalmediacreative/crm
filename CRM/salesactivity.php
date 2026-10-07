@@ -1264,18 +1264,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                         <td class="tipe-unit-cell">
                                             <?php $tipeUnitList = $act['tipe_unit_list'] ?? []; ?>
                                             <?php if (!empty($tipeUnitList)): ?>
-                                                <div class="tipe-unit-slider" title="Geser untuk melihat tipe unit lainnya">
-                                                    <div class="tipe-unit-track">
-                                                        <?php foreach ($tipeUnitList as $tipeUnit): ?>
-                                                            <span class="badge-tipe-unit"><?= htmlspecialchars($tipeUnit) ?></span>
-                                                        <?php endforeach; ?>
-                                                    </div>
-                                                </div>
-                                                <a href="detailaktivitas.php?leads_id=<?= (int)$act['id'] ?>" class="tipe-unit-detail-link" title="Lihat detail aktivitas dan tipe unit">
-                                                    <i class="fas fa-external-link-alt"></i> Lihat Detail
-                                                </a>
-                                            <?php else: ?>
-                                                <a href="detailaktivitas.php?leads_id=<?= (int)$act['id'] ?>" class="tipe-unit-detail-link" title="Lihat detail aktivitas">
+                                                <a href="detailaktivitas.php?leads_id=<?= (int)$act['id'] ?>" class="tipe-unit-detail-link" title="Lihat detail tipe unit">
                                                     <i class="fas fa-eye"></i> Lihat Detail
                                                 </a>
                                             <?php endif; ?>
