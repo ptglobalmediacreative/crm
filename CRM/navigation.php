@@ -46,8 +46,18 @@ $showMenu = static function($name) use ($menuNames) {
    - hanya record yang relevan dengan role user
    ========================================================== */
 
-$notifItems = [];
-$notifUnread = 0;
+// ------------------------------------------------------------------
+// FIX KRITIS:
+// Variabel berikut WAJIB diinisialisasi di luar blok $__lightNav
+// karena tetap dipakai oleh markup topbar di bawah.
+// Tanpa ini, saat CRM_LIGHT_NAV = true akan terjadi
+// "count(): Argument #1 must be of type Countable|array, null given"
+// yang menghentikan render halaman sebelum <main> sempat dicetak.
+// ------------------------------------------------------------------
+$notifItems       = [];
+$notifUnread      = 0;
+$notifUnreadItems = [];
+$notifReadItems   = [];
 
 $notifDb = null;
 foreach (['db', 'pdo', 'conn'] as $candidate) {
@@ -65,6 +75,9 @@ if (!$notifDb && function_exists('getPDO')) {
    Pada background worker, bagian profile/UI tidak diperlukan.
    Browser tetap menggunakan blok profile seperti biasa.
    ========================================================== */
+
+// FIX: pastikan $profileData selalu terdefinisi
+$profileData = [];
 
 if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
     /* ==========================================================
@@ -278,7 +291,6 @@ if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
     $profilePhone = trim((string)($profileData['phone'] ?? $_SESSION['phone'] ?? ''));
     $profilePhoto = trim((string)($profileData['profile_photo'] ?? ''));
     $profileInitial = strtoupper(substr($profileFullName, 0, 1));
-
 }
 
 if (!$__lightNav) {
@@ -1228,18 +1240,6 @@ $notifReadItems = array_values(array_filter(
 $notifUnread = count($notifUnreadItems);
 
 /* ==========================================================
-   EMAIL NOTIFICATION — BELUM DIBACA + BACKGROUND WORKER
-   ----------------------------------------------------------
-   NORMAL REQUEST:
-     Notification unread -> email 1x/user/notification_key
-
-   BACKGROUND WORKER:
-     process_notifications.php sets GET_CRM_NOTIFICATION_WORKER
-     and runs this same navigation engine for each active user.
-     Jadi daftar notification tidak dibuat ulang di worker.
-   ==========================================================
-
-/* ==========================================================
    EMAIL NOTIFICATION — BELUM DIBACA
    ----------------------------------------------------------
    Semua notification yang tampil di tab "Belum Dibaca"
@@ -1482,7 +1482,7 @@ if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
                 </div>
             </div>
         </div>
-        <button class="avatar profile-trigger" type="button" aria-label="Buka profile" aria-haspopup="dialog" aria-controls="profileModal">
+        <button class="avatar profile-trigger" type="button" aria-label="Buka profile" aria-haspopup="dialog" aria-controls="profileModal" aria-expanded="false">
             <?php if ($profilePhoto !== ''): ?>
                 <img src="<?= htmlspecialchars($profilePhoto) ?>" alt="Profile">
             <?php else: ?>
@@ -1544,7 +1544,7 @@ if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
                 <div class="profile-identity-text">
                     <strong><?= htmlspecialchars($profileFullName) ?></strong>
                     <span>@<?= htmlspecialchars($profileUsername) ?></span>
-                    <small><i class="fas fa-shield-alt"></i> <?= htmlspecialchars(getRoleLabel($role)) ?></small>
+                    <small><i class="fas fa-shield-alt"></i> <?= htmlspecialchars(getRoleLabel($role ?? $userRole ?? '')) ?></small>
                 </div>
             </div>
 

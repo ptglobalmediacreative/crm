@@ -51,6 +51,15 @@ requirePermission('product_pipeline', 'view');
 $userMenus = getUserMenus();
 
 // ============================================================
+// PENTING:
+// Flag CRM_LIGHT_NAV harus di-set SEBELUM navigation.php
+// di-include, supaya navigation tahu ini mode ringan.
+// ============================================================
+if (!defined('CRM_LIGHT_NAV')) {
+    define('CRM_LIGHT_NAV', true);
+}
+
+// ============================================================
 // HELPER
 // ============================================================
 function pipelineQty($value) {
@@ -59,33 +68,34 @@ function pipelineQty($value) {
 
 function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productName, $qty, $stage) {
     $activityId = (int)$activityId;
-    $productId = (int)$productId;
-    $qty = pipelineQty($qty);
+    $productId  = (int)$productId;
+    $qty        = pipelineQty($qty);
+
     if ($activityId <= 0 || $productId <= 0 || $productName === '' || $qty <= 0) {
         return;
     }
 
     if (!isset($map[$activityId])) {
         $map[$activityId] = [
-            'activity_id' => $activityId,
+            'activity_id'     => $activityId,
             'activity_number' => $activityNumber,
-            'units' => []
+            'units'           => []
         ];
     }
 
     $key = $productId;
     if (!isset($map[$activityId]['units'][$key])) {
         $map[$activityId]['units'][$key] = [
-            'product_id' => $productId,
+            'product_id'   => $productId,
             'product_name' => $productName,
             'prospect_qty' => 0,
-            'hot_qty' => 0,
-            'deal_qty' => 0
+            'hot_qty'      => 0,
+            'deal_qty'     => 0
         ];
     }
 
     // Satu Activity Number + satu Tipe Unit hanya boleh masuk ke SATU tahap.
-    // Nilai qty memakai nilai terbesar agar histori/revisi tidak terhitung double.
+    // Nilai qty memakai nilai terbesar agar histori/revisi tidak double.
     $field = $stage . '_qty';
     $map[$activityId]['units'][$key][$field] = max(
         (int)$map[$activityId]['units'][$key][$field],
@@ -206,11 +216,11 @@ foreach ($pipeline as $activityData) {
         $productId = (int)$unit['product_id'];
         if (!isset($pipelineByProduct[$productId])) {
             $pipelineByProduct[$productId] = [
-                'product_id' => $productId,
+                'product_id'   => $productId,
                 'product_name' => $unit['product_name'],
-                'prospect' => 0,
+                'prospect'     => 0,
                 'hot_prospect' => 0,
-                'deal' => 0
+                'deal'         => 0
             ];
         }
 
@@ -235,8 +245,8 @@ $totalHot = 0;
 $totalDeal = 0;
 foreach ($pipelineByProduct as $row) {
     $totalProspect += (int)$row['prospect'];
-    $totalHot += (int)$row['hot_prospect'];
-    $totalDeal += (int)$row['deal'];
+    $totalHot      += (int)$row['hot_prospect'];
+    $totalDeal     += (int)$row['deal'];
 }
 ?>
 <!DOCTYPE html>
@@ -252,15 +262,14 @@ foreach ($pipelineByProduct as $row) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/productpipeline.css">
 </head>
 <body>
 
 <?php
-// Product Pipeline tidak membutuhkan engine notification yang berat pada navigation.
-define('CRM_LIGHT_NAV', true);
+// CRM_LIGHT_NAV sudah di-define di atas.
 require_once 'navigation.php';
 ?>
-<link rel="stylesheet" href="css/productpipeline.css">
 
 <main class="pp-page page-productpipeline">
     <div class="page-header productpipeline-header">
