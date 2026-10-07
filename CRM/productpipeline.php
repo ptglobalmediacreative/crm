@@ -12,7 +12,7 @@ if (!isLoggedIn()) {
 
 // Untuk sementara mengikuti akses Sales Activity karena sumber data Pipeline
 // berasal dari Sales Activity + Detail TR.
-requirePermission('sales_activity', 'view');
+requirePermission('product_pipeline', 'view');
 
 /**
  * Product Pipeline
