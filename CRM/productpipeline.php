@@ -38,7 +38,6 @@ requirePermission('sales_activity', 'view');
 $pipeline = [];
 $activityCount = 0;
 $trCount = 0;
-$pipelineErrors = [];
 
 // Helper: normalisasi nama/ID produk.
 function pipelineAdd(&$bucket, $productId, $productName, $qty) {
@@ -73,7 +72,7 @@ try {
         FROM activity_details ad
         INNER JOIN activity_detail_units adu
             ON adu.activity_detail_id = ad.id
-        LEFT JOIN products p
+        INNER JOIN products p
             ON p.id = adu.product_id
         WHERE LOWER(TRIM(ad.jenis_tugas)) = 'prospecting'
           AND adu.product_id > 0
@@ -81,9 +80,8 @@ try {
     ";
     $stmtProspect = $db->query($sqlProspect);
     $prospectRows = $stmtProspect->fetchAll(PDO::FETCH_ASSOC);
- } catch (PDOException $e) {
+} catch (PDOException $e) {
     $prospectRows = [];
-    $pipelineErrors[] = 'Prospect: ' . $e->getMessage();
 }
 
 // Group Prospect berdasarkan Activity Number + Product.
@@ -130,7 +128,7 @@ try {
         FROM activity_details ad
         INNER JOIN tr_detail_units tdu
             ON tdu.trf_number = ad.tr_number
-        LEFT JOIN products p
+        INNER JOIN products p
             ON p.id = tdu.unit_id
         LEFT JOIN detail_transaction_requests dtr
             ON dtr.trf_number = ad.tr_number
@@ -299,7 +297,14 @@ function formatQty($qty) {
             color: var(--pp-text);
             font-family: Inter, sans-serif;
         }
-        .content { padding: 28px; max-width: 1600px; margin: 0 auto; }
+        .pp-content {
+            padding: 28px;
+            width: calc(100% - 340px);
+            min-height: calc(100vh - 100px);
+            margin-left: 340px;
+            background: var(--pp-bg);
+            color: var(--pp-text);
+        }
         .page-header {
             display:flex; justify-content:space-between; align-items:center; gap:20px;
             margin-bottom:22px;
@@ -357,7 +362,7 @@ function formatQty($qty) {
         .logic-note { margin-top:16px; color:var(--pp-muted); font-size:11px; line-height:1.65; }
         .logic-note strong { color:#475467; }
         @media (max-width: 900px) {
-            .content { padding:18px; }
+            .pp-content { padding:18px; width:calc(100% - 340px); margin-left:340px; }
             .summary-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
         }
         @media (max-width: 560px) {
@@ -369,7 +374,7 @@ function formatQty($qty) {
 <body>
 <?php require_once 'navigation.php'; ?>
 
-<main class="content">
+<main class="pp-content">
     <div class="page-header">
         <div>
             <h1 class="page-title"><span class="title-icon"><i class="fas fa-chart-line"></i></span>Product Pipeline</h1>
@@ -378,17 +383,6 @@ function formatQty($qty) {
     </div>
 
     <?= showFlash() ?>
-
-    <?php if (!empty($pipelineErrors)): ?>
-        <div class="alert alert-danger" style="border-radius:12px; font-size:12px;">
-            <strong>Data Product Pipeline gagal dibaca.</strong>
-            <ul class="mb-0 mt-2">
-                <?php foreach ($pipelineErrors as $pipelineError): ?>
-                    <li><?= htmlspecialchars($pipelineError) ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
 
     <div class="summary-grid">
         <div class="summary-card prospect">
@@ -431,9 +425,11 @@ function formatQty($qty) {
                     <div><i class="fas fa-box-open"></i></div>
                     <strong>Belum ada data Product Pipeline</strong>
                     <div class="mt-1">Data akan muncul setelah ada Tipe Unit pada aktivitas Prospecting atau Detail TR.</div>
-                    <?php if (empty($pipelineErrors)): ?>
-                        <div class="mt-2" style="font-size:11px;">Pastikan Tipe Unit sudah tersimpan pada Detail Aktivitas Prospecting atau Detail Unit TR.</div>
-                    <?php endif; ?>
+                    <div class="mt-3" style="font-size:12px;color:#98a2b3;">
+                        Source check: Prospect <?= formatQty(count($prospectRows)) ?> baris •
+                        TR <?= formatQty(count($trRows)) ?> baris •
+                        <?= formatQty($activityCount) ?> Activity • <?= formatQty($trCount) ?> TR
+                    </div>
                 </div>
             <?php else: ?>
                 <table id="pipelineTable">
