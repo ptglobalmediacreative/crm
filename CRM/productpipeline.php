@@ -728,7 +728,7 @@ if ($search !== '') {
     </style>
 </head>
 <body>
-
+<?php require_once 'navigation.php'; ?>
 <div class="pipeline-wrapper">
 
     <div class="page-header">
@@ -868,6 +868,7 @@ if ($search !== '') {
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+            <?php require_once 'footer.php'; ?>
 
             <?php endif; ?>
         </div>
