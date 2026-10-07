@@ -210,18 +210,6 @@ try {
 
 // ============================================================
 // 2. HOT PROSPECT / LOST DEAL / DEAL: TIPE UNIT DARI DETAIL TR
-//    Relasi WAJIB berdasarkan Activity Number -> activity_details.sales_activity_id.
-//
-//    Customer Deal:
-//      yes / deal                            = Deal
-//      lost deal                             = Lost Deal
-//      selain di atas (kosong, no, dll)      = Hot Prospect
-//
-//    ATURAN TAMBAHAN (per Activity Number):
-//      Jika dalam satu Activity Number terdapat minimal satu TR
-//      dengan customer_deal = "lost deal", maka seluruh unit
-//      Hot Prospect di Activity Number tersebut ikut dipindahkan
-//      ke Lost Deal.
 // ============================================================
 try {
     $sqlTR = "
@@ -256,11 +244,9 @@ try {
 
     $stmt = $db->query($sqlTR);
 
-    // Set activity_id yang punya lost deal di dalamnya.
     $activitiesWithLost = [];
 
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        // Tentukan tahap berdasarkan customer_deal.
         $stage = pipelineResolveStage($row['customer_deal']);
 
         pipelineAdd(
@@ -273,23 +259,12 @@ try {
             $stage
         );
 
-        // Tandai activity yang memiliki lost deal.
         if ($stage === 'lost') {
             $activitiesWithLost[(int)$row['activity_id']] = true;
         }
     }
 
-    /*
-     * NORMALISASI PER ACTIVITY NUMBER
-     * --------------------------------------------------------
-     * Jika suatu Activity Number memiliki minimal satu TR
-     * dengan customer_deal = "lost deal", maka semua unit
-     * di Activity Number tersebut yang masih berstatus
-     * Hot Prospect dipindahkan ke Lost Deal.
-     *
-     * Qty yang dipakai = max(lost_qty, hot_qty) supaya
-     * tidak ada unit yang hilang dari perhitungan.
-     */
+    // Normalisasi: jika ada lost deal di activity, hot prospect jadi lost deal.
     if (!empty($activitiesWithLost)) {
         foreach ($pipeline as $activityId => $activityData) {
             if (!isset($activitiesWithLost[$activityId])) {
@@ -313,8 +288,6 @@ try {
 
 // ============================================================
 // 3. AGREGASI PER TIPE UNIT
-//    Satu Activity Number + Tipe Unit hanya dihitung sekali.
-//    Prioritas tahap: Deal > Lost Deal > Hot Prospect > Prospek
 // ============================================================
 $pipelineByProduct = [];
 foreach ($pipeline as $activityData) {
@@ -336,7 +309,6 @@ foreach ($pipeline as $activityData) {
         $hotQty      = (int)($unit['hot_qty']      ?? 0);
         $prospectQty = (int)($unit['prospect_qty'] ?? 0);
 
-        // Tahap tertinggi menjadi sumber qty final untuk Activity Number tersebut.
         if ($dealQty > 0) {
             $pipelineByProduct[$productId]['deal'] += $dealQty;
         } elseif ($lostQty > 0) {
@@ -363,6 +335,152 @@ foreach ($pipelineByProduct as $row) {
     $totalHot      += (int)$row['hot_prospect'];
     $totalLost     += (int)$row['lost_deal'];
     $totalDeal     += (int)$row['deal'];
+}
+
+// ============================================================
+// EXPORT EXCEL
+// ------------------------------------------------------------
+// Di-trigger dengan ?export=excel
+// Format: HTML table + Content-Type .xls (dibuka rapi di Excel)
+// Tidak membutuhkan library tambahan.
+// HARUS dijalankan SEBELUM output HTML apapun.
+// ============================================================
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    $exportFilename = 'Product_Pipeline_' . date('Ymd_His') . '.xls';
+
+    // Bersihkan output buffer kalau ada.
+    if (ob_get_level() > 0) {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+    }
+
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $exportFilename . '"');
+    header('Cache-Control: max-age=0, no-cache, no-store, must-revalidate');
+    header('Pragma: public');
+    header('Expires: 0');
+
+    // BOM UTF-8 agar karakter khusus terbaca benar.
+    echo "\xEF\xBB\xBF";
+
+    // Nama user yang mengekspor.
+    $exportUserName = trim((string)($userData['full_name'] ?? $_SESSION['full_name'] ?? 'User'));
+    ?>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]>
+<xml>
+<x:ExcelWorkbook>
+<x:ExcelWorksheets>
+<x:ExcelWorksheet>
+<x:Name>Product Pipeline</x:Name>
+<x:WorksheetOptions>
+<x:DisplayGridlines/>
+</x:WorksheetOptions>
+</x:ExcelWorksheet>
+</x:ExcelWorksheets>
+</x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+    table { border-collapse: collapse; }
+    td, th {
+        border: 1px solid #94a3b8;
+        padding: 6px 10px;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        vertical-align: middle;
+    }
+    .title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #1e3a8a;
+        text-align: left;
+        border: 0;
+    }
+    .subtitle {
+        font-size: 11px;
+        color: #475569;
+        text-align: left;
+        border: 0;
+        padding-top: 0;
+    }
+    .spacer { border: 0; }
+    thead th {
+        background: #1e3a8a;
+        color: #ffffff;
+        font-weight: bold;
+        text-align: center;
+        font-size: 11px;
+    }
+    .text-left   { text-align: left; }
+    .text-center { text-align: center; }
+    .total-row td {
+        background: #f1f5f9;
+        font-weight: bold;
+        color: #0f172a;
+    }
+    .num-prospect { color: #2563eb; font-weight: bold; }
+    .num-hot      { color: #d97706; font-weight: bold; }
+    .num-lost     { color: #dc2626; font-weight: bold; }
+    .num-deal     { color: #16a34a; font-weight: bold; }
+</style>
+</head>
+<body>
+<table>
+    <tr><td colspan="6" class="title">PRODUCT PIPELINE</td></tr>
+    <tr><td colspan="6" class="subtitle">PT Ganda Elang Tangguh &mdash; Customer Relationship Management</td></tr>
+    <tr><td colspan="6" class="subtitle">
+        Diekspor oleh: <?= htmlspecialchars($exportUserName) ?>
+        &nbsp;|&nbsp; Tanggal: <?= date('d F Y H:i') ?> WIB
+        &nbsp;|&nbsp; Total Tipe Unit: <?= count($pipelineByProduct) ?>
+    </td></tr>
+    <tr><td colspan="6" class="spacer">&nbsp;</td></tr>
+
+    <thead>
+        <tr>
+            <th style="width:40px;">No.</th>
+            <th style="width:280px;">Tipe Unit</th>
+            <th style="width:90px;">Prospek</th>
+            <th style="width:110px;">Hot Prospek</th>
+            <th style="width:100px;">Lost Deal</th>
+            <th style="width:80px;">Deal</th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php if (!empty($pipelineByProduct)): ?>
+        <?php foreach ($pipelineByProduct as $i => $r): ?>
+            <tr>
+                <td class="text-center"><?= $i + 1 ?></td>
+                <td class="text-left"><?= htmlspecialchars($r['product_name']) ?></td>
+                <td class="text-center num-prospect"><?= (int)$r['prospect'] ?></td>
+                <td class="text-center num-hot"><?= (int)$r['hot_prospect'] ?></td>
+                <td class="text-center num-lost"><?= (int)$r['lost_deal'] ?></td>
+                <td class="text-center num-deal"><?= (int)$r['deal'] ?></td>
+            </tr>
+        <?php endforeach; ?>
+        <tr class="total-row">
+            <td colspan="2" class="text-left">TOTAL</td>
+            <td class="text-center"><?= $totalProspect ?></td>
+            <td class="text-center"><?= $totalHot ?></td>
+            <td class="text-center"><?= $totalLost ?></td>
+            <td class="text-center"><?= $totalDeal ?></td>
+        </tr>
+    <?php else: ?>
+        <tr>
+            <td colspan="6" class="text-center">Belum ada data Product Pipeline</td>
+        </tr>
+    <?php endif; ?>
+    </tbody>
+</table>
+</body>
+</html>
+    <?php
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -393,6 +511,11 @@ require_once 'navigation.php';
         <div>
             <h1>Product Pipeline</h1>
             <p>Rekap perkembangan tipe unit dari Prospect → Hot Prospect → Lost Deal / Deal berdasarkan Activity Number.</p>
+        </div>
+        <div class="pipeline-actions">
+            <a href="?export=excel" class="btn-export">
+                <i class="fas fa-file-excel"></i> Export Excel
+            </a>
         </div>
     </div>
 
