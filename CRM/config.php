@@ -134,6 +134,49 @@ function getRole() {
     return $_SESSION['role'] ?? null;
 }
 
+// ============================================================
+// ROLE LABEL — dipakai oleh navigation.php (profile modal)
+// ------------------------------------------------------------
+// FIX: fungsi ini sebelumnya tidak ada di config.php.
+// navigation.php memanggil getRoleLabel() untuk menampilkan
+// label role user pada profile modal. Jika fungsi ini tidak
+// ditemukan, PHP fatal error "Call to undefined function"
+// dan menyebabkan halaman (mis. productpipeline.php) blank.
+//
+// Guard function_exists() mencegah "Cannot redeclare" jika
+// ternyata sudah didefinisikan di file lain.
+// ============================================================
+if (!function_exists('getRoleLabel')) {
+    function getRoleLabel($role) {
+        $role = trim((string)$role);
+
+        if ($role === '') {
+            return 'User';
+        }
+
+        $labels = [
+            'it_support'           => 'IT Support',
+            'admin'                => 'Admin',
+            'sales'                => 'Sales',
+            'sales_manager'        => 'Sales Manager',
+            'part_support'         => 'Part Support',
+            'service_support'      => 'Service Support',
+            'finance'              => 'Finance',
+            'business'             => 'Business',
+            'direktur_sales'       => 'Direktur Sales',
+            'direktur_operasional' => 'Direktur Operasional',
+            'direktur_utama'       => 'Direktur Utama',
+        ];
+
+        if (isset($labels[$role])) {
+            return $labels[$role];
+        }
+
+        // Fallback: ubah snake_case → Title Case
+        return ucwords(str_replace('_', ' ', $role));
+    }
+}
+
 function generateToken() {
     return bin2hex(random_bytes(32));
 }
