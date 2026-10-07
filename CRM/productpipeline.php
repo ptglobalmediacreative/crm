@@ -50,12 +50,6 @@ requirePermission('product_pipeline', 'view');
 
 // ============================================================
 // FIX: AMBIL DATA USER + ROLE SEBELUM INCLUDE navigation.php
-// ------------------------------------------------------------
-// Halaman lain (dashboard, salesactivity, dll) mendefinisikan
-// $role / $userRole sebelum navigation. productpipeline.php
-// sebelumnya tidak, sehingga getRoleLabel() dipanggil dengan
-// argumen kosong dan menyebabkan fatal error di blok profile
-// modal navigation -> halaman berhenti sebelum <main> dicetak.
 // ============================================================
 $userMenus = getUserMenus();
 
@@ -77,7 +71,6 @@ if ($profileUserId > 0 && isset($db) && $db instanceof PDO) {
     }
 }
 
-// Definisikan variabel yang dibutuhkan navigation.php
 $role     = (string)($userData['role'] ?? $_SESSION['role'] ?? '');
 $userRole = $role;
 
@@ -119,6 +112,7 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
             'product_name' => $productName,
             'prospect_qty' => 0,
             'hot_qty'      => 0,
+            'lost_qty'     => 0,
             'deal_qty'     => 0
         ];
     }
@@ -126,6 +120,10 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
     // Satu Activity Number + satu Tipe Unit hanya boleh masuk ke SATU tahap.
     // Nilai qty memakai nilai terbesar agar histori/revisi tidak double.
     $field = $stage . '_qty';
+    if (!isset($map[$activityId]['units'][$key][$field])) {
+        $map[$activityId]['units'][$key][$field] = 0;
+    }
+
     $map[$activityId]['units'][$key][$field] = max(
         (int)$map[$activityId]['units'][$key][$field],
         $qty
@@ -136,13 +134,9 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
  * Normalisasi nilai customer_deal dari detailtr.php.
  *
  * ATURAN TAHAP:
- *   - "yes" / "deal"                     -> DEAL
- *   - "lost deal", "lost_deal", "no",
- *     kosong, atau apapun selain di atas -> HOT PROSPECT
- *
- * Tujuan: variasi penulisan seperti "Lost Deal", "lost_deal",
- * "lost-deal", "LOST DEAL" tetap konsisten diklasifikasikan
- * sebagai Hot Prospect, bukan tercecer ke kategori lain.
+ *   - "yes" / "deal"                              -> DEAL
+ *   - "lost deal" / "lost_deal" / "lost-deal"     -> LOST DEAL
+ *   - selain di atas (kosong, no, dll)            -> HOT PROSPECT
  */
 function pipelineResolveStage($customerDealRaw) {
     $value = strtolower(trim((string)$customerDealRaw));
@@ -154,16 +148,21 @@ function pipelineResolveStage($customerDealRaw) {
     $value = preg_replace('/\s+/', ' ', $value);
     $value = trim($value);
 
-    // Hanya "yes" atau "deal" yang dianggap DEAL.
-    // Termasuk variasi "yes deal", "deal yes", dsb.
-    $dealKeywords = ['yes', 'deal'];
-    foreach ($dealKeywords as $keyword) {
-        if ($value === $keyword) {
-            return 'deal';
-        }
+    // Deal
+    if ($value === 'yes' || $value === 'deal') {
+        return 'deal';
     }
 
-    // Lost Deal (dan semua nilai lain) tetap masuk Hot Prospect.
+    // Lost Deal
+    if (
+        $value === 'lost deal' ||
+        $value === 'lostdeal' ||
+        $value === 'lost'
+    ) {
+        return 'lost';
+    }
+
+    // Default: Hot Prospect
     return 'hot';
 }
 
@@ -210,15 +209,19 @@ try {
 }
 
 // ============================================================
-// 2. HOT PROSPECT / DEAL: TIPE UNIT DARI DETAIL TR
+// 2. HOT PROSPECT / LOST DEAL / DEAL: TIPE UNIT DARI DETAIL TR
 //    Relasi WAJIB berdasarkan Activity Number -> activity_details.sales_activity_id.
 //
 //    Customer Deal:
-//      yes / deal                          = Deal
-//      lost deal, no, kosong, selain di atas = Hot Prospect
+//      yes / deal                            = Deal
+//      lost deal                             = Lost Deal
+//      selain di atas (kosong, no, dll)      = Hot Prospect
 //
-//    Jika tipe unit sama dengan tipe unit Prospect pada Activity Number
-//    yang sama, Prospect dipindahkan ke tahap TR dan tidak dihitung double.
+//    ATURAN TAMBAHAN (per Activity Number):
+//      Jika dalam satu Activity Number terdapat minimal satu TR
+//      dengan customer_deal = "lost deal", maka seluruh unit
+//      Hot Prospect di Activity Number tersebut ikut dipindahkan
+//      ke Lost Deal.
 // ============================================================
 try {
     $sqlTR = "
@@ -252,9 +255,12 @@ try {
     ";
 
     $stmt = $db->query($sqlTR);
+
+    // Set activity_id yang punya lost deal di dalamnya.
+    $activitiesWithLost = [];
+
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         // Tentukan tahap berdasarkan customer_deal.
-        // "yes"/"deal" -> deal, selain itu (termasuk "lost deal") -> hot prospect.
         $stage = pipelineResolveStage($row['customer_deal']);
 
         pipelineAdd(
@@ -266,6 +272,40 @@ try {
             $row['qty'],
             $stage
         );
+
+        // Tandai activity yang memiliki lost deal.
+        if ($stage === 'lost') {
+            $activitiesWithLost[(int)$row['activity_id']] = true;
+        }
+    }
+
+    /*
+     * NORMALISASI PER ACTIVITY NUMBER
+     * --------------------------------------------------------
+     * Jika suatu Activity Number memiliki minimal satu TR
+     * dengan customer_deal = "lost deal", maka semua unit
+     * di Activity Number tersebut yang masih berstatus
+     * Hot Prospect dipindahkan ke Lost Deal.
+     *
+     * Qty yang dipakai = max(lost_qty, hot_qty) supaya
+     * tidak ada unit yang hilang dari perhitungan.
+     */
+    if (!empty($activitiesWithLost)) {
+        foreach ($pipeline as $activityId => $activityData) {
+            if (!isset($activitiesWithLost[$activityId])) {
+                continue;
+            }
+
+            foreach ($activityData['units'] as $productId => $unit) {
+                $hotQty  = (int)$unit['hot_qty'];
+                $lostQty = (int)$unit['lost_qty'];
+
+                if ($hotQty > 0) {
+                    $pipeline[$activityId]['units'][$productId]['lost_qty'] = max($lostQty, $hotQty);
+                    $pipeline[$activityId]['units'][$productId]['hot_qty']  = 0;
+                }
+            }
+        }
     }
 } catch (PDOException $e) {
     // Jika tabel TR belum tersedia, halaman tetap dapat dibuka.
@@ -274,6 +314,7 @@ try {
 // ============================================================
 // 3. AGREGASI PER TIPE UNIT
 //    Satu Activity Number + Tipe Unit hanya dihitung sekali.
+//    Prioritas tahap: Deal > Lost Deal > Hot Prospect > Prospek
 // ============================================================
 $pipelineByProduct = [];
 foreach ($pipeline as $activityData) {
@@ -285,17 +326,25 @@ foreach ($pipeline as $activityData) {
                 'product_name' => $unit['product_name'],
                 'prospect'     => 0,
                 'hot_prospect' => 0,
+                'lost_deal'    => 0,
                 'deal'         => 0
             ];
         }
 
+        $dealQty     = (int)($unit['deal_qty']     ?? 0);
+        $lostQty     = (int)($unit['lost_qty']     ?? 0);
+        $hotQty      = (int)($unit['hot_qty']      ?? 0);
+        $prospectQty = (int)($unit['prospect_qty'] ?? 0);
+
         // Tahap tertinggi menjadi sumber qty final untuk Activity Number tersebut.
-        if ((int)$unit['deal_qty'] > 0) {
-            $pipelineByProduct[$productId]['deal'] += (int)$unit['deal_qty'];
-        } elseif ((int)$unit['hot_qty'] > 0) {
-            $pipelineByProduct[$productId]['hot_prospect'] += (int)$unit['hot_qty'];
-        } elseif ((int)$unit['prospect_qty'] > 0) {
-            $pipelineByProduct[$productId]['prospect'] += (int)$unit['prospect_qty'];
+        if ($dealQty > 0) {
+            $pipelineByProduct[$productId]['deal'] += $dealQty;
+        } elseif ($lostQty > 0) {
+            $pipelineByProduct[$productId]['lost_deal'] += $lostQty;
+        } elseif ($hotQty > 0) {
+            $pipelineByProduct[$productId]['hot_prospect'] += $hotQty;
+        } elseif ($prospectQty > 0) {
+            $pipelineByProduct[$productId]['prospect'] += $prospectQty;
         }
     }
 }
@@ -306,11 +355,13 @@ usort($pipelineByProduct, static function ($a, $b) {
 });
 
 $totalProspect = 0;
-$totalHot = 0;
-$totalDeal = 0;
+$totalHot      = 0;
+$totalLost     = 0;
+$totalDeal     = 0;
 foreach ($pipelineByProduct as $row) {
     $totalProspect += (int)$row['prospect'];
     $totalHot      += (int)$row['hot_prospect'];
+    $totalLost     += (int)$row['lost_deal'];
     $totalDeal     += (int)$row['deal'];
 }
 ?>
@@ -341,7 +392,7 @@ require_once 'navigation.php';
     <div class="page-header productpipeline-header">
         <div>
             <h1>Product Pipeline</h1>
-            <p>Rekap perkembangan tipe unit dari Prospect → Hot Prospect → Deal berdasarkan Activity Number.</p>
+            <p>Rekap perkembangan tipe unit dari Prospect → Hot Prospect → Lost Deal / Deal berdasarkan Activity Number.</p>
         </div>
     </div>
 
@@ -355,6 +406,10 @@ require_once 'navigation.php';
         <div class="pipeline-summary-card hot-card">
             <span class="summary-icon"><i class="fas fa-fire"></i></span>
             <div><span>Hot Prospek</span><strong><?= number_format($totalHot, 0, ',', '.') ?></strong></div>
+        </div>
+        <div class="pipeline-summary-card lost-card">
+            <span class="summary-icon"><i class="fas fa-circle-xmark"></i></span>
+            <div><span>Lost Deal</span><strong><?= number_format($totalLost, 0, ',', '.') ?></strong></div>
         </div>
         <div class="pipeline-summary-card deal-card">
             <span class="summary-icon"><i class="fas fa-handshake"></i></span>
@@ -378,6 +433,7 @@ require_once 'navigation.php';
                         <th>Tipe Unit</th>
                         <th class="stage-col prospect-col"><i class="fas fa-bullseye"></i> Prospek</th>
                         <th class="stage-col hot-col"><i class="fas fa-fire"></i> Hot Prospek</th>
+                        <th class="stage-col lost-col"><i class="fas fa-circle-xmark"></i> Lost Deal</th>
                         <th class="stage-col deal-col"><i class="fas fa-handshake"></i> Deal</th>
                     </tr>
                 </thead>
@@ -394,12 +450,13 @@ require_once 'navigation.php';
                             </td>
                             <td class="qty-cell"><span class="qty-badge prospect"><?= number_format((int)$row['prospect'], 0, ',', '.') ?></span></td>
                             <td class="qty-cell"><span class="qty-badge hot"><?= number_format((int)$row['hot_prospect'], 0, ',', '.') ?></span></td>
+                            <td class="qty-cell"><span class="qty-badge lost"><?= number_format((int)$row['lost_deal'], 0, ',', '.') ?></span></td>
                             <td class="qty-cell"><span class="qty-badge deal"><?= number_format((int)$row['deal'], 0, ',', '.') ?></span></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="5" class="empty-state">
+                        <td colspan="6" class="empty-state">
                             <i class="fas fa-box-open"></i>
                             <strong>Belum ada data Product Pipeline</strong>
                             <span>Data akan muncul setelah Tipe Unit Prospecting atau Detail Unit TR tersedia.</span>
