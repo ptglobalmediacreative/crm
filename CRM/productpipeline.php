@@ -743,8 +743,90 @@ if ($search !== '') {
         }
     </style>
 </head>
-<body>
+<body class="page-productpipeline">
 <?php require_once 'navigation.php'; ?>
+
+<!-- Product Pipeline page-specific navigation/layout override.
+     Loaded AFTER navigation.php so shared navigation CSS cannot hide this page. -->
+<style id="productpipeline-layout-fix">
+html, body {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    background: #070b14 !important;
+}
+
+/* Desktop: keep the CRM sidebar visible exactly like the other CRM pages. */
+@media (min-width: 769px) {
+    .topbar {
+        z-index: 11000 !important;
+    }
+
+    #crmSidebar.rail {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 72px !important;
+        bottom: 0 !important;
+        width: 245px !important;
+        height: calc(100vh - 72px) !important;
+        transform: none !important;
+        z-index: 10900 !important;
+        overflow-y: auto !important;
+    }
+
+    .content.page-productpipeline {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        z-index: 1 !important;
+        width: calc(100% - 245px) !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        min-height: calc(100vh - 72px) !important;
+        margin-left: 245px !important;
+        margin-right: 0 !important;
+        padding: 100px 30px 50px !important;
+        box-sizing: border-box !important;
+        background: #070b14 !important;
+        color: #e8eef9 !important;
+    }
+
+    .page-productpipeline .pipeline-wrapper {
+        width: 100% !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    .page-productpipeline .pipeline-card,
+    .page-productpipeline .summary-card {
+        position: relative !important;
+        z-index: 2 !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .content.page-productpipeline {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        padding: 84px 14px 40px !important;
+        box-sizing: border-box !important;
+        background: #070b14 !important;
+    }
+
+    .page-productpipeline .pipeline-wrapper {
+        padding: 0 !important;
+    }
+}
+</style>
+
 <main class="content page-productpipeline">
 <div class="pipeline-wrapper">
 
