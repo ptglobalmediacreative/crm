@@ -17,7 +17,7 @@ try {
     $moduleId = $stmtModule->fetchColumn();
 
     if (!$moduleId) {
-        $stmtInsert = $db->prepare("\
+        $stmtInsert = $db->prepare("
             INSERT INTO modules
                 (module_name, module_label, module_icon, module_order, is_active, is_main_menu)
             VALUES (?, ?, ?, ?, 1, 1)
@@ -34,7 +34,7 @@ try {
     // Sinkronkan permission untuk role yang sudah mempunyai user.
     $roles = $db->query("SELECT DISTINCT role FROM users WHERE role IS NOT NULL AND role <> ''")
                 ->fetchAll(PDO::FETCH_COLUMN);
-    $stmtPermission = $db->prepare("\
+    $stmtPermission = $db->prepare("
         INSERT IGNORE INTO permissions
             (module_id, role_name, can_view, can_add, can_edit, can_delete)
         VALUES (?, ?, 0, 0, 0, 0)
@@ -251,14 +251,14 @@ foreach ($pipelineByProduct as $row) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/productpipeline.css">
     <link rel="stylesheet" href="css/footer.css">
 </head>
 <body>
 
 <?php require_once 'navigation.php'; ?>
+<link rel="stylesheet" href="css/productpipeline.css">
 
-<main class="content page-productpipeline">
+<main class="pp-page page-productpipeline">
     <div class="page-header productpipeline-header">
         <div>
             <div class="page-eyebrow"><i class="fas fa-chart-column"></i> Sales Intelligence</div>
