@@ -18,6 +18,10 @@ $showMenu = static function($name) use ($menuNames) {
     return empty($menuNames) || in_array($name, $menuNames, true);
 };
 
+// Mode ringan otomatis untuk Product Pipeline.
+// Halaman ini tidak membutuhkan query notification TR/DI/activity saat render.
+$lightNavigation = ($currentPage === 'productpipeline.php');
+
 /* ==========================================================
    NOTIFICATION SYSTEM
    Data notification dibuat dari record CRM yang sebenarnya.
@@ -263,6 +267,8 @@ if (!defined('GET_CRM_NOTIFICATION_WORKER')) {
 
 }
 
+// Notification engine berat dilewati pada Product Pipeline agar konten halaman langsung dirender.
+if (!$lightNavigation) {
 /*
  * PERSISTENT NOTIFICATION READ STATE
  * ----------------------------------
@@ -1332,6 +1338,8 @@ if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
             $emailIntegrationError->getMessage()
         );
     }
+}
+
 }
 
 ?>
