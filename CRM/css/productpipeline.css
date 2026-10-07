@@ -91,6 +91,75 @@
 }
 
 /* ------------------------------------------------------------
+   Export Button (pill style)
+   ------------------------------------------------------------ */
+.pipeline-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  height: 42px;
+  padding: 0 20px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, 0.28);
+
+  background: rgba(6, 78, 59, 0.55);
+  color: #6ee7b7 !important;
+
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-decoration: none !important;
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.btn-export i {
+  font-size: 14px;
+  color: #6ee7b7;
+  transition: color 0.18s ease;
+}
+
+.btn-export:hover {
+  background: rgba(6, 78, 59, 0.85);
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #a7f3d0 !important;
+
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.18);
+}
+
+.btn-export:hover i {
+  color: #a7f3d0;
+}
+
+.btn-export:focus,
+.btn-export:focus-visible,
+.btn-export:active {
+  outline: none;
+  color: #a7f3d0 !important;
+  text-decoration: none !important;
+  border-color: rgba(52, 211, 153, 0.55);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+/* ------------------------------------------------------------
    Summary cards
    4 kartu: Prospek / Hot Prospek / Lost Deal / Deal
    ------------------------------------------------------------ */
@@ -414,6 +483,14 @@
   }
 }
 
+/* Tablet: header & tombol export */
+@media (max-width: 900px) {
+  .pipeline-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 /* Mobile: 1 kolom kartu */
 @media (max-width: 600px) {
   .pipeline-summary {
@@ -430,10 +507,23 @@
 
   .productpipeline-header {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .productpipeline-header h1 {
     font-size: 23px;
+  }
+
+  .pipeline-actions {
+    width: 100%;
+  }
+
+  .btn-export {
+    width: 100%;
+    justify-content: center;
+    height: 40px;
+    font-size: 12px;
+    padding: 0 16px;
   }
 
   .pipeline-card-header {
