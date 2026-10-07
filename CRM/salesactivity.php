@@ -801,6 +801,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 .tipe-unit-slider::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
 .tipe-unit-track{display:inline-flex;flex-wrap:nowrap;gap:6px;min-width:max-content;}
 .badge-tipe-unit{display:inline-flex;align-items:center;min-height:28px;padding:5px 10px;border-radius:7px;background:#f1f5f9;border:1px solid #dbe3ec;color:#334155;font-size:12px;font-weight:600;white-space:nowrap;line-height:1.2;}
+.tipe-unit-detail-link{display:inline-flex;align-items:center;gap:5px;margin-top:6px;color:#2980b9;text-decoration:none;font-size:11px;font-weight:700;white-space:nowrap;transition:all .2s ease;}
+.tipe-unit-detail-link:hover{color:#1f5f8a;text-decoration:underline;transform:translateX(1px);}
 @media (max-width:768px){.tipe-unit-cell{min-width:160px;max-width:200px}.tipe-unit-slider{max-width:190px}}
 </style>
 </head>';
@@ -1269,8 +1271,13 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                                         <?php endforeach; ?>
                                                     </div>
                                                 </div>
+                                                <a href="detailaktivitas.php?leads_id=<?= (int)$act['id'] ?>" class="tipe-unit-detail-link" title="Lihat detail aktivitas dan tipe unit">
+                                                    <i class="fas fa-external-link-alt"></i> Lihat Detail
+                                                </a>
                                             <?php else: ?>
-                                                <span class="text-muted">-</span>
+                                                <a href="detailaktivitas.php?leads_id=<?= (int)$act['id'] ?>" class="tipe-unit-detail-link" title="Lihat detail aktivitas">
+                                                    <i class="fas fa-eye"></i> Lihat Detail
+                                                </a>
                                             <?php endif; ?>
                                         </td>
                                         <td>
