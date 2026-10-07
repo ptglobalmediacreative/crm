@@ -17,6 +17,50 @@ requirePermission('data_user', 'view');
 // ============================================
 $userMenus = getUserMenus();
 
+// Pastikan menu Product Pipeline tersedia di sistem permission.
+// Menu ini menggunakan module_name: product_pipeline agar sinkron dengan navigation.php
+// dan productpipeline.php. Jika belum ada, dibuat otomatis tanpa mengubah permission
+// menu lain. Permission awal dibuat OFF (can_view = 0) agar admin tetap menentukan
+// siapa yang boleh melihat menu tersebut melalui tombol Atur Akses.
+try {
+    $stmtModule = $db->prepare("SELECT id FROM modules WHERE module_name = ? LIMIT 1");
+    $stmtModule->execute(['product_pipeline']);
+    $productPipelineModuleId = $stmtModule->fetchColumn();
+
+    if (!$productPipelineModuleId) {
+        $stmtInsertModule = $db->prepare("
+            INSERT INTO modules
+                (module_name, module_label, module_icon, module_order, is_active, is_main_menu)
+            VALUES
+                (?, ?, ?, ?, 1, 1)
+        ");
+        $stmtInsertModule->execute([
+            'product_pipeline',
+            'Product Pipeline',
+            'fa-chart-column',
+            7
+        ]);
+        $productPipelineModuleId = (int)$db->lastInsertId();
+    }
+
+    // Buat baris permission untuk role yang memang sudah memiliki user.
+    // INSERT IGNORE mencegah duplikasi jika halaman dibuka berulang.
+    $rolesStmt = $db->query("SELECT DISTINCT role FROM users WHERE role IS NOT NULL AND role <> ''");
+    $existingRoles = $rolesStmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $stmtPermission = $db->prepare("
+        INSERT IGNORE INTO permissions
+            (module_id, role_name, can_view, can_add, can_edit, can_delete)
+        VALUES (?, ?, 0, 0, 0, 0)
+    ");
+
+    foreach ($existingRoles as $existingRole) {
+        $stmtPermission->execute([(int)$productPipelineModuleId, $existingRole]);
+    }
+} catch (PDOException $e) {
+    // Jangan hentikan halaman Data User jika sinkronisasi permission gagal.
+}
+
 // ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
@@ -589,6 +633,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         { keys: ['sales_activity'], label: 'Sales Activity' },
                         { keys: ['account_management'], label: 'Account Management' },
                         { keys: ['transaction_request'], label: 'Transaction Request' },
+                        { keys: ['product_pipeline'], label: 'Product Pipeline' },
                         { keys: ['produk'], label: 'Produk' },
                         { keys: ['delivery_order', 'delivery_instruction'], label: 'Delivery Instruction' },
                         { keys: ['data_user'], label: 'Data User' }
