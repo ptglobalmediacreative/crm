@@ -743,8 +743,489 @@ if ($search !== '') {
             }
         }
     </style>
+
+<style id="productpipeline-produk-style">
+/* =========================================================
+   PRODUCT PIPELINE — SAME VISUAL SYSTEM AS "PRODUK"
+   Layout intentionally mirrors the supplied Produk screenshot.
+   ========================================================= */
+
+html,
+body {
+    background: #060b18 !important;
+    color: #dce5f5 !important;
+}
+
+/* Navigation */
+.topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 99px !important;
+    z-index: 11000 !important;
+}
+
+#crmSidebar.rail {
+    position: fixed !important;
+    left: 0 !important;
+    top: 99px !important;
+    bottom: 0 !important;
+    width: 350px !important;
+    height: calc(100vh - 99px) !important;
+    z-index: 10900 !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* Main area */
+.pp-page.page-productpipeline {
+    display: block !important;
+    position: relative !important;
+    float: none !important;
+    clear: both !important;
+    width: calc(100% - 350px) !important;
+    min-width: 0 !important;
+    min-height: calc(100vh - 99px) !important;
+    margin: 0 0 0 350px !important;
+    padding: 48px 40px 50px !important;
+    box-sizing: border-box !important;
+    background: #060b18 !important;
+    color: #dce5f5 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1 !important;
+}
+
+.pp-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+}
+
+/* Header exactly in the spirit of Produk */
+.pp-page-header {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 35px;
+}
+
+.pp-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.pp-title-icon {
+    width: 55px;
+    height: 55px;
+    border-radius: 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d1d34;
+    border: 1px solid rgba(96,165,250,.18);
+    color: #f7f9ff;
+    font-size: 22px;
+    box-shadow: inset 0 0 0 1px rgba(96,165,250,.03);
+}
+
+.pp-title-wrap h4 {
+    margin: 0;
+    color: #f7f9ff;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -.7px;
+}
+
+/* Summary card */
+.pp-summary-card {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 20px;
+    padding: 5px 0;
+    background: linear-gradient(145deg, rgba(12,23,43,.94), rgba(7,14,28,.96));
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 17px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.18);
+}
+
+.pp-summary-item {
+    min-height: 78px;
+    padding: 14px 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    border-right: 1px solid rgba(148,163,184,.08);
+}
+
+.pp-summary-item:last-child {
+    border-right: 0;
+}
+
+.pp-summary-label {
+    color: #687791;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.pp-summary-item strong {
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.pp-summary-total { color: #e8eef9; }
+.pp-summary-prospect { color: #60a5fa; }
+.pp-summary-hot { color: #fbbf24; }
+.pp-summary-deal { color: #34d399; }
+
+/* Main table card */
+.pp-card {
+    width: 100%;
+    background: linear-gradient(145deg, rgba(12,23,43,.94), rgba(7,14,28,.96));
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 17px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.18);
+    overflow: hidden;
+    color: #eaf0f8;
+}
+
+.pp-card-header {
+    min-height: 74px;
+    padding: 13px 17px;
+    border-bottom: 1px solid rgba(148,163,184,.10);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.pp-card-header h6 {
+    margin: 0;
+    color: #f7f9ff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.pp-card-header h6 i {
+    color: #60a5fa;
+    margin-right: 8px;
+}
+
+.pp-search-form {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+}
+
+.pp-search-form input {
+    width: 330px !important;
+    height: 38px;
+    border-radius: 10px !important;
+    background: #0a1427 !important;
+    border: 1px solid rgba(148,163,184,.16) !important;
+    color: #dbe5f5 !important;
+    font-size: 11px !important;
+}
+
+.pp-search-form input::placeholder {
+    color: #52627d !important;
+}
+
+.pp-search-form input:focus {
+    border-color: rgba(96,165,250,.55) !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.10) !important;
+    background: #0b172d !important;
+    color: #fff !important;
+}
+
+.pp-search-btn {
+    height: 38px;
+    min-width: 48px;
+    border: 0 !important;
+    border-radius: 11px !important;
+    background: linear-gradient(135deg,#3b82f6,#6366f1) !important;
+    color: #fff !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pp-clear-btn {
+    height: 38px;
+    width: 38px;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    background: #111d31 !important;
+    border: 1px solid rgba(148,163,184,.13) !important;
+    color: #8f9db4 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Table */
+.pp-card-body {
+    padding: 0;
+    background: rgba(3,8,18,.12);
+    overflow-x: auto;
+}
+
+.pp-table {
+    width: 100%;
+    min-width: 980px;
+    margin: 0 !important;
+    font-size: 10px;
+    color: #cbd5e1;
+    --bs-table-bg: transparent;
+    --bs-table-color: #cbd5e1;
+}
+
+.pp-table th {
+    height: 52px;
+    padding: 11px 16px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .55px;
+    color: #66758f;
+    background: rgba(5,12,25,.48) !important;
+    border-bottom: 1px solid rgba(148,163,184,.10);
+    white-space: nowrap;
+}
+
+.pp-table td {
+    height: 62px;
+    padding: 12px 16px;
+    vertical-align: middle;
+    color: #cbd5e1 !important;
+    background: transparent !important;
+    border-bottom: 1px solid rgba(148,163,184,.07);
+}
+
+.pp-table tbody tr {
+    transition: background .15s ease;
+}
+
+.pp-table tbody tr:hover td {
+    background: rgba(59,130,246,.045) !important;
+}
+
+.pp-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.pp-table th:first-child,
+.pp-table td:first-child {
+    width: 64px;
+    text-align: center;
+}
+
+.pp-table th:nth-child(2) {
+    width: 34%;
+}
+
+.pp-table th:nth-child(3),
+.pp-table th:nth-child(4),
+.pp-table th:nth-child(5),
+.pp-table th:nth-child(6) {
+    width: 105px;
+}
+
+.pp-table th:last-child {
+    width: 260px;
+}
+
+.pp-no {
+    color: #7f8da5 !important;
+}
+
+.pp-product-name {
+    display: block;
+    color: #e8eef9 !important;
+    font-weight: 700;
+    line-height: 1.45;
+    white-space: normal;
+}
+
+.pp-qty {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.pp-prospect { color: #60a5fa !important; }
+.pp-hot { color: #fbbf24 !important; }
+.pp-deal { color: #34d399 !important; }
+
+.pp-unit {
+    color: #52627d;
+    font-size: 9px;
+}
+
+.pp-total {
+    color: #e8eef9 !important;
+    font-size: 14px;
+}
+
+.pp-stage-bar {
+    width: 220px;
+    height: 7px;
+    display: flex;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #111d31;
+}
+
+.pp-stage-bar span {
+    height: 100%;
+    min-width: 0;
+}
+
+.pp-stage-prospect { background: #60a5fa; }
+.pp-stage-hot { background: #fbbf24; }
+.pp-stage-deal { background: #34d399; }
+
+.pp-stage-legend {
+    margin-top: 7px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #52627d;
+    font-size: 8px;
+}
+
+.pp-stage-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pp-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.pp-dot-prospect { background: #60a5fa; }
+.pp-dot-hot { background: #fbbf24; }
+.pp-dot-deal { background: #34d399; }
+
+.pp-empty {
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #64748b;
+}
+
+.pp-empty i {
+    font-size: 34px;
+    color: #52627d;
+}
+
+.pp-empty strong {
+    color: #8f9db4;
+    font-size: 12px;
+}
+
+.pp-empty span {
+    font-size: 10px;
+}
+
+/* Footer */
+.pp-container > footer,
+.pp-container .footer-text {
+    margin-top: 20px;
+}
+
+@media (max-width: 1050px) {
+    #crmSidebar.rail {
+        width: 245px !important;
+    }
+
+    .pp-page.page-productpipeline {
+        width: calc(100% - 245px) !important;
+        margin-left: 245px !important;
+        padding: 35px 24px 45px !important;
+    }
+
+    .pp-summary-card {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+    }
+
+    .pp-summary-item:nth-child(2) {
+        border-right: 0;
+    }
+
+    .pp-summary-item:nth-child(-n+2) {
+        border-bottom: 1px solid rgba(148,163,184,.08);
+    }
+}
+
+@media (max-width: 800px) {
+    #crmSidebar.rail {
+        top: 72px !important;
+        width: 245px !important;
+    }
+
+    .pp-page.page-productpipeline {
+        width: 100% !important;
+        margin-left: 0 !important;
+        padding: 92px 14px 40px !important;
+    }
+
+    .pp-page-header {
+        margin-bottom: 20px;
+    }
+
+    .pp-summary-card {
+        grid-template-columns: 1fr;
+    }
+
+    .pp-summary-item,
+    .pp-summary-item:nth-child(2) {
+        border-right: 0;
+        border-bottom: 1px solid rgba(148,163,184,.08);
+    }
+
+    .pp-summary-item:last-child {
+        border-bottom: 0;
+    }
+
+    .pp-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pp-search-form {
+        width: 100%;
+    }
+
+    .pp-search-form input {
+        width: 100% !important;
+        flex: 1;
+    }
+}
+</style>
+
 </head>
 <body class="page-productpipeline">
+
+<?php require_once 'navigation.php'; ?>
 
 
 <!-- Product Pipeline page-specific navigation/layout override.
@@ -888,152 +1369,349 @@ body {
 }
 </style>
 
+
+<style id="productpipeline-final-theme">
+/* =========================================================
+   PRODUCT PIPELINE — FINAL INTEGRATION
+   Navigation is shared. Product Pipeline content is isolated
+   in .pp-page so navigation.css cannot hijack its layout.
+   ========================================================= */
+
+html,
+body {
+    background: #070b14 !important;
+    color: #dce5f5 !important;
+}
+
+/* Shared navigation must stay visible above page content. */
+.topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 72px !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 11000 !important;
+}
+
+#crmSidebar.rail {
+    position: fixed !important;
+    left: 0 !important;
+    top: 72px !important;
+    bottom: 0 !important;
+    width: 245px !important;
+    height: calc(100vh - 72px) !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    z-index: 10900 !important;
+    overflow-y: auto !important;
+}
+
+/* Product Pipeline shell — deliberately NOT .content. */
+.pp-page.page-productpipeline {
+    display: block !important;
+    position: relative !important;
+    float: none !important;
+    clear: both !important;
+    width: calc(100% - 245px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: calc(100vh - 72px) !important;
+    margin: 0 0 0 245px !important;
+    padding: 100px 30px 50px !important;
+    box-sizing: border-box !important;
+    background: #070b14 !important;
+    color: #dce5f5 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1 !important;
+}
+
+.pp-page.page-productpipeline .pipeline-wrapper {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Header */
+.pp-page.page-productpipeline .page-title {
+    color: #eef4ff !important;
+}
+.pp-page.page-productpipeline .page-subtitle {
+    color: #71809b !important;
+}
+
+/* Summary cards */
+.pp-page.page-productpipeline .summary-grid {
+    width: 100% !important;
+}
+.pp-page.page-productpipeline .summary-card {
+    background: linear-gradient(145deg, #111b2d, #0b1424) !important;
+    border: 1px solid rgba(148,163,184,.13) !important;
+    box-shadow: 0 14px 35px rgba(0,0,0,.20) !important;
+    color: #dce5f5 !important;
+}
+.pp-page.page-productpipeline .summary-label {
+    color: #71809b !important;
+}
+.pp-page.page-productpipeline .summary-card:not(.prospect):not(.hot):not(.deal) .summary-value {
+    color: #eef4ff !important;
+}
+.pp-page.page-productpipeline .summary-card.prospect .summary-value {
+    color: #60a5fa !important;
+}
+.pp-page.page-productpipeline .summary-card.hot .summary-value {
+    color: #fbbf24 !important;
+}
+.pp-page.page-productpipeline .summary-card.deal .summary-value {
+    color: #34d399 !important;
+}
+
+/* Main pipeline card */
+.pp-page.page-productpipeline .pipeline-card {
+    background: #111b2d !important;
+    border: 1px solid rgba(148,163,184,.13) !important;
+    box-shadow: 0 14px 35px rgba(0,0,0,.20) !important;
+    color: #dce5f5 !important;
+}
+.pp-page.page-productpipeline .pipeline-toolbar {
+    background: rgba(13,23,41,.55) !important;
+    border-bottom: 1px solid rgba(148,163,184,.10) !important;
+}
+.pp-page.page-productpipeline .pipeline-toolbar strong {
+    color: #eef4ff !important;
+}
+.pp-page.page-productpipeline .pipeline-toolbar .text-muted {
+    color: #64748b !important;
+}
+
+/* Search */
+.pp-page.page-productpipeline .search-box input {
+    color: #dce5f5 !important;
+    background: #070e1c !important;
+    border: 1px solid rgba(148,163,184,.16) !important;
+}
+.pp-page.page-productpipeline .search-box input::placeholder {
+    color: #52627d !important;
+}
+.pp-page.page-productpipeline .search-box i {
+    color: #64748b !important;
+}
+
+/* Table */
+.pp-page.page-productpipeline table {
+    background: transparent !important;
+    color: #cdd7e7 !important;
+}
+.pp-page.page-productpipeline thead th {
+    background: #0a1323 !important;
+    color: #71809b !important;
+    border-bottom: 1px solid rgba(148,163,184,.10) !important;
+}
+.pp-page.page-productpipeline tbody td {
+    color: #cdd7e7 !important;
+    background: transparent !important;
+    border-bottom: 1px solid rgba(148,163,184,.08) !important;
+}
+.pp-page.page-productpipeline tbody tr:hover td {
+    background: rgba(59,130,246,.035) !important;
+}
+.pp-page.page-productpipeline .product-name {
+    color: #dce5f5 !important;
+}
+.pp-page.page-productpipeline .qty-prospect {
+    color: #60a5fa !important;
+}
+.pp-page.page-productpipeline .qty-hot {
+    color: #fbbf24 !important;
+}
+.pp-page.page-productpipeline .qty-deal {
+    color: #34d399 !important;
+}
+.pp-page.page-productpipeline .stage-bar {
+    background: #172238 !important;
+}
+.pp-page.page-productpipeline .stage-prospect {
+    background: #60a5fa !important;
+}
+.pp-page.page-productpipeline .stage-hot {
+    background: #fbbf24 !important;
+}
+.pp-page.page-productpipeline .stage-deal {
+    background: #34d399 !important;
+}
+
+/* Footer stays inside the page content area. */
+.pp-page.page-productpipeline footer {
+    width: 100% !important;
+}
+
+@media (max-width: 768px) {
+    #crmSidebar.rail {
+        top: 64px !important;
+        height: calc(100dvh - 64px) !important;
+    }
+
+    .pp-page.page-productpipeline {
+        width: 100% !important;
+        min-height: calc(100vh - 64px) !important;
+        margin-left: 0 !important;
+        padding: 84px 14px 40px !important;
+    }
+}
+</style>
+
 <main class="pp-page page-productpipeline">
-<div class="pipeline-wrapper">
+    <div class="pp-container">
 
-    <div class="page-header">
-        <div>
-            <h1 class="page-title">
-                <i class="fa-solid fa-chart-column me-2"></i>
-                Product Pipeline
-            </h1>
-            <p class="page-subtitle">
-                Monitoring tipe unit berdasarkan seluruh Activity Number dan TR Number.
-            </p>
-        </div>
-    </div>
-
-    <div class="summary-grid">
-        <div class="summary-card">
-            <div class="summary-label">Total Pipeline</div>
-            <div class="summary-value"><?= number_format($totalPipeline, 0, ',', '.') ?></div>
+        <!-- HEADER: dibuat mengikuti halaman Produk -->
+        <div class="pp-page-header">
+            <div class="pp-title-wrap">
+                <span class="pp-title-icon">
+                    <i class="fas fa-chart-column"></i>
+                </span>
+                <h4>Product Pipeline</h4>
+            </div>
         </div>
 
-        <div class="summary-card prospect">
-            <div class="summary-label">Prospect</div>
-            <div class="summary-value"><?= number_format($totalProspect, 0, ',', '.') ?></div>
+        <!-- SUMMARY: tetap mempertahankan informasi pipeline, tetapi tampil
+             sebagai satu card gelap seperti card "Daftar Produk". -->
+        <div class="pp-summary-card">
+            <div class="pp-summary-item">
+                <span class="pp-summary-label">Total Pipeline</span>
+                <strong class="pp-summary-total"><?= number_format($totalPipeline, 0, ',', '.') ?> Unit</strong>
+            </div>
+            <div class="pp-summary-item">
+                <span class="pp-summary-label">Prospect</span>
+                <strong class="pp-summary-prospect"><?= number_format($totalProspect, 0, ',', '.') ?> Unit</strong>
+            </div>
+            <div class="pp-summary-item">
+                <span class="pp-summary-label">Hot Prospect</span>
+                <strong class="pp-summary-hot"><?= number_format($totalHotProspect, 0, ',', '.') ?> Unit</strong>
+            </div>
+            <div class="pp-summary-item">
+                <span class="pp-summary-label">Deal</span>
+                <strong class="pp-summary-deal"><?= number_format($totalDeal, 0, ',', '.') ?> Unit</strong>
+            </div>
         </div>
 
-        <div class="summary-card hot">
-            <div class="summary-label">Hot Prospect</div>
-            <div class="summary-value"><?= number_format($totalHotProspect, 0, ',', '.') ?></div>
-        </div>
+        <!-- TABLE -->
+        <div class="pp-card">
+            <div class="pp-card-header">
+                <h6><i class="fas fa-list"></i> Pipeline Tipe Unit</h6>
 
-        <div class="summary-card deal">
-            <div class="summary-label">Deal</div>
-            <div class="summary-value"><?= number_format($totalDeal, 0, ',', '.') ?></div>
-        </div>
-    </div>
-
-    <div class="pipeline-card">
-
-        <div class="pipeline-toolbar">
-            <div>
-                <strong>Pipeline Tipe Unit</strong>
-                <div class="text-muted small mt-1">
-                    Prospect → Hot Prospect → Deal
-                </div>
+                <form method="get" class="pp-search-form">
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-control form-control-sm"
+                        placeholder="Cari tipe unit..."
+                        value="<?= pp_h($search) ?>"
+                    >
+                    <button type="submit" class="btn pp-search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <?php if (!empty($search)): ?>
+                        <a href="productpipeline.php" class="btn pp-clear-btn" title="Reset pencarian">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    <?php endif; ?>
+                </form>
             </div>
 
-            <form method="get" class="search-box">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input
-                    type="text"
-                    name="search"
-                    value="<?= pp_h($search) ?>"
-                    placeholder="Cari tipe unit..."
-                >
-            </form>
-        </div>
+            <div class="pp-card-body">
+                <div class="table-responsive">
+                    <?php if (empty($pipeline)): ?>
+                        <div class="pp-empty">
+                            <i class="fas fa-inbox"></i>
+                            <strong>Belum ada data Product Pipeline</strong>
+                            <span>Data akan muncul dari aktivitas Prospecting dan Detail Unit pada TR.</span>
+                        </div>
+                    <?php else: ?>
+                        <table class="table pp-table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Tipe Unit</th>
+                                    <th>Prospect</th>
+                                    <th>Hot Prospect</th>
+                                    <th>Deal</th>
+                                    <th>Total</th>
+                                    <th>Pipeline</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($pipeline as $index => $row): ?>
+                                <?php
+                                $prospect = (int)$row['prospect'];
+                                $hot = (int)$row['hot_prospect'];
+                                $deal = (int)$row['deal'];
+                                $total = $prospect + $hot + $deal;
 
-        <div class="table-wrap">
-            <?php if (empty($pipeline)): ?>
-                <div class="empty-state">
-                    <i class="fa-solid fa-box-open d-block"></i>
-                    <div class="fw-semibold">Belum ada data Product Pipeline</div>
-                    <div class="small mt-1">
-                        Data akan muncul dari aktivitas Prospecting dan Detail Unit pada TR.
-                    </div>
+                                $pPct = $total > 0 ? ($prospect / $total) * 100 : 0;
+                                $hPct = $total > 0 ? ($hot / $total) * 100 : 0;
+                                $dPct = $total > 0 ? ($deal / $total) * 100 : 0;
+                                ?>
+                                <tr>
+                                    <td class="pp-no"><?= $index + 1 ?></td>
+                                    <td>
+                                        <strong class="pp-product-name">
+                                            <?= pp_h($row['nama_produk']) ?>
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <span class="pp-qty pp-prospect">
+                                            <?= number_format($prospect, 0, ',', '.') ?>
+                                        </span>
+                                        <span class="pp-unit">unit</span>
+                                    </td>
+                                    <td>
+                                        <span class="pp-qty pp-hot">
+                                            <?= number_format($hot, 0, ',', '.') ?>
+                                        </span>
+                                        <span class="pp-unit">unit</span>
+                                    </td>
+                                    <td>
+                                        <span class="pp-qty pp-deal">
+                                            <?= number_format($deal, 0, ',', '.') ?>
+                                        </span>
+                                        <span class="pp-unit">unit</span>
+                                    </td>
+                                    <td>
+                                        <strong class="pp-total">
+                                            <?= number_format($total, 0, ',', '.') ?>
+                                        </strong>
+                                        <span class="pp-unit">unit</span>
+                                    </td>
+                                    <td>
+                                        <div class="pp-stage-bar" title="Prospect / Hot Prospect / Deal">
+                                            <span class="pp-stage-prospect" style="width: <?= $pPct ?>%"></span>
+                                            <span class="pp-stage-hot" style="width: <?= $hPct ?>%"></span>
+                                            <span class="pp-stage-deal" style="width: <?= $dPct ?>%"></span>
+                                        </div>
+                                        <div class="pp-stage-legend">
+                                            <span><i class="pp-dot pp-dot-prospect"></i>Prospect</span>
+                                            <span><i class="pp-dot pp-dot-hot"></i>Hot</span>
+                                            <span><i class="pp-dot pp-dot-deal"></i>Deal</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
                 </div>
-            <?php else: ?>
-
-                <table>
-                    <thead>
-                    <tr>
-                        <th style="width:70px;">No</th>
-                        <th>Tipe Unit</th>
-                        <th>Prospect</th>
-                        <th>Hot Prospect</th>
-                        <th>Deal</th>
-                        <th>Total</th>
-                        <th>Pipeline</th>
-                    </tr>
-                    </thead>
-
-                    <tbody>
-                    <?php foreach ($pipeline as $index => $row): ?>
-                        <?php
-                        $prospect = (int)$row['prospect'];
-                        $hot = (int)$row['hot_prospect'];
-                        $deal = (int)$row['deal'];
-                        $total = $prospect + $hot + $deal;
-
-                        $pPct = $total > 0 ? ($prospect / $total) * 100 : 0;
-                        $hPct = $total > 0 ? ($hot / $total) * 100 : 0;
-                        $dPct = $total > 0 ? ($deal / $total) * 100 : 0;
-                        ?>
-                        <tr>
-                            <td class="text-muted"><?= $index + 1 ?></td>
-
-                            <td>
-                                <div class="product-name">
-                                    <?= pp_h($row['nama_produk']) ?>
-                                </div>
-                            </td>
-
-                            <td>
-                                <span class="qty qty-prospect">
-                                    <?= number_format($prospect, 0, ',', '.') ?>
-                                </span>
-                                <span class="text-muted small"> unit</span>
-                            </td>
-
-                            <td>
-                                <span class="qty qty-hot">
-                                    <?= number_format($hot, 0, ',', '.') ?>
-                                </span>
-                                <span class="text-muted small"> unit</span>
-                            </td>
-
-                            <td>
-                                <span class="qty qty-deal">
-                                    <?= number_format($deal, 0, ',', '.') ?>
-                                </span>
-                                <span class="text-muted small"> unit</span>
-                            </td>
-
-                            <td>
-                                <strong><?= number_format($total, 0, ',', '.') ?></strong>
-                                <span class="text-muted small"> unit</span>
-                            </td>
-
-                            <td>
-                                <div class="stage-bar" title="Prospect / Hot Prospect / Deal">
-                                    <span class="stage-prospect" style="width: <?= $pPct ?>%"></span>
-                                    <span class="stage-hot" style="width: <?= $hPct ?>%"></span>
-                                    <span class="stage-deal" style="width: <?= $dPct ?>%"></span>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
+            </div>
         </div>
-    </div>
-</div>
 
-<?php require_once 'footer.php'; ?>
+        <?php require_once 'footer.php'; ?>
+    </div>
 </main>
 
 </body>
