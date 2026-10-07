@@ -1402,7 +1402,7 @@ foreach ($detailsList as $d) {
                                 <th>Due Date</th>
                                 <th>Status</th>
                                 <th>Sales</th>
-                                <th>Aksi</th>
+                                <th>Detail</th>
                             </tr>
                         </thead>
                         <tbody>
