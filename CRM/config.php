@@ -24,7 +24,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u475225363_crmget');
 define('DB_USER', 'u475225363_crmget');
-define('DB_PASS', 'GETGroup2023');
+define('DB_PASS', 'TestGET990');
 
 // ============================================================
 // APLIKASI
