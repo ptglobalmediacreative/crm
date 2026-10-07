@@ -1,4 +1,19 @@
 <?php
+// ============================================================
+// BLOCK DIRECT ACCESS
+// navigation.php hanya boleh dipanggil oleh halaman CRM lain
+// menggunakan require/include. Jika dibuka langsung dari URL,
+// hentikan request dengan HTTP 403.
+// ============================================================
+$__navEntry = realpath($_SERVER['SCRIPT_FILENAME'] ?? '') ?: '';
+$__navFile  = realpath(__FILE__) ?: '';
+if ($__navEntry !== '' && $__navFile !== '' && $__navEntry === $__navFile) {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=UTF-8');
+    exit('403 Forbidden');
+}
+unset($__navEntry, $__navFile);
+
 // Shared CRM navigation: topbar + sidebar.
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
