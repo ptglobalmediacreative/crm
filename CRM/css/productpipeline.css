@@ -1,0 +1,321 @@
+/* ============================================================
+   PRODUCT PIPELINE — PAGE SPECIFIC CSS
+   Tidak mendefinisikan ulang :root / body / .content global.
+   ============================================================ */
+
+.page-productpipeline {
+    padding-bottom: 28px;
+}
+
+.productpipeline-header {
+    align-items: flex-start;
+    margin-bottom: 22px;
+}
+
+.productpipeline-header h1 {
+    margin: 4px 0 7px;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--text);
+}
+
+.productpipeline-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.page-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue-2);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.page-eyebrow i {
+    font-size: 12px;
+}
+
+.pipeline-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.pipeline-summary-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 92px;
+    padding: 17px 19px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(145deg, rgba(13,23,48,.96), rgba(11,18,34,.96));
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    font-size: 18px;
+    background: rgba(59,130,246,.12);
+    color: var(--blue-2);
+    border: 1px solid rgba(59,130,246,.20);
+}
+
+.hot-card .summary-icon {
+    background: rgba(245,158,11,.11);
+    color: var(--amber);
+    border-color: rgba(245,158,11,.20);
+}
+
+.deal-card .summary-icon {
+    background: rgba(34,197,94,.11);
+    color: var(--green);
+    border-color: rgba(34,197,94,.20);
+}
+
+.pipeline-summary-card div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.pipeline-summary-card span:not(.summary-icon) {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.pipeline-summary-card strong {
+    color: var(--text);
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 800;
+}
+
+.pipeline-card {
+    overflow: hidden;
+}
+
+.pipeline-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+}
+
+.pipeline-card-header h6 {
+    margin: 0 0 4px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.pipeline-card-header h6 i {
+    margin-right: 8px;
+    color: var(--blue-2);
+}
+
+.pipeline-card-header > div > span {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.pipeline-count {
+    flex: 0 0 auto;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: rgba(59,130,246,.09);
+    border: 1px solid rgba(59,130,246,.18);
+    color: var(--blue-2);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.pipeline-table {
+    color: var(--text);
+    border-color: var(--line-soft);
+}
+
+.pipeline-table thead th {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(16,27,48,.72);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pipeline-table tbody td {
+    padding: 15px 16px;
+    border-color: var(--line-soft);
+    background: transparent;
+    vertical-align: middle;
+}
+
+.pipeline-table tbody tr {
+    transition: background .18s ease, transform .18s ease;
+}
+
+.pipeline-table tbody tr:hover {
+    background: rgba(59,130,246,.035);
+}
+
+.number-col,
+.number-cell {
+    width: 64px;
+    text-align: center;
+}
+
+.number-cell {
+    color: var(--muted-2);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.unit-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 180px;
+}
+
+.unit-icon {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    color: var(--blue-2);
+    background: rgba(59,130,246,.10);
+    border: 1px solid rgba(59,130,246,.16);
+    font-size: 12px;
+}
+
+.unit-name strong {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.stage-col {
+    width: 145px;
+    text-align: center;
+}
+
+.stage-col i {
+    margin-right: 5px;
+}
+
+.prospect-col i { color: var(--blue-2); }
+.hot-col i { color: var(--amber); }
+.deal-col i { color: var(--green); }
+
+.qty-cell {
+    text-align: center;
+}
+
+.qty-badge {
+    min-width: 48px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid transparent;
+}
+
+.qty-badge.prospect {
+    color: var(--blue-2);
+    background: rgba(59,130,246,.09);
+    border-color: rgba(59,130,246,.16);
+}
+
+.qty-badge.hot {
+    color: var(--amber);
+    background: rgba(245,158,11,.09);
+    border-color: rgba(245,158,11,.16);
+}
+
+.qty-badge.deal {
+    color: var(--green);
+    background: rgba(34,197,94,.09);
+    border-color: rgba(34,197,94,.16);
+}
+
+.empty-state {
+    padding: 56px 20px !important;
+    text-align: center;
+    color: var(--muted);
+}
+
+.empty-state i {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--muted-2);
+    font-size: 32px;
+}
+
+.empty-state strong,
+.empty-state span {
+    display: block;
+}
+
+.empty-state strong {
+    margin-bottom: 5px;
+    color: var(--text-soft);
+    font-size: 13px;
+}
+
+.empty-state span {
+    font-size: 11px;
+}
+
+@media (max-width: 900px) {
+    .pipeline-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-productpipeline {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .productpipeline-header h1 {
+        font-size: 23px;
+    }
+
+    .pipeline-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pipeline-count {
+        align-self: flex-start;
+    }
+
+    .pipeline-table {
+        min-width: 680px;
+    }
+}

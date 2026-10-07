@@ -1,5 +1,0 @@
-RewriteEngine On
-
-# Block direct access ke navigation.php
-RewriteCond %{THE_REQUEST} \s/+navigation\.php(?:[\s?]|$) [NC]
-RewriteRule ^navigation\.php$ - [F,L]
