@@ -746,9 +746,12 @@ if ($search !== '') {
 </head>
 <body class="page-productpipeline">
 
+<?php require_once 'navigation.php'; ?>
 
-<!-- Product Pipeline page-specific navigation/layout override.
-     Loaded AFTER navigation.php so shared navigation CSS cannot hide this page. -->
+
+<!-- Product Pipeline page-specific layout override.
+     Navigation dimuat tepat setelah <body>; override ini menjaga content
+     tetap berada di sebelah kanan sidebar dan di bawah topbar. -->
 <style id="productpipeline-layout-fix">
 html, body {
     width: 100% !important;
@@ -790,10 +793,10 @@ html, body {
         min-height: calc(100vh - 72px) !important;
         margin-left: 245px !important;
         margin-right: 0 !important;
-        padding: 100px 30px 50px !important;
+        padding: 28px 30px 50px !important;
         box-sizing: border-box !important;
-        background: #070b14 !important;
-        color: #e8eef9 !important;
+        background: #f5f7fb !important;
+        color: #172033 !important;
     }
 
     .page-productpipeline .pipeline-wrapper {
@@ -819,7 +822,7 @@ html, body {
         margin-left: 0 !important;
         padding: 84px 14px 40px !important;
         box-sizing: border-box !important;
-        background: #070b14 !important;
+        background: #f5f7fb !important;
     }
 
     .page-productpipeline .pipeline-wrapper {
