@@ -487,132 +487,553 @@ if ($search !== '') {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Product Pipeline - PT Ganda Elang Tangguh</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Pipeline</title>
 
-    <link rel="icon" type="image/webp" href="images/favicon.webp">
-    <link rel="shortcut icon" type="image/webp" href="images/favicon.webp">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="css/productpipeline.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/footer.css">
+    
+
+    <style>
+        :root {
+            --primary: #1d4ed8;
+            --primary-dark: #173ea5;
+            --bg: #f5f7fb;
+            --card: #ffffff;
+            --text: #172033;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --prospect: #2563eb;
+            --hot: #f59e0b;
+            --deal: #16a34a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+        }
+
+        .pp-page.page-productpipeline {
+            margin-left: 245px;
+            width: calc(100% - 245px);
+            min-height: calc(100vh - 72px);
+            padding: 0;
+            background: var(--bg);
+            box-sizing: border-box;
+        }
+
+        .pipeline-wrapper {
+            width: 100%;
+            padding: 28px 30px 50px;
+            box-sizing: border-box;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -.5px;
+        }
+
+        .page-subtitle {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, .04);
+        }
+
+        .summary-label {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            margin-top: 7px;
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        .summary-card.prospect .summary-value { color: var(--prospect); }
+        .summary-card.hot .summary-value { color: var(--hot); }
+        .summary-card.deal .summary-value { color: var(--deal); }
+
+        .pipeline-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, .04);
+            overflow: hidden;
+        }
+
+        .pipeline-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-box {
+            position: relative;
+            width: min(360px, 100%);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+        .search-box input {
+            width: 100%;
+            height: 42px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0 14px 0 38px;
+            outline: none;
+            background: #fff;
+        }
+
+        .search-box input:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: 15px 18px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #eef0f4;
+            vertical-align: middle;
+            font-size: 14px;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        tbody tr:hover {
+            background: #fafcff;
+        }
+
+        .product-name {
+            font-weight: 700;
+        }
+
+        .qty {
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .qty-prospect { color: var(--prospect); }
+        .qty-hot { color: var(--hot); }
+        .qty-deal { color: var(--deal); }
+
+        .stage-bar {
+            display: flex;
+            width: 180px;
+            height: 8px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #eef2f7;
+        }
+
+        .stage-bar span {
+            height: 100%;
+            min-width: 0;
+        }
+
+        .stage-prospect { background: var(--prospect); }
+        .stage-hot { background: var(--hot); }
+        .stage-deal { background: var(--deal); }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state i {
+            font-size: 38px;
+            margin-bottom: 12px;
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 900px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .pp-page.page-productpipeline {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .pipeline-wrapper {
+                padding: 20px 14px 40px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header,
+            .pipeline-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body class="page-productpipeline">
 
 
-<main class="content">
+<!-- Product Pipeline page-specific navigation/layout override.
+     Loaded AFTER navigation.php so shared navigation CSS cannot hide this page. -->
+<style id="productpipeline-layout-fix">
+/*
+ * PRODUCT PIPELINE + SHARED NAVIGATION
+ * ------------------------------------
+ * Jangan gunakan class .content di halaman ini.
+ * navigation.css memakai .content sebagai shared layout selector.
+ * Product Pipeline memakai .pp-page agar layout halaman ini terisolasi.
+ */
+
+html,
+body {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    background: #070b14 !important;
+}
+
+@media (min-width: 769px) {
+    .topbar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 72px !important;
+        z-index: 11000 !important;
+    }
+
+    #crmSidebar.rail {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 72px !important;
+        bottom: 0 !important;
+        width: 245px !important;
+        height: calc(100vh - 72px) !important;
+        margin: 0 !important;
+        transform: none !important;
+        z-index: 10900 !important;
+        overflow-y: auto !important;
+    }
+
+    /*
+     * IMPORTANT:
+     * pp-page is intentionally not .content.
+     * This prevents navigation.css from taking over this container.
+     */
+    .pp-page.page-productpipeline {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        float: none !important;
+        clear: both !important;
+        z-index: 1 !important;
+
+        width: calc(100% - 245px) !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        min-height: calc(100vh - 72px) !important;
+
+        margin: 0 0 0 245px !important;
+        padding: 100px 30px 50px !important;
+
+        box-sizing: border-box !important;
+        background: #070b14 !important;
+        color: #e8eef9 !important;
+    }
+
+    .pp-page.page-productpipeline .pipeline-wrapper {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .pp-page.page-productpipeline .page-header,
+    .pp-page.page-productpipeline .summary-grid,
+    .pp-page.page-productpipeline .pipeline-card {
+        position: relative !important;
+        z-index: 2 !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .pp-page.page-productpipeline .summary-grid,
+    .pp-page.page-productpipeline .pipeline-card {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .pp-page.page-productpipeline {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        float: none !important;
+        clear: both !important;
+
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        min-height: calc(100vh - 64px) !important;
+
+        margin: 0 !important;
+        padding: 84px 14px 40px !important;
+
+        box-sizing: border-box !important;
+        background: #070b14 !important;
+        color: #e8eef9 !important;
+    }
+
+    .pp-page.page-productpipeline .pipeline-wrapper {
+        width: 100% !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+}
+
+/* Final safety: the Product Pipeline shell is NEVER hidden. */
+.pp-page.page-productpipeline,
+.pp-page.page-productpipeline * {
+    box-sizing: border-box;
+}
+
+.pp-page.page-productpipeline {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+</style>
+
+<main class="pp-page page-productpipeline">
+<div class="pipeline-wrapper">
+
     <div class="page-header">
-        <div class="page-title">
-            <h4><span><i class="fas fa-chart-bar"></i></span> Product Pipeline</h4>
-        </div>
-        <div class="page-actions">
-            <a href="salesactivity.php" class="btn btn-secondary-custom">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
-        </div>
-    </div>
-
-    <div class="info-card pipeline-info-card">
-        <div class="info-item">
-            <div class="info-label">Total Pipeline</div>
-            <div class="info-value"><strong><?= number_format($totalPipeline, 0, ',', '.') ?> Unit</strong></div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">Prospect</div>
-            <div class="info-value pipeline-value prospect-value"><?= number_format($totalProspect, 0, ',', '.') ?> Unit</div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">Hot Prospect</div>
-            <div class="info-value pipeline-value hot-value"><?= number_format($totalHotProspect, 0, ',', '.') ?> Unit</div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">Deal</div>
-            <div class="info-value pipeline-value deal-value"><?= number_format($totalDeal, 0, ',', '.') ?> Unit</div>
+        <div>
+            <h1 class="page-title">
+                <i class="fa-solid fa-chart-column me-2"></i>
+                Product Pipeline
+            </h1>
+            <p class="page-subtitle">
+                Monitoring tipe unit berdasarkan seluruh Activity Number dan TR Number.
+            </p>
         </div>
     </div>
 
-    <div class="card-custom">
-        <div class="card-header-custom pipeline-card-header">
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-label">Total Pipeline</div>
+            <div class="summary-value"><?= number_format($totalPipeline, 0, ',', '.') ?></div>
+        </div>
+
+        <div class="summary-card prospect">
+            <div class="summary-label">Prospect</div>
+            <div class="summary-value"><?= number_format($totalProspect, 0, ',', '.') ?></div>
+        </div>
+
+        <div class="summary-card hot">
+            <div class="summary-label">Hot Prospect</div>
+            <div class="summary-value"><?= number_format($totalHotProspect, 0, ',', '.') ?></div>
+        </div>
+
+        <div class="summary-card deal">
+            <div class="summary-label">Deal</div>
+            <div class="summary-value"><?= number_format($totalDeal, 0, ',', '.') ?></div>
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+
+        <div class="pipeline-toolbar">
             <div>
-                <h6><i class="fas fa-chart-column"></i> Pipeline Tipe Unit</h6>
-                <div class="pipeline-subtitle">Prospect → Hot Prospect → Deal</div>
+                <strong>Pipeline Tipe Unit</strong>
+                <div class="text-muted small mt-1">
+                    Prospect → Hot Prospect → Deal
+                </div>
             </div>
+
             <form method="get" class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" name="search" value="<?= pp_h($search) ?>" placeholder="Cari tipe unit...">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input
+                    type="text"
+                    name="search"
+                    value="<?= pp_h($search) ?>"
+                    placeholder="Cari tipe unit..."
+                >
             </form>
         </div>
 
-        <div class="card-body-custom">
-            <?= showFlash() ?>
-            <div class="table-responsive">
-                <?php if (empty($pipeline)): ?>
-                    <div class="empty-state">
-                        <i class="fas fa-box-open"></i>
-                        <div>Belum ada data Product Pipeline</div>
-                        <small>Data akan muncul dari aktivitas Prospecting dan Detail Unit pada TR.</small>
+        <div class="table-wrap">
+            <?php if (empty($pipeline)): ?>
+                <div class="empty-state">
+                    <i class="fa-solid fa-box-open d-block"></i>
+                    <div class="fw-semibold">Belum ada data Product Pipeline</div>
+                    <div class="small mt-1">
+                        Data akan muncul dari aktivitas Prospecting dan Detail Unit pada TR.
                     </div>
-                <?php else: ?>
-                    <table class="table table-custom pipeline-table">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Tipe Unit</th>
-                                <th>Prospect</th>
-                                <th>Hot Prospect</th>
-                                <th>Deal</th>
-                                <th>Total</th>
-                                <th>Pipeline</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($pipeline as $index => $row): ?>
-                            <?php
-                            $prospect = (int)$row['prospect'];
-                            $hot = (int)$row['hot_prospect'];
-                            $deal = (int)$row['deal'];
-                            $total = $prospect + $hot + $deal;
-                            $pPct = $total > 0 ? ($prospect / $total) * 100 : 0;
-                            $hPct = $total > 0 ? ($hot / $total) * 100 : 0;
-                            $dPct = $total > 0 ? ($deal / $total) * 100 : 0;
-                            ?>
-                            <tr>
-                                <td class="text-muted"><?= $index + 1 ?></td>
-                                <td>
-                                    <div class="product-name"><?= pp_h($row['nama_produk']) ?></div>
-                                </td>
-                                <td><span class="qty qty-prospect"><?= number_format($prospect, 0, ',', '.') ?></span> <span class="unit-label">unit</span></td>
-                                <td><span class="qty qty-hot"><?= number_format($hot, 0, ',', '.') ?></span> <span class="unit-label">unit</span></td>
-                                <td><span class="qty qty-deal"><?= number_format($deal, 0, ',', '.') ?></span> <span class="unit-label">unit</span></td>
-                                <td><span class="total-value"><?= number_format($total, 0, ',', '.') ?></span> <span class="unit-label">unit</span></td>
-                                <td>
-                                    <div class="pipeline-visual">
-                                        <div class="stage-bar" title="Prospect / Hot Prospect / Deal">
-                                            <span class="stage-prospect" style="width: <?= $pPct ?>%"></span>
-                                            <span class="stage-hot" style="width: <?= $hPct ?>%"></span>
-                                            <span class="stage-deal" style="width: <?= $dPct ?>%"></span>
-                                        </div>
-                                        <div class="stage-legend">
-                                            <span class="legend-item"><span class="legend-dot prospect"></span> Prospect</span>
-                                            <span class="legend-item"><span class="legend-dot hot"></span> Hot</span>
-                                            <span class="legend-item"><span class="legend-dot deal"></span> Deal</span>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php else: ?>
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th style="width:70px;">No</th>
+                        <th>Tipe Unit</th>
+                        <th>Prospect</th>
+                        <th>Hot Prospect</th>
+                        <th>Deal</th>
+                        <th>Total</th>
+                        <th>Pipeline</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    <?php foreach ($pipeline as $index => $row): ?>
+                        <?php
+                        $prospect = (int)$row['prospect'];
+                        $hot = (int)$row['hot_prospect'];
+                        $deal = (int)$row['deal'];
+                        $total = $prospect + $hot + $deal;
+
+                        $pPct = $total > 0 ? ($prospect / $total) * 100 : 0;
+                        $hPct = $total > 0 ? ($hot / $total) * 100 : 0;
+                        $dPct = $total > 0 ? ($deal / $total) * 100 : 0;
+                        ?>
+                        <tr>
+                            <td class="text-muted"><?= $index + 1 ?></td>
+
+                            <td>
+                                <div class="product-name">
+                                    <?= pp_h($row['nama_produk']) ?>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="qty qty-prospect">
+                                    <?= number_format($prospect, 0, ',', '.') ?>
+                                </span>
+                                <span class="text-muted small"> unit</span>
+                            </td>
+
+                            <td>
+                                <span class="qty qty-hot">
+                                    <?= number_format($hot, 0, ',', '.') ?>
+                                </span>
+                                <span class="text-muted small"> unit</span>
+                            </td>
+
+                            <td>
+                                <span class="qty qty-deal">
+                                    <?= number_format($deal, 0, ',', '.') ?>
+                                </span>
+                                <span class="text-muted small"> unit</span>
+                            </td>
+
+                            <td>
+                                <strong><?= number_format($total, 0, ',', '.') ?></strong>
+                                <span class="text-muted small"> unit</span>
+                            </td>
+
+                            <td>
+                                <div class="stage-bar" title="Prospect / Hot Prospect / Deal">
+                                    <span class="stage-prospect" style="width: <?= $pPct ?>%"></span>
+                                    <span class="stage-hot" style="width: <?= $hPct ?>%"></span>
+                                    <span class="stage-deal" style="width: <?= $dPct ?>%"></span>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
     </div>
+</div>
 
-    <!-- FOOTER -->
-    <?php require_once 'footer.php'; ?>
+<?php require_once 'footer.php'; ?>
 </main>
 
 </body>
