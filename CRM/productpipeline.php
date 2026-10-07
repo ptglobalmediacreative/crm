@@ -265,8 +265,6 @@ foreach ($pipelineByProduct as $row) {
 </head>
 <body>
 
-<?php require_once 'navigation.php'; ?>
-<link rel="stylesheet" href="css/productpipeline.css">
 <link rel="stylesheet" href="css/productpipeline.css">
 
 <main class="pp-page page-productpipeline">
