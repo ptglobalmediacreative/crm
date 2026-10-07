@@ -256,6 +256,8 @@ foreach ($pipelineByProduct as $row) {
 </head>
 <body>
 
+<?php require_once 'navigation.php'; ?>
+
 <main class="content page-productpipeline">
     <div class="page-header productpipeline-header">
         <div>
