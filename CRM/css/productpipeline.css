@@ -3,12 +3,52 @@
    Tidak mendefinisikan ulang :root / body / .content global.
    ============================================================ */
 
-.page-productpipeline {
-  padding-bottom: 28px;
+/* ------------------------------------------------------------
+   Layout offset supaya konten tidak menimpa sidebar (rail)
+   dan topbar. Sesuaikan dua variabel di bawah dengan nilai
+   yang dipakai di navigation.css Anda.
+   ------------------------------------------------------------ */
+:root {
+  --pp-rail-width: 260px; /* lebar sidebar kiri */
+  --pp-topbar-height: 76px; /* tinggi topbar atas */
 }
 
+.page-productpipeline {
+  position: relative;
+  z-index: 1;
+
+  /* Geser dari rail di kiri & topbar di atas */
+  margin-left: var(--pp-rail-width);
+  padding: calc(var(--pp-topbar-height) + 22px) 24px 28px;
+
+  min-height: 100vh;
+
+  /* Background opaque supaya tidak tembus ke sidebar */
+  background: var(--bg, #0a1428);
+  background-image:
+    radial-gradient(
+      1200px 500px at -10% -20%,
+      rgba(37, 99, 235, 0.08),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 110% 0%,
+      rgba(59, 130, 246, 0.05),
+      transparent 55%
+    );
+  background-repeat: no-repeat;
+
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------
+   Header
+   ------------------------------------------------------------ */
 .productpipeline-header {
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 22px;
 }
 
@@ -25,6 +65,7 @@
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
+  max-width: 720px;
 }
 
 .page-eyebrow {
@@ -42,6 +83,9 @@
   font-size: 12px;
 }
 
+/* ------------------------------------------------------------
+   Summary cards
+   ------------------------------------------------------------ */
 .pipeline-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -111,6 +155,9 @@
   font-weight: 800;
 }
 
+/* ------------------------------------------------------------
+   Card tabel
+   ------------------------------------------------------------ */
 .pipeline-card {
   overflow: hidden;
 }
@@ -150,6 +197,9 @@
   font-weight: 800;
 }
 
+/* ------------------------------------------------------------
+   Tabel
+   ------------------------------------------------------------ */
 .pipeline-table {
   color: var(--text);
   border-color: var(--line-soft);
@@ -302,16 +352,33 @@
   font-size: 11px;
 }
 
+/* ------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------ */
+
+/* Tablet: rail kemungkinan mengecil atau tetap */
+@media (max-width: 1200px) {
+  .page-productpipeline {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
 @media (max-width: 900px) {
   .pipeline-summary {
     grid-template-columns: 1fr;
   }
 }
 
+/* Mobile: rail jadi overlay, konten full width */
 @media (max-width: 768px) {
   .page-productpipeline {
-    padding-left: 14px;
-    padding-right: 14px;
+    margin-left: 0;
+    padding: calc(var(--pp-topbar-height) + 14px) 14px 28px;
+  }
+
+  .productpipeline-header {
+    flex-direction: column;
   }
 
   .productpipeline-header h1 {
