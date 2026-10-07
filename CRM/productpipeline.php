@@ -519,8 +519,19 @@ if ($search !== '') {
             font-family: Inter, "Segoe UI", Arial, sans-serif;
         }
 
+        .content.page-productpipeline {
+            margin-left: 245px;
+            width: calc(100% - 245px);
+            min-height: calc(100vh - 72px);
+            padding: 0;
+            background: var(--bg);
+            box-sizing: border-box;
+        }
+
         .pipeline-wrapper {
-            padding: 28px;
+            width: 100%;
+            padding: 28px 30px 50px;
+            box-sizing: border-box;
         }
 
         .page-header {
@@ -705,8 +716,13 @@ if ($search !== '') {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
+            .content.page-productpipeline {
+                margin-left: 0;
+                width: 100%;
+            }
+
             .pipeline-wrapper {
-                padding: 18px;
+                padding: 20px 14px 40px;
             }
         }
 
@@ -729,6 +745,7 @@ if ($search !== '') {
 </head>
 <body>
 <?php require_once 'navigation.php'; ?>
+<main class="content page-productpipeline">
 <div class="pipeline-wrapper">
 
     <div class="page-header">
@@ -868,12 +885,13 @@ if ($search !== '') {
                     <?php endforeach; ?>
                     </tbody>
                 </table>
-            <?php require_once 'footer.php'; ?>
-
             <?php endif; ?>
         </div>
     </div>
 </div>
+
+<?php require_once 'footer.php'; ?>
+</main>
 
 </body>
 </html>
