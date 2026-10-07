@@ -504,7 +504,6 @@ if ($search !== '') {
 
     
     <main class="content">
-        <?php require_once 'navigation.php'; ?>
         <div class="page-header">
         <div class="page-title">
             <h4><span><i class="fas fa-chart-bar"></i></span> Product Pipeline</h4>
