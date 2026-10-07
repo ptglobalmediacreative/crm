@@ -1031,6 +1031,100 @@ body {
 
 <?php require_once 'navigation.php'; ?>
 
+<!-- Product Pipeline FINAL layout override.
+     Wajib diletakkan SETELAH navigation.php karena navigation.php memuat
+     navigation.css/app.css setelah halaman mulai dirender. -->
+<style id="productpipeline-final-layout">
+html, body {
+    margin: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    background: #060b18 !important;
+}
+
+/* Desktop / laptop: content area is an independent panel to the RIGHT
+   of the fixed CRM sidebar and BELOW the fixed topbar. */
+@media (min-width: 769px) {
+    .pp-page.page-productpipeline {
+        display: block !important;
+        position: fixed !important;
+        top: 72px !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: 245px !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 28px 30px 50px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        box-sizing: border-box !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        float: none !important;
+        clear: none !important;
+        z-index: 100 !important;
+        background: #060b18 !important;
+        color: #dce5f5 !important;
+    }
+
+    .pp-page.page-productpipeline .pp-container {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
+/* Tablet / small laptop: navigation.css uses a 220px rail. */
+@media (min-width: 769px) and (max-width: 1200px) {
+    .pp-page.page-productpipeline {
+        left: 220px !important;
+        padding: 28px 22px 46px !important;
+    }
+}
+
+/* Phone: sidebar becomes an overlay, so page uses full width. */
+@media (max-width: 768px) {
+    .pp-page.page-productpipeline {
+        display: block !important;
+        position: fixed !important;
+        top: 64px !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 20px 14px 40px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        box-sizing: border-box !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 100 !important;
+        background: #060b18 !important;
+    }
+
+    .pp-page.page-productpipeline .pp-container {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .pp-page.page-productpipeline {
+        top: 60px !important;
+        padding: 16px 10px 32px !important;
+    }
+}
+</style>
+
 <main class="pp-page page-productpipeline">
     <div class="pp-container">
 
