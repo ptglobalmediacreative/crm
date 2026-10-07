@@ -504,17 +504,24 @@ body {
     color: #dce5f5 !important;
 }
 
-/* Main area */
+/* Main area — navigation-safe shell.
+   navigation.php owns the fixed header/sidebar; this page only owns content. */
+:root {
+    --crm-topbar-height: 72px;
+    --crm-rail-width: 245px;
+    --crm-rail-width-tablet: 220px;
+}
+
 .pp-page.page-productpipeline {
     display: block;
     position: relative;
     float: none;
     clear: both;
-    width: calc(100% - 245px);
+    width: calc(100% - var(--crm-rail-width, 245px));
     min-width: 0;
-    min-height: calc(100vh - 72px);
-    margin: 0 0 0 245px;
-    padding: 100px 30px 50px;
+    min-height: calc(100vh - var(--crm-topbar-height, 72px));
+    margin: 0 0 0 var(--crm-rail-width, 245px);
+    padding: calc(var(--crm-topbar-height, 72px) + 28px) 30px 50px;
     box-sizing: border-box;
     background: #060b18;
     color: #dce5f5;
@@ -890,10 +897,10 @@ body {
 
 @media (min-width: 769px) and (max-width: 1200px) {
     .pp-page.page-productpipeline {
-        width: calc(100% - 220px);
-        margin-left: 220px;
-        min-height: calc(100vh - 72px);
-        padding: 100px 22px 46px;
+        width: calc(100% - var(--crm-rail-width-tablet, 220px));
+        margin-left: var(--crm-rail-width-tablet, 220px);
+        min-height: calc(100vh - var(--crm-topbar-height, 72px));
+        padding: calc(var(--crm-topbar-height, 72px) + 28px) 22px 46px;
     }
 
     .pp-summary-card {
