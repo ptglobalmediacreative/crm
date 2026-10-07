@@ -26,20 +26,25 @@ $userId = $_SESSION['user_id'] ?? 0;
 
 // ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
+// ------------------------------------------------------------
+// Di-guard function_exists() supaya tidak bentrok dengan
+// getRoleLabel() yang mungkin sudah didefinisikan di config.php.
 // ============================================
-function getRoleLabel($role) {
-    $roleLabels = [
-        'it_support' => 'IT Support',
-        'admin' => 'Admin',
-        'finance' => 'Finance',
-        'direktur_utama' => 'Direktur Utama',
-        'direktur_operasional' => 'Direktur Operasional',
-        'direktur_sales' => 'Direktur Sales',
-        'business' => 'Business',
-        'sales_manager' => 'Sales Manager',
-        'sales' => 'Sales'
-    ];
-    return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+if (!function_exists('getRoleLabel')) {
+    function getRoleLabel($role) {
+        $roleLabels = [
+            'it_support' => 'IT Support',
+            'admin' => 'Admin',
+            'finance' => 'Finance',
+            'direktur_utama' => 'Direktur Utama',
+            'direktur_operasional' => 'Direktur Operasional',
+            'direktur_sales' => 'Direktur Sales',
+            'business' => 'Business',
+            'sales_manager' => 'Sales Manager',
+            'sales' => 'Sales'
+        ];
+        return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+    }
 }
 
 // ============================================
@@ -299,6 +304,223 @@ foreach ($pipelineRows as $row) {
 $totalRevenue = 0;
 
 // ============================================
+// PRODUCT PIPELINE SUMMARY (untuk section dashboard)
+// Menggunakan logika yang sama dengan productpipeline.php.
+// Hanya summary total per tahap yang ditampilkan.
+// ============================================
+function dashboardPipelineQty($value) {
+    return max(0, (int)$value);
+}
+
+function dashboardPipelineAdd(&$map, $activityId, $activityNumber, $productId, $productName, $qty, $stage) {
+    $activityId = (int)$activityId;
+    $productId  = (int)$productId;
+    $qty        = dashboardPipelineQty($qty);
+
+    if ($activityId <= 0 || $productId <= 0 || $productName === '' || $qty <= 0) {
+        return;
+    }
+
+    if (!isset($map[$activityId])) {
+        $map[$activityId] = [
+            'activity_id'     => $activityId,
+            'activity_number' => $activityNumber,
+            'units'           => []
+        ];
+    }
+
+    $key = $productId;
+    if (!isset($map[$activityId]['units'][$key])) {
+        $map[$activityId]['units'][$key] = [
+            'product_id'   => $productId,
+            'product_name' => $productName,
+            'prospect_qty' => 0,
+            'hot_qty'      => 0,
+            'lost_qty'     => 0,
+            'deal_qty'     => 0
+        ];
+    }
+
+    $field = $stage . '_qty';
+    if (!isset($map[$activityId]['units'][$key][$field])) {
+        $map[$activityId]['units'][$key][$field] = 0;
+    }
+
+    $map[$activityId]['units'][$key][$field] = max(
+        (int)$map[$activityId]['units'][$key][$field],
+        $qty
+    );
+}
+
+function dashboardPipelineResolveStage($customerDealRaw) {
+    $value = strtolower(trim((string)$customerDealRaw));
+    $value = str_replace(['_', '-'], ' ', $value);
+    $value = preg_replace('/\s+/', ' ', $value);
+    $value = trim($value);
+
+    if ($value === 'yes' || $value === 'deal') {
+        return 'deal';
+    }
+
+    if ($value === 'lost deal' || $value === 'lostdeal' || $value === 'lost') {
+        return 'lost';
+    }
+
+    return 'hot';
+}
+
+$dashboardPipeline = [];
+
+// 1. Prospect (dari detail aktivitas Prospecting)
+try {
+    $sqlProspect = "
+        SELECT
+            sa.id AS activity_id,
+            sa.leads_number AS activity_number,
+            adu.product_id,
+            p.nama_produk,
+            adu.quantity
+        FROM sales_activities sa
+        INNER JOIN activity_details ad
+            ON ad.sales_activity_id = sa.id
+           AND ad.jenis_tugas = 'Prospecting'
+        INNER JOIN activity_detail_units adu
+            ON adu.activity_detail_id = ad.id
+        INNER JOIN products p
+            ON p.id = adu.product_id
+        WHERE p.nama_produk IS NOT NULL
+          AND TRIM(p.nama_produk) <> ''
+        ORDER BY sa.id ASC, p.nama_produk ASC
+    ";
+    $stmt = $db->query($sqlProspect);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        dashboardPipelineAdd(
+            $dashboardPipeline,
+            $row['activity_id'],
+            $row['activity_number'],
+            $row['product_id'],
+            trim((string)$row['nama_produk']),
+            $row['quantity'],
+            'prospect'
+        );
+    }
+} catch (PDOException $e) {}
+
+// 2. Hot / Lost / Deal (dari detail TR)
+try {
+    $sqlTR = "
+        SELECT
+            sa.id AS activity_id,
+            sa.leads_number AS activity_number,
+            ad.tr_number,
+            tdu.unit_id AS product_id,
+            tdu.qty,
+            p.nama_produk,
+            COALESCE(dtr.customer_deal, '') AS customer_deal
+        FROM activity_details ad
+        INNER JOIN sales_activities sa
+            ON sa.id = ad.sales_activity_id
+        INNER JOIN tr_detail_units tdu
+            ON tdu.trf_number = ad.tr_number
+        INNER JOIN products p
+            ON p.id = tdu.unit_id
+        LEFT JOIN detail_transaction_requests dtr
+            ON dtr.id = (
+                SELECT MAX(d2.id)
+                FROM detail_transaction_requests d2
+                WHERE d2.trf_number = ad.tr_number
+            )
+        WHERE ad.tr_number IS NOT NULL
+          AND TRIM(ad.tr_number) <> ''
+          AND p.nama_produk IS NOT NULL
+          AND TRIM(p.nama_produk) <> ''
+        ORDER BY sa.id ASC, tdu.id ASC
+    ";
+
+    $stmt = $db->query($sqlTR);
+    $activitiesWithLost = [];
+
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $stage = dashboardPipelineResolveStage($row['customer_deal']);
+
+        dashboardPipelineAdd(
+            $dashboardPipeline,
+            $row['activity_id'],
+            $row['activity_number'],
+            $row['product_id'],
+            trim((string)$row['nama_produk']),
+            $row['qty'],
+            $stage
+        );
+
+        if ($stage === 'lost') {
+            $activitiesWithLost[(int)$row['activity_id']] = true;
+        }
+    }
+
+    // Normalisasi: jika ada lost deal di activity, hot prospect jadi lost deal.
+    if (!empty($activitiesWithLost)) {
+        foreach ($dashboardPipeline as $activityId => $activityData) {
+            if (!isset($activitiesWithLost[$activityId])) continue;
+
+            foreach ($activityData['units'] as $productId => $unit) {
+                $hotQty  = (int)($unit['hot_qty'] ?? 0);
+                $lostQty = (int)($unit['lost_qty'] ?? 0);
+
+                if ($hotQty > 0) {
+                    $dashboardPipeline[$activityId]['units'][$productId]['lost_qty'] = max($lostQty, $hotQty);
+                    $dashboardPipeline[$activityId]['units'][$productId]['hot_qty']  = 0;
+                }
+            }
+        }
+    }
+} catch (PDOException $e) {}
+
+// 3. Agregasi per tipe unit
+$dashboardPipelineByProduct = [];
+foreach ($dashboardPipeline as $activityData) {
+    foreach ($activityData['units'] as $unit) {
+        $productId = (int)$unit['product_id'];
+        if (!isset($dashboardPipelineByProduct[$productId])) {
+            $dashboardPipelineByProduct[$productId] = [
+                'product_id'   => $productId,
+                'product_name' => $unit['product_name'],
+                'prospect'     => 0,
+                'hot_prospect' => 0,
+                'lost_deal'    => 0,
+                'deal'         => 0
+            ];
+        }
+
+        $dealQty     = (int)($unit['deal_qty']     ?? 0);
+        $lostQty     = (int)($unit['lost_qty']     ?? 0);
+        $hotQty      = (int)($unit['hot_qty']      ?? 0);
+        $prospectQty = (int)($unit['prospect_qty'] ?? 0);
+
+        if ($dealQty > 0) {
+            $dashboardPipelineByProduct[$productId]['deal'] += $dealQty;
+        } elseif ($lostQty > 0) {
+            $dashboardPipelineByProduct[$productId]['lost_deal'] += $lostQty;
+        } elseif ($hotQty > 0) {
+            $dashboardPipelineByProduct[$productId]['hot_prospect'] += $hotQty;
+        } elseif ($prospectQty > 0) {
+            $dashboardPipelineByProduct[$productId]['prospect'] += $prospectQty;
+        }
+    }
+}
+
+$dashTotalProspect = 0;
+$dashTotalHot      = 0;
+$dashTotalLost     = 0;
+$dashTotalDeal     = 0;
+foreach ($dashboardPipelineByProduct as $row) {
+    $dashTotalProspect += (int)$row['prospect'];
+    $dashTotalHot      += (int)$row['hot_prospect'];
+    $dashTotalLost     += (int)$row['lost_deal'];
+    $dashTotalDeal     += (int)$row['deal'];
+}
+
+// ============================================
 // CHART ACTIVITY PERFORMANCE
 // Filter Sales + Bulan selalu diterapkan.
 // All Month ditampilkan per bulan.
@@ -312,9 +534,11 @@ $colorPalette = [
     '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
 ];
 
-function hexToRgba($hex, $alpha) {
-    list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
-    return "rgba($r,$g,$b,$alpha)";
+if (!function_exists('hexToRgba')) {
+    function hexToRgba($hex, $alpha) {
+        list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
+        return "rgba($r,$g,$b,$alpha)";
+    }
 }
 
 if ($filterMonth !== '') {
@@ -732,6 +956,90 @@ try {
     pointer-events:none;
 }
 
+/* ============================================================
+   PRODUCT PIPELINE SUMMARY
+   ============================================================ */
+.pp-panel{
+    margin-bottom:18px;
+}
+
+.pp-cards{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:14px;
+}
+
+.pp-card{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 16px;
+    border:1px solid rgba(148,163,184,.12);
+    border-radius:12px;
+    background:linear-gradient(145deg, rgba(13,23,48,.72), rgba(11,18,34,.72));
+}
+
+.pp-icon{
+    width:44px;
+    height:44px;
+    flex:0 0 44px;
+    display:grid;
+    place-items:center;
+    border-radius:11px;
+    font-size:16px;
+    background:rgba(59,130,246,.12);
+    color:#60a5fa;
+    border:1px solid rgba(59,130,246,.2);
+}
+
+.pp-card.hot-card .pp-icon{
+    background:rgba(245,158,11,.11);
+    color:#fbbf24;
+    border-color:rgba(245,158,11,.2);
+}
+
+.pp-card.lost-card .pp-icon{
+    background:rgba(239,68,68,.11);
+    color:#fb7185;
+    border-color:rgba(239,68,68,.2);
+}
+
+.pp-card.deal-card .pp-icon{
+    background:rgba(34,197,94,.11);
+    color:#34d399;
+    border-color:rgba(34,197,94,.2);
+}
+
+.pp-card > div:last-child{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:0;
+}
+
+.pp-label{
+    color:#8290aa;
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+}
+
+.pp-value{
+    color:#fff;
+    font-size:22px;
+    font-weight:800;
+    line-height:1;
+}
+
+@media(max-width:900px){
+    .pp-cards{grid-template-columns:repeat(2, minmax(0, 1fr));}
+}
+
+@media(max-width:480px){
+    .pp-cards{grid-template-columns:1fr;}
+}
+
 @media(max-width:768px){
     .month-filter{min-width:145px;}
 }
@@ -788,6 +1096,54 @@ try {
 <div class="kpi"><div class="kpi-top"><div class="kpi-icon purple"><i class="fas fa-file-signature"></i></div><span class="trend">TR</span></div><div class="number"><?= number_format($totalTransactionRequests) ?></div><div class="label">Total Transaction Request</div></div>
 <div class="kpi"><div class="kpi-top"><div class="kpi-icon amber"><i class="fas fa-truck-moving"></i></div><span class="trend">Delivery</span></div><div class="number"><?= number_format($totalDeliveryOrders) ?></div><div class="label">Total Delivery Order</div></div>
 </section>
+
+<!-- ============================================================
+     PRODUCT PIPELINE SUMMARY
+     Data diambil dari perhitungan yang sama dengan
+     productpipeline.php. Hanya summary total per tahap.
+     ============================================================ -->
+<section class="panel pp-panel">
+    <div class="panel-head">
+        <div>
+            <div class="panel-title"><i class="fas fa-chart-column"></i> Product Pipeline</div>
+            <div class="panel-sub">Rekap perkembangan tipe unit dari Prospect → Hot Prospect → Lost Deal → Deal</div>
+        </div>
+        <a class="panel-link" href="productpipeline.php">View all →</a>
+    </div>
+    <div class="panel-body">
+        <div class="pp-cards">
+            <div class="pp-card prospect-card">
+                <span class="pp-icon"><i class="fas fa-bullseye"></i></span>
+                <div>
+                    <span class="pp-label">Prospek</span>
+                    <strong class="pp-value"><?= number_format($dashTotalProspect, 0, ',', '.') ?></strong>
+                </div>
+            </div>
+            <div class="pp-card hot-card">
+                <span class="pp-icon"><i class="fas fa-fire"></i></span>
+                <div>
+                    <span class="pp-label">Hot Prospek</span>
+                    <strong class="pp-value"><?= number_format($dashTotalHot, 0, ',', '.') ?></strong>
+                </div>
+            </div>
+            <div class="pp-card lost-card">
+                <span class="pp-icon"><i class="fas fa-circle-xmark"></i></span>
+                <div>
+                    <span class="pp-label">Lost Deal</span>
+                    <strong class="pp-value"><?= number_format($dashTotalLost, 0, ',', '.') ?></strong>
+                </div>
+            </div>
+            <div class="pp-card deal-card">
+                <span class="pp-icon"><i class="fas fa-handshake"></i></span>
+                <div>
+                    <span class="pp-label">Deal</span>
+                    <strong class="pp-value"><?= number_format($dashTotalDeal, 0, ',', '.') ?></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="dashboard-grid">
 <div class="panel"><div class="panel-head"><div><div class="panel-title"><i class="fas fa-filter"></i> Sales Pipeline</div><div class="panel-sub">Current prospect movement by stage</div></div><span class="panel-sub"><?= htmlspecialchars($filteredSalesName) ?></span></div><div class="panel-body"><div class="pipeline">
 <?php $pipe = [
