@@ -473,6 +473,21 @@ try {
     // Tabel akan dicek kembali saat proses simpan.
 }
 
+// Tambahkan Qty untuk setiap Tipe Unit.
+// Data lama otomatis dianggap memiliki Qty = 1.
+try {
+    $stmtQtyColumn = $db->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                                 WHERE TABLE_SCHEMA = DATABASE()
+                                   AND TABLE_NAME = 'activity_detail_units'
+                                   AND COLUMN_NAME = 'quantity'");
+    if ((int)$stmtQtyColumn->fetchColumn() === 0) {
+        $db->exec("ALTER TABLE activity_detail_units
+                   ADD COLUMN quantity INT UNSIGNED NOT NULL DEFAULT 1 AFTER product_id");
+    }
+} catch (PDOException $e) {
+    // Akan dicek kembali saat proses simpan.
+}
+
 // Data Produk untuk pilihan Tipe Unit.
 $produkTipeUnit = [];
 try {
@@ -503,6 +518,18 @@ try {
             KEY idx_product_id (product_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+} catch (PDOException $e) {}
+
+// Pastikan kolom Qty tersedia sebelum proses insert.
+try {
+    $stmtQtyColumn = $db->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                                 WHERE TABLE_SCHEMA = DATABASE()
+                                   AND TABLE_NAME = 'activity_detail_units'
+                                   AND COLUMN_NAME = 'quantity'");
+    if ((int)$stmtQtyColumn->fetchColumn() === 0) {
+        $db->exec("ALTER TABLE activity_detail_units
+                   ADD COLUMN quantity INT UNSIGNED NOT NULL DEFAULT 1 AFTER product_id");
+    }
 } catch (PDOException $e) {}
 
 $produkTipeUnit = [];
@@ -542,6 +569,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             array_map('intval', (array)($_POST['tipe_unit_ids'] ?? [])),
             static function ($id) { return $id > 0; }
         )));
+        $tipe_unit_qtys = array_map(
+            'intval',
+            (array)($_POST['tipe_unit_qtys'] ?? [])
+        );
 
         $errors = [];
         if (empty($subject)) $errors[] = 'Subject wajib diisi!';
@@ -559,6 +590,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $validProductIds = array_map('intval', $stmtValidProduk->fetchAll(PDO::FETCH_COLUMN));
                 if (count($validProductIds) !== count($tipe_unit_ids)) {
                     $errors[] = 'Ada Tipe Unit yang tidak valid. Silakan pilih dari Data Produk.';
+                }
+
+                foreach ($tipe_unit_ids as $unitIndex => $productId) {
+                    $qty = (int)($tipe_unit_qtys[$unitIndex] ?? 0);
+                    if ($qty < 1) {
+                        $errors[] = 'Qty Tipe Unit wajib minimal 1 unit.';
+                        break;
+                    }
                 }
             }
         }
@@ -689,9 +728,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 if ($jenis_tugas === 'Prospecting' && !empty($tipe_unit_ids)) {
                     $activityDetailId = (int)$db->lastInsertId();
-                    $stmtUnit = $db->prepare("INSERT INTO activity_detail_units (activity_detail_id, product_id) VALUES (?, ?)");
-                    foreach ($tipe_unit_ids as $productId) {
-                        $stmtUnit->execute([$activityDetailId, $productId]);
+                    $stmtUnit = $db->prepare("INSERT INTO activity_detail_units (activity_detail_id, product_id, quantity) VALUES (?, ?, ?)");
+                    foreach ($tipe_unit_ids as $unitIndex => $productId) {
+                        $qty = max(1, (int)($tipe_unit_qtys[$unitIndex] ?? 1));
+                        $stmtUnit->execute([$activityDetailId, $productId, $qty]);
                     }
                 }
 
@@ -1189,7 +1229,7 @@ if (!empty($detailsList)) {
         $placeholders = implode(',', array_fill(0, count($detailIds), '?'));
         try {
             $stmtActivityUnits = $db->prepare("
-                SELECT adu.activity_detail_id, adu.product_id, p.nama_produk
+                SELECT adu.activity_detail_id, adu.product_id, adu.quantity, p.nama_produk
                 FROM activity_detail_units adu
                 INNER JOIN products p ON p.id = adu.product_id
                 WHERE adu.activity_detail_id IN ($placeholders)
@@ -1498,6 +1538,32 @@ foreach ($detailsList as $d) {
                         
                         <style>
                             #tipeUnitRowsAdd .tipe-unit-row {
+                                display: grid;
+                                grid-template-columns: minmax(0, 1fr) 125px 34px;
+                                gap: 8px;
+                                align-items: center;
+                                margin-bottom: 8px;
+                            }
+                            #tipeUnitRowsAdd .tipe-unit-qty-wrap {
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                            }
+                            #tipeUnitRowsAdd .tipe-unit-qty-wrap .tipe-unit-qty {
+                                min-width: 0;
+                            }
+                            #tipeUnitRowsAdd .tipe-unit-qty-wrap span {
+                                font-size: 12px;
+                                color: #6c757d;
+                                white-space: nowrap;
+                            }
+                            @media (max-width: 576px) {
+                                #tipeUnitRowsAdd .tipe-unit-row {
+                                    grid-template-columns: minmax(0, 1fr) 100px 34px;
+                                }
+                            }
+
+                            #tipeUnitRowsAdd .tipe-unit-row {
                                 position: relative;
                                 width: 100%;
                                 margin-bottom: 8px;
@@ -1546,6 +1612,10 @@ foreach ($detailsList as $d) {
                                             <option value="<?= (int)$produk['id'] ?>"><?= htmlspecialchars($produk['nama_produk']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <div class="tipe-unit-qty-wrap">
+                                        <input type="number" name="tipe_unit_qtys[]" class="form-control tipe-unit-qty" min="1" step="1" value="1" required placeholder="Qty">
+                                        <span>unit</span>
+                                    </div>
                                     <button type="button" class="btn-remove-tipe-unit" style="display:none;" aria-label="Hapus Tipe Unit">
                                         <i class="fas fa-times"></i>
                                     </button>
@@ -1739,6 +1809,7 @@ foreach ($detailsList as $d) {
             var row = document.createElement('div');
             row.className = 'tipe-unit-row';
             row.innerHTML = '<select name="tipe_unit_ids[]" class="form-select tipe-unit-select" required><option value="">Pilih Tipe Unit</option></select>' +
+                            '<div class="tipe-unit-qty-wrap"><input type="number" name="tipe_unit_qtys[]" class="form-control tipe-unit-qty" min="1" step="1" value="1" required placeholder="Qty"><span>unit</span></div>' +
                             '<button type="button" class="btn-remove-tipe-unit"><i class="fas fa-times"></i></button>';
             container.appendChild(row);
             refreshTipeUnitOptions();
@@ -1823,7 +1894,7 @@ foreach ($detailsList as $d) {
                     <div class="info-item">
                         <div class="info-label">Tipe Unit</div>
                         <div class="info-value">${(data.tipe_unit_list || []).length
-                            ? data.tipe_unit_list.map(function(unit) { return '<span class="badge bg-primary me-1 mb-1">' + unit.nama_produk + '</span>'; }).join('')
+                            ? data.tipe_unit_list.map(function(unit) { return '<span class="badge bg-primary me-1 mb-1">' + unit.nama_produk + ' : ' + (parseInt(unit.quantity, 10) || 1) + ' unit</span>'; }).join('')
                             : '-'}
                         </div>
                     </div>` : ''}
@@ -1976,6 +2047,7 @@ foreach ($detailsList as $d) {
             document.getElementById('tipeUnitFieldAdd').style.display = 'none';
             document.getElementById('tipeUnitRowsAdd').innerHTML = '<div class="tipe-unit-row">' +
                 '<select name="tipe_unit_ids[]" class="form-select tipe-unit-select"><option value="">Pilih Tipe Unit</option></select>' +
+                '<div class="tipe-unit-qty-wrap"><input type="number" name="tipe_unit_qtys[]" class="form-control tipe-unit-qty" min="1" step="1" value="1" required placeholder="Qty"><span>unit</span></div>' +
                 '<button type="button" class="btn-remove-tipe-unit" style="display:none;" aria-label="Hapus Tipe Unit"><i class="fas fa-times"></i></button>' +
                 '</div>';
             refreshTipeUnitOptions();
