@@ -1927,7 +1927,6 @@ textarea.form-control {
 
 /* =========================================================
    PAGE TYPOGRAPHY CONSISTENCY — RESPONSIVE OVERRIDE
-   This layer intentionally keeps labels compact but readable.
    ========================================================= */
 
 .page-data-user .table-custom {
@@ -2256,13 +2255,6 @@ textarea.form-control {
 
 /* =========================================================
    CRM FINAL FINISHING — RESPONSIVE UI SYSTEM
-   Final override layer.
-   Goals:
-   - Consistent typography and spacing
-   - Clean filter / sort controls
-   - Stable pagination at every viewport
-   - PC / large monitor / laptop / tablet / phone
-   - No horizontal page overflow
    ========================================================= */
 
 html,
@@ -2844,18 +2836,6 @@ textarea {
 
 /* =========================================================
    CRM RESPONSIVE SYSTEM — FINAL OVERRIDE
-   Breakpoints:
-   1440+  : large desktop / PC
-   1201-1439 : laptop
-   769-1200 : tablet / small laptop
-   481-768 : tablet / large phone
-   361-480 : mobile
-   <=360 : very small mobile
-
-   IMPORTANT:
-   - Navigation is fixed so it never gets clipped during page scroll.
-   - Content always stays inside the available viewport.
-   - Tables remain horizontally scrollable instead of breaking layout.
    ========================================================= */
 
 /* ---------- GLOBAL SAFETY ---------- */
@@ -3334,8 +3314,6 @@ canvas {
 
 /* =========================================================
    FINAL HEADER FIX — 100% VISIBLE / RESPONSIVE
-   The top navigation must NEVER disappear on phone, tablet,
-   laptop, or desktop.
    ========================================================= */
 
 .topbar {
@@ -3377,12 +3355,10 @@ canvas {
   min-width: 0 !important;
 }
 
-/* Keep the navigation header in view while the document scrolls. */
 body {
   padding-top: 0 !important;
 }
 
-/* Desktop / laptop content starts below the fixed header. */
 @media (min-width: 769px) {
   .topbar {
     height: 72px !important;
@@ -3402,7 +3378,6 @@ body {
   }
 }
 
-/* Tablet + phone: header remains 100% wide and visible. */
 @media (max-width: 768px) {
   .topbar {
     position: fixed !important;
@@ -3491,13 +3466,11 @@ body {
     padding-top: 82px !important;
   }
 
-  /* Sidebar may be closed on phone, but this does NOT hide the header. */
   .rail {
     z-index: 10900 !important;
   }
 }
 
-/* Small phones: still keep the full header visible. */
 @media (max-width: 480px) {
   .topbar {
     height: 60px !important;
@@ -3591,7 +3564,6 @@ body {
 
 /* =========================================================
    CRM RESPONSIVE SYSTEM — FINAL CONSISTENCY PASS
-   Dashboard reference / all devices
    ========================================================= */
 html,
 body {
@@ -4048,4 +4020,137 @@ button {
   .page-detailtr .mediator-view-header {
     margin-bottom: 13px;
   }
+}
+
+/* =========================================================
+   REOPEN TR BUTTON — WARNING STYLE
+   Dipakai untuk membuka kembali TR yang sudah Approved.
+   Hanya muncul untuk role: Direktur Utama, Direktur Sales, IT Support.
+   ========================================================= */
+.btn-warning-custom {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 15px;
+  font-weight: 700;
+  font-size: 11px;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: 0.2s ease;
+}
+
+.btn-warning-custom:hover {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.22);
+  color: #fff;
+}
+
+.btn-warning-custom:focus,
+.btn-warning-custom:focus-visible,
+.btn-warning-custom:active {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #fff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+
+.btn-warning-custom i {
+  font-size: 11px;
+}
+
+.btn-warning-custom.btn-sm {
+  padding: 6px 10px;
+  font-size: 9px;
+  border-radius: 8px;
+}
+
+/* =========================================================
+   LOCK BANNER (Pending + sudah ada approval)
+   & FINAL APPROVED BANNER
+   ========================================================= */
+.page-detailtr .alert.alert-warning.d-flex,
+.page-detailtr .alert.alert-success.d-flex {
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  font-size: 12px !important;
+  line-height: 1.55;
+  align-items: flex-start;
+}
+
+.page-detailtr .alert.alert-warning.d-flex strong,
+.page-detailtr .alert.alert-success.d-flex strong {
+  display: block;
+  margin-bottom: 4px;
+  letter-spacing: -0.1px;
+}
+
+.page-detailtr .alert.alert-warning.d-flex i.fas,
+.page-detailtr .alert.alert-success.d-flex i.fas {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* =========================================================
+   APPROVAL ACTION — INFO NOTE
+   ========================================================= */
+.page-detailtr #approvalForm .alert.alert-info {
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 10px;
+  line-height: 1.55;
+  color: #bfdbfe;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+}
+
+.page-detailtr #approvalForm .alert.alert-info i {
+  color: #60a5fa;
+  margin-right: 5px;
+}
+
+/* =========================================================
+   RESPONSIVE — REOPEN BUTTON
+   ========================================================= */
+@media (max-width: 767px) {
+  .btn-warning-custom {
+    width: 100%;
+    justify-content: center;
+    height: 38px;
+  }
+
+  .btn-warning-custom.btn-sm {
+    width: auto;
+    height: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .page-detailtr .alert.alert-warning.d-flex,
+  .page-detailtr .alert.alert-success.d-flex {
+    padding: 12px 13px !important;
+    font-size: 11px !important;
+  }
+
+  .page-detailtr .alert.alert-warning.d-flex i.fas,
+  .page-detailtr .alert.alert-success.d-flex i.fas {
+    font-size: 20px;
+  }
+}
+
+/* =========================================================
+   CARD HEADER — TOMBOL REOPEN & EDIT
+   ========================================================= */
+.page-detailtr .card-header-custom > div {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.page-detailtr .card-header-custom .btn-warning-custom,
+.page-detailtr .card-header-custom .btn-primary-custom,
+.page-detailtr .card-header-custom .btn-danger-custom {
+  flex-shrink: 0;
 }

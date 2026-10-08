@@ -22,27 +22,27 @@ requirePermission('transaction_request', 'view');
 // ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
-function getRoleLabel($role) {
-    $roleLabels = [
-        'it_support' => 'IT Support',
-        'admin' => 'Admin',
-        'finance' => 'Finance',
-        'direktur_utama' => 'Direktur Utama',
-        'direktur_operasional' => 'Direktur Operasional',
-        'direktur_sales' => 'Direktur Sales',
-        'business' => 'Business',
-        'sales_manager' => 'Sales Manager',
-        'sales' => 'Sales'
-    ];
-    return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+if (!function_exists('getRoleLabel')) {
+    function getRoleLabel($role) {
+        $roleLabels = [
+            'it_support' => 'IT Support',
+            'admin' => 'Admin',
+            'finance' => 'Finance',
+            'direktur_utama' => 'Direktur Utama',
+            'direktur_operasional' => 'Direktur Operasional',
+            'direktur_sales' => 'Direktur Sales',
+            'business' => 'Business',
+            'sales_manager' => 'Sales Manager',
+            'sales' => 'Sales'
+        ];
+        return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+    }
 }
 
 // ============================================
 // FUNGSI UNTUK RESET APPROVAL HISTORY
 // ============================================
 function resetApprovalHistory($db, $tr_number, $force = false) {
-    // Saat TR masih rejected, perubahan data revisi tidak langsung mengubah status.
-    // Status baru kembali pending hanya ketika user menekan "Ajukan TR Kembali".
     if (!$force) {
         $checkStatus = $db->prepare("SELECT status FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1");
         $checkStatus->execute([$tr_number]);
@@ -189,6 +189,30 @@ try {
 $request['status'] = $statusTR;
 
 // ============================================
+// AMBIL DATA APPROVAL HISTORY (dipindah ke atas)
+// ============================================
+$approvalHistory = [];
+try {
+    $sqlApproval = "SELECT * FROM tr_approval_history WHERE trf_number = ? ORDER BY approval_order ASC";
+    $stmtApproval = $db->prepare($sqlApproval);
+    $stmtApproval->execute([$tr_number]);
+    $approvalHistory = $stmtApproval->fetchAll();
+} catch (Exception $e) {
+    $approvalHistory = [];
+}
+
+// ============================================
+// DAFTAR APPROVAL LEVELS (dipindah ke atas)
+// ============================================
+$approvalLevels = [
+    1 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
+    2 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
+    3 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
+    4 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
+];
+$totalApprovalLevels = count($approvalLevels);
+
+// ============================================
 // CEK HAK EDIT PER DIVISI / SECTION
 // ============================================
 $canEditSalesSection = (
@@ -202,8 +226,6 @@ $canEditBusinessSection = ($userRole === 'business');
 $businessOnlyTabs = ['additional_cost', 'product_support', 'cost_calculation'];
 $canViewBusinessTabs = ($userRole !== 'sales');
 
-// Cost Calculation bersifat terbatas.
-// Hanya role berikut yang boleh melihat menu/tab Cost Calculation.
 $costCalculationAllowedRoles = [
     'direktur_utama',
     'direktur_operasional',
@@ -214,15 +236,11 @@ $costCalculationAllowedRoles = [
 ];
 $canViewCostCalculation = in_array($userRole, $costCalculationAllowedRoles, true);
 
-// Sales tetap tidak boleh melihat seluruh tab Business.
 if (!$canViewBusinessTabs && in_array($activeTab, $businessOnlyTabs, true)) {
     setFlash('Anda tidak memiliki akses ke menu Business!', 'danger');
     redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
 }
 
-// Cost Calculation memiliki pembatasan role yang lebih ketat,
-// sehingga role lain selain daftar di atas tidak dapat membuka tab ini
-// walaupun mereka memiliki akses ke halaman Detail TR.
 if (!$canViewCostCalculation && $activeTab === 'cost_calculation') {
     setFlash('Anda tidak memiliki akses ke menu Cost Calculation!', 'danger');
     redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
@@ -234,19 +252,50 @@ $isReviewOnly = in_array($userRole, $reviewOnlyRoles, true);
 // ============================================
 // ATUR HAK EDIT BERDASARKAN STATUS TR TERKINI
 // ============================================
-// Pending  = boleh diedit oleh Sales pemilik TR
-// Rejected = boleh diedit oleh Sales pemilik TR
-// Approved = dikunci (final)
-//
-// Jangan menggunakan riwayat approval sebagai lock edit karena sebuah TR
-// dapat pernah melewati approval lalu kembali menjadi pending/rejected.
 $statusTRNormalized = strtolower(trim((string)$statusTR));
 $isFinalApproved = ($statusTRNormalized === 'approved');
 
-if ($isFinalApproved) {
+// ============================================
+// LOCK EDIT KETIKA SUDAH ADA MINIMAL 1 APPROVAL
+// ------------------------------------------------------------
+// Begitu ada satu approver yang sudah klik "Approve",
+// TR langsung TERKUNCI.
+//
+// Untuk membuka kunci: approver yang sedang giliran
+// harus me-REJECT TR ini. Setelah status menjadi Rejected,
+// Sales pemilik TR dapat merevisi lalu mengajukan kembali.
+// ============================================
+$hasAnyApproval = false;
+foreach ($approvalHistory as $historyItem) {
+    if (
+        strtolower(trim((string)($historyItem['status'] ?? ''))) === 'approved'
+        && (int)($historyItem['approval_order'] ?? 0) <= $totalApprovalLevels
+    ) {
+        $hasAnyApproval = true;
+        break;
+    }
+}
+
+// Terkunci kalau:
+//   1) Sudah Final Approved, ATAU
+//   2) Masih Pending tapi sudah ada minimal 1 approval
+$isLockedForEdit = $isFinalApproved
+    || ($statusTRNormalized === 'pending' && $hasAnyApproval);
+
+if ($isLockedForEdit) {
     $canEditSalesSection = false;
     $canEditBusinessSection = false;
 }
+
+// ============================================
+// REOPEN TR YANG SUDAH APPROVED
+// ============================================
+$reopenApprovedRoles = [
+    'direktur_utama',
+    'direktur_sales',
+    'it_support',
+];
+$canReopenApprovedTR = $isFinalApproved && in_array($userRole, $reopenApprovedRoles, true);
 
 // ============================================
 // AMBIL DATA DETAIL TRANSACTION REQUEST
@@ -259,19 +308,6 @@ try {
     $detailTR = $stmtDetail->fetch();
 } catch (Exception $e) {
     $detailTR = null;
-}
-
-// ============================================
-// AMBIL DATA APPROVAL HISTORY
-// ============================================
-$approvalHistory = [];
-try {
-    $sqlApproval = "SELECT * FROM tr_approval_history WHERE trf_number = ? ORDER BY approval_order ASC";
-    $stmtApproval = $db->prepare($sqlApproval);
-    $stmtApproval->execute([$tr_number]);
-    $approvalHistory = $stmtApproval->fetchAll();
-} catch (Exception $e) {
-    $approvalHistory = [];
 }
 
 // ============================================
@@ -292,17 +328,6 @@ try {
 } catch (Exception $e) {
     $rejectionInfo = null;
 }
-
-// ============================================
-// DAFTAR APPROVAL LEVELS
-// ============================================
-$approvalLevels = [
-    1 => ['role' => 'sales_manager', 'label' => 'Sales Manager'],
-    2 => ['role' => 'direktur_sales', 'label' => 'Direktur Sales'],
-    3 => ['role' => 'direktur_operasional', 'label' => 'Direktur Operasional'],
-    4 => ['role' => 'direktur_utama', 'label' => 'Direktur Utama'],
-];
-$totalApprovalLevels = count($approvalLevels);
 
 // ============================================
 // TENTUKAN CURRENT APPROVER DAN NEXT APPROVER
@@ -463,9 +488,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     // ============================================
+    // REOPEN TR YANG SUDAH APPROVED
+    // ============================================
+    if ($action === 'reopen_approved_tr') {
+        try {
+            if (!$canReopenApprovedTR) {
+                throw new Exception('Anda tidak memiliki hak untuk membuka kembali TR yang sudah Approved.');
+            }
+
+            $reopenReason = trim((string)($_POST['reopen_reason'] ?? ''));
+            if ($reopenReason === '') {
+                throw new Exception('Alasan reopen wajib diisi.');
+            }
+
+            $db->beginTransaction();
+
+            $lockReopen = $db->prepare("
+                SELECT id, status
+                FROM detail_transaction_requests
+                WHERE trf_number = ?
+                ORDER BY id DESC
+                LIMIT 1
+                FOR UPDATE
+            ");
+            $lockReopen->execute([$tr_number]);
+            $lockedReopen = $lockReopen->fetch();
+
+            if (!$lockedReopen) {
+                throw new Exception('Detail Transaction Request tidak ditemukan.');
+            }
+
+            if (strtolower(trim((string)($lockedReopen['status'] ?? ''))) !== 'approved') {
+                throw new Exception('Hanya TR berstatus Approved yang dapat di-reopen.');
+            }
+
+            $updateReopen = $db->prepare("
+                UPDATE detail_transaction_requests
+                SET status = 'rejected', updated_at = NOW()
+                WHERE id = ?
+            ");
+            $updateReopen->execute([(int)$lockedReopen['id']]);
+
+            $reopenOrder = $totalApprovalLevels + 1;
+            $insertReopen = $db->prepare("
+                INSERT INTO tr_approval_history
+                    (trf_number, approval_order, approval_role, status, catatan, approved_by, created_at)
+                VALUES (?, ?, ?, 'rejected', ?, ?, NOW())
+            ");
+            $insertReopen->execute([
+                $tr_number,
+                $reopenOrder,
+                $userRole,
+                'Reopen setelah Approved: ' . $reopenReason,
+                $userId,
+            ]);
+
+            $db->commit();
+            setFlash('TR berhasil dibuka kembali (status: Rejected). Sales dapat merevisi lalu mengajukan kembali.', 'success');
+        } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            setFlash('Gagal reopen TR: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detailtr.php?tr_number=" . urlencode($tr_number) . "&tab=summary");
+    }
+
+    // ============================================
     // SAVE CUSTOMER DEAL (SETELAH FINAL APPROVAL)
-    // SUMBER CUSTOMER DEAL: detail_transaction_requests
-    // Aktivitas terkait diverifikasi melalui TR Number + sales_activity_id.
     // ============================================
     if ($action === 'save_customer_deal') {
         try {
@@ -490,7 +580,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $db->beginTransaction();
 
-            // Kunci record Detail TR TERBARU agar tidak terjadi update ke record historis.
             $lockDetail = $db->prepare("
                 SELECT id, status, trf_number, customer_deal, customer_deal_keterangan
                 FROM detail_transaction_requests
@@ -510,15 +599,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Customer Deal hanya dapat diisi setelah seluruh approval selesai.');
             }
 
-            // Customer Deal hanya boleh dipilih SATU KALI.
-            // Setelah Sales memilih Yes atau No, pilihan tersebut dikunci
-            // dan tidak boleh diubah lagi.
             $existingCustomerDeal = strtolower(trim((string)($lockedDetail['customer_deal'] ?? '')));
             if (in_array($existingCustomerDeal, ['yes', 'no'], true)) {
                 throw new Exception('Customer Deal sudah dipilih dan tidak dapat diubah lagi.');
             }
 
-            // Pastikan TR Number memang terhubung dengan Activity Number yang sedang dibuka.
             $checkActivity = $db->prepare("
                 SELECT id
                 FROM activity_details
@@ -533,7 +618,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('TR Number dan Activity Number tidak cocok. Customer Deal tidak dapat disimpan.');
             }
 
-            // Update HANYA Detail TR terbaru, bukan seluruh histori dengan TR Number yang sama.
             $saveDeal = $db->prepare("
                 UPDATE detail_transaction_requests
                 SET customer_deal = ?,
@@ -564,14 +648,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (in_array($action, $salesEditActions, true) && !$canEditSalesSection) {
         if ($isFinalApproved) {
             setFlash('TR sudah Approved final sehingga data tidak dapat diedit lagi.', 'danger');
+        } elseif ($hasAnyApproval) {
+            setFlash('TR terkunci karena sudah ada approval. Reject TR dulu untuk membuka kembali edit.', 'danger');
         } else {
             setFlash('Hanya Sales pemilik TR yang dapat menambah atau mengedit bagian ini.', 'danger');
         }
         redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
     }
 
-    // Cost Calculation harus dibatasi juga pada sisi server.
-    // Jangan hanya menyembunyikan tab di UI karena action POST dapat dipanggil langsung.
     if ($action === 'save_cost_calculation' && !$canViewCostCalculation) {
         setFlash('Anda tidak memiliki akses ke menu Cost Calculation!', 'danger');
         redirect('detailtr.php?tr_number=' . urlencode($tr_number) . '&tab=summary');
@@ -580,6 +664,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (in_array($action, $businessEditActions, true) && !$canEditBusinessSection) {
         if ($isFinalApproved) {
             setFlash('TR sudah Approved final sehingga data tidak dapat diedit lagi.', 'danger');
+        } elseif ($hasAnyApproval) {
+            setFlash('TR terkunci karena sudah ada approval. Reject TR dulu untuk membuka kembali edit.', 'danger');
         } else {
             setFlash('Hanya Divisi Business yang dapat menambah atau mengedit bagian ini.', 'danger');
         }
@@ -606,7 +692,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('TR hanya dapat diajukan kembali jika berstatus rejected.');
             }
 
-            // Hapus approval lama agar alur kembali ke Sales Manager.
             resetApprovalHistory($db, $tr_number, true);
 
             $db->commit();
@@ -658,8 +743,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Alasan reject wajib diisi.');
             }
 
-            // Ambil status + approval history TERBARU di dalam transaction.
-            // Jangan mempercayai approval_order dari browser sebagai sumber kebenaran.
             $lockDetail = $db->prepare("SELECT * FROM detail_transaction_requests WHERE trf_number = ? ORDER BY id DESC LIMIT 1 FOR UPDATE");
             $lockDetail->execute([$tr_number]);
             $lockedDetailTR = $lockDetail->fetch();
@@ -1104,9 +1187,6 @@ $totalMasukan = $totalUnitGrandTotal - $totalAdditionalCost;
 // ============================================
 // CEK KELENGKAPAN DATA
 // ============================================
-// Gunakan validasi yang SAMA dengan validasi approval agar
-// informasi "Data belum lengkap" yang dilihat semua user
-// selalu konsisten dengan syarat approval.
 $missingSections = validateTRApprovalData(
     $detailTR,
     $detailUnits,
@@ -1130,11 +1210,6 @@ $isDataComplete = empty($missingSections);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/detailtr.css">
-    
-    
-
-
-
 </head>
 <body>    
     <?php require_once 'navigation.php'; ?>
@@ -1156,7 +1231,7 @@ $isDataComplete = empty($missingSections);
 
         <?= showFlash() ?>
 
-        <?php if (!$isDataComplete): ?>
+        <?php if (!$isDataComplete && !$isLockedForEdit): ?>
             <div class="alert alert-warning d-flex align-items-start gap-3 mb-4" role="alert" style="border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.35);">
                 <div style="font-size: 22px; line-height: 1; margin-top: 2px;">
                     <i class="fas fa-triangle-exclamation"></i>
@@ -1166,6 +1241,33 @@ $isDataComplete = empty($missingSections);
                     <div class="mt-1">
                         Section yang belum diisi:
                         <strong><?= htmlspecialchars(implode(', ', $missingSections)) ?></strong>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($isFinalApproved): ?>
+            <div class="alert alert-success d-flex align-items-start gap-3 mb-4" role="alert" style="border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.08);">
+                <div style="font-size: 22px; line-height: 1; margin-top: 2px; color: #34d399;">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div>
+                    <strong style="font-size: 16px;">TR sudah Final Approved.</strong>
+                    <div class="mt-1">
+                        Semua perubahan data dikunci. Untuk melakukan revisi, TR harus <strong>di-reject / di-reopen</strong> terlebih dahulu.
+                    </div>
+                </div>
+            </div>
+        <?php elseif ($statusTRNormalized === 'pending' && $hasAnyApproval): ?>
+            <div class="alert alert-warning d-flex align-items-start gap-3 mb-4" role="alert" style="border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08);">
+                <div style="font-size: 22px; line-height: 1; margin-top: 2px; color: #fbbf24;">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div>
+                    <strong style="font-size: 16px;">TR terkunci karena sudah ada approval.</strong>
+                    <div class="mt-1">
+                        Data TR tidak dapat diedit sampai approver yang sedang giliran me-<strong>Reject</strong> TR ini.
+                        Setelah Rejected, Sales pemilik TR dapat merevisi lalu mengajukan kembali dari awal (Sales Manager).
                     </div>
                 </div>
             </div>
@@ -1242,7 +1344,12 @@ $isDataComplete = empty($missingSections);
                         </button>
                     </form>
                     <?php endif; ?>
-                    <?php if ($canEditSalesSection): ?>
+                    <?php if ($canReopenApprovedTR): ?>
+                    <button type="button" class="btn btn-warning-custom btn-sm" onclick="openReopenModal(); return false;">
+                        <i class="fas fa-unlock"></i> Reopen TR
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($canEditSalesSection && !$isLockedForEdit): ?>
                     <button type="button" class="btn btn-primary-custom btn-sm" onclick="showEditSummary(event); return false;">
                         <i class="fas fa-edit"></i> Edit
                     </button>
@@ -1361,9 +1468,6 @@ $isDataComplete = empty($missingSections);
                 <?php
                     $customerDeal = strtolower(trim((string)($detailTR['customer_deal'] ?? '')));
                     $customerDealKeterangan = (string)($detailTR['customer_deal_keterangan'] ?? '');
-                    // Customer Deal hanya bisa dipilih satu kali.
-                    // Jika sudah Yes/No, tombol pilihan disembunyikan dan
-                    // hanya status final yang ditampilkan.
                     $canSetCustomerDeal = (
                         $customerDeal === '' &&
                         $userRole === 'sales' &&
@@ -1453,6 +1557,13 @@ $isDataComplete = empty($missingSections);
                     <?php if ($canApprove): ?>
                     <div class="mt-4 p-3" style="border-radius: 10px;">
                         <h6 class="mb-3"><i class="fas fa-check-double"></i> Approval Action</h6>
+                        <?php if ($hasAnyApproval): ?>
+                        <div class="alert alert-info mb-3" style="border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.35); background: rgba(96, 165, 250, 0.08);">
+                            <i class="fas fa-info-circle"></i>
+                            Jika data TR ini perlu direvisi oleh Sales, silakan klik <strong>Reject</strong> (bukan Approve).
+                            Setelah di-Reject, Sales dapat mengedit data dan mengajukan kembali.
+                        </div>
+                        <?php endif; ?>
                         <form method="POST" id="approvalForm">
                             <input type="hidden" name="action" id="approvalAction" value="approve">
                             <input type="hidden" name="approval_order" value="<?= $currentApprovalOrder ?>">
@@ -1495,6 +1606,44 @@ $isDataComplete = empty($missingSections);
                 </div>
             </div>
         </div>
+
+        <!-- MODAL REOPEN (setelah approved) -->
+        <div id="reopenModal" class="reject-modal" aria-hidden="true">
+            <div class="reject-modal-backdrop" onclick="closeReopenModal()"></div>
+            <div class="reject-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reopenModalTitle">
+                <div class="reject-modal-header">
+                    <div>
+                        <span class="reject-modal-icon" style="background:rgba(251,191,36,.15);color:#fbbf24;">
+                            <i class="fas fa-unlock"></i>
+                        </span>
+                        <div>
+                            <h5 id="reopenModalTitle">Reopen TR yang Sudah Approved</h5>
+                            <p>TR akan dikembalikan ke status <strong>Rejected</strong> agar Sales dapat merevisi.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="reject-modal-close" onclick="closeReopenModal()" aria-label="Tutup">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="reject-modal-body">
+                    <label for="reopenReason">Alasan Reopen <span>*</span></label>
+                    <textarea id="reopenReason" class="form-control" rows="5" maxlength="2000" placeholder="Contoh: Harga unit perlu direvisi sesuai permintaan customer."></textarea>
+                    <div class="reject-modal-note"><i class="fas fa-info-circle"></i> Alasan ini akan tercatat di riwayat approval TR.</div>
+                </div>
+                <div class="reject-modal-footer">
+                    <button type="button" class="btn btn-secondary-custom" onclick="closeReopenModal()">Batal</button>
+                    <button type="button" class="btn btn-warning-custom" onclick="confirmReopen()">
+                        <i class="fas fa-unlock"></i> Reopen TR
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form tersembunyi untuk submit reopen -->
+        <form method="POST" id="reopenForm" style="display:none;">
+            <input type="hidden" name="action" value="reopen_approved_tr">
+            <input type="hidden" name="reopen_reason" id="reopenReasonField" value="">
+        </form>
         <?php endif; ?>
 
         <!-- ============================================ -->
@@ -1504,7 +1653,7 @@ $isDataComplete = empty($missingSections);
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-boxes"></i> Detail Unit</h6>
-                <?php if ($canEditSalesSection): ?>
+                <?php if ($canEditSalesSection && !$isLockedForEdit): ?>
                 <button type="button" class="btn btn-primary-custom btn-sm" onclick="showAddUnitForm(event); return false;">
                     <i class="fas fa-edit"></i> <?= count($detailUnits) > 0 ? 'Edit Unit' : 'Tambah Unit' ?>
                 </button>
@@ -1717,7 +1866,7 @@ $isDataComplete = empty($missingSections);
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-money-bill-wave"></i> Term Of Payment</h6>
-                <?php if ($canEditSalesSection): ?>
+                <?php if ($canEditSalesSection && !$isLockedForEdit): ?>
                 <button type="button" class="btn btn-primary-custom btn-sm" onclick="showTOPSection(event); return false;">
                     <i class="fas fa-edit"></i> Edit TOP
                 </button>
@@ -1920,7 +2069,7 @@ $isDataComplete = empty($missingSections);
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-user-tie"></i> Data Mediator Fee</h6>
-                <?php if ($canEditSalesSection): ?>
+                <?php if ($canEditSalesSection && !$isLockedForEdit): ?>
                 <button type="button" class="btn btn-primary-custom btn-sm" onclick="toggleMediatorForm(event); return false;">
                     <i class="fas fa-edit"></i> <?= count($mediators) > 0 ? 'Edit Mediator' : 'Tambah Mediator' ?>
                 </button>
@@ -2034,7 +2183,7 @@ $isDataComplete = empty($missingSections);
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-coins"></i> Additional Cost / Machines</h6>
-                <?php if ($canEditBusinessSection): ?>
+                <?php if ($canEditBusinessSection && !$isLockedForEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="toggleCostForm()">
                     <i class="fas fa-edit"></i> <?= count($additionalCostItems) > 0 ? 'Edit Cost' : 'Tambah Cost' ?>
                 </button>
@@ -2126,7 +2275,7 @@ $isDataComplete = empty($missingSections);
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-headset"></i> Product Support</h6>
-                <?php if ($canEditBusinessSection): ?>
+                <?php if ($canEditBusinessSection && !$isLockedForEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editSupport', 'viewSupport')">
                     <i class="fas fa-edit"></i> <?= count($trSupports) > 0 ? 'Edit Support' : 'Tambah Support' ?>
                 </button>
@@ -2199,7 +2348,7 @@ $isDataComplete = empty($missingSections);
         <div class="card-custom">
             <div class="card-header-custom">
                 <h6><i class="fas fa-calculator"></i> Cost Calculation</h6>
-                <?php if ($canEditBusinessSection): ?>
+                <?php if ($canEditBusinessSection && !$isLockedForEdit): ?>
                 <button class="btn btn-primary-custom btn-sm" onclick="toggleSection('editCostCalc', 'viewCostCalc')"><i class="fas fa-edit"></i> <?= $costCalculation ? 'Edit Calculation' : 'Tambah Calculation' ?></button>
                 <?php endif; ?>
             </div>
@@ -2379,8 +2528,52 @@ $isDataComplete = empty($missingSections);
             return confirm('Ajukan TR ini kembali? Status akan menjadi Pending dan approval dimulai lagi dari Sales Manager.');
         }
 
+        // ============================================
+        // MODAL REOPEN (setelah approved)
+        // ============================================
+        function openReopenModal() {
+            const modal = document.getElementById('reopenModal');
+            const reason = document.getElementById('reopenReason');
+            if (!modal || !reason) return;
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            reason.value = '';
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => reason.focus(), 50);
+        }
+
+        function closeReopenModal() {
+            const modal = document.getElementById('reopenModal');
+            if (!modal) return;
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        function confirmReopen() {
+            const reason = document.getElementById('reopenReason');
+            const comment = reason ? reason.value.trim() : '';
+
+            if (!comment) {
+                if (reason) reason.focus();
+                alert('Alasan reopen wajib diisi.');
+                return;
+            }
+
+            if (!confirm('Yakin ingin membuka kembali TR ini? Status akan berubah menjadi Rejected dan Sales harus mengajukan ulang approval.')) {
+                return;
+            }
+
+            document.getElementById('reopenReasonField').value = comment;
+            closeReopenModal();
+            document.getElementById('reopenForm').submit();
+        }
+
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') closeRejectModal();
+            if (event.key === 'Escape') {
+                closeRejectModal();
+                closeReopenModal();
+            }
         });
 
         // ============================================
@@ -2536,6 +2729,7 @@ $isDataComplete = empty($missingSections);
         }
         
         function showNewUnitForm() {
+            const addUnitForm = document.getElementById('addUnitForm');
             if (!addUnitForm) return;
             addUnitForm.style.display = 'block';
             document.getElementById('unitForm').reset();
@@ -2945,6 +3139,7 @@ $isDataComplete = empty($missingSections);
                 addSupportRow();
             <?php endif; ?>
         }
+
         // ============================================
         // CUSTOMER DEAL
         // ============================================
