@@ -49,15 +49,26 @@ if (!function_exists('getRoleLabel')) {
 
 // ============================================
 // HANDLE FILTER SALES & BULAN + HAK AKSES DASHBOARD
+// ------------------------------------------------------------
+// Role dengan akses full report dapat melihat SEMUA data:
+//   - Direktur Utama
+//   - Direktur Operasional
+//   - Direktur Sales
+//   - Sales Manager
+//   - IT Support
+//   - Business
+//
+// Role lain (sales, finance, part_support, service_support,
+// admin, dll) otomatis dikunci ke data miliknya sendiri.
 // ============================================
 
-// Role yang boleh melihat seluruh data / All Sales
 $fullReportRoles = [
     'direktur_utama',
     'direktur_operasional',
     'direktur_sales',
     'sales_manager',
-    'it_support'
+    'it_support',
+    'business',
 ];
 
 $canViewAllReport = in_array($role, $fullReportRoles, true);
@@ -306,7 +317,7 @@ $totalRevenue = 0;
 // ============================================
 // PRODUCT PIPELINE SUMMARY (untuk section dashboard)
 // Menggunakan logika yang sama dengan productpipeline.php.
-// Hanya summary total per tahap yang ditampilkan.
+// Filter Sales + Periode juga diterapkan di sini.
 // ============================================
 function dashboardPipelineQty($value) {
     return max(0, (int)$value);
@@ -369,6 +380,31 @@ function dashboardPipelineResolveStage($customerDealRaw) {
     return 'hot';
 }
 
+// Bangun SQL filter (dipakai untuk Product Pipeline query di bawah).
+$dashProspectFilterSql = '';
+$dashProspectFilterParams = [];
+
+$dashTrFilterSql = '';
+$dashTrFilterParams = [];
+
+if ($filterSalesId > 0) {
+    $dashProspectFilterSql .= " AND sa.sales_id = ?";
+    $dashProspectFilterParams[] = $filterSalesId;
+
+    $dashTrFilterSql .= " AND sa.sales_id = ?";
+    $dashTrFilterParams[] = $filterSalesId;
+}
+
+if ($filterMonth !== '') {
+    $dashProspectFilterSql .= " AND sa.created_at >= ? AND sa.created_at < ?";
+    $dashProspectFilterParams[] = $monthStart;
+    $dashProspectFilterParams[] = $monthEnd;
+
+    $dashTrFilterSql .= " AND sa.created_at >= ? AND sa.created_at < ?";
+    $dashTrFilterParams[] = $monthStart;
+    $dashTrFilterParams[] = $monthEnd;
+}
+
 $dashboardPipeline = [];
 
 // 1. Prospect (dari detail aktivitas Prospecting)
@@ -390,9 +426,12 @@ try {
             ON p.id = adu.product_id
         WHERE p.nama_produk IS NOT NULL
           AND TRIM(p.nama_produk) <> ''
+          {$dashProspectFilterSql}
         ORDER BY sa.id ASC, p.nama_produk ASC
     ";
-    $stmt = $db->query($sqlProspect);
+    $stmt = $db->prepare($sqlProspect);
+    $stmt->execute($dashProspectFilterParams);
+
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         dashboardPipelineAdd(
             $dashboardPipeline,
@@ -434,10 +473,13 @@ try {
           AND TRIM(ad.tr_number) <> ''
           AND p.nama_produk IS NOT NULL
           AND TRIM(p.nama_produk) <> ''
+          {$dashTrFilterSql}
         ORDER BY sa.id ASC, tdu.id ASC
     ";
 
-    $stmt = $db->query($sqlTR);
+    $stmt = $db->prepare($sqlTR);
+    $stmt->execute($dashTrFilterParams);
+
     $activitiesWithLost = [];
 
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -967,7 +1009,7 @@ try {
 <!-- ============================================================
      PRODUCT PIPELINE SUMMARY
      Data diambil dari perhitungan yang sama dengan
-     productpipeline.php. Hanya summary total per tahap.
+     productpipeline.php. Filter Sales + Periode diterapkan.
      ============================================================ -->
 <section class="panel pp-panel">
     <div class="panel-head">
