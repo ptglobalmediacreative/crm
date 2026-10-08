@@ -83,15 +83,27 @@ if (!defined('CRM_LIGHT_NAV')) {
 // ============================================================
 // FILTER SALES + PERIODE
 // ------------------------------------------------------------
-// Role dengan akses full report dapat memilih sales apa saja.
-// Role lain (sales) otomatis dikunci ke data miliknya sendiri.
+// Role dengan akses full report dapat memilih sales apa saja
+// dan melihat SEMUA data.
+//
+// Role lain (mis. sales, part_support, service_support,
+// finance) otomatis dikunci ke data miliknya sendiri.
+//
+// Daftar role full report:
+//   - Direktur Utama
+//   - Direktur Sales
+//   - Direktur Operasional
+//   - Sales Manager
+//   - IT Support
+//   - Business
 // ============================================================
 $fullReportRoles = [
     'direktur_utama',
     'direktur_operasional',
     'direktur_sales',
     'sales_manager',
-    'it_support'
+    'it_support',
+    'business',
 ];
 
 $canViewAllReport = in_array($role, $fullReportRoles, true);
