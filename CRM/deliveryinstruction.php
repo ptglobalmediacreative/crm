@@ -29,19 +29,137 @@ $menuNames = array_column($userMenus, 'module_name');
 // ============================================
 // FUNGSI UNTUK MENGUBAH ROLE MENJADI LABEL DIVISI
 // ============================================
-function getRoleLabel($role) {
-    $roleLabels = [
-        'it_support' => 'IT Support',
-        'admin' => 'Admin',
-        'finance' => 'Finance',
-        'direktur_utama' => 'Direktur Utama',
-        'direktur_operasional' => 'Direktur Operasional',
-        'direktur_sales' => 'Direktur Sales',
-        'business' => 'Business',
-        'sales_manager' => 'Sales Manager',
-        'sales' => 'Sales'
+if (!function_exists('getRoleLabel')) {
+    function getRoleLabel($role) {
+        $roleLabels = [
+            'it_support' => 'IT Support',
+            'admin' => 'Admin',
+            'finance' => 'Finance',
+            'direktur_utama' => 'Direktur Utama',
+            'direktur_operasional' => 'Direktur Operasional',
+            'direktur_sales' => 'Direktur Sales',
+            'business' => 'Business',
+            'sales_manager' => 'Sales Manager',
+            'sales' => 'Sales',
+            'service_support' => 'Service Support',
+            'part_support' => 'Part Support'
+        ];
+        return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+    }
+}
+
+// ============================================
+// FUNGSI: HITUNG CURRENT APPROVER + NEXT APPROVER
+// ------------------------------------------------------------
+// Logika ini SAMA PERSIS dengan detaildi.php:
+//   1. Belum ada detail DI / belum ada input  -> "Belum ada data untuk approval"
+//   2. Status rejected                        -> "Rejected - Menunggu perbaikan Admin"
+//   3. Status approved                        -> "Selesai"
+//   4. Status pending + ada input             -> label level approval yang aktif
+//
+// Dipakai untuk mengisi kolom "Next Approver" di list DI agar
+// konsisten dengan "Current Approver" pada halaman detail.
+// ============================================
+function getDICurrentApproverInfo(PDO $db, string $diNumber): array
+{
+    $levelLabels = [
+        1 => 'Business',
+        2 => 'Part Support',
+        3 => 'Service Support',
+        4 => 'Finance',
+        5 => 'Sales Manager',
+        6 => 'Direktur Sales',
+        7 => 'Direktur Operasional',
+        8 => 'Direktur Utama',
     ];
-    return $roleLabels[$role] ?? ucfirst(str_replace('_', ' ', $role));
+
+    $detail = null;
+    try {
+        $stmt = $db->prepare("SELECT status, current_approval_order, no_so
+                              FROM detail_delivery_instructions
+                              WHERE di_number = ?
+                              ORDER BY id DESC
+                              LIMIT 1");
+        $stmt->execute([$diNumber]);
+        $detail = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    } catch (Exception $e) {
+        $detail = null;
+    }
+
+    // 1. Belum ada detail DI sama sekali.
+    if (!$detail) {
+        return [
+            'label'      => 'Belum ada data untuk approval',
+            'next_label' => '-',
+        ];
+    }
+
+    $statusDI     = strtolower(trim((string)($detail['status'] ?? 'pending')));
+    $currentOrder = (int)($detail['current_approval_order'] ?? 1);
+    $noSO         = trim((string)($detail['no_so'] ?? ''));
+
+    // Cek minimal 1 menu sudah diinput (konsisten dengan $hasInputData di detaildi.php).
+    $hasInput = ($noSO !== '');
+    if (!$hasInput) {
+        $checks = [
+            "SELECT COUNT(*) FROM di_units WHERE di_number = ?",
+            "SELECT COUNT(*) FROM di_accessories WHERE di_number = ?",
+            "SELECT COUNT(*) FROM di_logistics WHERE di_number = ?",
+            "SELECT COUNT(*) FROM di_product_supports WHERE di_number = ?",
+            "SELECT COUNT(*) FROM di_parts WHERE di_number = ?",
+            "SELECT COUNT(*) FROM di_logistics_comparisons WHERE di_number = ?",
+        ];
+        foreach ($checks as $checkSql) {
+            try {
+                $c = $db->prepare($checkSql);
+                $c->execute([$diNumber]);
+                if ((int)$c->fetchColumn() > 0) {
+                    $hasInput = true;
+                    break;
+                }
+            } catch (Exception $e) {
+                // abaikan, lanjut cek berikutnya
+            }
+        }
+    }
+
+    if (!$hasInput) {
+        return [
+            'label'      => 'Belum ada data untuk approval',
+            'next_label' => '-',
+        ];
+    }
+
+    // 2. Rejected
+    if ($statusDI === 'rejected') {
+        return [
+            'label'      => 'Rejected - Menunggu perbaikan Admin',
+            'next_label' => '-',
+        ];
+    }
+
+    // 3. Approved
+    if ($statusDI === 'approved') {
+        return [
+            'label'      => 'Selesai',
+            'next_label' => '-',
+        ];
+    }
+
+    // 4. Pending
+    if ($currentOrder >= 1 && $currentOrder <= 8) {
+        $label     = $levelLabels[$currentOrder];
+        $nextOrder = $currentOrder + 1;
+        $nextLabel = $nextOrder <= 8 ? $levelLabels[$nextOrder] : '-';
+    } else {
+        $label     = 'Selesai';
+        $nextLabel = '-';
+    }
+
+    return [
+        'label'      => $label,
+        'next_label' => $nextLabel,
+    ];
 }
 
 // ============================================
@@ -99,7 +217,6 @@ if ($filter_period !== '' && preg_match('/^\d{4}-\d{2}$/', $filter_period)) {
     $filter_period = '';
 }
 
-// Validasi status filter
 $allowedStatus = ['all', 'pending', 'approved', 'rejected'];
 if (!in_array($status_filter, $allowedStatus)) {
     $status_filter = 'all';
@@ -322,13 +439,23 @@ function getDINote(PDO $db, string $diNumber, string $status, string $nextApprov
     return $nextApprover !== '-' ? 'Menunggu approval ' . $nextApprover : 'Menunggu proses approval';
 }
 
+// ============================================
+// OVERWRITE "next_approver" dengan CURRENT APPROVER
+// agar konsisten dengan halaman detaildi.php
+// ============================================
 foreach ($deliveries as &$delivery) {
+    // Hitung note dulu dengan label SQL lama (agar pesan note tetap tepat).
     $delivery['note'] = getDINote(
         $db,
         (string)($delivery['di_number'] ?? ''),
         (string)($delivery['status'] ?? 'pending'),
         (string)($delivery['next_approver'] ?? '-')
     );
+
+    // Overwrite label current approver (sama persis dengan detaildi.php).
+    $info = getDICurrentApproverInfo($db, (string)($delivery['di_number'] ?? ''));
+    $delivery['next_approver'] = $info['label'];
+    $delivery['next_approver_next'] = $info['next_label'];
 }
 unset($delivery);
 ?>
@@ -377,7 +504,7 @@ unset($delivery);
                 </form>
             </div>
             
-            <!-- FILTER STATUS / NEXT APPROVER / PERIODE -->
+            <!-- FILTER STATUS / CURRENT APPROVER / PERIODE -->
             <div class="filter-bar">
                 <div class="filter-controls">
 
@@ -397,7 +524,7 @@ unset($delivery);
                         </div>
                     </form>
 
-                    <!-- NEXT APPROVER DROPDOWN -->
+                    <!-- CURRENT APPROVER DROPDOWN -->
                     <form method="GET" class="next-approver-filter-form">
                         <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
                         <input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>">
@@ -405,7 +532,7 @@ unset($delivery);
                         <div class="next-approver-filter-wrap">
                             <i class="fas fa-user-check"></i>
                             <select name="next_approver" class="next-approver-select" onchange="this.form.submit()">
-                                <option value="all" <?= $next_approver_filter === 'all' ? 'selected' : '' ?>>Semua Next Approver</option>
+                                <option value="all" <?= $next_approver_filter === 'all' ? 'selected' : '' ?>>Semua Current Approver</option>
                                 <?php foreach ($allowedNextApprovers as $approver): ?>
                                     <option value="<?= htmlspecialchars($approver) ?>" <?= $next_approver_filter === $approver ? 'selected' : '' ?>><?= htmlspecialchars($approver) ?></option>
                                 <?php endforeach; ?>
@@ -441,7 +568,7 @@ unset($delivery);
                                 <th>Account</th>
                                 <th>Request Date</th>
                                 <th>Sales</th>
-                                <th>Next Approver</th>
+                                <th>Current Approver</th>
                                 <th>Status</th>
                                 <th>Note</th>
                                 <?php if ($canAccessPdf): ?>
