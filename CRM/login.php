@@ -359,10 +359,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 Customer Relationship Management
                             </div>
 
-                            <div class="version">
-                                CRM SYSTEM v1.0
-                            </div>
-
                         </div>
 
                     </form>
