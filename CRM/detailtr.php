@@ -1247,17 +1247,6 @@ $isDataComplete = empty($missingSections);
         <?php endif; ?>
 
         <?php if ($isFinalApproved): ?>
-            <div class="alert alert-success d-flex align-items-start gap-3 mb-4" role="alert" style="border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.08);">
-                <div style="font-size: 22px; line-height: 1; margin-top: 2px; color: #34d399;">
-                    <i class="fas fa-lock"></i>
-                </div>
-                <div>
-                    <strong style="font-size: 16px;">TR sudah Final Approved.</strong>
-                    <div class="mt-1">
-                        Semua perubahan data dikunci. Untuk melakukan revisi, TR harus <strong>di-reject / di-reopen</strong> terlebih dahulu.
-                    </div>
-                </div>
-            </div>
         <?php elseif ($statusTRNormalized === 'pending' && $hasAnyApproval): ?>
             <div class="alert alert-warning d-flex align-items-start gap-3 mb-4" role="alert" style="border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08);">
                 <div style="font-size: 22px; line-height: 1; margin-top: 2px; color: #fbbf24;">
