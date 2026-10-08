@@ -49,18 +49,14 @@ if (!function_exists('getRoleLabel')) {
 }
 
 // ============================================
-// FUNGSI: HITUNG CURRENT APPROVER + NEXT APPROVER
+// FUNGSI: HITUNG CURRENT APPROVER LABEL
 // ------------------------------------------------------------
-// Logika ini SAMA PERSIS dengan detaildi.php:
-//   1. Belum ada detail DI / belum ada input  -> "Belum ada data untuk approval"
-//   2. Status rejected                        -> "Rejected - Menunggu perbaikan Admin"
-//   3. Status approved                        -> "Selesai"
-//   4. Status pending + ada input             -> label level approval yang aktif
-//
-// Dipakai untuk mengisi kolom "Next Approver" di list DI agar
-// konsisten dengan "Current Approver" pada halaman detail.
+// Logika ini SAMA PERSIS dengan detaildi.php.
+// Sumber data yang dipakai adalah RIWAYAT APPROVAL
+// (di_approval_history), bukan kolom current_approval_order,
+// supaya nilai yang ditampilkan konsisten dengan halaman detail.
 // ============================================
-function getDICurrentApproverInfo(PDO $db, string $diNumber): array
+function getDICurrentApproverLabel(PDO $db, string $diNumber): string
 {
     $levelLabels = [
         1 => 'Business',
@@ -73,35 +69,45 @@ function getDICurrentApproverInfo(PDO $db, string $diNumber): array
         8 => 'Direktur Utama',
     ];
 
+    // 1. Fetch detail DI (baris terbaru).
     $detail = null;
     try {
-        $stmt = $db->prepare("SELECT status, current_approval_order, no_so
-                              FROM detail_delivery_instructions
-                              WHERE di_number = ?
-                              ORDER BY id DESC
-                              LIMIT 1");
+        $stmt = $db->prepare("
+            SELECT status, no_so
+            FROM detail_delivery_instructions
+            WHERE di_number = ?
+            ORDER BY id DESC
+            LIMIT 1
+        ");
         $stmt->execute([$diNumber]);
         $detail = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     } catch (Exception $e) {
         $detail = null;
     }
 
-    // 1. Belum ada detail DI sama sekali.
-    if (!$detail) {
-        return [
-            'label'      => 'Belum ada data untuk approval',
-            'next_label' => '-',
-        ];
+    // 2. Fetch riwayat approval.
+    $approvalHistory = [];
+    try {
+        $stmt = $db->prepare("
+            SELECT approval_order, status
+            FROM di_approval_history
+            WHERE di_number = ?
+            ORDER BY approval_order ASC
+        ");
+        $stmt->execute([$diNumber]);
+        $approvalHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $approvalHistory = [];
     }
 
-    $statusDI     = strtolower(trim((string)($detail['status'] ?? 'pending')));
-    $currentOrder = (int)($detail['current_approval_order'] ?? 1);
-    $noSO         = trim((string)($detail['no_so'] ?? ''));
+    // 3. Cek hasInputData (minimal 1 menu terisi).
+    $hasInputData = false;
+    if ($detail && trim((string)($detail['no_so'] ?? '')) !== '') {
+        $hasInputData = true;
+    }
 
-    // Cek minimal 1 menu sudah diinput (konsisten dengan $hasInputData di detaildi.php).
-    $hasInput = ($noSO !== '');
-    if (!$hasInput) {
-        $checks = [
+    if (!$hasInputData) {
+        $inputChecks = [
             "SELECT COUNT(*) FROM di_units WHERE di_number = ?",
             "SELECT COUNT(*) FROM di_accessories WHERE di_number = ?",
             "SELECT COUNT(*) FROM di_logistics WHERE di_number = ?",
@@ -109,57 +115,59 @@ function getDICurrentApproverInfo(PDO $db, string $diNumber): array
             "SELECT COUNT(*) FROM di_parts WHERE di_number = ?",
             "SELECT COUNT(*) FROM di_logistics_comparisons WHERE di_number = ?",
         ];
-        foreach ($checks as $checkSql) {
+        foreach ($inputChecks as $checkSql) {
             try {
                 $c = $db->prepare($checkSql);
                 $c->execute([$diNumber]);
                 if ((int)$c->fetchColumn() > 0) {
-                    $hasInput = true;
+                    $hasInputData = true;
                     break;
                 }
             } catch (Exception $e) {
-                // abaikan, lanjut cek berikutnya
+                // Lanjut cek berikutnya.
             }
         }
     }
 
-    if (!$hasInput) {
-        return [
-            'label'      => 'Belum ada data untuk approval',
-            'next_label' => '-',
-        ];
+    if (!$hasInputData) {
+        return 'Belum ada data untuk approval';
     }
 
-    // 2. Rejected
-    if ($statusDI === 'rejected') {
-        return [
-            'label'      => 'Rejected - Menunggu perbaikan Admin',
-            'next_label' => '-',
-        ];
+    // 4. Tentukan last approved order dari riwayat approval.
+    $lastApprovedOrder = 0;
+    $isRejected = false;
+    foreach ($approvalHistory as $approval) {
+        $status = strtolower(trim((string)($approval['status'] ?? '')));
+        $order  = (int)($approval['approval_order'] ?? 0);
+
+        if ($status === 'approved') {
+            if ($order > $lastApprovedOrder) {
+                $lastApprovedOrder = $order;
+            }
+        } elseif ($status === 'rejected') {
+            $isRejected = true;
+        }
     }
 
-    // 3. Approved
+    $statusDI = strtolower(trim((string)($detail['status'] ?? 'pending')));
+
+    // 5. Rejected → tolak priority.
+    if ($isRejected || $statusDI === 'rejected') {
+        return 'Rejected - Menunggu perbaikan Admin';
+    }
+
+    // 6. Approved → selesai.
     if ($statusDI === 'approved') {
-        return [
-            'label'      => 'Selesai',
-            'next_label' => '-',
-        ];
+        return 'Selesai';
     }
 
-    // 4. Pending
+    // 7. Pending → current = last approved + 1.
+    $currentOrder = $lastApprovedOrder + 1;
     if ($currentOrder >= 1 && $currentOrder <= 8) {
-        $label     = $levelLabels[$currentOrder];
-        $nextOrder = $currentOrder + 1;
-        $nextLabel = $nextOrder <= 8 ? $levelLabels[$nextOrder] : '-';
-    } else {
-        $label     = 'Selesai';
-        $nextLabel = '-';
+        return $levelLabels[$currentOrder];
     }
 
-    return [
-        'label'      => $label,
-        'next_label' => $nextLabel,
-    ];
+    return 'Selesai';
 }
 
 // ============================================
@@ -440,22 +448,21 @@ function getDINote(PDO $db, string $diNumber, string $status, string $nextApprov
 }
 
 // ============================================
-// OVERWRITE "next_approver" dengan CURRENT APPROVER
-// agar konsisten dengan halaman detaildi.php
+// HITUNG CURRENT APPROVER UNTUK SETIAP BARIS
+// ------------------------------------------------------------
+// Gunakan fungsi getDICurrentApproverLabel() di atas yang
+// membaca riwayat approval, BUKAN kolom current_approval_order.
+// Ini membuat nilai di halaman ini konsisten dengan
+// "Current Approver" pada detaildi.php.
 // ============================================
 foreach ($deliveries as &$delivery) {
-    // Hitung note dulu dengan label SQL lama (agar pesan note tetap tepat).
+    $delivery['next_approver'] = getDICurrentApproverLabel($db, (string)($delivery['di_number'] ?? ''));
     $delivery['note'] = getDINote(
         $db,
         (string)($delivery['di_number'] ?? ''),
         (string)($delivery['status'] ?? 'pending'),
         (string)($delivery['next_approver'] ?? '-')
     );
-
-    // Overwrite label current approver (sama persis dengan detaildi.php).
-    $info = getDICurrentApproverInfo($db, (string)($delivery['di_number'] ?? ''));
-    $delivery['next_approver'] = $info['label'];
-    $delivery['next_approver_next'] = $info['next_label'];
 }
 unset($delivery);
 ?>
