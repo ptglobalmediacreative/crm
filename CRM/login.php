@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <span class="status-dot"></span>
 
-                        SYSTEM OPERATIONAL
+                        CUSTOMER RELATIONSHIP MANAGEMENT
 
                     </div>
 
