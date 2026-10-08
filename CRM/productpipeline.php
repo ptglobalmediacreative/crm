@@ -84,18 +84,16 @@ if (!defined('CRM_LIGHT_NAV')) {
 // FILTER SALES + PERIODE
 // ------------------------------------------------------------
 // Role dengan akses full report dapat memilih sales apa saja
-// dan melihat SEMUA data.
-//
-// Role lain (mis. sales, part_support, service_support,
-// finance) otomatis dikunci ke data miliknya sendiri.
-//
-// Daftar role full report:
+// dan melihat SEMUA data:
 //   - Direktur Utama
 //   - Direktur Sales
 //   - Direktur Operasional
 //   - Sales Manager
 //   - IT Support
 //   - Business
+//
+// Role lain (sales, finance, part_support, service_support)
+// otomatis dikunci ke data miliknya sendiri.
 // ============================================================
 $fullReportRoles = [
     'direktur_utama',
@@ -116,7 +114,6 @@ if ($canViewAllReport) {
         $filterSalesId = 0;
     }
 } else {
-    // Non-full-report: kunci ke data milik sendiri.
     $filterSalesId = $profileUserId;
 }
 
@@ -254,7 +251,6 @@ function pipelineResolveStage($customerDealRaw) {
 
 // ============================================================
 // 1. PROSPECT: TIPE UNIT DARI DETAIL AKTIVITAS PROSPECTING
-//    Filter Sales + Periode diterapkan.
 // ============================================================
 $pipeline = [];
 
@@ -301,7 +297,6 @@ try {
 
 // ============================================================
 // 2. HOT PROSPECT / LOST DEAL / DEAL: TIPE UNIT DARI DETAIL TR
-//    Filter Sales + Periode diterapkan.
 // ============================================================
 try {
     $sqlTR = "
@@ -451,7 +446,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 
     $exportUserName = trim((string)($userData['full_name'] ?? $_SESSION['full_name'] ?? 'User'));
 
-    // Info filter aktif untuk header Excel
     $exportFilterLabel = [];
     if ($filterSalesId > 0) {
         $exportFilterLabel[] = 'Sales: ' . $filteredSalesName;
@@ -582,11 +576,6 @@ if ($filterMonth !== '') {
 $exportUrl = '?' . http_build_query($exportQueryParams);
 
 // ============================================================
-// SIAPKAN URL RESET FILTER
-// ============================================================
-$resetUrl = 'productpipeline.php';
-
-// ============================================================
 // LABEL PERIODE AKTIF
 // ============================================================
 $periodLabel = 'All Periode';
@@ -654,15 +643,6 @@ if ($filterMonth !== '') {
                        tabindex="-1"
                        aria-hidden="true">
             </div>
-
-            <?php if ($filterSalesId > 0 || $filterMonth !== ''): ?>
-                <a href="<?= htmlspecialchars($resetUrl) ?>"
-                   class="pp-filter-reset"
-                   title="Reset filter"
-                   aria-label="Reset filter">
-                    <i class="fas fa-times"></i>
-                </a>
-            <?php endif; ?>
 
             <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn-export">
                 <i class="fas fa-file-excel"></i> Export Excel

@@ -9,8 +9,8 @@
    yang dipakai di navigation.css Anda.
    ------------------------------------------------------------ */
 :root {
-  --pp-rail-width: 260px; /* lebar sidebar kiri */
-  --pp-topbar-height: 76px; /* tinggi topbar atas */
+  --pp-rail-width: 260px;
+  --pp-topbar-height: 76px;
 
   /* Warna aksen Lost Deal */
   --pp-lost: #ef4444;
@@ -24,13 +24,11 @@
   position: relative;
   z-index: 1;
 
-  /* Geser dari rail di kiri & topbar di atas */
   margin-left: var(--pp-rail-width);
   padding: calc(var(--pp-topbar-height) + 22px) 24px 28px;
 
   min-height: 100vh;
 
-  /* Background opaque supaya tidak tembus ke sidebar */
   background: var(--bg, #0a1428);
   background-image:
     radial-gradient(
@@ -96,7 +94,7 @@
 }
 
 /* ------------------------------------------------------------
-   Pipeline Actions (filter + export)
+   Pipeline Actions (filter sales + periode + export)
    ------------------------------------------------------------ */
 .pipeline-actions {
   display: flex;
@@ -193,48 +191,6 @@
   pointer-events: none;
 }
 
-/* Reset Filter — tombol X */
-.pp-filter-reset {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  border: 1px solid rgba(239, 68, 68, 0.28);
-  background: rgba(127, 29, 29, 0.35);
-  color: #fca5a5;
-  text-decoration: none;
-  transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.pp-filter-reset:hover {
-  background: rgba(127, 29, 29, 0.65);
-  border-color: rgba(239, 68, 68, 0.55);
-  color: #fecaca;
-  text-decoration: none;
-  transform: translateY(-1px);
-}
-
-.pp-filter-reset:focus,
-.pp-filter-reset:focus-visible,
-.pp-filter-reset:active {
-  outline: none;
-  color: #fecaca;
-  text-decoration: none;
-  border-color: rgba(239, 68, 68, 0.55);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
-}
-
-.pp-filter-reset i {
-  font-size: 13px;
-  pointer-events: none;
-}
-
 /* ------------------------------------------------------------
    Export Button (pill style)
    ------------------------------------------------------------ */
@@ -299,7 +255,6 @@
 
 /* ------------------------------------------------------------
    Summary cards
-   4 kartu: Prospek / Hot Prospek / Lost Deal / Deal
    ------------------------------------------------------------ */
 .pipeline-summary {
   display: grid;
@@ -337,28 +292,24 @@
   border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-/* Warna kartu: Prospek (default biru) */
 .prospect-card .summary-icon {
   background: rgba(59, 130, 246, 0.12);
   color: var(--blue-2);
   border-color: rgba(59, 130, 246, 0.2);
 }
 
-/* Hot Prospek (amber) */
 .hot-card .summary-icon {
   background: rgba(245, 158, 11, 0.11);
   color: var(--amber);
   border-color: rgba(245, 158, 11, 0.2);
 }
 
-/* Lost Deal (merah) */
 .lost-card .summary-icon {
   background: var(--pp-lost-soft);
   color: var(--pp-lost);
   border-color: var(--pp-lost-border);
 }
 
-/* Deal (hijau) */
 .deal-card .summary-icon {
   background: rgba(34, 197, 94, 0.11);
   color: var(--green);
@@ -605,8 +556,6 @@
 /* ------------------------------------------------------------
    Responsive
    ------------------------------------------------------------ */
-
-/* Tablet besar: padding menyesuaikan */
 @media (max-width: 1200px) {
   .page-productpipeline {
     padding-left: 20px;
@@ -614,7 +563,6 @@
   }
 }
 
-/* Tablet: 4 kartu jadi 2 kolom */
 @media (max-width: 1100px) {
   .pipeline-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -631,7 +579,6 @@
   }
 }
 
-/* Tablet: header & tombol export */
 @media (max-width: 900px) {
   .pipeline-actions {
     width: 100%;
@@ -639,14 +586,12 @@
   }
 }
 
-/* Mobile: 1 kolom kartu */
 @media (max-width: 600px) {
   .pipeline-summary {
     grid-template-columns: 1fr;
   }
 }
 
-/* Mobile: rail jadi overlay, konten full width */
 @media (max-width: 768px) {
   .page-productpipeline {
     margin-left: 0;
@@ -675,11 +620,6 @@
     min-width: 0;
   }
 
-  .pp-filter-reset {
-    width: 42px;
-    justify-self: start;
-  }
-
   .btn-export {
     width: 100%;
     justify-content: center;
@@ -698,24 +638,11 @@
     align-self: flex-start;
   }
 
-  /* Tabel tetap lebar minimum agar tidak pecah */
   .pipeline-table {
     min-width: 760px;
   }
 
   .stage-col {
     width: 110px;
-  }
-}
-
-/* Mobile kecil: 1 kolom filter */
-@media (max-width: 480px) {
-  .pipeline-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .pp-filter-reset {
-    width: 100%;
-    height: 42px;
   }
 }
