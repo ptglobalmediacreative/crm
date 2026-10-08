@@ -1,146 +1,251 @@
 # =========================================================
-# DMS CRM - SECURE .HTACCESS
-# Location:
-# public_html/crm/.htaccess
+# DMS CRM — SECURE .HTACCESS
+# Location: public_html/crm/.htaccess
 # =========================================================
 
-Options -Indexes
-Options -MultiViews
+# ---------------------------------------------------------
+# 0. CORE HARDENING
+# ---------------------------------------------------------
+Options -Indexes -MultiViews
+Options +FollowSymLinks
 
-RewriteEngine On
+ServerSignature Off
+ServerTokens Prod
 
+# Jangan ikuti symlink ke luar document root
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteOptions MaxRedirects=10
+</IfModule>
 
-# =========================================================
-# 1. BLOK FILE / FOLDER SENSITIF
-# =========================================================
+# ---------------------------------------------------------
+# 1. FORCE HTTPS + CANONICAL HOST
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# Jangan izinkan akses .git
-RewriteRule (^|/)\.git(?:/|$) - [F,L,NC]
+    # Force HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
-# Jangan izinkan akses file hidden
-RewriteRule (^|/)\.env(?:$|/) - [F,L,NC]
-RewriteRule (^|/)\.htaccess$ - [F,L,NC]
+    # Force non-www (opsional — sesuaikan dengan domain Anda)
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [R=301,L]
+</IfModule>
 
+# ---------------------------------------------------------
+# 2. BLOCK FILE / FOLDER SENSITIF
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# =========================================================
-# 2. BLOK CONFIGURATION FILE
-# =========================================================
+    # Block .git / .svn / .hg
+    RewriteRule (^|/)\.git(?:/|$) - [F,L,NC]
+    RewriteRule (^|/)\.svn(?:/|$) - [F,L,NC]
+    RewriteRule (^|/)\.hg(?:/|$)  - [F,L,NC]
 
-# config.php tidak boleh dibuka melalui browser
-<FilesMatch "^(config|configuration|database|db|connection|connect|settings|secrets)\.php$">
+    # Block .env dan variannya
+    RewriteRule (^|/)\.env(?:\..*)?$ - [F,L,NC]
+
+    # Block .htaccess / .htpasswd / .htgroup / .user.ini
+    RewriteRule (^|/)\.ht(access|passwd|group)$ - [F,L,NC]
+    RewriteRule (^|/)\.user\.ini$ - [F,L,NC]
+
+    # Block vendor folder (composer packages) dari akses langsung
+    RewriteRule (^|/)vendor(?:/|$) - [F,L,NC]
+
+    # Block folder services (berisi class internal)
+    RewriteRule (^|/)services(?:/|$) - [F,L,NC]
+</IfModule>
+
+# ---------------------------------------------------------
+# 3. BLOCK PHP EXECUTION DI FOLDER UPLOADS  ⚠️ PENTING
+# ---------------------------------------------------------
+# Meskipun attacker berhasil upload file PHP ke folder uploads,
+# file tersebut tidak akan dieksekusi sebagai PHP.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^images/uploads/.*\.(php|phtml|php3|php4|php5|php7|php8|phps|pht|phar|inc|shtml|cgi|pl)$ - [F,L,NC]
+</IfModule>
+
+# ---------------------------------------------------------
+# 4. BLOCK CONFIGURATION FILE
+# ---------------------------------------------------------
+<FilesMatch "^(config|configuration|database|db|connection|connect|settings|secrets|credentials|auth|mailer)\.(php|inc|ini|json)$">
     Require all denied
 </FilesMatch>
 
-
-# =========================================================
-# 3. BLOK FILE INTERNAL
-# =========================================================
-
-# File-file ini hanya untuk internal application
-<FilesMatch "^(navigation|navbar|sidebar|header|footer)\.php$">
+# ---------------------------------------------------------
+# 5. BLOCK FILE INTERNAL
+# ---------------------------------------------------------
+<FilesMatch "^(navigation|navbar|sidebar|header|footer|bootstrap|functions|helpers|init|setup)\.(php|inc)$">
     Require all denied
 </FilesMatch>
 
-
-# =========================================================
-# 4. BLOK BACKUP / DATABASE / LOG
-# =========================================================
-
-<FilesMatch "\.(sql|sqlite|sqlite3|db|bak|backup|old|orig|save|tmp|temp|log|ini|conf|dist)$">
+# ---------------------------------------------------------
+# 6. BLOCK BACKUP / DATABASE / LOG
+# ---------------------------------------------------------
+<FilesMatch "\.(sql|sqlite|sqlite3|db|dbf|mdb|bak|backup|old|orig|save|swp|swo|tmp|temp|log|ini|conf|dist|lock|dump)$">
     Require all denied
 </FilesMatch>
 
-
-# =========================================================
-# 5. BLOK FILE DEVELOPMENT / SECRET
-# =========================================================
-
-<FilesMatch "\.(env|yml|yaml|toml|sh)$">
+# ---------------------------------------------------------
+# 7. BLOCK FILE DEVELOPMENT / SECRET
+# ---------------------------------------------------------
+<FilesMatch "\.(env|yml|yaml|toml|sh|bash|zsh|gitignore|editorconfig|eslintrc|stylelintrc|prettierrc)$">
     Require all denied
 </FilesMatch>
 
-
-# =========================================================
-# 6. BLOK COMPOSER / PACKAGE METADATA
-# =========================================================
-
-<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml)$">
+# ---------------------------------------------------------
+# 8. BLOCK COMPOSER / PACKAGE METADATA
+# ---------------------------------------------------------
+<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json|yarn\.lock|pnpm-lock\.yaml|phpunit\.xml|phpcs\.xml|\.php-cs-fixer\.php|webpack\.config\.js)$">
     Require all denied
 </FilesMatch>
 
+# ---------------------------------------------------------
+# 9. BLOCK FILE KONFIGURASI WEB SERVER LAIN
+# ---------------------------------------------------------
+<FilesMatch "^(web\.config|php\.ini|\.htaccess|\.htpasswd|\.user\.ini|nginx\.conf|httpd\.conf)$">
+    Require all denied
+</FilesMatch>
 
-# =========================================================
-# 7. SECURITY HEADERS
-# =========================================================
+# ---------------------------------------------------------
+# 10. BLOCK HTTP METHOD YANG TIDAK DIPERLUKAN
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK|PUT|DELETE|CONNECT|PATCH|OPTIONS)$
+    RewriteRule .* - [F,L]
+</IfModule>
 
+# ---------------------------------------------------------
+# 11. LIMIT REQUEST SIZE
+# ---------------------------------------------------------
+<IfModule mod_reqtimeout.c>
+    RequestReadTimeout header=20-40,MinRate=500 body=20-40,MinRate=500
+</IfModule>
+
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+    php_value max_execution_time 60
+</IfModule>
+
+# Limit panjang query string (mencegah buffer overflow exploitation)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{QUERY_STRING} .{1024,}
+    RewriteRule ^ - [F,L]
+</IfModule>
+
+# ---------------------------------------------------------
+# 12. BLOCK COMMON BOT / SCANNER / ATTACK PATH
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Common attack paths
+    RewriteRule ^(wp-admin|wp-login|wp-content|wp-includes|xmlrpc|phpmyadmin|pma|myadmin|adminer|mysql|phpinfo|info\.php|test\.php|shell|cmd|c99|r57|webshell) - [F,L,NC]
+
+    # Suspicious user agents
+    RewriteCond %{HTTP_USER_AGENT} (nikto|sqlmap|nmap|masscan|acunetix|nessus|w3af|hydra|dirbuster|gobuster|wfuzz|zgrab|python-requests|curl|wget|libwww-perl|winhttp|httpclient|java/|scanner|exploit) [NC]
+    RewriteRule ^ - [F,L]
+</IfModule>
+
+# ---------------------------------------------------------
+# 13. SECURITY HEADERS
+# ---------------------------------------------------------
 <IfModule mod_headers.c>
 
+    # MIME Sniffing Protection
     Header always set X-Content-Type-Options "nosniff"
 
+    # Clickjacking Protection
     Header always set X-Frame-Options "SAMEORIGIN"
 
+    # Referrer Policy
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
-    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # Feature / Permissions Policy
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+
+    # XSS Protection (legacy browsers)
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # HSTS — Force HTTPS untuk 1 tahun
+    # HATI-HATI: hanya aktifkan jika HTTPS sudah 100% stabil.
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+
+    # Cross-Origin Policies
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+
+    # Content Security Policy
+    # Whitelist: Bootstrap CDN, FontAwesome CDN, Google Fonts, Chart.js CDN
+    # 'unsafe-inline' diperlukan karena aplikasi menggunakan inline <style> dan <script>
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none';"
 
 </IfModule>
 
+# ---------------------------------------------------------
+# 14. CACHING (PERFORMA + KEAMANAN)
+# ---------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/webp                "access plus 1 month"
+    ExpiresByType image/jpeg                "access plus 1 month"
+    ExpiresByType image/png                 "access plus 1 month"
+    ExpiresByType image/svg+xml             "access plus 1 month"
+    ExpiresByType text/css                  "access plus 1 month"
+    ExpiresByType application/javascript    "access plus 1 month"
+    ExpiresByType font/woff2                "access plus 1 year"
+</IfModule>
 
-# =========================================================
-# 8. REDIRECT .PHP -> CLEAN URL
-# =========================================================
-#
-# /crm/login.php
-#        ↓
-# /crm/login
-#
-# /crm/dashboard.php
-#        ↓
-# /crm/dashboard
-#
-# /crm/salesactivity.php
-#        ↓
-# /crm/salesactivity
-#
+# ---------------------------------------------------------
+# 15. REDIRECT .PHP -> CLEAN URL
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-RewriteCond %{THE_REQUEST} \s/+crm/([A-Za-z0-9_-]+)\.php(?:[?\s]) [NC]
-RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
-RewriteRule ^([A-Za-z0-9_-]+)\.php$ $1 [R=301,L,NE]
+    RewriteCond %{THE_REQUEST} \s/+crm/([A-Za-z0-9_-]+)\.php(?:[?\s]) [NC]
+    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+    RewriteRule ^([A-Za-z0-9_-]+)\.php$ $1 [R=301,L,NE]
+</IfModule>
 
+# ---------------------------------------------------------
+# 16. CLEAN URL -> PHP
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# =========================================================
-# 9. CLEAN URL -> PHP
-# =========================================================
-#
-# /crm/login
-#        ↓
-# /crm/login.php
-#
-# /crm/dashboard
-#        ↓
-# /crm/dashboard.php
-#
-# /crm/salesactivity
-#        ↓
-# /crm/salesactivity.php
-#
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}\.php -f
+    RewriteRule ^(.+?)/?$ $1.php [END,QSA]
+</IfModule>
 
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{DOCUMENT_ROOT}/crm/$1.php -f
-RewriteRule ^(.+?)/?$ $1.php [END,QSA]
+# ---------------------------------------------------------
+# 17. ROOT /CRM/ -> LOGIN  (FIX: langsung ke login.php)
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ login.php [END]
+</IfModule>
 
+# ---------------------------------------------------------
+# 18. BLOCK DIRECT PHP PATH YANG TIDAK ADA
+# ---------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# =========================================================
-# 10. ROOT /CRM/ -> LOGIN
-# =========================================================
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule \.php$ - [R=404,L]
+</IfModule>
 
-RewriteRule ^$ login [END]
-
-
-# =========================================================
-# 11. BLOCK DIRECT PHP PATH YANG TIDAK ADA
-# =========================================================
-
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule \.php$ - [R=404,L]
+# ---------------------------------------------------------
+# 19. DEFAULT CHARSET
+# ---------------------------------------------------------
+AddDefaultCharset UTF-8
