@@ -31,7 +31,6 @@ try {
         $moduleId = (int)$db->lastInsertId();
     }
 
-    // Sinkronkan permission untuk role yang sudah mempunyai user.
     $roles = $db->query("SELECT DISTINCT role FROM users WHERE role IS NOT NULL AND role <> ''")
                 ->fetchAll(PDO::FETCH_COLUMN);
     $stmtPermission = $db->prepare("
@@ -49,7 +48,7 @@ try {
 requirePermission('product_pipeline', 'view');
 
 // ============================================================
-// FIX: AMBIL DATA USER + ROLE SEBELUM INCLUDE navigation.php
+// USER DATA + ROLE SEBELUM INCLUDE navigation.php
 // ============================================================
 $userMenus = getUserMenus();
 
@@ -75,10 +74,102 @@ $role     = (string)($userData['role'] ?? $_SESSION['role'] ?? '');
 $userRole = $role;
 
 // ============================================================
-// PENTING: CRM_LIGHT_NAV harus di-set SEBELUM navigation.php
+// CRM_LIGHT_NAV
 // ============================================================
 if (!defined('CRM_LIGHT_NAV')) {
     define('CRM_LIGHT_NAV', true);
+}
+
+// ============================================================
+// FILTER SALES + PERIODE
+// ------------------------------------------------------------
+// Role dengan akses full report dapat memilih sales apa saja.
+// Role lain (sales) otomatis dikunci ke data miliknya sendiri.
+// ============================================================
+$fullReportRoles = [
+    'direktur_utama',
+    'direktur_operasional',
+    'direktur_sales',
+    'sales_manager',
+    'it_support'
+];
+
+$canViewAllReport = in_array($role, $fullReportRoles, true);
+
+// Filter Sales
+$filterSalesId = isset($_GET['sales_id']) ? (int)$_GET['sales_id'] : 0;
+
+if ($canViewAllReport) {
+    if ($filterSalesId < 0) {
+        $filterSalesId = 0;
+    }
+} else {
+    // Non-full-report: kunci ke data milik sendiri.
+    $filterSalesId = $profileUserId;
+}
+
+// Filter Month (YYYY-MM)
+$filterMonth = isset($_GET['month']) ? trim((string)$_GET['month']) : '';
+if ($filterMonth !== '' && !preg_match('/^\d{4}-\d{2}$/', $filterMonth)) {
+    $filterMonth = '';
+}
+
+// Daftar Sales (hanya untuk role full report)
+$allSalesList = [];
+if ($canViewAllReport) {
+    try {
+        $stmtSales = $db->query("
+            SELECT id, full_name
+            FROM users
+            WHERE role IN ('sales', 'sales_manager')
+            ORDER BY full_name ASC
+        ");
+        $allSalesList = $stmtSales->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        $allSalesList = [];
+    }
+}
+
+// Nama sales yang sedang difilter
+$filteredSalesName = 'Semua Sales';
+if ($filterSalesId > 0) {
+    try {
+        $stmtName = $db->prepare("SELECT full_name FROM users WHERE id = ? LIMIT 1");
+        $stmtName->execute([$filterSalesId]);
+        $filteredSalesName = $stmtName->fetchColumn() ?: 'User';
+    } catch (Throwable $e) {
+        $filteredSalesName = 'User';
+    }
+}
+
+// ============================================================
+// BUILD FILTER SQL FRAGMENTS
+// ============================================================
+$prospectFilterSql = '';
+$prospectFilterParams = [];
+
+$trFilterSql = '';
+$trFilterParams = [];
+
+if ($filterSalesId > 0) {
+    $prospectFilterSql .= " AND sa.sales_id = ?";
+    $prospectFilterParams[] = $filterSalesId;
+
+    $trFilterSql .= " AND sa.sales_id = ?";
+    $trFilterParams[] = $filterSalesId;
+}
+
+if ($filterMonth !== '') {
+    $monthStart = $filterMonth . '-01';
+    $monthEnd = date('Y-m-d', strtotime($monthStart . ' +1 month'));
+
+    $prospectFilterSql .= " AND sa.created_at >= ? AND sa.created_at < ?";
+    $prospectFilterParams[] = $monthStart;
+    $prospectFilterParams[] = $monthEnd;
+
+    $trFilterSql .= " AND sa.created_at >= ? AND sa.created_at < ?";
+    $trFilterParams[] = $monthStart;
+    $trFilterParams[] = $monthEnd;
 }
 
 // ============================================================
@@ -117,8 +208,6 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
         ];
     }
 
-    // Satu Activity Number + satu Tipe Unit hanya boleh masuk ke SATU tahap.
-    // Nilai qty memakai nilai terbesar agar histori/revisi tidak double.
     $field = $stage . '_qty';
     if (!isset($map[$activityId]['units'][$key][$field])) {
         $map[$activityId]['units'][$key][$field] = 0;
@@ -130,30 +219,16 @@ function pipelineAdd(&$map, $activityId, $activityNumber, $productId, $productNa
     );
 }
 
-/**
- * Normalisasi nilai customer_deal dari detailtr.php.
- *
- * ATURAN TAHAP:
- *   - "yes" / "deal"                              -> DEAL
- *   - "lost deal" / "lost_deal" / "lost-deal"     -> LOST DEAL
- *   - selain di atas (kosong, no, dll)            -> HOT PROSPECT
- */
 function pipelineResolveStage($customerDealRaw) {
     $value = strtolower(trim((string)$customerDealRaw));
-
-    // Samakan pemisah: "lost_deal" / "lost-deal" -> "lost deal"
     $value = str_replace(['_', '-'], ' ', $value);
-
-    // Rapatkan spasi ganda
     $value = preg_replace('/\s+/', ' ', $value);
     $value = trim($value);
 
-    // Deal
     if ($value === 'yes' || $value === 'deal') {
         return 'deal';
     }
 
-    // Lost Deal
     if (
         $value === 'lost deal' ||
         $value === 'lostdeal' ||
@@ -162,12 +237,12 @@ function pipelineResolveStage($customerDealRaw) {
         return 'lost';
     }
 
-    // Default: Hot Prospect
     return 'hot';
 }
 
 // ============================================================
 // 1. PROSPECT: TIPE UNIT DARI DETAIL AKTIVITAS PROSPECTING
+//    Filter Sales + Periode diterapkan.
 // ============================================================
 $pipeline = [];
 
@@ -190,9 +265,13 @@ try {
             ON p.id = adu.product_id
         WHERE p.nama_produk IS NOT NULL
           AND TRIM(p.nama_produk) <> ''
+          {$prospectFilterSql}
         ORDER BY sa.id ASC, p.nama_produk ASC
     ";
-    $stmt = $db->query($sqlProspect);
+
+    $stmt = $db->prepare($sqlProspect);
+    $stmt->execute($prospectFilterParams);
+
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         pipelineAdd(
             $pipeline,
@@ -210,6 +289,7 @@ try {
 
 // ============================================================
 // 2. HOT PROSPECT / LOST DEAL / DEAL: TIPE UNIT DARI DETAIL TR
+//    Filter Sales + Periode diterapkan.
 // ============================================================
 try {
     $sqlTR = "
@@ -239,10 +319,12 @@ try {
           AND TRIM(ad.tr_number) <> ''
           AND p.nama_produk IS NOT NULL
           AND TRIM(p.nama_produk) <> ''
+          {$trFilterSql}
         ORDER BY sa.id ASC, tdu.id ASC
     ";
 
-    $stmt = $db->query($sqlTR);
+    $stmt = $db->prepare($sqlTR);
+    $stmt->execute($trFilterParams);
 
     $activitiesWithLost = [];
 
@@ -264,7 +346,6 @@ try {
         }
     }
 
-    // Normalisasi: jika ada lost deal di activity, hot prospect jadi lost deal.
     if (!empty($activitiesWithLost)) {
         foreach ($pipeline as $activityId => $activityData) {
             if (!isset($activitiesWithLost[$activityId])) {
@@ -321,7 +402,6 @@ foreach ($pipeline as $activityData) {
     }
 }
 
-// Urutkan berdasarkan nama tipe unit.
 usort($pipelineByProduct, static function ($a, $b) {
     return strcasecmp($a['product_name'], $b['product_name']);
 });
@@ -338,17 +418,11 @@ foreach ($pipelineByProduct as $row) {
 }
 
 // ============================================================
-// EXPORT EXCEL
-// ------------------------------------------------------------
-// Di-trigger dengan ?export=excel
-// Format: HTML table + Content-Type .xls (dibuka rapi di Excel)
-// Tidak membutuhkan library tambahan.
-// HARUS dijalankan SEBELUM output HTML apapun.
+// EXPORT EXCEL — ikut menerapkan filter aktif
 // ============================================================
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     $exportFilename = 'Product_Pipeline_' . date('Ymd_His') . '.xls';
 
-    // Bersihkan output buffer kalau ada.
     if (ob_get_level() > 0) {
         while (ob_get_level() > 0) {
             ob_end_clean();
@@ -361,11 +435,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     header('Pragma: public');
     header('Expires: 0');
 
-    // BOM UTF-8 agar karakter khusus terbaca benar.
     echo "\xEF\xBB\xBF";
 
-    // Nama user yang mengekspor.
     $exportUserName = trim((string)($userData['full_name'] ?? $_SESSION['full_name'] ?? 'User'));
+
+    // Info filter aktif untuk header Excel
+    $exportFilterLabel = [];
+    if ($filterSalesId > 0) {
+        $exportFilterLabel[] = 'Sales: ' . $filteredSalesName;
+    }
+    if ($filterMonth !== '') {
+        $exportFilterLabel[] = 'Periode: ' . date('F Y', strtotime($filterMonth . '-01'));
+    }
+    $exportFilterText = $exportFilterLabel
+        ? implode(' | ', $exportFilterLabel)
+        : 'Semua Sales | All Periode';
     ?>
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
       xmlns:x="urn:schemas-microsoft-com:office:excel"
@@ -395,20 +479,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         font-size: 11px;
         vertical-align: middle;
     }
-    .title {
-        font-size: 16px;
-        font-weight: bold;
-        color: #1e3a8a;
-        text-align: left;
-        border: 0;
-    }
-    .subtitle {
-        font-size: 11px;
-        color: #475569;
-        text-align: left;
-        border: 0;
-        padding-top: 0;
-    }
+    .title { font-size: 16px; font-weight: bold; color: #1e3a8a; text-align: left; border: 0; }
+    .subtitle { font-size: 11px; color: #475569; text-align: left; border: 0; padding-top: 0; }
+    .filter-info { font-size: 11px; color: #1e3a8a; font-weight: bold; text-align: left; border: 0; }
     .spacer { border: 0; }
     thead th {
         background: #1e3a8a;
@@ -439,6 +512,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         &nbsp;|&nbsp; Tanggal: <?= date('d F Y H:i') ?> WIB
         &nbsp;|&nbsp; Total Tipe Unit: <?= count($pipelineByProduct) ?>
     </td></tr>
+    <tr><td colspan="6" class="filter-info">Filter: <?= htmlspecialchars($exportFilterText) ?></td></tr>
     <tr><td colspan="6" class="spacer">&nbsp;</td></tr>
 
     <thead>
@@ -482,6 +556,37 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     <?php
     exit;
 }
+
+// ============================================================
+// SIAPKAN URL EXPORT (meneruskan filter yang aktif)
+// ============================================================
+$exportQueryParams = ['export' => 'excel'];
+if ($filterSalesId > 0) {
+    $exportQueryParams['sales_id'] = $filterSalesId;
+}
+if ($filterMonth !== '') {
+    $exportQueryParams['month'] = $filterMonth;
+}
+$exportUrl = '?' . http_build_query($exportQueryParams);
+
+// ============================================================
+// SIAPKAN URL RESET FILTER
+// ============================================================
+$resetUrl = 'productpipeline.php';
+
+// ============================================================
+// LABEL PERIODE AKTIF
+// ============================================================
+$periodLabel = 'All Periode';
+if ($filterMonth !== '') {
+    $bulanIndo = [
+        1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    $year  = (int)substr($filterMonth, 0, 4);
+    $month = (int)substr($filterMonth, 5, 2);
+    $periodLabel = $bulanIndo[$month] . ' ' . $year;
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -500,20 +605,54 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 </head>
 <body>
 
-<?php
-// $role, $userRole, $userMenus sudah di-set di atas.
-// CRM_LIGHT_NAV sudah di-define di atas juga.
-require_once 'navigation.php';
-?>
+<?php require_once 'navigation.php'; ?>
 
 <main class="pp-page page-productpipeline">
     <div class="page-header productpipeline-header">
-        <div>
+        <div class="pipeline-title">
             <h1>Product Pipeline</h1>
             <p>Rekap perkembangan tipe unit dari Prospect → Hot Prospect → Lost Deal / Deal berdasarkan Activity Number.</p>
         </div>
+
         <div class="pipeline-actions">
-            <a href="?export=excel" class="btn-export">
+            <?php if ($canViewAllReport): ?>
+                <select class="pp-filter-select" id="filterSales" onchange="applyPipelineFilter()">
+                    <option value="0">All Sales</option>
+                    <?php foreach ($allSalesList as $s): ?>
+                        <option value="<?= (int)$s['id'] ?>" <?= ($filterSalesId == (int)$s['id']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($s['full_name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
+
+            <div class="pp-filter-period"
+                 id="periodFilter"
+                 role="button"
+                 tabindex="0"
+                 aria-label="Pilih periode"
+                 onclick="openPeriodPicker(event)"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPeriodPicker(event);}">
+                <span id="periodFilterLabel"><?= htmlspecialchars($periodLabel) ?></span>
+                <i class="fas fa-calendar-alt"></i>
+                <input type="month"
+                       id="filterMonth"
+                       value="<?= htmlspecialchars($filterMonth) ?>"
+                       onchange="applyPipelineFilter()"
+                       tabindex="-1"
+                       aria-hidden="true">
+            </div>
+
+            <?php if ($filterSalesId > 0 || $filterMonth !== ''): ?>
+                <a href="<?= htmlspecialchars($resetUrl) ?>"
+                   class="pp-filter-reset"
+                   title="Reset filter"
+                   aria-label="Reset filter">
+                    <i class="fas fa-times"></i>
+                </a>
+            <?php endif; ?>
+
+            <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn-export">
                 <i class="fas fa-file-excel"></i> Export Excel
             </a>
         </div>
@@ -595,5 +734,66 @@ require_once 'navigation.php';
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function applyPipelineFilter() {
+    const salesEl = document.getElementById('filterSales');
+    const monthEl = document.getElementById('filterMonth');
+
+    const params = new URLSearchParams();
+
+    if (salesEl && salesEl.value && salesEl.value !== '0') {
+        params.set('sales_id', salesEl.value);
+    }
+
+    if (monthEl && monthEl.value) {
+        params.set('month', monthEl.value);
+    }
+
+    const qs = params.toString();
+    location.href = qs ? ('?' + qs) : 'productpipeline.php';
+}
+
+function openPeriodPicker(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const monthEl = document.getElementById('filterMonth');
+    if (!monthEl) return;
+
+    if (typeof monthEl.showPicker === 'function') {
+        try {
+            monthEl.showPicker();
+            return;
+        } catch (e) {}
+    }
+
+    monthEl.focus();
+    monthEl.click();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const monthEl = document.getElementById('filterMonth');
+    const label = document.getElementById('periodFilterLabel');
+
+    if (monthEl && label) {
+        monthEl.addEventListener('change', function () {
+            if (!this.value) {
+                label.textContent = 'All Periode';
+                return;
+            }
+
+            const [year, month] = this.value.split('-');
+            const names = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+
+            label.textContent = names[parseInt(month, 10) - 1] + ' ' + year;
+        });
+    }
+});
+</script>
 </body>
 </html>

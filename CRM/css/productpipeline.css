@@ -59,6 +59,11 @@
   margin-bottom: 22px;
 }
 
+.pipeline-title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .productpipeline-header h1 {
   margin: 4px 0 7px;
   font-size: 28px;
@@ -91,15 +96,148 @@
 }
 
 /* ------------------------------------------------------------
-   Export Button (pill style)
+   Pipeline Actions (filter + export)
    ------------------------------------------------------------ */
 .pipeline-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
   flex-shrink: 0;
 }
 
+/* Filter Sales — dropdown */
+.pp-filter-select {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(13, 23, 48, 0.96);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 160px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.pp-filter-select:hover,
+.pp-filter-select:focus {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+  outline: none;
+}
+
+.pp-filter-select option {
+  background: #0b1220;
+  color: #cbd5e1;
+}
+
+/* Filter Periode — pill */
+.pp-filter-period {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 14px;
+  min-width: 165px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(13, 23, 48, 0.96);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.pp-filter-period:hover,
+.pp-filter-period:focus {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.pp-filter-period span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-filter-period i {
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.pp-filter-period input[type="month"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Reset Filter — tombol X */
+.pp-filter-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  background: rgba(127, 29, 29, 0.35);
+  color: #fca5a5;
+  text-decoration: none;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.pp-filter-reset:hover {
+  background: rgba(127, 29, 29, 0.65);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fecaca;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.pp-filter-reset:focus,
+.pp-filter-reset:focus-visible,
+.pp-filter-reset:active {
+  outline: none;
+  color: #fecaca;
+  text-decoration: none;
+  border-color: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.pp-filter-reset i {
+  font-size: 13px;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   Export Button (pill style)
+   ------------------------------------------------------------ */
 .btn-export {
   display: inline-flex;
   align-items: center;
@@ -481,6 +619,16 @@
   .pipeline-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .productpipeline-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pipeline-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 /* Tablet: header & tombol export */
@@ -516,6 +664,20 @@
 
   .pipeline-actions {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .pp-filter-select,
+  .pp-filter-period {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .pp-filter-reset {
+    width: 42px;
+    justify-self: start;
   }
 
   .btn-export {
@@ -524,6 +686,7 @@
     height: 40px;
     font-size: 12px;
     padding: 0 16px;
+    grid-column: 1 / -1;
   }
 
   .pipeline-card-header {
@@ -542,5 +705,17 @@
 
   .stage-col {
     width: 110px;
+  }
+}
+
+/* Mobile kecil: 1 kolom filter */
+@media (max-width: 480px) {
+  .pipeline-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-filter-reset {
+    width: 100%;
+    height: 42px;
   }
 }
