@@ -165,30 +165,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="system-info">
 
-                    <div class="system-line">
-
-                        <i class="fas fa-chart-line"></i>
-
-                        <span>
-                            <strong>CRM Platform</strong>
-                            &nbsp;—&nbsp; Business Management
-                        </span>
-
-                    </div>
-
-
-                    <div class="system-line">
-
-                        <i class="fas fa-shield-halved"></i>
-
-                        <span>
-                            <strong>Secure Access</strong>
-                            &nbsp;—&nbsp; Authorized Users Only
-                        </span>
-
-                    </div>
-
-
                     <div class="system-status">
 
                         <span class="status-dot"></span>
