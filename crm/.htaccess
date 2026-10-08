@@ -1,0 +1,146 @@
+# =========================================================
+# DMS CRM - SECURE .HTACCESS
+# Location:
+# public_html/crm/.htaccess
+# =========================================================
+
+Options -Indexes
+Options -MultiViews
+
+RewriteEngine On
+
+
+# =========================================================
+# 1. BLOK FILE / FOLDER SENSITIF
+# =========================================================
+
+# Jangan izinkan akses .git
+RewriteRule (^|/)\.git(?:/|$) - [F,L,NC]
+
+# Jangan izinkan akses file hidden
+RewriteRule (^|/)\.env(?:$|/) - [F,L,NC]
+RewriteRule (^|/)\.htaccess$ - [F,L,NC]
+
+
+# =========================================================
+# 2. BLOK CONFIGURATION FILE
+# =========================================================
+
+# config.php tidak boleh dibuka melalui browser
+<FilesMatch "^(config|configuration|database|db|connection|connect|settings|secrets)\.php$">
+    Require all denied
+</FilesMatch>
+
+
+# =========================================================
+# 3. BLOK FILE INTERNAL
+# =========================================================
+
+# File-file ini hanya untuk internal application
+<FilesMatch "^(navigation|navbar|sidebar|header|footer)\.php$">
+    Require all denied
+</FilesMatch>
+
+
+# =========================================================
+# 4. BLOK BACKUP / DATABASE / LOG
+# =========================================================
+
+<FilesMatch "\.(sql|sqlite|sqlite3|db|bak|backup|old|orig|save|tmp|temp|log|ini|conf|dist)$">
+    Require all denied
+</FilesMatch>
+
+
+# =========================================================
+# 5. BLOK FILE DEVELOPMENT / SECRET
+# =========================================================
+
+<FilesMatch "\.(env|yml|yaml|toml|sh)$">
+    Require all denied
+</FilesMatch>
+
+
+# =========================================================
+# 6. BLOK COMPOSER / PACKAGE METADATA
+# =========================================================
+
+<FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml)$">
+    Require all denied
+</FilesMatch>
+
+
+# =========================================================
+# 7. SECURITY HEADERS
+# =========================================================
+
+<IfModule mod_headers.c>
+
+    Header always set X-Content-Type-Options "nosniff"
+
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+</IfModule>
+
+
+# =========================================================
+# 8. REDIRECT .PHP -> CLEAN URL
+# =========================================================
+#
+# /crm/login.php
+#        ↓
+# /crm/login
+#
+# /crm/dashboard.php
+#        ↓
+# /crm/dashboard
+#
+# /crm/salesactivity.php
+#        ↓
+# /crm/salesactivity
+#
+
+RewriteCond %{THE_REQUEST} \s/+crm/([A-Za-z0-9_-]+)\.php(?:[?\s]) [NC]
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^([A-Za-z0-9_-]+)\.php$ $1 [R=301,L,NE]
+
+
+# =========================================================
+# 9. CLEAN URL -> PHP
+# =========================================================
+#
+# /crm/login
+#        ↓
+# /crm/login.php
+#
+# /crm/dashboard
+#        ↓
+# /crm/dashboard.php
+#
+# /crm/salesactivity
+#        ↓
+# /crm/salesactivity.php
+#
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/crm/$1.php -f
+RewriteRule ^(.+?)/?$ $1.php [END,QSA]
+
+
+# =========================================================
+# 10. ROOT /CRM/ -> LOGIN
+# =========================================================
+
+RewriteRule ^$ login [END]
+
+
+# =========================================================
+# 11. BLOCK DIRECT PHP PATH YANG TIDAK ADA
+# =========================================================
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule \.php$ - [R=404,L]
