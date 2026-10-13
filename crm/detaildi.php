@@ -95,6 +95,19 @@ if (empty($di_number)) {
     redirect('deliveryinstruction.php');
 }
 
+// Status penyelesaian input Admin disimpan terpisah agar kompatibel dengan schema lama.
+try {
+    $db->exec("CREATE TABLE IF NOT EXISTS di_admin_completion (
+        di_number VARCHAR(100) NOT NULL PRIMARY KEY,
+        is_done TINYINT(1) NOT NULL DEFAULT 0,
+        done_by INT NULL,
+        done_at DATETIME NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (Exception $e) {
+    error_log('DI admin completion table error: ' . $e->getMessage());
+}
+
 // ============================================
 // AUTO CREATE DETAIL DI JIKA BELUM ADA
 // ============================================
@@ -171,6 +184,20 @@ try {
 $statusDI = $detailDI['status'] ?? 'pending';
 $request['status'] = $statusDI;
 $request['no_so'] = $detailDI['no_so'] ?? '';
+
+$adminInputDone = false;
+$adminInputDoneAt = null;
+try {
+    $stmtDone = $db->prepare("SELECT is_done, done_at FROM di_admin_completion WHERE di_number = ? LIMIT 1");
+    $stmtDone->execute([$di_number]);
+    $doneRow = $stmtDone->fetch();
+    if ($doneRow) {
+        $adminInputDone = (int)$doneRow['is_done'] === 1;
+        $adminInputDoneAt = $doneRow['done_at'];
+    }
+} catch (Exception $e) {
+    error_log('DI admin completion read error: ' . $e->getMessage());
+}
 
 // ============================================
 // CEK HAK EDIT - HANYA ADMIN YANG BISA EDIT
@@ -420,8 +447,38 @@ foreach ($diSupports as $support) {
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    
+
+    if ($action === 'admin_mark_done') {
+        try {
+            if ($userRole !== 'admin') {
+                throw new Exception('Hanya Admin yang dapat menekan tombol Done.');
+            }
+            if (!$hasInputData) {
+                throw new Exception('Isi minimal satu menu DI sebelum menekan Done.');
+            }
+            $stmtMarkDone = $db->prepare("INSERT INTO di_admin_completion (di_number, is_done, done_by, done_at)
+                VALUES (?, 1, ?, NOW())
+                ON DUPLICATE KEY UPDATE is_done = 1, done_by = VALUES(done_by), done_at = NOW()");
+            $stmtMarkDone->execute([$di_number, $userId]);
+            setFlash('Input DI ditandai selesai. Divisi lain sekarang dapat melakukan approval.', 'success');
+        } catch (Exception $e) {
+            setFlash('Gagal menandai input selesai: ' . $e->getMessage(), 'danger');
+        }
+        redirect("detaildi.php?di_number=" . urlencode($di_number) . "&tab=data_penjualan");
+    }
+
     $editActions = ['save_data_penjualan', 'save_units', 'save_accessories', 'save_logistics', 'save_product_support', 'save_parts', 'save_logistics_comparison', 'select_logistics_vendor'];
+
+    // Perubahan data oleh Admin mengharuskan tombol Done ditekan kembali.
+    if (in_array($action, $editActions, true) && $userRole === 'admin') {
+        try {
+            $stmtResetDone = $db->prepare("UPDATE di_admin_completion SET is_done = 0, done_by = NULL, done_at = NULL WHERE di_number = ?");
+            $stmtResetDone->execute([$di_number]);
+            $adminInputDone = false;
+        } catch (Exception $e) {
+            error_log('DI admin completion reset error: ' . $e->getMessage());
+        }
+    }
     if (in_array($action, $editActions) && !$canEdit) {
         if ($hasBeenApproved) {
             setFlash('DI ini sudah di-approve, data tidak bisa diedit lagi!', 'danger');
@@ -450,6 +507,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (($lockedResubmit['status'] ?? '') !== 'rejected') {
                 throw new Exception('DI hanya dapat diajukan kembali jika berstatus rejected.');
             }
+            $resetDone = $db->prepare("UPDATE di_admin_completion SET is_done = 0, done_by = NULL, done_at = NULL WHERE di_number = ?");
+            $resetDone->execute([$di_number]);
             resetDIApprovalHistory($db, $di_number, true);
             $db->commit();
             setFlash('DI berhasil diajukan kembali dan kembali ke approval awal (Business).', 'success');
@@ -534,6 +593,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$currentDetail || $currentDetail['status'] !== 'pending') {
                 throw new Exception('DI belum berada pada status pending untuk approval.');
+            }
+
+            $checkAdminDone = $db->prepare("SELECT is_done FROM di_admin_completion WHERE di_number = ? LIMIT 1");
+            $checkAdminDone->execute([$di_number]);
+            if ((int)$checkAdminDone->fetchColumn() !== 1) {
+                throw new Exception('Approval dikunci. Admin harus menekan tombol "Sudah Selesai Menginput Semua? Done" terlebih dahulu.');
             }
 
             $dbCurrentOrder = (int)($currentDetail['current_approval_order'] ?? 0);
@@ -1287,8 +1352,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
+                <!-- ADMIN INPUT COMPLETION GATE -->
+                <?php if ($userRole === 'admin' && $request['status'] !== 'approved'): ?>
+                    <div class="mt-3 p-3" style="background: <?= $adminInputDone ? '#f0fdf4' : '#fff8e1' ?>; border: 1px solid <?= $adminInputDone ? '#bbf7d0' : '#fde68a' ?>; border-radius: 10px;">
+                        <?php if ($adminInputDone): ?>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div class="text-success">
+                                    <i class="fas fa-check-circle"></i> <strong>Input Admin sudah Done.</strong>
+                                    <?php if (!empty($adminInputDoneAt)): ?>
+                                        <small class="d-block text-muted">Ditandai pada <?= htmlspecialchars(date('d/m/Y H:i', strtotime($adminInputDoneAt))) ?></small>
+                                    <?php endif; ?>
+                                </div>
+                                <span class="badge bg-success">Done</span>
+                            </div>
+                            <small class="text-muted d-block mt-2">Jika data diubah kembali, status Done akan direset dan Admin harus menekan Done lagi.</small>
+                        <?php else: ?>
+                            <div class="mb-2"><strong><i class="fas fa-clipboard-check"></i> Sudah Selesai Menginput Semua?</strong></div>
+                            <p class="small text-muted mb-2">Pastikan seluruh menu DI sudah lengkap. Sebelum Admin menekan Done, divisi lain tidak dapat melakukan approval.</p>
+                            <form method="POST" onsubmit="return confirm('Pastikan semua data DI sudah selesai diinput. Tandai selesai dan buka akses approval?')">
+                                <input type="hidden" name="action" value="admin_mark_done">
+                                <button type="submit" class="btn btn-success" <?= !$hasInputData ? 'disabled' : '' ?>>
+                                    <i class="fas fa-check"></i> Done
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!$adminInputDone && $userRole !== 'admin' && $hasInputData && $request['status'] === 'pending'): ?>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-lock"></i>
+                        Approval dikunci sampai Admin menekan <strong>Sudah Selesai Menginput Semua? Done</strong>.
+                    </div>
+                <?php endif; ?>
+
                 <!-- APPROVAL ACTION -->
-                <?php if ($hasInputData && $currentApprovalOrder > 0 && $currentApprovalOrder <= 8 && $request['status'] == 'pending'): ?>
+                <?php if ($adminInputDone && $hasInputData && $currentApprovalOrder > 0 && $currentApprovalOrder <= 8 && $request['status'] == 'pending'): ?>
                     <?php 
                     $canApprove = false;
                     $requiredRole = $approvalLevels[$currentApprovalOrder]['role'];
