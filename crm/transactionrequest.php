@@ -318,13 +318,21 @@ $sql = "SELECT ad.tr_number,
                    ) THEN 'approved'
                    ELSE 'pending'
                END as status,
-               (
-                   SELECT dtr_cd.customer_deal
-                   FROM detail_transaction_requests dtr_cd
-                   WHERE dtr_cd.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
-                   ORDER BY dtr_cd.id DESC
-                   LIMIT 1
-               ) as customer_deal,
+               CASE
+                   WHEN EXISTS (
+                       SELECT 1
+                       FROM detail_transaction_requests dtr_rejected
+                       WHERE dtr_rejected.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+                         AND dtr_rejected.status = 'rejected'
+                   ) THEN 'no'
+                   ELSE (
+                       SELECT dtr_cd.customer_deal
+                       FROM detail_transaction_requests dtr_cd
+                       WHERE dtr_cd.trf_number COLLATE utf8mb4_unicode_ci = ad.tr_number COLLATE utf8mb4_unicode_ci
+                       ORDER BY dtr_cd.id DESC
+                       LIMIT 1
+                   )
+               END as customer_deal,
                $nextApproverSql as next_approver
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON ad.sales_activity_id = sa.id
