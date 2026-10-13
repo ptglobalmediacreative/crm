@@ -868,13 +868,8 @@ $__dashPerfMark('Recent Activity + Hot Opportunities');
 <body>
 <div class="app">
     <?php
-    // Dashboard harus memuat ringkasan utama terlebih dahulu.
-    // Engine notifikasi penuh memindai TR/DI dan dapat mengirim SMTP
-    // secara sinkron; jalankan notifikasi pada halaman lain sampai dipindah
-    // ke endpoint/background worker khusus.
-    if (!defined('CRM_LIGHT_NAV')) {
-        define('CRM_LIGHT_NAV', true);
-    }
+    // Muat navigation normal agar notifikasi Dashboard ikut diproses.
+    // Pengiriman email sinkron tetap dinonaktifkan secara default di navigation.php.
     require_once 'navigation.php';
     ?>
 
