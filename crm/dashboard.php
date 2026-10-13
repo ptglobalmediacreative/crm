@@ -161,16 +161,9 @@ $sqlTotalLeads = "
 ";
 $totalLeads = (int)$db->query($sqlTotalLeads)->fetchColumn();
 
-// New Leads = Account yang dibuat pada periode filter.
-// All Month = seluruh Account yang dapat dilihat user.
-$sqlNewLeads = "
-    SELECT COUNT(*)
-    FROM accounts a
-    WHERE 1=1
-    {$sqlFilterAcc}
-    {$sqlFilterAccMonth}
-";
-$newLeads = (int)$db->query($sqlNewLeads)->fetchColumn();
+// Query New Leads memiliki kondisi yang identik dengan Total Leads.
+// Gunakan hasil yang sama agar tidak menghitung tabel accounts dua kali.
+$newLeads = $totalLeads;
 
 /*
  * Total Transaction Request.
@@ -583,218 +576,113 @@ if (!function_exists('hexToRgba')) {
     }
 }
 
+// Query chart cukup SATU KALI untuk seluruh sales/periode.
+// Sebelumnya, saat memilih satu bulan dan All Sales, query dijalankan
+// berulang untuk setiap sales (N+1 queries).
 if ($filterMonth !== '') {
-    // Bulan tertentu -> per hari.
     $year = (int)substr($filterMonth, 0, 4);
     $month = (int)substr($filterMonth, 5, 2);
     $totalDays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-
     $chartStart = $filterMonth . '-01';
     $chartEnd = date('Y-m-d', strtotime($chartStart . ' +1 month'));
+    $chartGroup = 'DATE(sa.created_at)';
+    $chartPeriodFormat = 'date';
 
-    if ($filterSalesId > 0) {
-        $chartQuery = "
-            SELECT DATE(sa.created_at) AS date, COUNT(*) AS total
-            FROM sales_activities sa
-            WHERE sa.created_at >= ?
-              AND sa.created_at < ?
-              AND sa.sales_id = ?
-            GROUP BY DATE(sa.created_at)
-            ORDER BY date ASC
-        ";
-
-        $stmt = $db->prepare($chartQuery);
-        $stmt->execute([$chartStart, $chartEnd, $filterSalesId]);
-        $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $dataMap = [];
-        foreach ($chartData as $row) {
-            $dataMap[$row['date']] = (int)$row['total'];
-        }
-
-        $values = [];
-        for ($day = 1; $day <= $totalDays; $day++) {
-            $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
-            $chartLabels[] = date('d M', strtotime($dateKey));
-            $values[] = $dataMap[$dateKey] ?? 0;
-        }
-
-        $chartDatasets[] = [
-            'label' => htmlspecialchars($filteredSalesName),
-            'data' => $values,
-            'backgroundColor' => 'rgba(41, 128, 185, 0.6)',
-            'borderColor' => '#2980b9',
-            'borderWidth' => 3,
-            'fill' => true,
-            'tension' => 0.4,
-            'pointRadius' => 5,
-            'pointBackgroundColor' => '#fff',
-            'pointBorderColor' => '#2980b9',
-            'pointBorderWidth' => 2,
-            'pointHoverRadius' => 7
-        ];
-    } else {
-        // Full report tanpa filter sales -> semua sales.
-        for ($day = 1; $day <= $totalDays; $day++) {
-            $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
-            $chartLabels[] = date('d M', strtotime($dateKey));
-        }
-
-        $colorIndex = 0;
-        foreach ($allSalesList as $sales) {
-            $sId = (int)$sales['id'];
-            $sName = $sales['full_name'];
-
-            $chartQuery = "
-                SELECT DATE(sa.created_at) AS date, COUNT(*) AS total
-                FROM sales_activities sa
-                WHERE sa.created_at >= ?
-                  AND sa.created_at < ?
-                  AND sa.sales_id = ?
-                GROUP BY DATE(sa.created_at)
-                ORDER BY date ASC
-            ";
-
-            $stmt = $db->prepare($chartQuery);
-            $stmt->execute([$chartStart, $chartEnd, $sId]);
-            $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            $dataMap = [];
-            foreach ($chartData as $row) {
-                $dataMap[$row['date']] = (int)$row['total'];
-            }
-
-            $values = [];
-            for ($day = 1; $day <= $totalDays; $day++) {
-                $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
-                $values[] = $dataMap[$dateKey] ?? 0;
-            }
-
-            $color = $colorPalette[$colorIndex % count($colorPalette)];
-
-            $chartDatasets[] = [
-                'label' => htmlspecialchars($sName),
-                'data' => $values,
-                'backgroundColor' => hexToRgba($color, 0.2),
-                'borderColor' => $color,
-                'borderWidth' => 2,
-                'fill' => false,
-                'tension' => 0.4,
-                'pointRadius' => 4,
-                'pointBackgroundColor' => '#fff',
-                'pointBorderColor' => $color,
-                'pointBorderWidth' => 2,
-                'pointHoverRadius' => 6
-            ];
-
-            $colorIndex++;
-        }
+    for ($day = 1; $day <= $totalDays; $day++) {
+        $dateKey = sprintf('%04d-%02d-%02d', $year, $month, $day);
+        $chartLabels[] = date('d M', strtotime($dateKey));
+    }
+    $periods = [];
+    for ($day = 1; $day <= $totalDays; $day++) {
+        $periods[] = sprintf('%04d-%02d-%02d', $year, $month, $day);
     }
 } else {
-    // All Month -> per bulan.
+    // All Month menampilkan 12 bulan terakhir.
     $chartEnd = date('Y-m-01', strtotime('+1 month'));
     $chartStart = date('Y-m-01', strtotime('-11 months'));
+    $chartGroup = "DATE_FORMAT(sa.created_at, '%Y-%m')";
+    $chartPeriodFormat = 'month';
 
-    $monthRows = [];
-
-    $sqlChartAll = "
-        SELECT DATE_FORMAT(sa.created_at, '%Y-%m') AS period,
-               sa.sales_id,
-               COUNT(*) AS total
-        FROM sales_activities sa
-        WHERE sa.created_at >= ?
-          AND sa.created_at < ?
-    ";
-
-    $chartParams = [$chartStart, $chartEnd];
-
-    if ($filterSalesId > 0) {
-        $sqlChartAll .= " AND sa.sales_id = ?";
-        $chartParams[] = $filterSalesId;
-    }
-
-    $sqlChartAll .= "
-        GROUP BY DATE_FORMAT(sa.created_at, '%Y-%m'), sa.sales_id
-        ORDER BY period ASC
-    ";
-
-    $stmt = $db->prepare($sqlChartAll);
-    $stmt->execute($chartParams);
-    $monthRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Buat 12 bulan terakhir agar chart tetap rapi.
     $periods = [];
     $cursor = new DateTime($chartStart);
     $endCursor = new DateTime($chartEnd);
-
     while ($cursor < $endCursor) {
-        $periodKey = $cursor->format('Y-m');
-        $periods[] = $periodKey;
+        $periods[] = $cursor->format('Y-m');
         $chartLabels[] = $cursor->format('M Y');
         $cursor->modify('+1 month');
     }
+}
 
-    if ($filterSalesId > 0) {
-        $map = [];
-        foreach ($monthRows as $row) {
-            $map[$row['period']] = (int)$row['total'];
-        }
+$sqlChart = "
+    SELECT {$chartGroup} AS period, sa.sales_id, COUNT(*) AS total
+    FROM sales_activities sa
+    WHERE sa.created_at >= ? AND sa.created_at < ?
+";
+$chartParams = [$chartStart, $chartEnd];
+if ($filterSalesId > 0) {
+    $sqlChart .= " AND sa.sales_id = ?";
+    $chartParams[] = $filterSalesId;
+}
+$sqlChart .= " GROUP BY {$chartGroup}, sa.sales_id ORDER BY period ASC";
+$stmt = $db->prepare($sqlChart);
+$stmt->execute($chartParams);
+$chartRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Peta total aktivitas per sales dan periode, dibangun dari satu hasil query.
+$chartMaps = [];
+foreach ($chartRows as $row) {
+    $sid = (int)$row['sales_id'];
+    if (!isset($chartMaps[$sid])) {
+        $chartMaps[$sid] = [];
+    }
+    $chartMaps[$sid][$row['period']] = (int)$row['total'];
+}
+
+if ($filterSalesId > 0) {
+    $values = [];
+    $selectedMap = $chartMaps[$filterSalesId] ?? [];
+    foreach ($periods as $period) {
+        $values[] = $selectedMap[$period] ?? 0;
+    }
+    $chartDatasets[] = [
+        'label' => htmlspecialchars($filteredSalesName, ENT_QUOTES, 'UTF-8'),
+        'data' => $values,
+        'backgroundColor' => 'rgba(41, 128, 185, 0.6)',
+        'borderColor' => '#2980b9',
+        'borderWidth' => 3,
+        'fill' => true,
+        'tension' => 0.4,
+        'pointRadius' => 5,
+        'pointBackgroundColor' => '#fff',
+        'pointBorderColor' => '#2980b9',
+        'pointBorderWidth' => 2,
+        'pointHoverRadius' => 7
+    ];
+} else {
+    $colorIndex = 0;
+    foreach ($allSalesList as $sales) {
+        $sid = (int)$sales['id'];
+        $salesMap = $chartMaps[$sid] ?? [];
         $values = [];
         foreach ($periods as $period) {
-            $values[] = $map[$period] ?? 0;
+            $values[] = $salesMap[$period] ?? 0;
         }
-
+        $color = $colorPalette[$colorIndex % count($colorPalette)];
         $chartDatasets[] = [
-            'label' => htmlspecialchars($filteredSalesName),
+            'label' => htmlspecialchars($sales['full_name'], ENT_QUOTES, 'UTF-8'),
             'data' => $values,
-            'backgroundColor' => 'rgba(41, 128, 185, 0.6)',
-            'borderColor' => '#2980b9',
-            'borderWidth' => 3,
-            'fill' => true,
+            'backgroundColor' => hexToRgba($color, 0.2),
+            'borderColor' => $color,
+            'borderWidth' => 2,
+            'fill' => false,
             'tension' => 0.4,
-            'pointRadius' => 5,
+            'pointRadius' => 4,
             'pointBackgroundColor' => '#fff',
-            'pointBorderColor' => '#2980b9',
+            'pointBorderColor' => $color,
             'pointBorderWidth' => 2,
-            'pointHoverRadius' => 7
+            'pointHoverRadius' => 6
         ];
-    } else {
-        $maps = [];
-
-        foreach ($allSalesList as $sales) {
-            $maps[(int)$sales['id']] = array_fill_keys($periods, 0);
-        }
-
-        foreach ($monthRows as $row) {
-            $sid = (int)$row['sales_id'];
-            if (isset($maps[$sid])) {
-                $maps[$sid][$row['period']] = (int)$row['total'];
-            }
-        }
-
-        $colorIndex = 0;
-        foreach ($allSalesList as $sales) {
-            $sid = (int)$sales['id'];
-            $color = $colorPalette[$colorIndex % count($colorPalette)];
-
-            $chartDatasets[] = [
-                'label' => htmlspecialchars($sales['full_name']),
-                'data' => array_values($maps[$sid] ?? array_fill_keys($periods, 0)),
-                'backgroundColor' => hexToRgba($color, 0.2),
-                'borderColor' => $color,
-                'borderWidth' => 2,
-                'fill' => false,
-                'tension' => 0.4,
-                'pointRadius' => 4,
-                'pointBackgroundColor' => '#fff',
-                'pointBorderColor' => $color,
-                'pointBorderWidth' => 2,
-                'pointHoverRadius' => 6
-            ];
-
-            $colorIndex++;
-        }
+        $colorIndex++;
     }
 }
 
