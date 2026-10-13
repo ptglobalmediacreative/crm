@@ -935,16 +935,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 }
 
 // ============================================
-// AMBIL SEMUA DATA UNTUK CHART (tanpa pagination)
+// REKAP CHART SECARA AGREGAT DI DATABASE
+// Menghindari pola N+1: sebelumnya setiap activity ID memicu
+// query getJenisProspek() dan getStatusProspek() berulang.
+// Kolom ringkasan ini juga digunakan oleh filter halaman.
 // ============================================
-$chartSql = "SELECT sa.id FROM sales_activities sa 
-             LEFT JOIN accounts a ON sa.account_id = a.id 
-             $where";
-$stmt = $db->prepare($chartSql);
-$stmt->execute($params);
-$chartActivities = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-// Hitung rekap untuk chart
 $prospekCounts = [
     'Suspect' => 0,
     'Prospect' => 0,
@@ -959,15 +954,26 @@ $statusCounts = [
     'Overdue' => 0
 ];
 
-foreach ($chartActivities as $saId) {
-    $jp = getJenisProspek($db, $saId);
-    if ($jp && isset($prospekCounts[$jp])) {
-        $prospekCounts[$jp]++;
+$chartSummarySql = "
+    SELECT sa.jenis_prospek, sa.status, COUNT(*) AS total
+    FROM sales_activities sa
+    LEFT JOIN accounts a ON sa.account_id = a.id
+    {$where}
+    GROUP BY sa.jenis_prospek, sa.status
+";
+$stmt = $db->prepare($chartSummarySql);
+$stmt->execute($params);
+
+while ($chartRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $total = (int)$chartRow['total'];
+    $jenis = (string)($chartRow['jenis_prospek'] ?? '');
+    $status = (string)($chartRow['status'] ?? '');
+
+    if (isset($prospekCounts[$jenis])) {
+        $prospekCounts[$jenis] += $total;
     }
-    
-    $sp = getStatusProspek($db, $saId);
-    if ($sp && isset($statusCounts[$sp])) {
-        $statusCounts[$sp]++;
+    if (isset($statusCounts[$status])) {
+        $statusCounts[$status] += $total;
     }
 }
 
@@ -1015,6 +1021,14 @@ $tipeUnitStmt = $db->prepare("
     ORDER BY p.nama_produk ASC
 ");
 
+// Siapkan statement sinkronisasi sekali, bukan prepare berulang per baris.
+$syncStmt = $db->prepare("
+    UPDATE sales_activities
+    SET jenis_prospek = ?, status = ?
+    WHERE id = ?
+      AND NOT (jenis_prospek <=> ? AND status <=> ?)
+");
+
 foreach ($activities as &$act) {
     $lastActivityStmt->execute([$act['id']]);
     $act['last_activity'] = $lastActivityStmt->fetchColumn() ?: null;
@@ -1025,8 +1039,14 @@ foreach ($activities as &$act) {
     $tipeUnitStmt->execute([$act['id']]);
     $act['tipe_unit_list'] = $tipeUnitStmt->fetchAll(PDO::FETCH_COLUMN);
 
-    $stmt = $db->prepare("UPDATE sales_activities SET jenis_prospek = ?, status = ? WHERE id = ?");
-    $stmt->execute([$act['jenis_prospek'], $act['status_prospek'], $act['id']]);
+    // Hindari operasi tulis jika nilai ringkasan tidak berubah.
+    $syncStmt->execute([
+        $act['jenis_prospek'],
+        $act['status_prospek'],
+        $act['id'],
+        $act['jenis_prospek'],
+        $act['status_prospek']
+    ]);
 }
 unset($act);
 
