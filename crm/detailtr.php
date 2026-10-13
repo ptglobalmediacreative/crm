@@ -1126,9 +1126,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $total_mediator_fee += (float)$med['amount'];
             }
 
+            // Selling Price (Non PPN) = Detail Unit Price (Non PPN) x Qty, dijumlahkan untuk semua unit.
             $selling_price = 0;
             foreach ($detailUnits as $unit) {
-                $selling_price += (float)$unit['price'];
+                $selling_price += (float)($unit['price'] ?? 0) * (int)($unit['qty'] ?? 0);
             }
 
             $total_cogs = $support_price + $additional_cost + $total_mediator_fee;
@@ -1162,9 +1163,10 @@ foreach ($detailUnits as $unit) {
     $totalUnitGrandTotal += (float)$unit['grand_total'];
 }
 
+// Total Selling Price (Non PPN) = harga per unit x qty untuk setiap baris Detail Unit.
 $totalUnitPrice = 0;
 foreach ($detailUnits as $unit) {
-    $totalUnitPrice += (float)$unit['price'];
+    $totalUnitPrice += (float)($unit['price'] ?? 0) * (int)($unit['qty'] ?? 0);
 }
 
 $totalTOP = 0;
