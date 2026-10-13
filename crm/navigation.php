@@ -1253,7 +1253,16 @@ $notifUnread = count($notifUnreadItems);
    - Kegagalan email tidak menghentikan CRM.
    ========================================================== */
 
-if ($notifDb instanceof PDO && $notifUserId > 0 && !empty($notifUnreadItems)) {
+// Pengiriman email sinkron dinonaktifkan secara default agar request halaman
+// tidak menunggu SMTP. Aktifkan hanya jika memang ingin mengizinkan pengiriman
+// sinkron sementara; solusi produksi yang disarankan adalah antrean + cron worker.
+if (
+    defined('CRM_ENABLE_SYNC_NOTIFICATION_EMAIL') &&
+    CRM_ENABLE_SYNC_NOTIFICATION_EMAIL === true &&
+    $notifDb instanceof PDO &&
+    $notifUserId > 0 &&
+    !empty($notifUnreadItems)
+) {
     try {
         // Pastikan tabel log email tersedia.
         $notifDb->exec("

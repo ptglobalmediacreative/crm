@@ -5,6 +5,19 @@ error_reporting(E_ALL);
 
 require_once 'config.php';
 
+// Diagnostik performa sementara: catat waktu per bagian ke PHP error log.
+// Hapus blok ini setelah bottleneck teridentifikasi.
+$__dashPerfLast = microtime(true);
+$__dashPerfMark = static function (string $label) use (&$__dashPerfLast): void {
+    $now = microtime(true);
+    error_log(sprintf(
+        '[GET CRM PERF] dashboard %s: %.3fs',
+        $label,
+        $now - $__dashPerfLast
+    ));
+    $__dashPerfLast = $now;
+};
+
 // Set timezone ke WIB
 date_default_timezone_set('Asia/Jakarta');
 
@@ -196,6 +209,8 @@ $sqlTotalDO = "
 ";
 $totalDeliveryOrders = (int)$db->query($sqlTotalDO)->fetchColumn();
 
+$__dashPerfMark('KPI queries');
+
 // ============================================
 // SALES PIPELINE
 // Ambil aktivitas TERAKHIR dalam periode yang dipilih.
@@ -303,6 +318,8 @@ foreach ($pipelineRows as $row) {
         $pipelineCounts['Deal']++;
     }
 }
+
+$__dashPerfMark('Sales Pipeline');
 
 // Revenue Forecast
 $totalRevenue = 0;
@@ -555,6 +572,8 @@ foreach ($dashboardPipelineByProduct as $row) {
     $dashTotalDeal     += (int)$row['deal'];
 }
 
+$__dashPerfMark('Product Pipeline');
+
 // ============================================
 // CHART ACTIVITY PERFORMANCE
 // Filter Sales + Bulan selalu diterapkan.
@@ -685,6 +704,8 @@ if ($filterSalesId > 0) {
         $colorIndex++;
     }
 }
+
+$__dashPerfMark('Chart query and datasets');
 
 // ============================================
 // AKTIVITAS TERBARU
@@ -825,6 +846,8 @@ try {
     $hotOpportunities = $db->query($sqlHotOpportunities)->fetchAll(PDO::FETCH_ASSOC);
 }
 
+$__dashPerfMark('Recent Activity + Hot Opportunities');
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -844,7 +867,16 @@ try {
 </head>
 <body>
 <div class="app">
-    <?php require_once 'navigation.php'; ?>
+    <?php
+    // Dashboard harus memuat ringkasan utama terlebih dahulu.
+    // Engine notifikasi penuh memindai TR/DI dan dapat mengirim SMTP
+    // secara sinkron; jalankan notifikasi pada halaman lain sampai dipindah
+    // ke endpoint/background worker khusus.
+    if (!defined('CRM_LIGHT_NAV')) {
+        define('CRM_LIGHT_NAV', true);
+    }
+    require_once 'navigation.php';
+    ?>
 
     <main class="content">
 <section class="hero-row">
