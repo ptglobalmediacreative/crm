@@ -1382,7 +1382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if (!$adminInputDone && $userRole !== 'admin' && $hasInputData && $request['status'] === 'pending'): ?>
                     <div class="alert alert-warning mt-3">
                         <i class="fas fa-lock"></i>
-                        Approval dikunci sampai Admin menekan <strong>Sudah Selesai Menginput Semua? Done</strong>.
+                        Approval dikunci sampai Admin <strong>Sudah Selesai Menginput Semua</strong>.
                     </div>
                 <?php endif; ?>
 
