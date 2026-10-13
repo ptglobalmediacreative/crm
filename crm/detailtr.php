@@ -1256,10 +1256,6 @@ $isDataComplete = empty($missingSections);
                 </div>
                 <div>
                     <strong style="font-size: 16px;">TR terkunci karena sudah ada approval.</strong>
-                    <div class="mt-1">
-                        Data TR tidak dapat diedit sampai approver yang sedang giliran me-<strong>Reject</strong> TR ini.
-                        Setelah Rejected, Sales pemilik TR dapat merevisi lalu mengajukan kembali dari awal (Sales Manager).
-                    </div>
                 </div>
             </div>
         <?php endif; ?>
