@@ -463,7 +463,7 @@ foreach ($items as $item) {
         row.className = 'quotation-row';
         row.innerHTML = `
             <td class="row-number text-center fw-bold"></td>
-            <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" placeholder="Contoh: GET-100" required></td>
+            <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" placeholder="Type Unit" required></td>
             <td><input class="form-control description-input" type="text" name="description[]" placeholder="Deskripsi item"></td>
             <td><input class="form-control qty-input" type="number" name="qty[]" min="0.01" step="0.01" value="1" required></td>
             <td><input class="form-control price-input" type="number" name="price[]" min="0" step="0.01" value="0" required></td>
