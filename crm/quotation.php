@@ -87,7 +87,7 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php require_once 'navigation.php'; ?>
 <main class="content">
     <div class="page-header">
-        <h4><span><i class="fas fa-file-invoice-dollar"></i></span> Quotation</h4>
+        <h4><span><i class="fas fa-file-invoice-dollar"></i></span> Quotation Price</h4>
     </div>
 
     <div class="stat-grid">
