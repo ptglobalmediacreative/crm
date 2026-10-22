@@ -222,8 +222,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
                     $errors[] = 'Model Unit wajib diisi pada baris ' . ($i + 1) . '.';
                     continue;
                 }
-                if (!is_numeric($qtyRaw) || (float)$qtyRaw <= 0) {
-                    $errors[] = 'Qty harus lebih besar dari 0 pada baris ' . ($i + 1) . '.';
+                if (!is_numeric($qtyRaw) || (float)$qtyRaw <= 0 || floor((float)$qtyRaw) !== (float)$qtyRaw) {
+                    $errors[] = 'Qty harus berupa bilangan bulat (1, 2, 3, dan seterusnya) pada baris ' . ($i + 1) . '.';
                     continue;
                 }
                 if (!is_numeric($priceRaw) || (float)$priceRaw < 0) {
@@ -233,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
                 $rows[] = [
                     'model_unit' => mb_substr($model, 0, 255),
                     'description' => $description,
-                    'qty' => (float)$qtyRaw,
+                    'qty' => (int)$qtyRaw,
                     'price' => (float)$priceRaw
                 ];
             }
@@ -594,7 +594,7 @@ foreach ($items as $item) {
                                         <td class="row-number text-center fw-bold"><?= $index + 1 ?></td>
                                         <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" value="<?= h($item['model_unit']) ?>" placeholder="Type Unit" required></td>
                                         <td><input class="form-control description-input" type="text" name="description[]" value="<?= h($item['description']) ?>" placeholder="Deskripsi item"></td>
-                                        <td><input class="form-control qty-input" type="number" name="qty[]" min="0.01" step="0.01" value="<?= h($item['qty']) ?>" required></td>
+                                        <td><input class="form-control qty-input" type="number" name="qty[]" min="1" step="1" value="<?= h(rtrim(rtrim(number_format((float)$item['qty'], 0, '.', ''), '0'), '.')) ?>" required></td>
                                         <td><input class="form-control price-input" type="number" name="price[]" min="0" step="0.01" value="<?= h($item['price']) ?>" required></td>
                                         <td class="total-cell">Rp 0</td>
                                         <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" title="Hapus baris"><i class="fas fa-trash"></i></button></td>
@@ -624,7 +624,7 @@ foreach ($items as $item) {
                                     <td class="text-center fw-bold row-number"><?= $index + 1 ?></td>
                                     <td><?= h($item['model_unit'] !== '' ? $item['model_unit'] : '—') ?></td>
                                     <td><?= h($item['description'] !== '' ? $item['description'] : '—') ?></td>
-                                    <td><?= h($item['qty']) ?></td>
+                                    <td><?= h(rtrim(rtrim(number_format((float)$item['qty'], 0, ',', '.'), '0'), ',')) ?></td>
                                     <td><?= h(rupiah($item['price'])) ?></td>
                                     <td class="total-cell"><?= h(rupiah((float)$item['qty'] * (float)$item['price'])) ?></td>
                                 </tr>
@@ -696,7 +696,7 @@ foreach ($items as $item) {
             <td class="row-number text-center fw-bold"></td>
             <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" placeholder="Type Unit" required></td>
             <td><input class="form-control description-input" type="text" name="description[]" placeholder="Deskripsi item"></td>
-            <td><input class="form-control qty-input" type="number" name="qty[]" min="0.01" step="0.01" value="1" required></td>
+            <td><input class="form-control qty-input" type="number" name="qty[]" min="1" step="1" value="1" required></td>
             <td><input class="form-control price-input" type="number" name="price[]" min="0" step="0.01" value="0" required></td>
             <td class="total-cell">Rp 0</td>
             ${canEdit ? '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" title="Hapus baris"><i class="fas fa-trash"></i></button></td>' : ''}
