@@ -59,7 +59,7 @@ $sql = "SELECT
         LEFT JOIN users u ON u.id = sa.sales_id
         $where
         GROUP BY ad.quotation_number
-        ORDER BY first_created_at DESC, ad.quotation_number DESC
+        ORDER BY quotation_created_at DESC, ad.quotation_number DESC
         LIMIT $limit OFFSET $offset";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
