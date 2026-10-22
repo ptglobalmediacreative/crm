@@ -96,7 +96,7 @@ try {
 
 $parentSql = "
     SELECT ad.id, ad.quotation_number, ad.request_quotation, ad.sales_activity_id,
-           sa.sales_id, a.nama_pt, a.nama_pic AS pic_name, u.full_name AS sales_name
+           sa.activity_number, sa.sales_id, a.nama_pt, a.nama_pic AS pic_name, u.full_name AS sales_name
     FROM activity_details ad
     LEFT JOIN sales_activities sa ON sa.id = ad.sales_activity_id
     LEFT JOIN accounts a ON a.id = sa.account_id
@@ -317,6 +317,8 @@ foreach ($items as $item) {
 $companyName = trim((string)($quotation['nama_pt'] ?? '')) ?: 'Account tidak tersedia';
 $picName = trim((string)($quotation['pic_name'] ?? '')) ?: '-';
 $salesName = trim((string)($quotation['sales_name'] ?? '')) ?: 'Sales tidak tersedia';
+$activityNumber = trim((string)($quotation['activity_number'] ?? '')) ?: '-';
+$salesActivityId = (int)($quotation['sales_activity_id'] ?? 0);
 $displayRows = [];
 foreach ($items as $item) {
     $displayRows[] = [
@@ -428,7 +430,16 @@ foreach ($items as $item) {
             .quotation-title i { width:34px; height:34px; border-radius:9px; }
             .quotation-card-head { padding:13px; }
         }
-    </style>
+    
+.activity-number-link {
+    color: #0d6efd;
+    font-weight: 600;
+    text-decoration: none;
+}
+.activity-number-link:hover {
+    text-decoration: underline;
+}
+</style>
 </head>
 <body class="page-detailquotation">
 <div class="app">
@@ -463,6 +474,7 @@ foreach ($items as $item) {
                 <div class="quotation-card-body">
                     <div class="info-grid">
                         <div class="info-item"><div class="info-label">Quotation Number</div><div class="info-value"><?= h($quotationNumber) ?></div></div>
+                        <div class="info-item"><div class="info-label">Activity Number</div><div class="info-value"><?php if ($salesActivityId > 0 && $activityNumber !== '-'): ?><a href="detailaktivitas.php?leads_id=<?= rawurlencode((string)$salesActivityId) ?>" class="activity-number-link"><?= h($activityNumber) ?></a><?php else: ?><?= h($activityNumber) ?><?php endif; ?></div></div>
                         <div class="info-item"><div class="info-label">Account</div><div class="info-value"><?= h($companyName) ?></div></div>
                         <div class="info-item"><div class="info-label">Nama PIC</div><div class="info-value"><?= h($picName) ?></div></div>
                         <div class="info-item"><div class="info-label">Sales</div><div class="info-value"><?= h($salesName) ?></div></div>
@@ -542,6 +554,7 @@ foreach ($items as $item) {
                                 </tbody>
                             </table>
                         </div>
+                        <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong id="grandTotal">Rp 0</strong></div></div>
                         <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
                             <a class="btn btn-outline-secondary" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=detail_quotation"><i class="fas fa-xmark me-2"></i>Batal</a>
                             <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button>
@@ -566,6 +579,7 @@ foreach ($items as $item) {
                             </tbody>
                         </table>
                     </div>
+                    <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong><?= h(rupiah($totalQuotation)) ?></strong></div></div>
                     <?php endif; ?>
                 </div>
             </section>
