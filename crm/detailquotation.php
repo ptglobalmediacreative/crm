@@ -455,13 +455,38 @@ foreach ($items as $item) {
 
         .totals-breakdown {
             display: flex;
-            justify-content: flex-end;
-            align-items: stretch;
-            gap: 12px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            margin-top: 12px;
         }
-        .totals-breakdown .total-box { min-width: 180px; }
-        .totals-breakdown .total-grand { border: 1px solid var(--quotation-gold); }
+        .totals-breakdown .total-box {
+            width: 245px;
+            min-width: 0;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+        .totals-breakdown .total-box span {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .totals-breakdown .total-box strong {
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .totals-breakdown .total-grand {
+            border: 1px solid var(--quotation-gold);
+        }
+        @media (max-width: 576px) {
+            .totals-breakdown { align-items: stretch; }
+            .totals-breakdown .total-box { width: 100%; }
+        }
 
 </style>
 </head>
