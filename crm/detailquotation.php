@@ -25,6 +25,8 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $userId = (int)($_SESSION['user_id'] ?? 0);
 $userRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $quotationNumber = trim((string)($_GET['quotation_number'] ?? $_POST['quotation_number'] ?? ''));
+$activeTab = (string)($_GET['tab'] ?? 'summary');
+if (!in_array($activeTab, ['summary', 'detail_quotation'], true)) { $activeTab = 'summary'; }
 
 if ($quotationNumber === '' || strlen($quotationNumber) > 100) {
     setFlash('Quotation Number tidak valid.', 'danger');
@@ -71,6 +73,25 @@ try {
     error_log('[CRM quotation] Gagal memastikan tabel quotation_items: ' . $e->getMessage());
 }
 
+// Notes dibuat sebagai baris terpisah agar pengguna dapat menambah lebih dari satu catatan.
+try {
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS quotation_notes (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            quotation_number VARCHAR(100) NOT NULL,
+            note_text TEXT NOT NULL,
+            line_no INT UNSIGNED NOT NULL DEFAULT 1,
+            created_by BIGINT UNSIGNED NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_quotation_notes_number (quotation_number)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+} catch (Throwable $e) {
+    error_log('[CRM quotation] Gagal memastikan tabel quotation_notes: ' . $e->getMessage());
+}
+
 $parentSql = "
     SELECT ad.id, ad.quotation_number, ad.request_quotation, ad.sales_activity_id,
            sa.sales_id, a.nama_pt, u.full_name AS sales_name
@@ -105,6 +126,46 @@ if (empty($_SESSION['quotation_csrf'])) {
     $_SESSION['quotation_csrf'] = bin2hex(random_bytes(32));
 }
 $csrfToken = (string)$_SESSION['quotation_csrf'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_notes') {
+    if (!$canEdit) {
+        http_response_code(403);
+        exit('Anda tidak memiliki izin untuk mengedit Notes quotation.');
+    }
+    $postedToken = (string)($_POST['csrf_token'] ?? '');
+    if (!hash_equals($csrfToken, $postedToken)) {
+        http_response_code(400);
+        exit('Token keamanan tidak valid. Muat ulang halaman lalu coba kembali.');
+    }
+    $postedNotes = $_POST['notes'] ?? [];
+    if (!is_array($postedNotes) || count($postedNotes) > 100) {
+        $flashMessage = 'Format Notes tidak valid atau jumlah catatan melebihi 100.';
+        $flashType = 'danger';
+    } else {
+        $notes = [];
+        foreach ($postedNotes as $note) {
+            $note = trim((string)$note);
+            if ($note !== '') $notes[] = mb_substr($note, 0, 10000);
+        }
+        try {
+            $db->beginTransaction();
+            $delNotes = $db->prepare('DELETE FROM quotation_notes WHERE quotation_number = ?');
+            $delNotes->execute([$quotationNumber]);
+            $insNote = $db->prepare('INSERT INTO quotation_notes (quotation_number, note_text, line_no, created_by) VALUES (?, ?, ?, ?)');
+            foreach ($notes as $idx => $note) {
+                $insNote->execute([$quotationNumber, $note, $idx + 1, $userId ?: null]);
+            }
+            $db->commit();
+            header('Location: detailquotation.php?quotation_number=' . rawurlencode($quotationNumber) . '&tab=summary&notes_saved=1');
+            exit;
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            error_log('[CRM quotation] Simpan notes gagal: ' . $e->getMessage());
+            $flashMessage = 'Gagal menyimpan Notes quotation.';
+            $flashType = 'danger';
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_items') {
     if (!$canEdit) {
@@ -194,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
                 $db->commit();
 
                 // Redirect-after-POST mencegah penyimpanan ulang saat refresh.
-                header('Location: detailquotation.php?quotation_number=' . rawurlencode($quotationNumber) . '&saved=1');
+                header('Location: detailquotation.php?quotation_number=' . rawurlencode($quotationNumber) . '&tab=detail_quotation&saved=1');
                 exit;
             } catch (Throwable $e) {
                 if ($db->inTransaction()) $db->rollBack();
@@ -209,6 +270,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 if (isset($_GET['saved']) && $_GET['saved'] === '1') {
     $flashMessage = 'Item quotation berhasil disimpan.';
 }
+if (isset($_GET['notes_saved']) && $_GET['notes_saved'] === '1') {
+    $flashMessage = 'Notes quotation berhasil disimpan.';
+}
+
+$notes = [];
+try {
+    $notesStmt = $db->prepare('SELECT id, note_text FROM quotation_notes WHERE quotation_number = ? ORDER BY line_no ASC, id ASC');
+    $notesStmt->execute([$quotationNumber]);
+    $notes = $notesStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    error_log('[CRM quotation] Ambil notes gagal: ' . $e->getMessage());
+    $flashMessage = $flashMessage ?: 'Notes belum dapat dibaca. Pastikan tabel quotation_notes tersedia.';
+    $flashType = 'danger';
+}
+if (!$notes) $notes = [['note_text' => '']];
 
 $items = [];
 try {
@@ -281,6 +357,16 @@ foreach ($items as $item) {
         .quotation-title { display:flex; align-items:center; gap:10px; font-size:24px; line-height:1.1; letter-spacing:-.4px; font-weight:800; color:#f7f9ff; margin:0 0 7px; }
         .quotation-title i { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:11px; background:rgba(96,165,250,.1); border:1px solid rgba(96,165,250,.15); color:var(--quotation-blue); font-size:15px; }
         .quotation-subtitle { color:var(--quotation-muted); font-size:12px; margin:0; }
+        .quotation-tabs { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 18px; padding:8px; border:1px solid var(--quotation-line); border-radius:13px; background:rgba(7,14,28,.72); }
+        .quotation-tabs a { display:inline-flex; align-items:center; gap:8px; padding:10px 15px; border-radius:9px; color:#8e9bb5; font-size:11px; font-weight:800; text-decoration:none; border:1px solid transparent; }
+        .quotation-tabs a:hover { color:#e3eaf5; background:rgba(96,165,250,.07); }
+        .quotation-tabs a.active { color:#dbeafe; background:rgba(59,130,246,.16); border-color:rgba(96,165,250,.24); }
+        .notes-list { display:flex; flex-direction:column; gap:10px; }
+        .note-row { display:flex; align-items:flex-start; gap:10px; }
+        .note-row .note-input { flex:1; min-height:42px; resize:vertical; border-radius:9px; border:1px solid rgba(148,163,184,.16); background:#081426; color:#dbe5f5; font-size:12px; padding:10px 12px; }
+        .note-row .note-input:focus { outline:0; border-color:rgba(96,165,250,.48); box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+        .note-row .note-input::placeholder { color:#52627d; }
+        .note-row .btn-remove-note { flex:0 0 auto; }
         .quotation-card { background:linear-gradient(145deg,var(--quotation-panel),var(--quotation-panel-deep)); border:1px solid var(--quotation-line); border-radius:16px; box-shadow:0 18px 45px rgba(0,0,0,.18); overflow:hidden; margin-bottom:18px; }
         .quotation-card-head { min-height:62px; padding:13px 17px; border-bottom:1px solid rgba(148,163,184,.1); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
         .quotation-card-head h5 { color:#f7f9ff; font-size:12px; font-weight:800; margin:0; }
@@ -361,10 +447,14 @@ foreach ($items as $item) {
                 </div>
             <?php endif; ?>
 
+            <nav class="quotation-tabs" aria-label="Detail quotation sections">
+                <a class="<?= $activeTab === 'summary' ? 'active' : '' ?>" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=summary"><i class="fas fa-circle-info"></i> Summary</a>
+                <a class="<?= $activeTab === 'detail_quotation' ? 'active' : '' ?>" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=detail_quotation"><i class="fas fa-list-check"></i> Detail Quotation</a>
+            </nav>
+
+            <?php if ($activeTab === 'summary'): ?>
             <section class="quotation-card">
-                <div class="quotation-card-head">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-circle-info me-2 text-primary"></i>Informasi Quotation</h5>
-                </div>
+                <div class="quotation-card-head"><h5 class="mb-0 fw-bold"><i class="fas fa-circle-info me-2 text-primary"></i>Summary</h5></div>
                 <div class="quotation-card-body">
                     <div class="info-grid">
                         <div class="info-item"><div class="info-label">Quotation Number</div><div class="info-value"><?= h($quotationNumber) ?></div></div>
@@ -376,10 +466,33 @@ foreach ($items as $item) {
 
             <section class="quotation-card">
                 <div class="quotation-card-head">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-list-check me-2 text-primary"></i>Daftar Item</h5>
-                    <?php if ($canEdit): ?>
-                        <button type="button" class="btn-add-row" id="addRowBtn"><i class="fas fa-plus me-2"></i>Tambah Baris</button>
-                    <?php endif; ?>
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-note-sticky me-2 text-primary"></i>Notes</h5>
+                    <?php if ($canEdit): ?><button type="button" class="btn-add-row" id="addNoteBtn"><i class="fas fa-plus me-2"></i>Tambah Notes</button><?php endif; ?>
+                </div>
+                <div class="quotation-card-body">
+                    <form method="post" id="notesForm">
+                        <input type="hidden" name="action" value="save_notes">
+                        <input type="hidden" name="quotation_number" value="<?= h($quotationNumber) ?>">
+                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                        <div class="notes-list" id="notesList">
+                            <?php foreach ($notes as $index => $note): ?>
+                            <div class="note-row">
+                                <textarea class="note-input" name="notes[]" rows="2" maxlength="10000" placeholder="Tulis notes di sini..." <?= $canEdit ? '' : 'readonly' ?>><?= h($note['note_text'] ?? '') ?></textarea>
+                                <?php if ($canEdit): ?><button type="button" class="btn btn-outline-danger btn-sm btn-remove-row btn-remove-note" title="Hapus Notes"><i class="fas fa-trash"></i></button><?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php if ($canEdit): ?>
+                        <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap"><button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Notes</button></div>
+                        <?php else: ?><p class="text-muted small mt-3 mb-0"><i class="fas fa-lock me-1"></i>Akun Anda hanya memiliki akses lihat.</p><?php endif; ?>
+                    </form>
+                </div>
+            </section>
+            <?php else: ?>
+            <section class="quotation-card">
+                <div class="quotation-card-head">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-list-check me-2 text-primary"></i>Detail Quotation</h5>
+                    <?php if ($canEdit): ?><button type="button" class="btn-add-row" id="addRowBtn"><i class="fas fa-plus me-2"></i>Tambah Baris</button><?php endif; ?>
                 </div>
                 <div class="quotation-card-body">
                     <form method="post" id="quotationForm">
@@ -388,17 +501,7 @@ foreach ($items as $item) {
                         <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                         <div class="table-responsive">
                             <table class="table table-bordered items-table align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th style="width:65px">No</th>
-                                        <th>Model Unit</th>
-                                        <th>Description</th>
-                                        <th style="width:115px">Qty</th>
-                                        <th style="width:180px">Price</th>
-                                        <th style="width:170px">Total Price</th>
-                                        <?php if ($canEdit): ?><th style="width:90px">Aksi</th><?php endif; ?>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th style="width:65px">No</th><th>Model Unit</th><th>Description</th><th style="width:115px">Qty</th><th style="width:180px">Price</th><th style="width:170px">Total Price</th><?php if ($canEdit): ?><th style="width:90px">Aksi</th><?php endif; ?></tr></thead>
                                 <tbody id="quotationRows">
                                 <?php foreach ($displayRows as $index => $item): ?>
                                     <tr class="quotation-row">
@@ -414,18 +517,12 @@ foreach ($items as $item) {
                                 </tbody>
                             </table>
                         </div>
-
-                        <?php if ($canEdit): ?>
-                            <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
-                                <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button>
-                                <button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Item</button>
-                            </div>
-                        <?php else: ?>
-                            <p class="text-muted small mt-3 mb-0"><i class="fas fa-lock me-1"></i>Akun Anda hanya memiliki akses lihat.</p>
-                        <?php endif; ?>
+                        <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong id="grandTotal">Rp 0</strong></div></div>
+                        <?php if ($canEdit): ?><div class="d-flex justify-content-end gap-2 mt-4 flex-wrap"><button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button><button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Detail Quotation</button></div><?php else: ?><p class="text-muted small mt-3 mb-0"><i class="fas fa-lock me-1"></i>Akun Anda hanya memiliki akses lihat.</p><?php endif; ?>
                     </form>
                 </div>
             </section>
+            <?php endif; ?>
             <?php require __DIR__ . '/footer.php'; ?>
         </div>
     </main>
@@ -435,7 +532,20 @@ foreach ($items as $item) {
 (function () {
     const tbody = document.getElementById('quotationRows');
     const addButton = document.getElementById('addRowBtn');
+    const notesList = document.getElementById('notesList');
+    const addNoteButton = document.getElementById('addNoteBtn');
     const canEdit = <?= $canEdit ? 'true' : 'false' ?>;
+
+    function addNote(value = '') {
+        if (!notesList || notesList.querySelectorAll('.note-row').length >= 100) { alert('Maksimal 100 Notes.'); return; }
+        const row = document.createElement('div'); row.className = 'note-row';
+        const textarea = document.createElement('textarea'); textarea.className = 'note-input'; textarea.name = 'notes[]'; textarea.rows = 2; textarea.maxLength = 10000; textarea.placeholder = 'Tulis notes di sini...'; textarea.value = value;
+        row.appendChild(textarea);
+        if (canEdit) { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-outline-danger btn-sm btn-remove-row btn-remove-note'; btn.title = 'Hapus Notes'; btn.innerHTML = '<i class="fas fa-trash"></i>'; row.appendChild(btn); }
+        notesList.appendChild(row);
+    }
+    if (addNoteButton) addNoteButton.addEventListener('click', () => addNote());
+    if (notesList) notesList.addEventListener('click', event => { const btn = event.target.closest('.btn-remove-note'); if (!btn) return; const rows = notesList.querySelectorAll('.note-row'); if (rows.length <= 1) { rows[0].querySelector('textarea').value = ''; } else { btn.closest('.note-row').remove(); } });
 
     function money(value) {
         return new Intl.NumberFormat('id-ID', {
@@ -479,10 +589,10 @@ foreach ($items as $item) {
     }
 
     if (addButton) addButton.addEventListener('click', () => addRow());
-    tbody.addEventListener('input', event => {
+    if (tbody) tbody.addEventListener('input', event => {
         if (event.target.matches('.qty-input, .price-input')) updateRows();
     });
-    tbody.addEventListener('click', event => {
+    if (tbody) tbody.addEventListener('click', event => {
         const button = event.target.closest('.btn-remove-row');
         if (!button) return;
         if (tbody.querySelectorAll('.quotation-row').length <= 1) {
@@ -498,8 +608,8 @@ foreach ($items as $item) {
         updateRows();
     });
     const form = document.getElementById('quotationForm');
-    form.addEventListener('reset', () => setTimeout(updateRows, 0));
-    updateRows();
+    if (form) form.addEventListener('reset', () => setTimeout(updateRows, 0));
+    if (tbody) updateRows();
 })();
 </script>
 </body>
