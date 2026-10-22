@@ -94,9 +94,22 @@ try {
     error_log('[CRM quotation] Gagal memastikan tabel quotation_notes: ' . $e->getMessage());
 }
 
+// Deteksi nama kolom nomor aktivitas agar tidak membuat halaman blank jika
+// instalasi database memakai nama kolom yang berbeda.
+$activityNumberColumn = null;
+foreach (['activity_number', 'leads_number', 'lead_number', 'sales_activity_number', 'activity_no'] as $candidateColumn) {
+    if (hasColumn($db, 'sales_activities', $candidateColumn)) {
+        $activityNumberColumn = $candidateColumn;
+        break;
+    }
+}
+$activityNumberSelect = $activityNumberColumn !== null
+    ? 'sa.`' . $activityNumberColumn . '` AS activity_number'
+    : "CAST(sa.id AS CHAR) AS activity_number";
+
 $parentSql = "
     SELECT ad.id, ad.quotation_number, ad.request_quotation, ad.sales_activity_id,
-           sa.activity_number, sa.sales_id, a.nama_pt, a.nama_pic AS pic_name, u.full_name AS sales_name
+           $activityNumberSelect, sa.sales_id, a.nama_pt, a.nama_pic AS pic_name, u.full_name AS sales_name
     FROM activity_details ad
     LEFT JOIN sales_activities sa ON sa.id = ad.sales_activity_id
     LEFT JOIN accounts a ON a.id = sa.account_id
