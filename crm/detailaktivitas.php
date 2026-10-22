@@ -453,6 +453,36 @@ function renumberAllDeliveryInstructions($db, $period = null) {
 }
 
 // ============================================
+// ============================================
+// QUOTATION NUMBER UNTUK PROSPECTING
+// ============================================
+// Tambahkan kolom secara aman pada database yang sudah ada.
+try {
+    $quoteColumns = [
+        'request_quotation' => "ALTER TABLE activity_details ADD COLUMN request_quotation ENUM('yes','no') NULL DEFAULT NULL AFTER jenis_tugas",
+        'quotation_number' => "ALTER TABLE activity_details ADD COLUMN quotation_number VARCHAR(50) NULL DEFAULT NULL AFTER request_quotation"
+    ];
+    foreach ($quoteColumns as $columnName => $alterSql) {
+        $checkColumn = $db->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'activity_details' AND COLUMN_NAME = ?");
+        $checkColumn->execute([$columnName]);
+        if ((int)$checkColumn->fetchColumn() === 0) {
+            $db->exec($alterSql);
+        }
+    }
+} catch (PDOException $e) {
+    // Kolom akan dibutuhkan saat penyimpanan; kegagalan akan ditangani pada proses POST.
+}
+
+function generateQuotationNumber($db) {
+    $tahun = date('Y');
+    $bulanRomawi = getBulanRomawi((int)date('n'));
+    $suffix = "/GET-QT/JKT/{$bulanRomawi}/{$tahun}";
+    $stmt = $db->prepare("SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(quotation_number, '/', 1) AS UNSIGNED)), 0) FROM activity_details WHERE quotation_number LIKE ?");
+    $stmt->execute(['%' . $suffix]);
+    $lastSequence = (int)$stmt->fetchColumn();
+    return str_pad((string)($lastSequence + 1), 4, '0', STR_PAD_LEFT) . $suffix;
+}
+
 // TIPE UNIT UNTUK AKTIVITAS PROSPECTING
 // ============================================
 // Satu aktivitas Prospecting dapat memiliki lebih dari satu tipe unit.
@@ -564,6 +594,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $jenis_tugas = bersihkan($_POST['jenis_tugas']);
         $deskripsi = trim($_POST['deskripsi']);
         $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : NULL;
+        $request_quotation = strtolower(trim((string)($_POST['request_quotation'] ?? '')));
+        $quotation_number = NULL;
 
         $tipe_unit_ids = array_values(array_unique(array_filter(
             array_map('intval', (array)($_POST['tipe_unit_ids'] ?? [])),
@@ -579,6 +611,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($jenis_tugas)) $errors[] = 'Jenis Tugas wajib dipilih!';
         if (empty($due_date)) $errors[] = 'Due Date wajib diisi!';
         if (strlen($deskripsi) < 50) $errors[] = 'Deskripsi minimal 50 karakter!';
+
+        if ($jenis_tugas === 'Prospecting') {
+            if (!in_array($request_quotation, ['yes', 'no'], true)) {
+                $errors[] = 'Pilih Request Quotation Yes atau No untuk aktivitas Prospecting!';
+            } elseif ($request_quotation === 'yes') {
+                $quotation_number = generateQuotationNumber($db);
+            }
+        } else {
+            $request_quotation = NULL;
+        }
 
         if ($jenis_tugas === 'Prospecting') {
             if (empty($tipe_unit_ids)) {
@@ -723,8 +765,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $db->beginTransaction();
             
             try {
-                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, deskripsi, due_date, tr_number, di_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'in_progress')");
-                $stmt->execute([$leadsId, $subject, $jenis_tugas, $deskripsi, $due_date, $tr_number, $di_number]);
+                $stmt = $db->prepare("INSERT INTO activity_details (sales_activity_id, subject, jenis_tugas, request_quotation, quotation_number, deskripsi, due_date, tr_number, di_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_progress')");
+                $stmt->execute([$leadsId, $subject, $jenis_tugas, $request_quotation, $quotation_number, $deskripsi, $due_date, $tr_number, $di_number]);
 
                 if ($jenis_tugas === 'Prospecting' && !empty($tipe_unit_ids)) {
                     $activityDetailId = (int)$db->lastInsertId();
@@ -1396,6 +1438,7 @@ foreach ($detailsList as $d) {
                                 <th>Subject</th>
                                 <th>Account</th>
                                 <th>Jenis Tugas</th>
+                                <th>Quotation Number</th>
                                 <th>TR Number</th>
                                 <th>DI Number</th>
                                 <th>Keterangan</th>
@@ -1417,6 +1460,17 @@ foreach ($detailsList as $d) {
                                             <span class="badge-tugas <?= str_replace('/', '\/', str_replace(' ', '.', $detail['jenis_tugas'])) ?>">
                                                 <?= htmlspecialchars($detail['jenis_tugas']) ?>
                                             </span>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($detail['quotation_number'])): ?>
+                                                <a href="detailquotation.php?quotation_number=<?= urlencode($detail['quotation_number']) ?>"
+                                                   style="color: #8e44ad; text-decoration: none; font-weight: 600;"
+                                                   target="_blank">
+                                                    <?= htmlspecialchars($detail['quotation_number']) ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if (!empty($detail['tr_number'])): ?>
@@ -1534,6 +1588,20 @@ foreach ($detailsList as $d) {
                                 <option value="Delivery Order">Delivery Order</option>
                                 <option value="After Sales">After Sales</option>
                             </select>
+                        </div>
+
+                        <div class="mb-3" id="requestQuotationFieldAdd" style="display:none;">
+                            <label class="form-label">Request Quotation <span class="text-danger">*</span></label>
+                            <select name="request_quotation" id="request_quotation_add" class="form-select">
+                                <option value="">Pilih Request Quotation</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                            <small class="text-muted">Quotation Number dibuat otomatis jika memilih Yes.</small>
+                        </div>
+                        <div class="mb-3" id="quotationNumberPreviewAdd" style="display:none;">
+                            <label class="form-label">Quotation Number</label>
+                            <div class="form-control bg-light">Nomor Quotation dibuat otomatis saat aktivitas disimpan.</div>
                         </div>
                         
                         <style>
@@ -1833,19 +1901,32 @@ foreach ($detailsList as $d) {
             var trNumberField = document.getElementById('trNumberFieldAdd');
             var negosiasiInfoAdd = document.getElementById('negosiasiInfoAdd');
             var tipeUnitField = document.getElementById('tipeUnitFieldAdd');
+            var requestQuotationField = document.getElementById('requestQuotationFieldAdd');
+            var requestQuotationSelect = document.getElementById('request_quotation_add');
+            var quotationPreview = document.getElementById('quotationNumberPreviewAdd');
             
             if (this.value === 'Prospecting') {
+                requestQuotationField.style.display = 'block';
+                requestQuotationSelect.required = true;
                 tipeUnitField.style.display = 'block';
                 trNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'none';
                 negosiasiInfoAdd.innerHTML = '';
                 refreshTipeUnitOptions();
             } else if (this.value === 'Negosiasi') {
+                requestQuotationField.style.display = 'none';
+                requestQuotationSelect.required = false;
+                requestQuotationSelect.value = '';
+                quotationPreview.style.display = 'none';
                 tipeUnitField.style.display = 'none';
                 trNumberField.style.display = 'block';
                 negosiasiInfoAdd.style.display = 'none';
                 negosiasiInfoAdd.innerHTML = '';
             } else if (this.value === 'Kontrak' || this.value === 'Delivery Order' || this.value === 'After Sales') {
+                requestQuotationField.style.display = 'none';
+                requestQuotationSelect.required = false;
+                requestQuotationSelect.value = '';
+                quotationPreview.style.display = 'none';
                 trNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'block';
                 
@@ -1872,6 +1953,10 @@ foreach ($detailsList as $d) {
                 
                 negosiasiInfoAdd.innerHTML = infoHtml;
             } else {
+                requestQuotationField.style.display = 'none';
+                requestQuotationSelect.required = false;
+                requestQuotationSelect.value = '';
+                quotationPreview.style.display = 'none';
                 tipeUnitField.style.display = 'none';
                 trNumberField.style.display = 'none';
                 negosiasiInfoAdd.style.display = 'none';
@@ -1879,6 +1964,10 @@ foreach ($detailsList as $d) {
             }
         });
         
+        document.getElementById('request_quotation_add').addEventListener('change', function() {
+            document.getElementById('quotationNumberPreviewAdd').style.display = this.value === 'yes' ? 'block' : 'none';
+        });
+
         function viewDetail(data) {
             var html = `
                 <div class="info-card" style="margin-bottom: 0;">
@@ -1890,6 +1979,17 @@ foreach ($detailsList as $d) {
                         <div class="info-label">Jenis Tugas</div>
                         <div class="info-value">${data.jenis_tugas}</div>
                     </div>
+                    ${data.jenis_tugas === 'Prospecting' ? `
+                    <div class="info-item">
+                        <div class="info-label">Request Quotation</div>
+                        <div class="info-value">${data.request_quotation === 'yes' ? 'Yes' : data.request_quotation === 'no' ? 'No' : '-'}</div>
+                    </div>
+                    ${data.quotation_number ? `
+                    <div class="info-item">
+                        <div class="info-label">Quotation Number</div>
+                        <div class="info-value"><a href="detailquotation.php?quotation_number=${encodeURIComponent(data.quotation_number)}" style="color:#8e44ad;font-weight:600;" target="_blank">${data.quotation_number}</a></div>
+                    </div>` : ''}
+                    ` : ''}
                     ${data.jenis_tugas === 'Prospecting' ? `
                     <div class="info-item">
                         <div class="info-label">Tipe Unit</div>
