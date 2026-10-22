@@ -403,7 +403,7 @@ foreach ($items as $item) {
                                 <?php foreach ($displayRows as $index => $item): ?>
                                     <tr class="quotation-row">
                                         <td class="row-number text-center fw-bold"><?= $index + 1 ?></td>
-                                        <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" value="<?= h($item['model_unit']) ?>" placeholder="Contoh: GET-100" <?= $canEdit ? 'required' : 'readonly' ?>></td>
+                                        <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" value="<?= h($item['model_unit']) ?>" placeholder="Type Unit" <?= $canEdit ? 'required' : 'readonly' ?>></td>
                                         <td><input class="form-control description-input" type="text" name="description[]" value="<?= h($item['description']) ?>" placeholder="Deskripsi item" <?= $canEdit ? '' : 'readonly' ?>></td>
                                         <td><input class="form-control qty-input" type="number" name="qty[]" min="0.01" step="0.01" value="<?= h($item['qty']) ?>" <?= $canEdit ? 'required' : 'readonly' ?>></td>
                                         <td><input class="form-control price-input" type="number" name="price[]" min="0" step="0.01" value="<?= h($item['price']) ?>" <?= $canEdit ? 'required' : 'readonly' ?>></td>
