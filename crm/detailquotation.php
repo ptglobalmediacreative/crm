@@ -96,7 +96,7 @@ try {
 
 $parentSql = "
     SELECT ad.id, ad.quotation_number, ad.request_quotation, ad.sales_activity_id,
-           sa.sales_id, a.nama_pt, u.full_name AS sales_name
+           sa.sales_id, a.nama_pt, a.nama_pic AS pic_name, u.full_name AS sales_name
     FROM activity_details ad
     LEFT JOIN sales_activities sa ON sa.id = ad.sales_activity_id
     LEFT JOIN accounts a ON a.id = sa.account_id
@@ -315,6 +315,7 @@ foreach ($items as $item) {
     $totalQuotation += (float)($item['qty'] ?? 0) * (float)($item['price'] ?? 0);
 }
 $companyName = trim((string)($quotation['nama_pt'] ?? '')) ?: 'Account tidak tersedia';
+$picName = trim((string)($quotation['pic_name'] ?? '')) ?: '-';
 $salesName = trim((string)($quotation['sales_name'] ?? '')) ?: 'Sales tidak tersedia';
 $displayRows = [];
 foreach ($items as $item) {
@@ -463,6 +464,7 @@ foreach ($items as $item) {
                     <div class="info-grid">
                         <div class="info-item"><div class="info-label">Quotation Number</div><div class="info-value"><?= h($quotationNumber) ?></div></div>
                         <div class="info-item"><div class="info-label">Account</div><div class="info-value"><?= h($companyName) ?></div></div>
+                        <div class="info-item"><div class="info-label">Nama PIC</div><div class="info-value"><?= h($picName) ?></div></div>
                         <div class="info-item"><div class="info-label">Sales</div><div class="info-value"><?= h($salesName) ?></div></div>
                     </div>
                 </div>
@@ -540,7 +542,7 @@ foreach ($items as $item) {
                                 </tbody>
                             </table>
                         </div>
-
+                        <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong id="grandTotal">Rp 0</strong></div></div>
                         <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
                             <a class="btn btn-outline-secondary" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=detail_quotation"><i class="fas fa-xmark me-2"></i>Batal</a>
                             <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button>
@@ -565,6 +567,7 @@ foreach ($items as $item) {
                             </tbody>
                         </table>
                     </div>
+                    <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong><?= h(rupiah($totalQuotation)) ?></strong></div></div>
                     <?php endif; ?>
                 </div>
             </section>
