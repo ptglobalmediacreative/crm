@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 /**
- * Export Detail Quotation ke PDF.
- * Parameter URL: export_detail_pdf_qt.php?quotation_number=...
+ * Export Detail Quotation ke Microsoft Word (.doc).
+ * Parameter URL: export_detail_word_qt.php?quotation_number=...
  */
 
 ob_start();
@@ -14,8 +14,6 @@ date_default_timezone_set('Asia/Jakarta');
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Dompdf\Dompdf;
-use Dompdf\Options;
 
 if (!function_exists('isLoggedIn') || !isLoggedIn()) {
     if (ob_get_length()) ob_end_clean();
@@ -162,7 +160,7 @@ $html = '<!doctype html>
 <head>
 <meta charset="UTF-8">
 <style>
-    @page { margin: 35px 38px 42px 38px; }
+    @page { size: A4; margin: 1.2cm 1.3cm 1.4cm 1.3cm; }
     body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #111; }
     .header { text-align: center; font-size: 16px; font-weight: bold; text-decoration: underline; margin: 0 0 16px; }
     .meta { width: 100%; margin-bottom: 15px; }
@@ -171,7 +169,7 @@ $html = '<!doctype html>
     .recipient { margin: 12px 0 15px; line-height: 1.7; }
     .recipient .label { display: inline-block; width: 75px; font-weight: bold; }
     .intro { margin: 12px 0 12px; line-height: 1.5; }
-    table.items { border-collapse: collapse; width: 100%; table-layout: fixed; }
+    table.items { border-collapse: collapse; width: 100%; table-layout: fixed; mso-table-lspace:0pt; mso-table-rspace:0pt; }
     table.items th, table.items td { border: 1px solid #222; padding: 5px 4px; vertical-align: top; }
     table.items th { text-align: center; font-weight: bold; background: #f4f4f4; }
     .c-no { width: 5%; text-align: center; }
@@ -285,24 +283,14 @@ $html .= '
 </body>
 </html>';
 
-$options = new Options();
-$options->set('defaultFont', 'DejaVu Sans');
-$options->set('isHtml5ParserEnabled', true);
-$options->set('isRemoteEnabled', false);
-$options->set('debugPng', false);
-$options->set('debugKeepTemp', false);
-$options->set('tempDir', sys_get_temp_dir());
-
-$dompdf = new Dompdf($options);
-$dompdf->loadHtml($html, 'UTF-8');
-$dompdf->setPaper('A4', 'portrait');
-$dompdf->render();
-
+// Word dapat membuka HTML berformat tabel yang dikirim dengan ekstensi .doc.
+// Ini tidak membutuhkan library tambahan seperti PHPWord.
 if (ob_get_length()) ob_end_clean();
-$filename = 'QUOTATION_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $quotationNumber) . '_' . date('Ymd_His') . '.pdf';
-header('Content-Type: application/pdf');
+
+$filename = 'QUOTATION_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $quotationNumber) . '_' . date('Ymd_His') . '.doc';
+header('Content-Type: application/msword; charset=UTF-8');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 header('Cache-Control: private, max-age=0, must-revalidate');
 header('Pragma: public');
-echo $dompdf->output();
+echo "\\xEF\\xBB\\xBF" . $html;
 exit;
