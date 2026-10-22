@@ -458,9 +458,6 @@ foreach ($items as $item) {
             <section class="quotation-card">
                 <div class="quotation-card-head">
                     <h5 class="mb-0 fw-bold"><i class="fas fa-circle-info me-2 text-primary"></i>Summary</h5>
-                    <?php if ($canEdit && $editMode !== 'summary'): ?>
-                        <a class="btn-add-row" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=summary&edit=summary"><i class="fas fa-pen me-2"></i>Edit</a>
-                    <?php endif; ?>
                 </div>
                 <div class="quotation-card-body">
                     <div class="info-grid">
@@ -496,7 +493,7 @@ foreach ($items as $item) {
                         </div>
                         <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
                             <a class="btn btn-outline-secondary" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=summary"><i class="fas fa-xmark me-2"></i>Batal</a>
-                            <button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Summary</button>
+                            <button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Notes</button>
                         </div>
                     </form>
                     <?php else: ?>
