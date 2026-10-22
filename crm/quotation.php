@@ -190,7 +190,7 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <td><?= htmlspecialchars($quotation['sales_name'] ?: '-', ENT_QUOTES, 'UTF-8') ?></td>
                                 <td>
                                     <a class="btn btn-primary-custom btn-sm" href="export_detail_pdf_qt.php?quotation_number=<?= urlencode($quotation['quotation_number']) ?>">
-                                        <i class="fas fa-file-pdf"></i> Download PDF
+                                        <i class="fas fa-file-pdf"></i> Word
                                     </a>
                                 </td>
                             </tr>
