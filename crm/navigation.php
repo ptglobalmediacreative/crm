@@ -1513,7 +1513,7 @@ if (
     <?php endif; ?>
     <?php if ($showMenu('account_management')): ?><a class="<?= $currentPage === 'account_management.php' ? 'active' : '' ?>" href="account_management.php"><i class="fas fa-building"></i><span>Account Management</span></a><?php endif; ?>
     <?php if ($showMenu('transaction_request')): ?><a class="<?= in_array($currentPage, ['transactionrequest.php', 'detailtr.php'], true) ? 'active' : '' ?>" href="transactionrequest.php"><i class="fas fa-file-signature"></i><span>Transaction Request</span></a><?php endif; ?>
-    <?php if ($showMenu('quotation')): ?><a class="<?= in_array($currentPage, ['quotation.php', 'detailquotation.php'], true) ? 'active' : '' ?>" href="quotation.php"><i class="fas fa-file-invoice-dollar"></i><span>Quotation</span></a><?php endif; ?>
+    <?php if ($showMenu('quotation')): ?><a class="<?= in_array($currentPage, ['quotation.php', 'detailquotation.php'], true) ? 'active' : '' ?>" href="quotation.php"><i class="fas fa-file-invoice-dollar"></i><span>Quotation Price</span></a><?php endif; ?>
     <?php if ($showMenu('product_pipeline')): ?><a class="<?= $currentPage === 'productpipeline.php' ? 'active' : '' ?>" href="productpipeline.php"><i class="fas fa-chart-column"></i><span>Product Pipeline</span></a><?php endif; ?>
     <?php if ($showMenu('produk')): ?><a class="<?= $currentPage === 'produk.php' ? 'active' : '' ?>" href="produk.php"><i class="fas fa-box"></i><span>Produk</span></a><?php endif; ?>
     <?php if ($showMenu('delivery_order')): ?><a class="<?= in_array($currentPage, ['deliveryinstruction.php', 'detaildi.php'], true) ? 'active' : '' ?>" href="deliveryinstruction.php"><i class="fas fa-truck"></i><span>Delivery Instruction</span></a><?php endif; ?>
