@@ -142,7 +142,7 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             $jenisBadanUsaha = rtrim($jenisBadanUsaha, " ,.");
 
                                             if ($namaPerusahaan !== '' && $jenisBadanUsaha !== '') {
-                                                $namaCustomerTampil = $jenisBadanUsaha . ', ' . $namaPerusahaan;
+                                                $namaCustomerTampil = $$namaPerusahaan . ', ' . $jenisBadanUsaha;
                                             } elseif ($namaPerusahaan !== '') {
                                                 $namaCustomerTampil = $namaPerusahaan;
                                             } elseif ($jenisBadanUsaha !== '') {
