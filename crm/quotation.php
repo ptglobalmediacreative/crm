@@ -52,7 +52,7 @@ $sql = "SELECT
             MAX(a.nama_pt) AS nama_pt,
             MAX(a.badan_usaha) AS badan_usaha,
             MAX(u.full_name) AS sales_name,
-            MIN(ad.created_at) AS first_created_at
+            MIN(ad.created_at) AS quotation_created_at
         FROM activity_details ad
         LEFT JOIN sales_activities sa ON sa.id = ad.sales_activity_id
         LEFT JOIN accounts a ON a.id = sa.account_id
@@ -118,7 +118,9 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <th>No</th>
                             <th>Quotation Number</th>
                             <th>Account</th>
+                            <th>Tanggal</th>
                             <th>Sales</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -139,11 +141,24 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php endif; ?>
                                     </div>
                                 </td>
+                                <td>
+                                    <?php
+                                        $quotationDate = $quotation['quotation_created_at'] ?? null;
+                                        echo $quotationDate
+                                            ? htmlspecialchars(date('d-m-Y', strtotime($quotationDate)), ENT_QUOTES, 'UTF-8')
+                                            : '-';
+                                    ?>
+                                </td>
                                 <td><?= htmlspecialchars($quotation['sales_name'] ?: '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td>
+                                    <a class="btn btn-primary-custom btn-sm" href="detailquotation.php?quotation_number=<?= urlencode($quotation['quotation_number']) ?>">
+                                        <i class="fas fa-eye"></i> Detail
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="4" class="quotation-empty"><i class="fas fa-inbox me-2"></i>Belum ada data quotation.</td></tr>
+                        <tr><td colspan="6" class="quotation-empty"><i class="fas fa-inbox me-2"></i>Belum ada data quotation.</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
