@@ -135,10 +135,23 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </td>
                                 <td>
                                     <div class="account-name">
-                                        <strong><?= htmlspecialchars($quotation['nama_pt'] ?: '-', ENT_QUOTES, 'UTF-8') ?></strong>
-                                        <?php if (!empty($quotation['badan_usaha'])): ?>
-                                            <small class="d-block text-muted"><?= htmlspecialchars($quotation['badan_usaha'], ENT_QUOTES, 'UTF-8') ?></small>
-                                        <?php endif; ?>
+                                        <?php
+                                            // Format nama customer: "PT, Merak Borindo Mandiri".
+                                            $namaPerusahaan = trim((string)($quotation['nama_pt'] ?? ''));
+                                            $jenisBadanUsaha = trim((string)($quotation['badan_usaha'] ?? ''));
+                                            $jenisBadanUsaha = rtrim($jenisBadanUsaha, " ,.");
+
+                                            if ($namaPerusahaan !== '' && $jenisBadanUsaha !== '') {
+                                                $namaCustomerTampil = $jenisBadanUsaha . ', ' . $namaPerusahaan;
+                                            } elseif ($namaPerusahaan !== '') {
+                                                $namaCustomerTampil = $namaPerusahaan;
+                                            } elseif ($jenisBadanUsaha !== '') {
+                                                $namaCustomerTampil = $jenisBadanUsaha;
+                                            } else {
+                                                $namaCustomerTampil = '-';
+                                            }
+                                        ?>
+                                        <strong><?= htmlspecialchars($namaCustomerTampil, ENT_QUOTES, 'UTF-8') ?></strong>
                                     </div>
                                 </td>
                                 <td>
