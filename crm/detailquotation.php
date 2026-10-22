@@ -127,13 +127,21 @@ if (!$quotation) {
     exit('Quotation Number tidak ditemukan di Sales Activity.');
 }
 
-// Sales hanya dapat membuka quotation miliknya sendiri.
-if ($userRole === 'sales' && (int)($quotation['sales_id'] ?? 0) !== $userId) {
+// Pemilik quotation adalah Sales yang membuat Sales Activity terkait.
+// Sales boleh membuka quotation miliknya sendiri, tetapi tidak boleh membuka
+// quotation milik Sales lain. Role non-Sales tetap mengikuti permission sistem.
+$isOwnerSales = (int)($quotation['sales_id'] ?? 0) === $userId;
+if ($userRole === 'sales' && !$isOwnerSales) {
     http_response_code(403);
     exit('Anda tidak memiliki akses ke quotation ini.');
 }
 
-$canEdit = function_exists('canEdit') ? (bool)canEdit('quotation') : in_array($userRole, ['admin', 'it_support'], true);
+// Izinkan Sales pemilik mengakses halaman quotation-nya.
+// Hak edit tetap mengikuti canEdit('quotation') untuk role lain; Sales pemilik
+// juga diberi hak edit pada quotation miliknya sendiri.
+$canEdit = function_exists('canEdit')
+    ? ((bool)canEdit('quotation') || ($userRole === 'sales' && $isOwnerSales))
+    : (in_array($userRole, ['admin', 'it_support'], true) || ($userRole === 'sales' && $isOwnerSales));
 $flashMessage = '';
 $flashType = 'success';
 
