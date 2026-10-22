@@ -27,6 +27,8 @@ $userRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $quotationNumber = trim((string)($_GET['quotation_number'] ?? $_POST['quotation_number'] ?? ''));
 $activeTab = (string)($_GET['tab'] ?? 'summary');
 if (!in_array($activeTab, ['summary', 'detail_quotation'], true)) { $activeTab = 'summary'; }
+$editMode = (string)($_GET['edit'] ?? '');
+if (!in_array($editMode, ['summary', 'detail_quotation'], true)) { $editMode = ''; }
 
 if ($quotationNumber === '' || strlen($quotationNumber) > 100) {
     setFlash('Quotation Number tidak valid.', 'danger');
@@ -454,7 +456,12 @@ foreach ($items as $item) {
 
             <?php if ($activeTab === 'summary'): ?>
             <section class="quotation-card">
-                <div class="quotation-card-head"><h5 class="mb-0 fw-bold"><i class="fas fa-circle-info me-2 text-primary"></i>Summary</h5></div>
+                <div class="quotation-card-head">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-circle-info me-2 text-primary"></i>Summary</h5>
+                    <?php if ($canEdit && $editMode !== 'summary'): ?>
+                        <a class="btn-add-row" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=summary&edit=summary"><i class="fas fa-pen me-2"></i>Edit</a>
+                    <?php endif; ?>
+                </div>
                 <div class="quotation-card-body">
                     <div class="info-grid">
                         <div class="info-item"><div class="info-label">Quotation Number</div><div class="info-value"><?= h($quotationNumber) ?></div></div>
@@ -467,59 +474,102 @@ foreach ($items as $item) {
             <section class="quotation-card">
                 <div class="quotation-card-head">
                     <h5 class="mb-0 fw-bold"><i class="fas fa-note-sticky me-2 text-primary"></i>Notes</h5>
-                    <?php if ($canEdit): ?><button type="button" class="btn-add-row" id="addNoteBtn"><i class="fas fa-plus me-2"></i>Tambah Notes</button><?php endif; ?>
+                    <?php if ($canEdit && $editMode !== 'summary'): ?>
+                        <a class="btn-add-row" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=summary&edit=summary"><i class="fas fa-pen me-2"></i>Edit</a>
+                    <?php elseif ($canEdit): ?>
+                        <button type="button" class="btn-add-row" id="addNoteBtn"><i class="fas fa-plus me-2"></i>Tambah Notes</button>
+                    <?php endif; ?>
                 </div>
                 <div class="quotation-card-body">
+                    <?php if ($editMode === 'summary' && $canEdit): ?>
                     <form method="post" id="notesForm">
                         <input type="hidden" name="action" value="save_notes">
                         <input type="hidden" name="quotation_number" value="<?= h($quotationNumber) ?>">
                         <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                         <div class="notes-list" id="notesList">
-                            <?php foreach ($notes as $index => $note): ?>
+                            <?php foreach ($notes as $note): ?>
                             <div class="note-row">
-                                <textarea class="note-input" name="notes[]" rows="2" maxlength="10000" placeholder="Tulis notes di sini..." <?= $canEdit ? '' : 'readonly' ?>><?= h($note['note_text'] ?? '') ?></textarea>
-                                <?php if ($canEdit): ?><button type="button" class="btn btn-outline-danger btn-sm btn-remove-row btn-remove-note" title="Hapus Notes"><i class="fas fa-trash"></i></button><?php endif; ?>
+                                <textarea class="note-input" name="notes[]" rows="2" maxlength="10000" placeholder="Tulis notes di sini..."><?= h($note['note_text'] ?? '') ?></textarea>
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row btn-remove-note" title="Hapus Notes"><i class="fas fa-trash"></i></button>
                             </div>
                             <?php endforeach; ?>
                         </div>
-                        <?php if ($canEdit): ?>
-                        <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap"><button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Notes</button></div>
-                        <?php else: ?><p class="text-muted small mt-3 mb-0"><i class="fas fa-lock me-1"></i>Akun Anda hanya memiliki akses lihat.</p><?php endif; ?>
+                        <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
+                            <a class="btn btn-outline-secondary" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=summary"><i class="fas fa-xmark me-2"></i>Batal</a>
+                            <button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Summary</button>
+                        </div>
                     </form>
+                    <?php else: ?>
+                        <div class="notes-list">
+                            <?php $hasVisibleNotes = false; foreach ($notes as $note): if (trim((string)($note['note_text'] ?? '')) === '') continue; $hasVisibleNotes = true; ?>
+                                <div class="note-row"><div class="info-item" style="width:100%; white-space:pre-wrap;"><?= h($note['note_text']) ?></div></div>
+                            <?php endforeach; ?>
+                            <?php if (!$hasVisibleNotes): ?><p class="quotation-subtitle mb-0">Belum ada Notes. Klik Edit untuk menambahkan catatan.</p><?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </section>
             <?php else: ?>
             <section class="quotation-card">
                 <div class="quotation-card-head">
                     <h5 class="mb-0 fw-bold"><i class="fas fa-list-check me-2 text-primary"></i>Detail Quotation</h5>
-                    <?php if ($canEdit): ?><button type="button" class="btn-add-row" id="addRowBtn"><i class="fas fa-plus me-2"></i>Tambah Baris</button><?php endif; ?>
+                    <?php if ($canEdit && $editMode !== 'detail_quotation'): ?>
+                        <a class="btn-add-row" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=detail_quotation&edit=detail_quotation"><i class="fas fa-pen me-2"></i>Edit</a>
+                    <?php elseif ($canEdit): ?>
+                        <button type="button" class="btn-add-row" id="addRowBtn"><i class="fas fa-plus me-2"></i>Tambah Baris</button>
+                    <?php endif; ?>
                 </div>
                 <div class="quotation-card-body">
+                    <?php if ($editMode === 'detail_quotation' && $canEdit): ?>
                     <form method="post" id="quotationForm">
                         <input type="hidden" name="action" value="save_items">
                         <input type="hidden" name="quotation_number" value="<?= h($quotationNumber) ?>">
                         <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                         <div class="table-responsive">
                             <table class="table table-bordered items-table align-middle mb-0">
-                                <thead><tr><th style="width:65px">No</th><th>Model Unit</th><th>Description</th><th style="width:115px">Qty</th><th style="width:180px">Price</th><th style="width:170px">Total Price</th><?php if ($canEdit): ?><th style="width:90px">Aksi</th><?php endif; ?></tr></thead>
+                                <thead><tr><th style="width:65px">No</th><th>Model Unit</th><th>Description</th><th style="width:115px">Qty</th><th style="width:180px">Price</th><th style="width:170px">Total Price</th><th style="width:90px">Aksi</th></tr></thead>
                                 <tbody id="quotationRows">
                                 <?php foreach ($displayRows as $index => $item): ?>
                                     <tr class="quotation-row">
                                         <td class="row-number text-center fw-bold"><?= $index + 1 ?></td>
-                                        <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" value="<?= h($item['model_unit']) ?>" placeholder="Type Unit" <?= $canEdit ? 'required' : 'readonly' ?>></td>
-                                        <td><input class="form-control description-input" type="text" name="description[]" value="<?= h($item['description']) ?>" placeholder="Deskripsi item" <?= $canEdit ? '' : 'readonly' ?>></td>
-                                        <td><input class="form-control qty-input" type="number" name="qty[]" min="0.01" step="0.01" value="<?= h($item['qty']) ?>" <?= $canEdit ? 'required' : 'readonly' ?>></td>
-                                        <td><input class="form-control price-input" type="number" name="price[]" min="0" step="0.01" value="<?= h($item['price']) ?>" <?= $canEdit ? 'required' : 'readonly' ?>></td>
+                                        <td><input class="form-control model-input" type="text" name="model_unit[]" maxlength="255" value="<?= h($item['model_unit']) ?>" placeholder="Type Unit" required></td>
+                                        <td><input class="form-control description-input" type="text" name="description[]" value="<?= h($item['description']) ?>" placeholder="Deskripsi item"></td>
+                                        <td><input class="form-control qty-input" type="number" name="qty[]" min="0.01" step="0.01" value="<?= h($item['qty']) ?>" required></td>
+                                        <td><input class="form-control price-input" type="number" name="price[]" min="0" step="0.01" value="<?= h($item['price']) ?>" required></td>
                                         <td class="total-cell">Rp 0</td>
-                                        <?php if ($canEdit): ?><td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" title="Hapus baris"><i class="fas fa-trash"></i></button></td><?php endif; ?>
+                                        <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" title="Hapus baris"><i class="fas fa-trash"></i></button></td>
                                     </tr>
                                 <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
                         <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong id="grandTotal">Rp 0</strong></div></div>
-                        <?php if ($canEdit): ?><div class="d-flex justify-content-end gap-2 mt-4 flex-wrap"><button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button><button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Detail Quotation</button></div><?php else: ?><p class="text-muted small mt-3 mb-0"><i class="fas fa-lock me-1"></i>Akun Anda hanya memiliki akses lihat.</p><?php endif; ?>
+                        <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
+                            <a class="btn btn-outline-secondary" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=detail_quotation"><i class="fas fa-xmark me-2"></i>Batal</a>
+                            <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button>
+                            <button type="submit" class="btn-save-quotation"><i class="fas fa-floppy-disk me-2"></i>Simpan Detail Quotation</button>
+                        </div>
                     </form>
+                    <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-bordered items-table align-middle mb-0">
+                            <thead><tr><th style="width:65px">No</th><th>Model Unit</th><th>Description</th><th style="width:115px">Qty</th><th style="width:180px">Price</th><th style="width:170px">Total Price</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($displayRows as $index => $item): ?>
+                                <tr>
+                                    <td class="text-center fw-bold row-number"><?= $index + 1 ?></td>
+                                    <td><?= h($item['model_unit'] !== '' ? $item['model_unit'] : '—') ?></td>
+                                    <td><?= h($item['description'] !== '' ? $item['description'] : '—') ?></td>
+                                    <td><?= h($item['qty']) ?></td>
+                                    <td><?= h(rupiah($item['price'])) ?></td>
+                                    <td class="total-cell"><?= h(rupiah((float)$item['qty'] * (float)$item['price'])) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong><?= h(rupiah($totalQuotation)) ?></strong></div></div>
+                    <?php endif; ?>
                 </div>
             </section>
             <?php endif; ?>
