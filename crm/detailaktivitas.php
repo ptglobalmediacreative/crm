@@ -619,7 +619,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $quotation_number = generateQuotationNumber($db);
             }
         } else {
-            $request_quotation = NULL;
+            // Kolom request_quotation pada sebagian database disetel NOT NULL.
+            // Untuk jenis tugas selain Prospecting, simpan 'no' agar INSERT tidak gagal.
+            // Pilihan Yes/No hanya diwajibkan ketika jenis tugas Prospecting.
+            $request_quotation = 'no';
         }
 
         if ($jenis_tugas === 'Prospecting') {
