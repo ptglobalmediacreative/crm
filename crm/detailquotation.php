@@ -414,12 +414,7 @@ foreach ($items as $item) {
                                 </tbody>
                             </table>
                         </div>
-                        <div class="total-summary">
-                            <div class="total-box d-flex justify-content-between align-items-center gap-4">
-                                <span class="fw-semibold">Total Quotation</span>
-                                <strong id="grandTotal"><?= h(rupiah($totalQuotation)) ?></strong>
-                            </div>
-                        </div>
+
                         <?php if ($canEdit): ?>
                             <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
                                 <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button>
