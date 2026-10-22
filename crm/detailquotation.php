@@ -349,7 +349,7 @@ foreach ($items as $item) {
             <div class="quotation-head">
                 <div>
                     <h1 class="quotation-title"><i class="fas fa-file-invoice-dollar me-2"></i>Detail Quotation</h1>
-                    <p class="quotation-subtitle">Kelola baris item quotation. Total Price dihitung otomatis dari Price × Qty.</p>
+                    <p class="quotation-subtitle">Buat Penawaran Harga Untuk Customer</p>
                 </div>
                 <a class="btn btn-outline-secondary" href="quotation.php"><i class="fas fa-arrow-left me-2"></i>Kembali ke Quotation</a>
             </div>
