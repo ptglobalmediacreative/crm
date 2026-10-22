@@ -542,7 +542,6 @@ foreach ($items as $item) {
                                 </tbody>
                             </table>
                         </div>
-                        <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong id="grandTotal">Rp 0</strong></div></div>
                         <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
                             <a class="btn btn-outline-secondary" href="detailquotation.php?quotation_number=<?= rawurlencode($quotationNumber) ?>&tab=detail_quotation"><i class="fas fa-xmark me-2"></i>Batal</a>
                             <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-rotate-left me-2"></i>Reset Form</button>
@@ -567,7 +566,6 @@ foreach ($items as $item) {
                             </tbody>
                         </table>
                     </div>
-                    <div class="total-summary"><div class="total-box"><span>Total Quotation</span><br><strong><?= h(rupiah($totalQuotation)) ?></strong></div></div>
                     <?php endif; ?>
                 </div>
             </section>
