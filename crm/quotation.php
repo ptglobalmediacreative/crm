@@ -81,6 +81,31 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .quotation-number-link { color:#8e44ad; font-weight:700; text-decoration:none; }
         .quotation-number-link:hover { text-decoration:underline; }
         .quotation-empty { text-align:center; padding:2rem 1rem; color:#6c757d; }
+
+        /* Rata tengah kolom Account agar sejajar dan tidak terlihat miring. */
+        .table-custom th.account-column,
+        .table-custom td.account-column {
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+        .table-custom td.account-column .account-name {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 100%;
+            text-align: center;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+            white-space: normal;
+        }
+        .table-custom td.account-column .account-name strong {
+            display: block;
+            width: 100%;
+            margin: 0 auto;
+            text-align: center;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="page-transactionrequest">
@@ -117,7 +142,7 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <tr>
                             <th>No</th>
                             <th>Quotation Number</th>
-                            <th>Account</th>
+                            <th class="account-column">Account</th>
                             <th>Tanggal</th>
                             <th>Sales</th>
                             <th>Action</th>
@@ -133,7 +158,7 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?= htmlspecialchars($quotation['quotation_number'], ENT_QUOTES, 'UTF-8') ?>
                                     </a>
                                 </td>
-                                <td>
+                                <td class="account-column">
                                     <div class="account-name">
                                         <?php
                                             // Format nama customer: "PT, Merak Borindo Mandiri".
@@ -142,7 +167,7 @@ $quotations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             $jenisBadanUsaha = rtrim($jenisBadanUsaha, " ,.");
 
                                             if ($namaPerusahaan !== '' && $jenisBadanUsaha !== '') {
-                                                $namaCustomerTampil = $namaPerusahaan . ', ' . $jenisBadanUsaha;
+                                                $namaCustomerTampil = $jenisBadanUsaha . ', ' . $namaPerusahaan;
                                             } elseif ($namaPerusahaan !== '') {
                                                 $namaCustomerTampil = $namaPerusahaan;
                                             } elseif ($jenisBadanUsaha !== '') {
