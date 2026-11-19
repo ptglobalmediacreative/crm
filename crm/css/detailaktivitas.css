@@ -2518,3 +2518,73 @@ button {
   padding: 12px 15px;
   line-height: 1.5;
 }
+
+/* =========================================================
+   DETAIL AKTIVITAS — TIPE UNIT DI MODAL DETAIL
+   Mencegah nama produk panjang melebar keluar dari modal.
+   ========================================================= */
+.page-detailaktivitas .info-item {
+  min-width: 0;
+}
+
+.page-detailaktivitas .info-item .info-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.page-detailaktivitas .tipe-unit-detail-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.page-detailaktivitas .tipe-unit-detail-chip {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.13);
+  color: #dbeafe;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.page-detailaktivitas .tipe-unit-detail-qty {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(96, 165, 250, 0.18);
+  color: #bfdbfe;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 650px) {
+  .page-detailaktivitas .info-item .info-value {
+    width: 100%;
+  }
+
+  .page-detailaktivitas .tipe-unit-detail-chip {
+    width: 100%;
+    align-items: flex-start;
+  }
+}

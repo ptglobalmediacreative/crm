@@ -1971,6 +1971,18 @@ foreach ($detailsList as $d) {
             document.getElementById('quotationNumberPreviewAdd').style.display = this.value === 'yes' ? 'block' : 'none';
         });
 
+        function escapeDetailHtml(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[char];
+            });
+        }
+
         function viewDetail(data) {
             var html = `
                 <div class="info-card" style="margin-bottom: 0;">
@@ -1996,9 +2008,14 @@ foreach ($detailsList as $d) {
                     ${data.jenis_tugas === 'Prospecting' ? `
                     <div class="info-item">
                         <div class="info-label">Tipe Unit</div>
-                        <div class="info-value">${(data.tipe_unit_list || []).length
-                            ? data.tipe_unit_list.map(function(unit) { return '<span class="badge bg-primary me-1 mb-1">' + unit.nama_produk + ' : ' + (parseInt(unit.quantity, 10) || 1) + ' unit</span>'; }).join('')
-                            : '-'}
+                        <div class="info-value">
+                            ${(data.tipe_unit_list || []).length
+                                ? '<div class="tipe-unit-detail-list">' + data.tipe_unit_list.map(function(unit) {
+                                    var namaProduk = escapeDetailHtml(unit.nama_produk || '-');
+                                    var jumlahUnit = parseInt(unit.quantity, 10) || 1;
+                                    return '<span class="tipe-unit-detail-chip">' + namaProduk + '<span class="tipe-unit-detail-qty">' + jumlahUnit + ' unit</span></span>';
+                                }).join('') + '</div>'
+                                : '-'}
                         </div>
                     </div>` : ''}
                     <div class="info-item">
