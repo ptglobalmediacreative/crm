@@ -764,6 +764,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
             a.badan_usaha,
             a.bidang_usaha,
             a.area,
+            a.lead_source,
             a.nama_pic,
             a.no_hp_pic,
             a.email_pic,
@@ -869,6 +870,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<th>Nama Perusahaan</th>';
     echo '<th>Business Segment</th>';
     echo '<th>Area</th>';
+    echo '<th>Lead Source</th>';
     echo '<th>Jenis Prospek</th>';
     echo '<th>Status</th>';
     echo '<th>Nama PIC</th>';
@@ -906,6 +908,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         echo '<td>' . htmlspecialchars($namaPerusahaan) . '</td>';
         echo '<td>' . htmlspecialchars($act['bidang_usaha'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($act['area'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($act['lead_source'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($jenisProspek) . '</td>';
         echo '<td>' . htmlspecialchars($statusProspek) . '</td>';
         echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>';
@@ -921,7 +924,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 
     if (empty($exportActivities)) {
         echo '<tr>';
-        echo '<td colspan="11" style="text-align:center;">Tidak ada data Sales Activity</td>';
+        echo '<td colspan="12" style="text-align:center;">Tidak ada data Sales Activity</td>';
         echo '</tr>';
     }
 
@@ -986,7 +989,7 @@ if ($page > $totalPages) {
     $offset = ($page - 1) * $limit;
 }
 
-$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.area, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
+$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.area, a.lead_source, a.nama_referensi, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
         FROM sales_activities sa 
         LEFT JOIN accounts a ON sa.account_id = a.id 
         LEFT JOIN users u ON sa.sales_id = u.id
@@ -1053,7 +1056,7 @@ unset($act);
 // AMBIL DATA ACCOUNTS UNTUK DROPDOWN
 // ============================================
 if (!$canViewAllReport) {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, area, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, area, lead_source, nama_referensi, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
                     FROM accounts
                     WHERE sales_id = ?
                     ORDER BY nama_pt ASC";
@@ -1061,7 +1064,7 @@ if (!$canViewAllReport) {
     $stmt->execute([$userId]);
     $accountsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, area, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, area, lead_source, nama_referensi, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
                     FROM accounts ORDER BY nama_pt ASC";
     $accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -1241,6 +1244,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <th>Nama Perusahaan</th>
                                 <th>Business Segment</th>
                                 <th>Area</th>
+                                <th>Lead Source</th>
                                 <th>Jenis Prospek</th>
                                 <th>Tipe Unit</th>
                                 <th>Status</th>
@@ -1264,6 +1268,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                         <td><?= htmlspecialchars(trim(($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? '')) ?: '-') ?></td>
                                         <td><?= htmlspecialchars($act['bidang_usaha'] ?? '-') ?></td>
                                         <td><?= htmlspecialchars($act['area'] ?? '-') ?></td>
+                                        <td><?= htmlspecialchars($act['lead_source'] ?? '-') ?></td>
                                         <td>
                                             <?php 
                                                 $jenisProspek = $act['jenis_prospek'] ?? null;
@@ -1353,7 +1358,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="12" class="text-center py-4 text-muted">
+                                    <td colspan="13" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data aktivitas
                                     </td>
                                 </tr>
@@ -1415,6 +1420,8 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                         data-badan_usaha="<?= htmlspecialchars($acc['badan_usaha'] ?? 'PT') ?>"
                                         data-bidang_usaha="<?= htmlspecialchars($acc['bidang_usaha'] ?? '-') ?>"
                                         data-area="<?= htmlspecialchars($acc['area'] ?? '-') ?>"
+                                        data-lead_source="<?= htmlspecialchars($acc['lead_source'] ?? '-') ?>"
+                                        data-nama_referensi="<?= htmlspecialchars($acc['nama_referensi'] ?? '-') ?>"
                                         data-nama_pic="<?= htmlspecialchars($acc['nama_pic'] ?? '-') ?>"
                                         data-no_hp_pic="<?= htmlspecialchars($acc['no_hp_pic'] ?? '-') ?>"
                                         data-sales_id="<?= $acc['sales_id'] ?? '' ?>">
@@ -1434,9 +1441,19 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <input type="text" id="bidang_usaha" class="form-control" readonly>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Area</label>
-                            <input type="text" id="area_account" class="form-control" readonly>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Area</label>
+                                <input type="text" id="area_account" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Source</label>
+                                <input type="text" id="lead_source_account" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="nama_referensi_account_wrap" style="display:none;">
+                            <label class="form-label">Nama Referensi</label>
+                            <input type="text" id="nama_referensi_account" class="form-control" readonly>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -1548,6 +1565,16 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                     $('#badan_usaha').val(selectedOption.data('badan_usaha'));
                     $('#bidang_usaha').val(selectedOption.data('bidang_usaha'));
                     $('#area_account').val(selectedOption.data('area'));
+                    var leadSource = selectedOption.data('lead_source') || '-';
+                    var namaReferensi = selectedOption.data('nama_referensi') || '-';
+                    $('#lead_source_account').val(leadSource);
+                    if (String(leadSource).toLowerCase() === 'referensi' && namaReferensi !== '-') {
+                        $('#nama_referensi_account').val(namaReferensi);
+                        $('#nama_referensi_account_wrap').show();
+                    } else {
+                        $('#nama_referensi_account').val('');
+                        $('#nama_referensi_account_wrap').hide();
+                    }
                     $('#nama_pic').val(selectedOption.data('nama_pic'));
                     $('#no_hp_pic').val(selectedOption.data('no_hp_pic'));
                     
@@ -1569,6 +1596,9 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                     $('#badan_usaha').val('');
                     $('#bidang_usaha').val('');
                     $('#area_account').val('');
+                    $('#lead_source_account').val('');
+                    $('#nama_referensi_account').val('');
+                    $('#nama_referensi_account_wrap').hide();
                     $('#nama_pic').val('');
                     $('#no_hp_pic').val('');
                     $('#sales_id_hidden').val('');
@@ -1720,6 +1750,9 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                         <div class="activity-detail-field"><span class="activity-detail-label">Nama PT</span><span class="activity-detail-value">${esc(data.nama_pt)}</span></div>
                         <div class="activity-detail-field"><span class="activity-detail-label">Badan Usaha</span><span class="activity-detail-value">${esc(data.badan_usaha)}</span></div>
                         <div class="activity-detail-field"><span class="activity-detail-label">Business Segment</span><span class="activity-detail-value">${esc(data.bidang_usaha)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Area</span><span class="activity-detail-value">${esc(data.area)}</span></div>
+                        <div class="activity-detail-field"><span class="activity-detail-label">Lead Source</span><span class="activity-detail-value">${esc(data.lead_source)}</span></div>
+                        ${String(data.lead_source || '').toLowerCase() === 'referensi' ? `<div class="activity-detail-field"><span class="activity-detail-label">Nama Referensi</span><span class="activity-detail-value">${esc(data.nama_referensi)}</span></div>` : ''}
                     </div>
                 </div>
 
