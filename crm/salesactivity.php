@@ -763,6 +763,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
             a.nama_pt,
             a.badan_usaha,
             a.bidang_usaha,
+            a.area,
             a.nama_pic,
             a.no_hp_pic,
             a.email_pic,
@@ -867,6 +868,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     echo '<th>Activity Number</th>';
     echo '<th>Nama Perusahaan</th>';
     echo '<th>Business Segment</th>';
+    echo '<th>Area</th>';
     echo '<th>Jenis Prospek</th>';
     echo '<th>Status</th>';
     echo '<th>Nama PIC</th>';
@@ -903,6 +905,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         echo '<td>' . htmlspecialchars($act['leads_number'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($namaPerusahaan) . '</td>';
         echo '<td>' . htmlspecialchars($act['bidang_usaha'] ?? '-') . '</td>';
+        echo '<td>' . htmlspecialchars($act['area'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($jenisProspek) . '</td>';
         echo '<td>' . htmlspecialchars($statusProspek) . '</td>';
         echo '<td>' . htmlspecialchars($act['nama_pic'] ?? '-') . '</td>';
@@ -918,7 +921,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 
     if (empty($exportActivities)) {
         echo '<tr>';
-        echo '<td colspan="10" style="text-align:center;">Tidak ada data Sales Activity</td>';
+        echo '<td colspan="11" style="text-align:center;">Tidak ada data Sales Activity</td>';
         echo '</tr>';
     }
 
@@ -983,7 +986,7 @@ if ($page > $totalPages) {
     $offset = ($page - 1) * $limit;
 }
 
-$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
+$sql = "SELECT sa.*, a.nama_pt, a.badan_usaha, a.bidang_usaha, a.area, a.nama_pic, a.no_hp_pic, a.email_pic, u.full_name as sales_name
         FROM sales_activities sa 
         LEFT JOIN accounts a ON sa.account_id = a.id 
         LEFT JOIN users u ON sa.sales_id = u.id
@@ -1050,7 +1053,7 @@ unset($act);
 // AMBIL DATA ACCOUNTS UNTUK DROPDOWN
 // ============================================
 if (!$canViewAllReport) {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, area, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
                     FROM accounts
                     WHERE sales_id = ?
                     ORDER BY nama_pt ASC";
@@ -1058,7 +1061,7 @@ if (!$canViewAllReport) {
     $stmt->execute([$userId]);
     $accountsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
+    $sqlAccounts = "SELECT id, nama_pt, badan_usaha, bidang_usaha, area, nama_pic, no_hp_pic, npwp, alamat, email_pic, sales_id
                     FROM accounts ORDER BY nama_pt ASC";
     $accountsList = $db->query($sqlAccounts)->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -1237,6 +1240,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <th>Activity Number</th>
                                 <th>Nama Perusahaan</th>
                                 <th>Business Segment</th>
+                                <th>Area</th>
                                 <th>Jenis Prospek</th>
                                 <th>Tipe Unit</th>
                                 <th>Status</th>
@@ -1259,6 +1263,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                         </td>
                                         <td><?= htmlspecialchars(trim(($act['nama_pt'] ?? '') . ', ' . ($act['badan_usaha'] ?? '')) ?: '-') ?></td>
                                         <td><?= htmlspecialchars($act['bidang_usaha'] ?? '-') ?></td>
+                                        <td><?= htmlspecialchars($act['area'] ?? '-') ?></td>
                                         <td>
                                             <?php 
                                                 $jenisProspek = $act['jenis_prospek'] ?? null;
@@ -1348,7 +1353,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
+                                    <td colspan="12" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox me-2"></i> Belum ada data aktivitas
                                     </td>
                                 </tr>
@@ -1409,6 +1414,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                     <option value="<?= $acc['id'] ?>" 
                                         data-badan_usaha="<?= htmlspecialchars($acc['badan_usaha'] ?? 'PT') ?>"
                                         data-bidang_usaha="<?= htmlspecialchars($acc['bidang_usaha'] ?? '-') ?>"
+                                        data-area="<?= htmlspecialchars($acc['area'] ?? '-') ?>"
                                         data-nama_pic="<?= htmlspecialchars($acc['nama_pic'] ?? '-') ?>"
                                         data-no_hp_pic="<?= htmlspecialchars($acc['no_hp_pic'] ?? '-') ?>"
                                         data-sales_id="<?= $acc['sales_id'] ?? '' ?>">
@@ -1427,6 +1433,10 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                                 <label class="form-label">Business Segment</label>
                                 <input type="text" id="bidang_usaha" class="form-control" readonly>
                             </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Area</label>
+                            <input type="text" id="area_account" class="form-control" readonly>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -1537,6 +1547,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                 if (selectedOption.val()) {
                     $('#badan_usaha').val(selectedOption.data('badan_usaha'));
                     $('#bidang_usaha').val(selectedOption.data('bidang_usaha'));
+                    $('#area_account').val(selectedOption.data('area'));
                     $('#nama_pic').val(selectedOption.data('nama_pic'));
                     $('#no_hp_pic').val(selectedOption.data('no_hp_pic'));
                     
@@ -1557,6 +1568,7 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                 } else {
                     $('#badan_usaha').val('');
                     $('#bidang_usaha').val('');
+                    $('#area_account').val('');
                     $('#nama_pic').val('');
                     $('#no_hp_pic').val('');
                     $('#sales_id_hidden').val('');
