@@ -1000,6 +1000,14 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
 
+// Ringkasan dan rentang nomor halaman untuk pagination yang ringkas.
+$startItem = $totalData > 0 ? ($offset + 1) : 0;
+$endItem = min($offset + count($activities), (int)$totalData);
+$paginationWindow = 5;
+$paginationStart = max(1, min($page - 2, $totalPages - $paginationWindow + 1));
+$paginationEnd = min($totalPages, $paginationStart + $paginationWindow - 1);
+
+
 // Ambil Jenis Tugas terakhir dari activity_details untuk setiap Sales Activity.
 // Diambil berdasarkan Activity Number / sales_activity_id masing-masing.
 $lastActivityStmt = $db->prepare("
@@ -1367,25 +1375,66 @@ if ($search !== '') $filterQuery .= '&search=' . urlencode($search);
                     </table>
                 </div>
             </div>
-            <?php if ($totalPages > 1): ?>
-                <div class="card-footer bg-transparent border-top p-3">
-                    <nav>
-                        <ul class="pagination pagination-sm justify-content-end mb-0">
-                            <?php if ($page > 1): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page - 1 ?><?= $filterQuery ?>">Prev</a></li>
+            <div class="card-footer salesactivity-pagination-footer">
+                <div class="salesactivity-pagination-info">
+                    Menampilkan <strong><?= number_format($startItem) ?></strong>–<strong><?= number_format($endItem) ?></strong>
+                    dari <strong><?= number_format((int)$totalData) ?></strong> aktivitas
+                </div>
+
+                <?php if ($totalPages > 1): ?>
+                    <nav class="salesactivity-pagination-nav" aria-label="Navigasi halaman Sales Activity">
+                        <ul class="pagination salesactivity-pagination mb-0">
+                            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                                <?php if ($page > 1): ?>
+                                    <a class="page-link" href="?page=<?= $page - 1 ?><?= $filterQuery ?>" aria-label="Halaman sebelumnya">
+                                        <i class="fas fa-chevron-left"></i><span>Sebelumnya</span>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link"><i class="fas fa-chevron-left"></i><span>Sebelumnya</span></span>
+                                <?php endif; ?>
+                            </li>
+
+                            <?php if ($paginationStart > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1<?= $filterQuery ?>" aria-label="Halaman 1">1</a>
+                                </li>
+                                <?php if ($paginationStart > 2): ?>
+                                    <li class="page-item disabled salesactivity-pagination-ellipsis"><span class="page-link">…</span></li>
+                                <?php endif; ?>
                             <?php endif; ?>
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?><?= $filterQuery ?>"><?= $i ?></a>
+
+                            <?php for ($i = $paginationStart; $i <= $paginationEnd; $i++): ?>
+                                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                                    <?php if ($i === $page): ?>
+                                        <span class="page-link" aria-current="page"><?= $i ?></span>
+                                    <?php else: ?>
+                                        <a class="page-link" href="?page=<?= $i ?><?= $filterQuery ?>"><?= $i ?></a>
+                                    <?php endif; ?>
                                 </li>
                             <?php endfor; ?>
-                            <?php if ($page < $totalPages): ?>
-                                <li class="page-item"><a class="page-link" href="?page=<?= $page + 1 ?><?= $filterQuery ?>">Next</a></li>
+
+                            <?php if ($paginationEnd < $totalPages): ?>
+                                <?php if ($paginationEnd < $totalPages - 1): ?>
+                                    <li class="page-item disabled salesactivity-pagination-ellipsis"><span class="page-link">…</span></li>
+                                <?php endif; ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<?= $totalPages ?><?= $filterQuery ?>" aria-label="Halaman <?= $totalPages ?>"><?= $totalPages ?></a>
+                                </li>
                             <?php endif; ?>
+
+                            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                                <?php if ($page < $totalPages): ?>
+                                    <a class="page-link" href="?page=<?= $page + 1 ?><?= $filterQuery ?>" aria-label="Halaman berikutnya">
+                                        <span>Berikutnya</span><i class="fas fa-chevron-right"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link"><span>Berikutnya</span><i class="fas fa-chevron-right"></i></span>
+                                <?php endif; ?>
+                            </li>
                         </ul>
                     </nav>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
     <?php require_once 'footer.php'; ?>
 </main>

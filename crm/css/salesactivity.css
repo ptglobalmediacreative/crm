@@ -3082,3 +3082,198 @@ button {
     font-size: 13px;
   }
 }
+
+/* =========================================================
+   SALES ACTIVITY — FINAL CLEANUP
+   Scoped overrides: pagination, table container, and responsive spacing.
+   Shared CRM styles above remain intact for other pages.
+   ========================================================= */
+
+.page-salesactivity {
+  min-width: 0;
+}
+
+.page-salesactivity .card-custom {
+  min-width: 0;
+}
+
+.page-salesactivity .card-custom .card-body-custom,
+.page-salesactivity .card-custom .table-responsive {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-salesactivity .table-custom {
+  min-width: 1080px;
+  width: 100%;
+}
+
+/* Pagination footer */
+.page-salesactivity .salesactivity-pagination-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 20px;
+  flex-wrap: wrap;
+  min-width: 0;
+  padding: 14px 18px !important;
+  background: rgba(5, 12, 25, 0.35) !important;
+  border-top: 1px solid rgba(148, 163, 184, 0.1) !important;
+}
+
+.page-salesactivity .salesactivity-pagination-info {
+  color: #8190a8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.page-salesactivity .salesactivity-pagination-info strong {
+  color: #dbe5f5;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-salesactivity .salesactivity-pagination-nav {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.page-salesactivity .salesactivity-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0 !important;
+  padding: 0;
+}
+
+.page-salesactivity .salesactivity-pagination .page-item {
+  margin: 0;
+}
+
+.page-salesactivity .salesactivity-pagination .page-link {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0 10px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.14) !important;
+  border-radius: 8px !important;
+  background: #0a1427 !important;
+  color: #a7b4c9 !important;
+  font-size: 10px !important;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: none;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.page-salesactivity .salesactivity-pagination .page-link:hover {
+  border-color: rgba(96, 165, 250, 0.45) !important;
+  background: #122441 !important;
+  color: #fff !important;
+}
+
+.page-salesactivity .salesactivity-pagination .page-item.active .page-link {
+  border-color: #3b82f6 !important;
+  background: #2563eb !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.22);
+}
+
+.page-salesactivity .salesactivity-pagination .page-item.disabled .page-link {
+  border-color: rgba(148, 163, 184, 0.08) !important;
+  background: rgba(10, 20, 39, 0.45) !important;
+  color: #52627d !important;
+  opacity: 0.7;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.page-salesactivity
+  .salesactivity-pagination
+  .salesactivity-pagination-ellipsis
+  .page-link {
+  min-width: 20px;
+  padding: 0 2px !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: #64748b !important;
+}
+
+@media (max-width: 768px) {
+  .page-salesactivity .salesactivity-pagination-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 11px;
+    padding: 12px 14px !important;
+  }
+
+  .page-salesactivity .salesactivity-pagination-info {
+    text-align: center;
+  }
+
+  .page-salesactivity .salesactivity-pagination {
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .page-salesactivity .salesactivity-pagination .page-link {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .page-salesactivity .salesactivity-pagination {
+    gap: 3px;
+  }
+
+  .page-salesactivity .salesactivity-pagination .page-link {
+    min-width: 29px;
+    min-height: 30px;
+    padding: 0 6px !important;
+    font-size: 9px !important;
+  }
+
+  .page-salesactivity .salesactivity-pagination .page-link span {
+    display: none;
+  }
+
+  .page-salesactivity
+    .salesactivity-pagination
+    .page-item:first-child
+    .page-link,
+  .page-salesactivity
+    .salesactivity-pagination
+    .page-item:last-child
+    .page-link {
+    min-width: 34px;
+  }
+
+  .page-salesactivity
+    .salesactivity-pagination
+    .page-item:first-child
+    .page-link
+    i,
+  .page-salesactivity
+    .salesactivity-pagination
+    .page-item:last-child
+    .page-link
+    i {
+    margin: 0;
+  }
+}
